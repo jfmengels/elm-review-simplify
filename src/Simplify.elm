@@ -11577,7 +11577,7 @@ recordAccessChecks checkInfo =
             Just
                 { info =
                     { message = "Field access can be simplified"
-                    , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
+                    , details = [ "Accessing the field of a record or record update can be simplified to just that field's value." ]
                     }
                 , fix = replaceBySubExpressionFix checkInfo.nodeRange setter
                 }
@@ -11588,7 +11588,7 @@ recordAccessChecks checkInfo =
                     Just
                         { info =
                             { message = "Field access can be simplified"
-                            , details = [ "Accessing the field of an unrelated record update can be simplified to just the original field's value" ]
+                            , details = [ "Accessing the field of an unrelated record update can be simplified to just the original field's value." ]
                             }
                         , fix =
                             [ Fix.replaceRangeBy { start = checkInfo.nodeRange.start, end = recordNameRange.start } ""
@@ -11607,7 +11607,7 @@ distributeFieldAccess kind dotFieldRange branches fieldName =
             Just
                 { info =
                     { message = "Field access can be simplified"
-                    , details = [ "Accessing the field outside " ++ kind ++ " expression can be simplified to access the field inside it" ]
+                    , details = [ "Accessing the field outside " ++ kind ++ " expression can be simplified to access the field inside it." ]
                     }
                 , fix =
                     Fix.removeRange dotFieldRange
@@ -11622,7 +11622,7 @@ injectRecordAccessIntoLetExpression : Range -> Node Expression -> String -> Erro
 injectRecordAccessIntoLetExpression dotFieldRange letBody fieldName =
     { info =
         { message = "Field access can be simplified"
-        , details = [ "Accessing the field outside a let/in expression can be simplified to access the field inside it" ]
+        , details = [ "Accessing the field outside a let/in expression can be simplified to access the field inside it." ]
         }
     , fix =
         Fix.removeRange dotFieldRange
