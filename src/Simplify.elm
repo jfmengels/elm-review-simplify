@@ -783,6 +783,12 @@ Destructuring using case expressions
     List.drop 0 list
     --> list
 
+    List.take n []
+    --> []
+
+    List.drop n []
+    --> []
+
     List.reverse []
     --> []
 
