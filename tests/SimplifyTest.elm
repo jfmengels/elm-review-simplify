@@ -4509,7 +4509,7 @@ a = True
 """
                         , Review.Test.error
                             { message = "Field access can be simplified"
-                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
+                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value." ]
                             , under = ".a"
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 37 }, end = { row = 2, column = 39 } }
@@ -4518,7 +4518,7 @@ a = ({ a = 1 }).a == (2 - 1)
 """
                         , Review.Test.error
                             { message = "Field access can be simplified"
-                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
+                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value." ]
                             , under = ".a"
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 16 }, end = { row = 2, column = 18 } }
@@ -4551,7 +4551,7 @@ a = ({ a = 1 }).a == ({ a = 1 }).b
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Field access can be simplified"
-                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value" ]
+                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value." ]
                             , under = ".a"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
