@@ -1904,10 +1904,6 @@ declarationVisitor declarationNode context =
     case Node.value declarationNode of
         Declaration.CustomTypeDeclaration variantType ->
             let
-                variantTypeName : String
-                variantTypeName =
-                    Node.value variantType.name
-
                 variantsAreExposed : Bool
                 variantsAreExposed =
                     case context.exposed of
@@ -1915,7 +1911,7 @@ declarationVisitor declarationNode context =
                             True
 
                         ExposingSomeContext exposingSome ->
-                            Set.member variantTypeName exposingSome.typesExposingVariants
+                            Set.member (Node.value variantType.name) exposingSome.typesExposingVariants
             in
             if variantsAreExposed then
                 let
