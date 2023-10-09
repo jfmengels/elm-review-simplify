@@ -10,7 +10,7 @@ module Simplify.AstHelpers exposing
     , boolToString, orderToString, emptyStringAsString
     , moduleNameFromString, qualifiedName, qualifiedModuleName, qualifiedToString
     , declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
-    , getTypeExposeIncludingVariants, nameOfExpose
+    , nameOfExpose
     )
 
 {-|
@@ -49,7 +49,7 @@ module Simplify.AstHelpers exposing
 ### misc
 
 @docs declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
-@docs getTypeExposeIncludingVariants, nameOfExpose
+@docs nameOfExpose
 
 -}
 
@@ -814,27 +814,6 @@ isSpecificUnappliedBinaryOperation symbol checkInfo expression =
         -- not a known simple operator function
         _ ->
             False
-
-
-getTypeExposeIncludingVariants : Exposing.TopLevelExpose -> Maybe String
-getTypeExposeIncludingVariants expose =
-    case expose of
-        Exposing.InfixExpose _ ->
-            Nothing
-
-        Exposing.FunctionExpose _ ->
-            Nothing
-
-        Exposing.TypeOrAliasExpose _ ->
-            Nothing
-
-        Exposing.TypeExpose variantType ->
-            case variantType.open of
-                Nothing ->
-                    Nothing
-
-                Just _ ->
-                    Just variantType.name
 
 
 nameOfExpose : Exposing.TopLevelExpose -> String
