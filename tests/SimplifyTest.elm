@@ -6921,7 +6921,7 @@ e = String.toList << (f << String.fromList)
                 """module A exposing (..)
 a = x |> f |> String.fromList |> String.toList
 """
-                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "String.fromList, then String.toList cancels each other out"
@@ -7146,7 +7146,7 @@ a = String.fromChar (f b)
                 """module A exposing (..)
 a = String.fromList (List.singleton char)
 """
-                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "String.fromList on a singleton list will result in String.fromChar with the value inside"
@@ -7162,7 +7162,7 @@ a = String.fromChar char
                 """module A exposing (..)
 a = List.singleton >> String.fromList
 """
-                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "String.fromList on a singleton list will result in String.fromChar with the value inside"
@@ -7178,7 +7178,7 @@ a = String.fromChar
                 """module A exposing (..)
 a = x |> f |> String.toList |> String.fromList
 """
-                    |> Review.Test.run (rule defaults)
+                    |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "String.toList, then String.fromList cancels each other out"
