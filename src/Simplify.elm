@@ -8637,17 +8637,21 @@ maybeWithJustAsWrap =
             \resources ->
                 qualifiedToString (qualify Fn.Maybe.nothingVariant resources)
         }
-    , wrap =
-        { description = A "just maybe"
-        , fn = Fn.Maybe.justVariant
-        , getValue =
-            \lookupTable expr ->
-                Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant lookupTable expr)
-        , is =
-            \res expr ->
-                isJust (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant res.lookupTable expr)
-        }
+    , wrap = maybeJustConstructProperties
     , mapFn = Fn.Maybe.map
+    }
+
+
+maybeJustConstructProperties : ConstructWithOneArgProperties
+maybeJustConstructProperties =
+    { description = A "just maybe"
+    , fn = Fn.Maybe.justVariant
+    , getValue =
+        \lookupTable expr ->
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant lookupTable expr)
+    , is =
+        \res expr ->
+            isJust (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant res.lookupTable expr)
     }
 
 
