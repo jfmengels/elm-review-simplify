@@ -40,6 +40,11 @@
 - `Array.toList Array.empty` to `[]`
 - `Array.toList (Array.repeat n a)` to `List.repeat n a`
 - `Array.toIndexedList Array.empty` to `[]`
+- `Array.slice n n array` to `Array.empty`
+- `Array.slice n 0 array` to `Array.empty`
+- `Array.slice a z Array.empty` to `Array.empty`
+- `Array.slice 2 1 array` to `Array.empty`
+- `Array.slice -1 -2 array` to `Array.empty`
 - `List.map Tuple.second (Array.toIndexedList array)` to `Array.toList array`
 - `Result.map f << Err` to `Err`
 - `Result.andThen f << Err` to `Err`
