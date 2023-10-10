@@ -2708,15 +2708,15 @@ a = List.filterMap identity (List.map f x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
-                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                            { message = "List.map, then List.filterMap with an identity function can be combined into List.filterMap"
+                            , details = [ "You can replace this call by List.filterMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (List.filterMap f x)
 """
                         ]
-        , test "should replace List.filterMap identity <| List.map f <| x by (List.filterMap f <| x)" <|
+        , test "should replace List.filterMap identity <| List.map f <| x by List.filterMap f <| x" <|
             \() ->
                 """module A exposing (..)
 a = List.filterMap identity <| List.map f <| x
@@ -2724,15 +2724,15 @@ a = List.filterMap identity <| List.map f <| x
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
-                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                            { message = "List.map, then List.filterMap with an identity function can be combined into List.filterMap"
+                            , details = [ "You can replace this call by List.filterMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (List.filterMap f <| x)
+a = List.filterMap f <| x
 """
                         ]
-        , test "should replace x |> List.map f |> List.filterMap identity by (x |> List.filterMap f)" <|
+        , test "should replace x |> List.map f |> List.filterMap identity by x |> List.filterMap f" <|
             \() ->
                 """module A exposing (..)
 a = x |> List.map f |> List.filterMap identity
@@ -2740,12 +2740,12 @@ a = x |> List.map f |> List.filterMap identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
-                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                            { message = "List.map, then List.filterMap with an identity function can be combined into List.filterMap"
+                            , details = [ "You can replace this call by List.filterMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (x |> List.filterMap f)
+a = x |> List.filterMap f
 """
                         ]
         , test "should replace List.map f >> List.filterMap identity by List.filterMap f" <|
@@ -2756,8 +2756,8 @@ a = List.map f >> List.filterMap identity
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
-                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                            { message = "List.map, then List.filterMap with an identity function can be combined into List.filterMap"
+                            , details = [ "You can replace this composition by List.filterMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2795,8 +2795,8 @@ a = List.filterMap identity << List.map f
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.map and List.filterMap identity can be combined using List.filterMap"
-                            , details = [ "List.filterMap is meant for this exact purpose and will also be faster." ]
+                            { message = "List.map, then List.filterMap with an identity function can be combined into List.filterMap"
+                            , details = [ "You can replace this composition by List.filterMap with the same arguments given to List.map which is meant for this exact purpose." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
