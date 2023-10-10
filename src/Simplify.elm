@@ -8047,27 +8047,52 @@ listOfWrapperSequenceChecks wrapper =
         ]
 
 
-listOfMappableSequenceCompositionChecks : TypeProperties { otherProperties | mapFn : ( ModuleName, String ) } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listOfMappableSequenceCompositionChecks mappable checkInfo =
-    case checkInfo.earlier.fn of
-        ( [ "List" ], "singleton" ) ->
-            let
-                replacement : QualifyResources a -> String
-                replacement qualifyResources =
-                    qualifiedToString (qualify mappable.mapFn qualifyResources)
-                        ++ " "
-                        ++ qualifiedToString (qualify Fn.List.singleton qualifyResources)
-            in
-            Just
-                { info =
-                    { message = qualifiedToString checkInfo.later.fn ++ " on a singleton list is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
-                    , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
-                    }
-                , fix = compositionReplaceByFix (replacement checkInfo) checkInfo
-                }
+listOfMappableSequenceCompositionChecks : { otherProperties | mapFn : ( ModuleName, String ) } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+listOfMappableSequenceCompositionChecks mappable =
+    wrapperOfMappableCompositionCheck ( listCollection, mappable )
 
-        _ ->
-            Nothing
+
+{-| The sequence composition check
+
+    sequence << wrap --> map wrap
+
+So for example
+
+    Task.sequence << List.singleton
+    --: Task x a -> Task x (List a)
+    --> Task.map List.singleton
+
+Note that some functions called "sequence" have equal element and result types, like
+
+    Bytes.Encode.sequence << List.singleton
+    --: Bytes.Encode.Encoder -> Bytes.Encode.Encoder
+
+which means you can simplify them to `identity` using `unnecessaryCompositionAfterWrapCheck`.
+
+-}
+wrapperOfMappableCompositionCheck :
+    ( WrapperProperties wrapperOtherProperties, { valueOtherProperties | mapFn : ( ModuleName, String ) } )
+    -> CompositionIntoCheckInfo
+    -> Maybe ErrorInfoAndFix
+wrapperOfMappableCompositionCheck ( wrapper, valueMappable ) checkInfo =
+    if checkInfo.earlier.fn == wrapper.wrap.fn then
+        let
+            replacement : QualifyResources a -> String
+            replacement qualifyResources =
+                qualifiedToString (qualify valueMappable.mapFn qualifyResources)
+                    ++ " "
+                    ++ qualifiedToString (qualify wrapper.wrap.fn qualifyResources)
+        in
+        Just
+            { info =
+                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
+                , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
+                }
+            , fix = compositionReplaceByFix (replacement checkInfo) checkInfo
+            }
+
+    else
+        Nothing
 
 
 
