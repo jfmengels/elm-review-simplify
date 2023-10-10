@@ -6602,6 +6602,7 @@ mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks mappable che
 
 
 {-| Simplify this operation after a given call to `fromFn` into a given `combinedFn`.
+If the `fromFn` call isn't the first argument, use `onFnCallCanBeCombinedCheck`
 
 Examples:
 
@@ -6619,12 +6620,34 @@ callFromCanBeCombinedCheck :
     -> CheckInfo
     -> Maybe (Error {})
 callFromCanBeCombinedCheck config checkInfo =
-    case AstHelpers.getSpecificFnCall config.fromFn checkInfo.lookupTable checkInfo.firstArg of
+    onFnCallCanBeCombinedCheck
+        { laterOperationDescription = qualifiedToString checkInfo.fn
+        , earlierFn = config.fromFn
+        , combinedFn = config.combinedFn
+        }
+        checkInfo
+
+
+{-| Simplify this operation after a given call to `earlierFn` into a given `combinedFn`.
+
+Examples:
+
+  - `List.filterMap identity (List.map f list) --> List.filterMap f list`
+  - `traverse identity (map f a) --> traverse f a`
+  - those listed in `callFromCanBeCombinedCheck`
+
+-}
+onFnCallCanBeCombinedCheck :
+    { laterOperationDescription : String, earlierFn : ( ModuleName, String ), combinedFn : ( ModuleName, String ) }
+    -> CheckInfo
+    -> Maybe (Error {})
+onFnCallCanBeCombinedCheck config checkInfo =
+    case Maybe.andThen (AstHelpers.getSpecificFnCall config.earlierFn checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
         Just fromFnCall ->
             Just
                 (Rule.errorWithFix
-                    { message = qualifiedToString config.fromFn ++ ", then " ++ qualifiedToString checkInfo.fn ++ " can be combined into " ++ qualifiedToString config.combinedFn
-                    , details = [ "You can replace this call by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.fromFn ++ " which is meant for this exact purpose." ]
+                    { message = qualifiedToString config.earlierFn ++ ", then " ++ config.laterOperationDescription ++ " can be combined into " ++ qualifiedToString config.combinedFn
+                    , details = [ "You can replace this call by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.earlierFn ++ " which is meant for this exact purpose." ]
                     }
                     checkInfo.fnRange
                     (Fix.replaceRangeBy
