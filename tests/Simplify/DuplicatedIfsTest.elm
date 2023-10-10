@@ -5,12 +5,6 @@ import Test exposing (Test, describe, test)
 import TestHelpers exposing (ruleWithDefaults)
 
 
-sameThingOnBothSidesDetails : String -> List String
-sameThingOnBothSidesDetails value =
-    [ "Based on the values and/or the context, we can determine the result. You can replace this operation by " ++ value ++ "."
-    ]
-
-
 all : Test
 all =
     describe "Duplicated if conditions"
@@ -392,7 +386,7 @@ a =
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "x == 1"
                             }
                             |> Review.Test.atExactly { start = { row = 4, column = 8 }, end = { row = 4, column = 14 } }
@@ -423,7 +417,7 @@ a =
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "x == \"b\""
                             }
                             |> Review.Test.atExactly { start = { row = 4, column = 8 }, end = { row = 4, column = 16 } }
@@ -454,7 +448,7 @@ a =
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "item.name == \"Sulfuras, Hand of Ragnaros\""
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -484,7 +478,7 @@ a =
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "x == 2"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -582,7 +576,7 @@ a =
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(/=) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "x /= 1"
                             }
                             |> Review.Test.atExactly { start = { row = 5, column = 11 }, end = { row = 5, column = 17 } }
@@ -611,7 +605,7 @@ a =
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "x == 1"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -719,7 +713,7 @@ a =
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "x == 1"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
