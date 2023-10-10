@@ -8872,6 +8872,13 @@ getAbsorbingExpressionNode absorbable inferResources expressionNode =
     else
         Nothing
 
+getValueWithNodeRange :
+    (Node Expression -> Maybe (Node Expression))
+    -> Node Expression
+    -> Maybe { value : Node Expression, nodeRange : Range }
+getValueWithNodeRange getValue expressionNode =
+    Maybe.map (\value -> { value = value, nodeRange = Node.range expressionNode })
+        (getValue expressionNode)
 
 fromListGetLiteral : ConstructibleFromListProperties otherProperties -> ModuleNameLookupTable -> Node Expression -> Maybe { range : Range, elements : List (Node Expression) }
 fromListGetLiteral constructibleFromList lookupTable expressionNode =
@@ -10021,13 +10028,7 @@ emptiableMapFlatChecks emptiable =
         ]
 
 
-getValueWithNodeRange :
-    (Node Expression -> Maybe (Node Expression))
-    -> Node Expression
-    -> Maybe { value : Node Expression, nodeRange : Range }
-getValueWithNodeRange getValue expressionNode =
-    Maybe.map (\value -> { value = value, nodeRange = Node.range expressionNode })
-        (getValue expressionNode)
+
 
 
 {-| `mapFlat f` on a wrapped value is equivalent to `f`
