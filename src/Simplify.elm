@@ -7117,7 +7117,7 @@ listSortByChecks =
                 Just _ ->
                     Just
                         (alwaysReturnsLastArgError
-                            (qualifiedToString checkInfo.fn ++ " (always a)")
+                            (qualifiedToString checkInfo.fn ++ " with a function that always returns the same constant")
                             listCollection
                             checkInfo
                         )
