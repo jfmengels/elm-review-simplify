@@ -8110,19 +8110,19 @@ sequenceOnWrappedIsEquivalentToMapWrapOnValue :
     ( WrapperProperties wrapperOtherProperties, WrapperProperties { elementOtherProperties | mapFn : ( ModuleName, String ) } )
     -> CheckInfo
     -> Maybe (Error {})
-sequenceOnWrappedIsEquivalentToMapWrapOnValue ( collection, elementWrapper ) checkInfo =
-    case collection.wrap.getValue checkInfo.lookupTable checkInfo.firstArg of
+sequenceOnWrappedIsEquivalentToMapWrapOnValue ( wrapper, elementWrapper ) checkInfo =
+    case wrapper.wrap.getValue checkInfo.lookupTable checkInfo.firstArg of
         Just wrappedValue ->
             let
                 replacement : QualifyResources a -> String
                 replacement qualifyResources =
                     qualifiedToString (qualify elementWrapper.mapFn qualifyResources)
                         ++ " "
-                        ++ qualifiedToString (qualify Fn.List.singleton qualifyResources)
+                        ++ qualifiedToString (qualify wrapper.wrap.fn qualifyResources)
             in
             Just
                 (Rule.errorWithFix
-                    { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite elementWrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
+                    { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
                     , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ " on the value inside the singleton list." ]
                     }
                     checkInfo.fnRange
