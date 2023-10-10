@@ -5923,7 +5923,7 @@ listSumChecks =
                 checkInfo
         , \checkInfo ->
             if checkInfo.expectNaN then
-                onCollectionWithAbsorbingChecks (qualifiedToString checkInfo.fn)
+                callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn)
                     ( listCollection, numberForAddProperties )
                     checkInfo
 
@@ -5948,12 +5948,12 @@ listProductChecks =
                 checkInfo
         , \checkInfo ->
             if checkInfo.expectNaN then
-                onCollectionWithAbsorbingChecks (qualifiedToString checkInfo.fn)
+                callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn)
                     ( listCollection, numberForMultiplyProperties )
                     checkInfo
 
             else
-                onCollectionWithAbsorbingChecks (qualifiedToString checkInfo.fn)
+                callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn)
                     ( listCollection, numberNotExpectingNaNForMultiplyProperties )
                     checkInfo
         ]
@@ -6227,12 +6227,12 @@ with `( listCollection, numberNotExpectingNaNForMultiplyProperties )` and a chec
     --> False
 
 -}
-onCollectionWithAbsorbingChecks :
+callOnCollectionWithAbsorbingElementChecks :
     String
     -> ( TypeProperties (CollectionProperties otherProperties), AbsorbableProperties elementOtherProperties )
     -> CheckInfo
     -> Maybe (Error {})
-onCollectionWithAbsorbingChecks situation ( collection, elementAbsorbable ) checkInfo =
+callOnCollectionWithAbsorbingElementChecks situation ( collection, elementAbsorbable ) checkInfo =
     case Maybe.andThen (collection.elements.get (extractInferResources checkInfo)) (fullyAppliedLastArg checkInfo) of
         Just elements ->
             case findMap (getAbsorbingExpressionNode elementAbsorbable checkInfo) elements.known of
@@ -6282,7 +6282,7 @@ collectionAllChecks collection =
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 firstThatConstructsJust
                     [ \() ->
-                        onCollectionWithAbsorbingChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
+                        callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
                             ( collection, boolForAndProperties )
                             checkInfo
                     , \() ->
@@ -6388,7 +6388,7 @@ collectionAnyChecks collection =
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                 firstThatConstructsJust
                     [ \() ->
-                        onCollectionWithAbsorbingChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
+                        callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
                             ( collection, boolForOrProperties )
                             checkInfo
                     , \() ->
