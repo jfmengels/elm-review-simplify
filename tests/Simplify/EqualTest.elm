@@ -5,12 +5,6 @@ import Test exposing (Test, describe, test)
 import TestHelpers exposing (ruleExpectingNaN, ruleWithDefaults)
 
 
-sameThingOnBothSidesDetails : String -> List String
-sameThingOnBothSidesDetails value =
-    [ "Based on the values and/or the context, we can determine the result. You can replace this operation by " ++ value ++ "."
-    ]
-
-
 all : Test
 all =
     describe "(==)"
@@ -170,7 +164,7 @@ a = x == x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "x == x"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -193,7 +187,7 @@ a = x == (x)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "x == (x)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -209,7 +203,7 @@ a = x /= x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(/=) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "x /= x"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -225,7 +219,7 @@ a = List.map (\\a -> a.value) things == List.map (\\a -> a.value) things
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "List.map (\\a -> a.value) things == List.map (\\a -> a.value) things"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -241,7 +235,7 @@ a = (f b) == (f <| b)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "(f b) == (f <| b)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -257,7 +251,7 @@ a = (f b c) == (f b <| c)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "(f b c) == (f b <| c)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -273,7 +267,7 @@ a = (f b) == (b |> f)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "(f b) == (b |> f)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -289,7 +283,7 @@ a = (f b c) == (c |> f b)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "(f b c) == (c |> f b)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -305,7 +299,7 @@ a = (f b c) == (c |> (b |> f))
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "(f b c) == (c |> (b |> f))"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -321,7 +315,7 @@ a = (let x = 1 in f b c) == (c |> (let x = 1 in f b))
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "(let x = 1 in f b c) == (c |> (let x = 1 in f b))"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -337,7 +331,7 @@ a = (if cond then f b c else g d c) == (c |> (if cond then f b else g d))
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "(if cond then f b c else g d c) == (c |> (if cond then f b else g d))"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -361,7 +355,7 @@ a = (case x of
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = """(case x of
         X -> f b c
         Y -> g d c
@@ -385,7 +379,7 @@ a = (b.c) == (.c b)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "(b.c) == (.c b)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -401,7 +395,7 @@ a = (b.c) == (.c <| b)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "(b.c) == (.c <| b)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -417,7 +411,7 @@ a = "a" == "b"
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "\"a\" == \"b\""
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -433,7 +427,7 @@ a = 'a' == 'b'
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "'a' == 'b'"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -449,7 +443,7 @@ a = "a" /= "b"
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(/=) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "\"a\" /= \"b\""
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -465,7 +459,7 @@ a = 1 == 2
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "1 == 2"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -481,7 +475,7 @@ a = 1 == 2.0
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "1 == 2.0"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -497,7 +491,7 @@ a = 1.0 == 2
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "1.0 == 2"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -513,7 +507,7 @@ a = 0x10 == 2
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "0x10 == 2"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -529,7 +523,7 @@ a = 1 + 3 == 2 + 5
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "1 + 3 == 2 + 5"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -545,7 +539,7 @@ a = 1 - 3 == 2 - 5
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "1 - 3 == 2 - 5"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -561,7 +555,7 @@ a = 2 * 3 == 2 * 5
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "2 * 3 == 2 * 5"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -577,7 +571,7 @@ a = 1 / 3 == 2 / 5
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "1 / 3 == 2 / 5"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -593,7 +587,7 @@ a = () == x
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "() == x"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -609,7 +603,7 @@ a = x == ()
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "x == ()"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -625,7 +619,7 @@ a = [ 1 ] == [ 1, 1 ]
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "[ 1 ] == [ 1, 1 ]"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -641,7 +635,7 @@ a = [ 1, 2 ] == [ 1, 1 ]
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "[ 1, 2 ] == [ 1, 1 ]"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -657,7 +651,7 @@ a = [ 1, 2 - 1 ] == [ 1, 1 ]
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "[ 1, 2 - 1 ] == [ 1, 1 ]"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -673,7 +667,7 @@ a = (1) == (2)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "(1) == (2)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -689,7 +683,7 @@ a = ( 1, 2 ) == ( 1, 1 )
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "( 1, 2 ) == ( 1, 1 )"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -705,7 +699,7 @@ a = { a = 1, b = 2 } == { b = 1, a = 1 }
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "{ a = 1, b = 2 } == { b = 1, a = 1 }"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -721,7 +715,7 @@ a = { x | a = 1 } == { x | a = 2 }
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "{ x | a = 1 } == { x | a = 2 }"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -737,7 +731,7 @@ a = { x | a = 1 } == { x | a = 1 }
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "{ x | a = 1 } == { x | a = 1 }"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -760,7 +754,7 @@ a = { x | a = 1 } == { y | a = 2 }
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "{ x | a = 1 } == { y | a = 2 }"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -801,7 +795,7 @@ b = 1
                         [ ( "A"
                           , [ Review.Test.error
                                 { message = "(==) comparison will result in True"
-                                , details = sameThingOnBothSidesDetails "True"
+                                , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                                 , under = "B.b == b"
                                 }
                                 |> Review.Test.whenFixed """module A exposing (..)
@@ -821,7 +815,7 @@ a = List.map fn 1 == map fn (2 - 1)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "List.map fn 1 == map fn (2 - 1)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -846,7 +840,7 @@ a = (if 1 then 2 else 3) == (if 2 - 1 then 3 - 1 else 4 - 1)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "(if 1 then 2 else 3) == (if 2 - 1 then 3 - 1 else 4 - 1)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -869,7 +863,7 @@ a = -1 == -(2 - 1)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "-1 == -(2 - 1)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -885,7 +879,7 @@ a = ({ a = 1 }).a == ({ a = 2 - 1 }).a
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "({ a = 1 }).a == ({ a = 2 - 1 }).a"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -919,7 +913,7 @@ a = (1 |> fn) == (2 - 1 |> fn)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(==) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "(1 |> fn) == (2 - 1 |> fn)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
