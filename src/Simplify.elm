@@ -7931,29 +7931,12 @@ listSequenceOrFirstEmptyChecks :
     WrapperProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
-listSequenceOrFirstEmptyChecks emptiable checkInfo =
-    case AstHelpers.getListLiteral checkInfo.firstArg of
-        Just list ->
-            firstThatConstructsJust
-                [ \() ->
-                    case List.filter (\el -> isNothing (emptiable.wrap.getValue checkInfo.lookupTable el)) list of
-                        firstNonWrappedElement :: _ ->
-                            if emptiable.empty.is (extractInferResources checkInfo) firstNonWrappedElement then
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = qualifiedToString checkInfo.fn ++ " on a list containing " ++ descriptionForIndefinite emptiable.empty.description ++ " will result in " ++ descriptionForDefinite "the first" emptiable.empty.description
-                                        , details = [ "You can replace this call by " ++ descriptionForDefinite "the first" emptiable.empty.description ++ " in the list." ]
-                                        }
-                                        checkInfo.fnRange
-                                        (replaceBySubExpressionFix checkInfo.parentRange firstNonWrappedElement)
-                                    )
-
-                            else
-                                Nothing
-
-                        [] ->
-                            Nothing
-                , \() ->
+listSequenceOrFirstEmptyChecks emptiable =
+    firstThatConstructsJust
+        [ sequenceOnCollectionWithKnownEmptyElementCheck ( listCollection, emptiable )
+        , \checkInfo ->
+            case AstHelpers.getListLiteral checkInfo.firstArg of
+                Just list ->
                     case findMapNeighboring (\el -> getEmpty checkInfo emptiable el) list of
                         Just emptyAndNeighbors ->
                             case emptyAndNeighbors.after of
@@ -7976,8 +7959,36 @@ listSequenceOrFirstEmptyChecks emptiable checkInfo =
 
                         Nothing ->
                             Nothing
-                ]
-                ()
+
+                Nothing ->
+                    Nothing
+        ]
+
+
+sequenceOnCollectionWithKnownEmptyElementCheck :
+    ( TypeProperties (CollectionProperties collectionOtherProperties), EmptiableProperties (TypeSubsetProperties empty) (WrapperProperties elementOtherProperties) )
+    -> CheckInfo
+    -> Maybe (Error {})
+sequenceOnCollectionWithKnownEmptyElementCheck ( collection, elementEmptiable ) checkInfo =
+    case collection.elements.get (extractInferResources checkInfo) checkInfo.firstArg of
+        Just elements ->
+            case List.filter (\el -> isNothing (elementEmptiable.wrap.getValue checkInfo.lookupTable el)) elements.known of
+                firstNonWrappedElement :: _ ->
+                    if elementEmptiable.empty.is (extractInferResources checkInfo) firstNonWrappedElement then
+                        Just
+                            (Rule.errorWithFix
+                                { message = qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " containing " ++ descriptionForIndefinite elementEmptiable.empty.description ++ " will result in " ++ descriptionForDefinite "the first" elementEmptiable.empty.description
+                                , details = [ "You can replace this call by " ++ descriptionForDefinite "the first" elementEmptiable.empty.description ++ " in the " ++ collection.represents ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                (replaceBySubExpressionFix checkInfo.parentRange firstNonWrappedElement)
+                            )
+
+                    else
+                        Nothing
+
+                [] ->
+                    Nothing
 
         Nothing ->
             Nothing
