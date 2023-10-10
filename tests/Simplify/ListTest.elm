@@ -6371,7 +6371,7 @@ a = List.sortBy (always b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortBy (always a) will always return the same given list"
+                            { message = "List.sortBy with a function that always returns the same constant will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortBy"
                             }
@@ -6387,7 +6387,7 @@ a = List.sortBy (always b) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortBy (always a) will always return the same given list"
+                            { message = "List.sortBy with a function that always returns the same constant will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sortBy"
                             }
@@ -6403,7 +6403,7 @@ a = List.sortBy (\\_ -> b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortBy (always a) will always return the same given list"
+                            { message = "List.sortBy with a function that always returns the same constant will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortBy"
                             }
@@ -6419,7 +6419,7 @@ a = List.sortBy (\\_ -> b) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortBy (always a) will always return the same given list"
+                            { message = "List.sortBy with a function that always returns the same constant will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sortBy"
                             }
