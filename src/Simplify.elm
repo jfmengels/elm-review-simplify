@@ -8028,36 +8028,54 @@ listOfWrapperSequenceChecks wrapper =
             }
             listCollection
         , sequenceOnWrappedIsEquivalentToMapWrapOnValue ( listCollection, wrapper )
-        , \checkInfo ->
-            case listCollection.elements.get (extractInferResources checkInfo) checkInfo.firstArg of
-                Just elements ->
-                    if elements.allKnown then
-                        case traverse (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) elements.known of
-                            Just wraps ->
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = qualifiedToString checkInfo.fn ++ " on a list where each element is " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString wrapper.wrap.fn ++ " on the values inside"
-                                        , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ " on a list where each element is replaced by its value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
-                                        }
-                                        checkInfo.fnRange
-                                        (Fix.replaceRangeBy
-                                            checkInfo.fnRange
-                                            (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
-                                            :: List.concatMap
-                                                (\wrap -> keepOnlyFix { parentRange = wrap.nodeRange, keep = Node.range wrap.value })
-                                                wraps
-                                        )
-                                    )
+        , sequenceOnCollectionWithAllElementsWrapped ( listCollection, wrapper )
+        ]
 
-                            Nothing ->
-                                Nothing
 
-                    else
+{-| The sequence check
+
+    sequence (collection with each element being wrapped)
+    --> wrap (collection with each value)
+
+so for example
+
+    Task.sequence [ Task.succeed a, Task.succeed b ]
+    --> Task.succeed [ a, b ]
+
+-}
+sequenceOnCollectionWithAllElementsWrapped :
+    ( TypeProperties (CollectionProperties otherCollectionProperties), WrapperProperties elementOtherProperties )
+    -> CheckInfo
+    -> Maybe (Error {})
+sequenceOnCollectionWithAllElementsWrapped ( collection, elementWrapper ) checkInfo =
+    case collection.elements.get (extractInferResources checkInfo) checkInfo.firstArg of
+        Just elements ->
+            if elements.allKnown then
+                case traverse (getValueWithNodeRange (elementWrapper.wrap.getValue checkInfo.lookupTable)) elements.known of
+                    Just wrappeds ->
+                        Just
+                            (Rule.errorWithFix
+                                { message = qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " where each element is " ++ descriptionForIndefinite elementWrapper.wrap.description ++ " will result in " ++ qualifiedToString elementWrapper.wrap.fn ++ " on the values inside"
+                                , details = [ "You can replace this call by " ++ qualifiedToString elementWrapper.wrap.fn ++ " on a list where each element is replaced by its value inside " ++ descriptionForDefinite "the" elementWrapper.wrap.description ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                (Fix.replaceRangeBy
+                                    checkInfo.fnRange
+                                    (qualifiedToString (qualify elementWrapper.wrap.fn checkInfo))
+                                    :: List.concatMap
+                                        (\wrapped -> keepOnlyFix { parentRange = wrapped.nodeRange, keep = Node.range wrapped.value })
+                                        wrappeds
+                                )
+                            )
+
+                    Nothing ->
                         Nothing
 
-                Nothing ->
-                    Nothing
-        ]
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
 
 
 {-| The sequence composition check
