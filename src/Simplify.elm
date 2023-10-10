@@ -4893,7 +4893,7 @@ stringLeftChecks =
                     callWithNonPositiveIntCanBeReplacedByCheck
                         { int = length
                         , intDescription = "length"
-                        , replacement = \_ -> emptyStringAsString
+                        , replacement = stringCollection.empty.asString
                         }
                         checkInfo
 
@@ -4953,7 +4953,7 @@ stringRightChecks =
                     callWithNonPositiveIntCanBeReplacedByCheck
                         { int = length
                         , intDescription = "length"
-                        , replacement = \_ -> emptyStringAsString
+                        , replacement = stringCollection.empty.asString
                         }
                         checkInfo
 
@@ -5029,7 +5029,7 @@ stringRepeatChecks =
                             callWithNonPositiveIntCanBeReplacedByCheck
                                 { int = intValue
                                 , intDescription = "length"
-                                , replacement = \_ -> emptyStringAsString
+                                , replacement = stringCollection.empty.asString
                                 }
                                 checkInfo
                         ]
@@ -6627,7 +6627,7 @@ listRangeChecks checkInfo =
                         Just
                             (resultsInConstantError
                                 (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
-                                (\_ -> "[]")
+                                listCollection.empty.asString
                                 checkInfo
                             )
 
@@ -7135,7 +7135,7 @@ listTakeChecks =
                     callWithNonPositiveIntCanBeReplacedByCheck
                         { int = length
                         , intDescription = "length"
-                        , replacement = \_ -> "[]"
+                        , replacement = listCollection.empty.asString
                         }
                         checkInfo
 
