@@ -5334,14 +5334,14 @@ callOnFromListWithIrrelevantEmptyElement situation ( constructibleFromList, empt
         Just collectionArg ->
             case fromListGetLiteral constructibleFromList checkInfo.lookupTable collectionArg of
                 Just listLiteral ->
-                    case findMapNeighboring (getEmpty checkInfo emptiableElement) listLiteral.elements of
+                    case findMapNeighboring (getEmptyExpressionNode checkInfo emptiableElement) listLiteral.elements of
                         Just emptyLiteralAndNeighbors ->
                             Just
                                 (Rule.errorWithFix
                                     { message = situation ++ " on a " ++ constructibleFromList.represents ++ " containing an irrelevant " ++ descriptionWithoutArticle emptiableElement.empty.description
                                     , details = [ "Including " ++ descriptionForDefinite "the" emptiableElement.empty.description ++ " in the " ++ constructibleFromList.represents ++ " does not change the result of this call. You can remove the " ++ descriptionWithoutArticle emptiableElement.empty.description ++ " element." ]
                                     }
-                                    emptyLiteralAndNeighbors.found.range
+                                    (Node.range emptyLiteralAndNeighbors.found)
                                     (listLiteralElementRemoveFix emptyLiteralAndNeighbors)
                                 )
 
@@ -8032,7 +8032,7 @@ sequenceOnFromListWithEmptyIgnoresLaterElementsCheck :
 sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( constructibleFromList, elementEmptiable ) checkInfo =
     case fromListGetLiteral constructibleFromList checkInfo.lookupTable checkInfo.firstArg of
         Just listLiteral ->
-            case findMapNeighboring (\el -> getEmpty checkInfo elementEmptiable el) listLiteral.elements of
+            case findMapNeighboring (\el -> getEmptyExpressionNode checkInfo elementEmptiable el) listLiteral.elements of
                 Just emptyAndNeighbors ->
                     case emptyAndNeighbors.after of
                         Just _ ->
@@ -8043,7 +8043,7 @@ sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( constructibleFromList, el
                                     }
                                     checkInfo.fnRange
                                     [ Fix.removeRange
-                                        { start = emptyAndNeighbors.found.range.end
+                                        { start = (Node.range emptyAndNeighbors.found).end
                                         , end = endWithoutBoundary listLiteral.range
                                         }
                                     ]
@@ -8257,19 +8257,12 @@ wrapperOfMappableCompositionCheck ( wrapper, valueMappable ) checkInfo =
 -- HTML.ATTRIBUTES
 
 
-getTupleWithSpecificSecond : Bool -> Node Expression -> ModuleNameLookupTable -> Maybe { range : Range, first : Node Expression }
-getTupleWithSpecificSecond specificBool expressionNode lookupTable =
-    case AstHelpers.getTuple2Literal expressionNode of
-        Just tuple ->
-            case AstHelpers.getSpecificBool specificBool lookupTable tuple.second of
-                Just _ ->
-                    Just { range = tuple.range, first = tuple.first }
-
-                Nothing ->
-                    Nothing
-
-        Nothing ->
-            Nothing
+getTupleWithSpecificSecondBoolExpressionNode : Bool -> ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+getTupleWithSpecificSecondBoolExpressionNode specificBool lookupTable expressionNode =
+    AstHelpers.getTuple2Literal expressionNode
+        |> Maybe.andThen
+            (\tuple -> AstHelpers.getSpecificBool specificBool lookupTable tuple.second)
+        |> Maybe.map (\_ -> expressionNode)
 
 
 htmlAttributesClassListFalseElementError : CheckInfo -> { message : String, details : List String }
@@ -8326,7 +8319,7 @@ htmlAttributesClassListChecks =
         , \checkInfo ->
             case AstHelpers.getListLiteral checkInfo.firstArg of
                 Just (tuple0 :: tuple1 :: tuple2Up) ->
-                    case findMapNeighboring (\el -> getTupleWithSpecificSecond False el checkInfo.lookupTable) (tuple0 :: tuple1 :: tuple2Up) of
+                    case findMapNeighboring (\el -> getTupleWithSpecificSecondBoolExpressionNode False checkInfo.lookupTable el) (tuple0 :: tuple1 :: tuple2Up) of
                         Just classPart ->
                             Just
                                 (Rule.errorWithFix (htmlAttributesClassListFalseElementError checkInfo)
@@ -8342,7 +8335,7 @@ htmlAttributesClassListChecks =
         , \checkInfo ->
             case AstHelpers.getCollapsedCons checkInfo.firstArg of
                 Just classParts ->
-                    case findMapNeighboring (\el -> getTupleWithSpecificSecond False el checkInfo.lookupTable) classParts.consed of
+                    case findMapNeighboring (\el -> getTupleWithSpecificSecondBoolExpressionNode False checkInfo.lookupTable el) classParts.consed of
                         Just classPart ->
                             Just
                                 (Rule.errorWithFix (htmlAttributesClassListFalseElementError checkInfo)
@@ -8839,19 +8832,6 @@ fnCallConstructWithOneArgProperties description fullyQualified =
     }
 
 
-getEmpty :
-    Infer.Resources a
-    -> EmptiableProperties (TypeSubsetProperties empty) otherProperties
-    -> Node Expression
-    -> Maybe { range : Range }
-getEmpty resources emptiable expressionNode =
-    if emptiable.empty.is (extractInferResources resources) expressionNode then
-        Just { range = Node.range expressionNode }
-
-    else
-        Nothing
-
-
 getEmptyExpressionNode :
     Infer.Resources a
     -> EmptiableProperties (TypeSubsetProperties empty) otherProperties
@@ -8873,6 +8853,7 @@ getAbsorbingExpressionNode absorbable inferResources expressionNode =
     else
         Nothing
 
+
 getValueWithNodeRange :
     (Node Expression -> Maybe (Node Expression))
     -> Node Expression
@@ -8880,6 +8861,7 @@ getValueWithNodeRange :
 getValueWithNodeRange getValue expressionNode =
     Maybe.map (\value -> { value = value, nodeRange = Node.range expressionNode })
         (getValue expressionNode)
+
 
 fromListGetLiteral : ConstructibleFromListProperties otherProperties -> ModuleNameLookupTable -> Node Expression -> Maybe { range : Range, elements : List (Node Expression) }
 fromListGetLiteral constructibleFromList lookupTable expressionNode =
@@ -10015,7 +9997,7 @@ emptiableMapFlatChecks emptiable =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck emptiable
         , \checkInfo ->
-            case constructs (sameInAllBranches (getEmpty checkInfo emptiable)) checkInfo.lookupTable checkInfo.firstArg of
+            case constructs (sameInAllBranches (getEmptyExpressionNode checkInfo emptiable)) checkInfo.lookupTable checkInfo.firstArg of
                 Determined _ ->
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
@@ -10027,9 +10009,6 @@ emptiableMapFlatChecks emptiable =
                 Undetermined ->
                     Nothing
         ]
-
-
-
 
 
 {-| `mapFlat f` on a wrapped value is equivalent to `f`
@@ -10163,7 +10142,7 @@ emptiableWithDefaultChecks :
 emptiableWithDefaultChecks emptiable checkInfo =
     case secondArg checkInfo of
         Just emptiableArg ->
-            case sameInAllBranches (getEmpty checkInfo emptiable) emptiableArg of
+            case sameInAllBranches (getEmptyExpressionNode checkInfo emptiable) emptiableArg of
                 Determined _ ->
                     Just
                         (Rule.errorWithFix
@@ -12407,17 +12386,17 @@ returnsArgError usingSituation config checkInfo =
 `findMapNeighboring` where finding returns a record containing the element's Range
 Works for patterns and expressions.
 -}
-listLiteralElementRemoveFix : { before : Maybe (Node element), found : { found | range : Range }, after : Maybe (Node element) } -> List Fix
+listLiteralElementRemoveFix : { before : Maybe (Node element), found : Node element, after : Maybe (Node element) } -> List Fix
 listLiteralElementRemoveFix toRemove =
     case ( toRemove.before, toRemove.after ) of
         -- found the only element
         ( Nothing, Nothing ) ->
-            [ Fix.removeRange toRemove.found.range ]
+            [ Fix.removeRange (Node.range toRemove.found) ]
 
         -- found first element
         ( Nothing, Just (Node afterRange _) ) ->
             [ Fix.removeRange
-                { start = toRemove.found.range.start
+                { start = (Node.range toRemove.found).start
                 , end = afterRange.start
                 }
             ]
@@ -12426,7 +12405,7 @@ listLiteralElementRemoveFix toRemove =
         ( Just (Node beforeRange _), _ ) ->
             [ Fix.removeRange
                 { start = beforeRange.end
-                , end = toRemove.found.range.end
+                , end = (Node.range toRemove.found).end
                 }
             ]
 
@@ -12436,7 +12415,7 @@ listLiteralElementRemoveFix toRemove =
 Works for patterns and expressions.
 -}
 collapsedConsRemoveElementFix :
-    { toRemove : { before : Maybe (Node element), after : Maybe (Node element), found : { found | range : Range } }
+    { toRemove : { before : Maybe (Node element), after : Maybe (Node element), found : Node element }
     , tailRange : Range
     }
     -> List Fix
@@ -12445,13 +12424,13 @@ collapsedConsRemoveElementFix config =
         -- found the only consed element
         ( Nothing, Nothing ) ->
             [ Fix.removeRange
-                { start = config.toRemove.found.range.start, end = config.tailRange.start }
+                { start = (Node.range config.toRemove.found).start, end = config.tailRange.start }
             ]
 
         -- found first consed element
         ( Nothing, Just (Node afterRange _) ) ->
             [ Fix.removeRange
-                { start = config.toRemove.found.range.start
+                { start = (Node.range config.toRemove.found).start
                 , end = afterRange.start
                 }
             ]
@@ -12460,7 +12439,7 @@ collapsedConsRemoveElementFix config =
         ( Just (Node beforeRange _), _ ) ->
             [ Fix.removeRange
                 { start = beforeRange.end
-                , end = config.toRemove.found.range.end
+                , end = (Node.range config.toRemove.found).end
                 }
             ]
 
