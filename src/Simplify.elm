@@ -7153,24 +7153,18 @@ listSortWithChecks =
                         fixToIdentity : Error {}
                         fixToIdentity =
                             alwaysReturnsLastArgError
-                                (qualifiedToString checkInfo.fn ++ " (\\_ _ -> " ++ AstHelpers.orderToString order ++ ")")
+                                (qualifiedToString checkInfo.fn ++ " with a comparison that always returns " ++ AstHelpers.orderToString order)
                                 { represents = "list" }
                                 checkInfo
                     in
                     case order of
                         LT ->
                             Just
-                                (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " (\\_ _ -> LT) is the same as " ++ qualifiedToString Fn.List.reverse
-                                    , details = [ "You can replace this call by " ++ qualifiedToString Fn.List.reverse ++ "." ]
+                                (operationWithFirstArgIsEquivalentToFnError
+                                    { firstArgDescription = "a comparison that always returns LT"
+                                    , replacementFn = Fn.List.reverse
                                     }
-                                    checkInfo.fnRange
-                                    [ Fix.replaceRangeBy
-                                        { start = checkInfo.fnRange.start
-                                        , end = (Node.range checkInfo.firstArg).end
-                                        }
-                                        (qualifiedToString (qualify Fn.List.reverse checkInfo))
-                                    ]
+                                    checkInfo
                                 )
 
                         EQ ->
