@@ -4996,7 +4996,7 @@ Note that this really only applies to "flat-intersperse-like" functions, not for
     concatMap identity type --> concat type
     -- where identity would be the "empty function"
 
-for that specific example, there is operationWithIdentityCanBeReplacedChecks
+for that specific example, there is `operationWithIdentityIsEquivalentToFnCheck`
 
 -}
 intersperseFlatWithEmptySeparatorIsEquivalentToFnCheck : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
@@ -5363,7 +5363,7 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 listConcatMapChecks : CheckInfo -> Maybe (Error {})
 listConcatMapChecks =
     firstThatConstructsJust
-        [ operationWithIdentityCanBeReplacedChecks { replacementFn = Fn.List.concat }
+        [ operationWithIdentityIsEquivalentToFnCheck Fn.List.concat
         , emptiableAndThenChecks listCollection
         , wrapperAndThenChecks listCollection
         ]
@@ -5378,18 +5378,18 @@ Can be used to for example
   - turn `List.Extra.minimumBy identity` into `List.minimum`
 
 -}
-operationWithIdentityCanBeReplacedChecks : { replacementFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
-operationWithIdentityCanBeReplacedChecks config checkInfo =
+operationWithIdentityIsEquivalentToFnCheck : ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
+operationWithIdentityIsEquivalentToFnCheck replacementFn checkInfo =
     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
         Just
             (Rule.errorWithFix
-                { message = qualifiedToString checkInfo.fn ++ " with an identity function is the same as " ++ qualifiedToString config.replacementFn
-                , details = [ "You can replace this call by " ++ qualifiedToString config.replacementFn ++ "." ]
+                { message = qualifiedToString checkInfo.fn ++ " with an identity function is the same as " ++ qualifiedToString replacementFn
+                , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ "." ]
                 }
                 checkInfo.fnRange
                 [ Fix.replaceRangeBy
                     { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
-                    (qualifiedToString (qualify config.replacementFn checkInfo))
+                    (qualifiedToString (qualify replacementFn checkInfo))
                 ]
             )
 
@@ -7119,7 +7119,7 @@ listSortByChecks =
 
                 Nothing ->
                     Nothing
-        , operationWithIdentityCanBeReplacedChecks { replacementFn = Fn.List.sort }
+        , operationWithIdentityIsEquivalentToFnCheck Fn.List.sort
         , operationDoesNotChangeResultOfOperationCheck
         ]
 
