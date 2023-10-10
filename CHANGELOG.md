@@ -85,6 +85,9 @@
 - `truncate 1` to `1`
 - `round (toFloat n)` to `n` (and same for ceiling, floor, truncate)
 - `(Record first second).first` to `first`
+- `List.drop -1 list` to `list`
+- `List.drop 3 [ a, b ]` to `[]` (same for lists with determined size like `List.singleton`)
+- `List.drop 2 [ a, b, c ]` to `[ c ]`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`
