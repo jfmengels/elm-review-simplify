@@ -4831,7 +4831,7 @@ stringSliceChecks =
                             if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ endArg ] then
                                 Just
                                     (alwaysResultsInUnparenthesizedConstantError "String.slice with equal start and end index"
-                                        { replacement = \_ -> emptyStringAsString }
+                                        { replacement = stringCollection.empty.asString }
                                         checkInfo
                                     )
 
@@ -4846,7 +4846,7 @@ stringSliceChecks =
                                                 0 ->
                                                     Just
                                                         (alwaysResultsInUnparenthesizedConstantError "String.slice with end index 0"
-                                                            { replacement = \_ -> emptyStringAsString }
+                                                            { replacement = stringCollection.empty.asString }
                                                             checkInfo
                                                         )
 
@@ -4859,14 +4859,14 @@ stringSliceChecks =
                                                         if startInt >= 0 && endInt >= 0 then
                                                             Just
                                                                 (alwaysResultsInUnparenthesizedConstantError "String.slice with a start index greater than the end index"
-                                                                    { replacement = \_ -> emptyStringAsString }
+                                                                    { replacement = stringCollection.empty.asString }
                                                                     checkInfo
                                                                 )
 
                                                         else if startInt <= -1 && endInt <= -1 then
                                                             Just
                                                                 (alwaysResultsInUnparenthesizedConstantError "String.slice with a negative start index closer to the right than the negative end index"
-                                                                    { replacement = \_ -> emptyStringAsString }
+                                                                    { replacement = stringCollection.empty.asString }
                                                                     checkInfo
                                                                 )
 
@@ -4901,7 +4901,7 @@ stringLeftChecks =
                     callWithNonPositiveIntCanBeReplacedByCheck
                         { int = length
                         , intDescription = "length"
-                        , replacement = \_ -> emptyStringAsString
+                        , replacement = stringCollection.empty.asString
                         }
                         checkInfo
 
@@ -4961,7 +4961,7 @@ stringRightChecks =
                     callWithNonPositiveIntCanBeReplacedByCheck
                         { int = length
                         , intDescription = "length"
-                        , replacement = \_ -> emptyStringAsString
+                        , replacement = stringCollection.empty.asString
                         }
                         checkInfo
 
@@ -5037,7 +5037,7 @@ stringRepeatChecks =
                             callWithNonPositiveIntCanBeReplacedByCheck
                                 { int = intValue
                                 , intDescription = "length"
-                                , replacement = \_ -> emptyStringAsString
+                                , replacement = stringCollection.empty.asString
                                 }
                                 checkInfo
                         ]
@@ -6635,7 +6635,7 @@ listRangeChecks checkInfo =
                         Just
                             (resultsInConstantError
                                 (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
-                                (\_ -> "[]")
+                                listCollection.empty.asString
                                 checkInfo
                             )
 
@@ -7143,7 +7143,7 @@ listTakeChecks =
                     callWithNonPositiveIntCanBeReplacedByCheck
                         { int = length
                         , intDescription = "length"
-                        , replacement = \_ -> "[]"
+                        , replacement = listCollection.empty.asString
                         }
                         checkInfo
 
