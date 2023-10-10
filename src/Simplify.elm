@@ -7918,21 +7918,13 @@ taskSequenceChecks : CheckInfo -> Maybe (Error {})
 taskSequenceChecks =
     firstThatConstructsJust
         [ listOfWrapperSequenceChecks taskWithSucceedAsWrap
-        , listSequenceOrFirstEmptyChecks taskWithSucceedAsWrap
+        , sequenceOrFirstEmptyChecks ( listCollection, taskWithSucceedAsWrap )
         ]
 
 
 taskSequenceCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 taskSequenceCompositionChecks =
     wrapperOfMappableCompositionCheck ( listCollection, taskWithSucceedAsWrap )
-
-
-listSequenceOrFirstEmptyChecks :
-    WrapperProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
-    -> CheckInfo
-    -> Maybe (Error {})
-listSequenceOrFirstEmptyChecks emptiable =
-    sequenceOrFirstEmptyChecks ( listCollection, emptiable )
 
 
 {-| The sequence checks `sequenceOnCollectionWithKnownEmptyElementCheck` and `sequenceOnFromListWithEmptyIgnoresLaterElementsCheck`
