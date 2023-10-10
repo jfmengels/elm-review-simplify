@@ -4643,7 +4643,7 @@ tuplePartChecks partConfig =
                             )
                         )
                 )
-                (AstHelpers.getTuple2 checkInfo.firstArg checkInfo.lookupTable)
+                (AstHelpers.getTuple2 checkInfo.lookupTable checkInfo.firstArg)
         , \checkInfo ->
             case AstHelpers.getSpecificFnCall partConfig.mapUnrelatedFn checkInfo.lookupTable checkInfo.firstArg of
                 Just mapSecondCall ->
@@ -9726,7 +9726,7 @@ dictGetValues resources =
 
 getTupleWithComparableFirst : ModuleNameLookupTable -> Node Expression -> Maybe { comparableFirst : List Expression, second : Node Expression }
 getTupleWithComparableFirst lookupTable expressionNode =
-    case AstHelpers.getTuple2 expressionNode lookupTable of
+    case AstHelpers.getTuple2 lookupTable expressionNode of
         Just tuple ->
             case getComparableExpression tuple.first of
                 Just comparableFirst ->
