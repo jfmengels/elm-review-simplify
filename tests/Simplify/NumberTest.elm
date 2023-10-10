@@ -5,12 +5,6 @@ import Test exposing (Test, describe, test)
 import TestHelpers exposing (ruleExpectingNaN, ruleWithDefaults)
 
 
-sameThingOnBothSidesDetails : String -> List String
-sameThingOnBothSidesDetails value =
-    [ "Based on the values and/or the context, we can determine the result. You can replace this operation by " ++ value ++ "."
-    ]
-
-
 all : Test
 all =
     describe "Number tests"
@@ -877,7 +871,7 @@ a = 1 < 2
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(<) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "1 < 2"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -893,7 +887,7 @@ a = 1 < 2 + 3
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(<) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "1 < 2 + 3"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -909,7 +903,7 @@ a = 2 < 1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(<) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "2 < 1"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -925,7 +919,7 @@ a = 1 > 2
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(>) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "1 > 2"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -941,7 +935,7 @@ a = 1 >= 2
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(>=) comparison will result in False"
-                            , details = sameThingOnBothSidesDetails "False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
                             , under = "1 >= 2"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -957,7 +951,7 @@ a = 1 <= 2
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "(<=) comparison will result in True"
-                            , details = sameThingOnBothSidesDetails "True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
                             , under = "1 <= 2"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
