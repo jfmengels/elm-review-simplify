@@ -4991,18 +4991,42 @@ stringJoinChecks =
 
 stringRepeatChecks : CheckInfo -> Maybe (Error {})
 stringRepeatChecks =
+    emptiableRepeatFlatChecks stringCollection
+
+
+{-| Checks for a repeat function that flattens the resulting list into the same type
+
+    repeatFlat -1 emptiable --> empty
+
+    repeatFlat n empty --> empty
+
+    repeatFlat 1 emptiable --> emptiable
+
+Examples of such functions:
+
+    String.Graphemes.repeat : Int -> String -> String
+    Animation.repeat : Int -> Animation.Step msg -> Animation.Step msg
+    applyTimes : Int -> (a -> a) -> a -> a
+
+-}
+emptiableRepeatFlatChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiableRepeatFlatChecks emptiable =
     firstThatConstructsJust
         [ \checkInfo ->
             case secondArg checkInfo of
-                Just stringArg ->
-                    if stringCollection.empty.is (extractInferResources checkInfo) stringArg then
+                Just emptiableArg ->
+                    if emptiable.empty.is (extractInferResources checkInfo) emptiableArg then
                         Just
                             (Rule.errorWithFix
-                                { message = "String.repeat with " ++ emptyStringAsString ++ " will result in " ++ emptyStringAsString
-                                , details = [ "You can replace this call by " ++ emptyStringAsString ++ "." ]
+                                { message = qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite emptiable.empty.description ++ " will result in " ++ descriptionForDefinite "the given" emptiable.empty.description
+                                , details = [ "You can replace this call by " ++ descriptionForDefinite "the given" emptiable.empty.description ++ "." ]
                                 }
                                 checkInfo.fnRange
-                                [ Fix.replaceRangeBy checkInfo.parentRange emptyStringAsString ]
+                                (keepOnlyFix
+                                    { parentRange = checkInfo.parentRange
+                                    , keep = Node.range emptiableArg
+                                    }
+                                )
                             )
 
                     else
@@ -5018,8 +5042,8 @@ stringRepeatChecks =
                             case intValue of
                                 1 ->
                                     Just
-                                        (alwaysReturnsLastArgError "String.repeat 1"
-                                            { represents = "string to repeat" }
+                                        (alwaysReturnsLastArgError (qualifiedToString checkInfo.fn ++ " 1")
+                                            { represents = emptiable.represents ++ " to repeat" }
                                             checkInfo
                                         )
 
@@ -5029,7 +5053,7 @@ stringRepeatChecks =
                             callWithNonPositiveIntCanBeReplacedByCheck
                                 { int = intValue
                                 , intDescription = "length"
-                                , replacement = stringCollection.empty.asString
+                                , replacement = emptiable.empty.asString
                                 }
                                 checkInfo
                         ]
