@@ -12383,8 +12383,10 @@ returnsArgError usingSituation config checkInfo =
 
 
 {-| Use in combination with
-`findMapNeighboring` where finding returns a record containing the element's Range
+`findMapNeighboring` where finding returns the element's node.
+
 Works for patterns and expressions.
+
 -}
 listLiteralRemoveElementFix : { before : Maybe (Node element), found : Node element, after : Maybe (Node element) } -> List Fix
 listLiteralRemoveElementFix toRemove =
