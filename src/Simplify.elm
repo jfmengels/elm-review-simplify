@@ -8354,15 +8354,6 @@ jsonDecodeAndThenCompositionChecks =
 
 
 
--- PARSER
-
-
-oneOfChecks : CheckInfo -> Maybe (Error {})
-oneOfChecks =
-    callOnWrapReturnsItsValueCheck listCollection
-
-
-
 -- RANDOM
 
 
@@ -8582,7 +8573,7 @@ nonEmptiableWrapperAndThenAlwaysChecks wrapper checkInfo =
 
 
 
---
+-- TYPE PROPERTIES
 
 
 type alias TypeProperties properties =
@@ -9782,6 +9773,15 @@ subNoneConstantProperties =
         \resources ->
             qualifiedToString (qualify Fn.Platform.Sub.none resources)
     }
+
+
+
+-- GENERIC CHECKS
+
+
+oneOfChecks : CheckInfo -> Maybe (Error {})
+oneOfChecks =
+    callOnWrapReturnsItsValueCheck listCollection
 
 
 {-| The map checks
