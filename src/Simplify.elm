@@ -7916,7 +7916,7 @@ taskSequenceChecks =
 
 taskSequenceCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 taskSequenceCompositionChecks =
-    mappableSequenceCompositionChecks taskWithSucceedAsWrap
+    listOfMappableSequenceCompositionChecks taskWithSucceedAsWrap
 
 
 listSequenceOrFirstEmptyChecks :
@@ -8039,8 +8039,8 @@ listOfWrapperSequenceChecks wrapper =
         ]
 
 
-mappableSequenceCompositionChecks : TypeProperties { otherProperties | mapFn : ( ModuleName, String ) } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-mappableSequenceCompositionChecks mappable checkInfo =
+listOfMappableSequenceCompositionChecks : TypeProperties { otherProperties | mapFn : ( ModuleName, String ) } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+listOfMappableSequenceCompositionChecks mappable checkInfo =
     case checkInfo.earlier.fn of
         ( [ "List" ], "singleton" ) ->
             let
