@@ -6498,7 +6498,7 @@ listFilterMapChecks =
 
 listFilterMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listFilterMapCompositionChecks =
-    mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks { mapFn = Fn.List.map }
+    mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks listCollection
 
 
 emptiableWrapperFilterMapChecks : TypeProperties (WrapperProperties (EmptiableProperties ConstantProperties (MappableProperties otherProperties))) -> CheckInfo -> Maybe (Error {})
@@ -6545,21 +6545,21 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
 
                 Undetermined ->
                     Nothing
-        , mapToOperationWithIdentityCanBeCombinedToOperationChecks { mapFn = emptiableWrapper.mapFn }
+        , mapToOperationWithIdentityCanBeCombinedToOperationChecks emptiableWrapper
         , unnecessaryCallOnEmptyCheck emptiableWrapper
         ]
 
 
-mapToOperationWithIdentityCanBeCombinedToOperationChecks : { mapFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
-mapToOperationWithIdentityCanBeCombinedToOperationChecks config checkInfo =
+mapToOperationWithIdentityCanBeCombinedToOperationChecks : MappableProperties otherProperties -> CheckInfo -> Maybe (Error {})
+mapToOperationWithIdentityCanBeCombinedToOperationChecks mappable checkInfo =
     case secondArg checkInfo of
         Just mappableArg ->
             if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                case AstHelpers.getSpecificFnCall config.mapFn checkInfo.lookupTable mappableArg of
+                case AstHelpers.getSpecificFnCall mappable.mapFn checkInfo.lookupTable mappableArg of
                     Just mapCall ->
                         Just
                             (Rule.errorWithFix
-                                { message = qualifiedToString config.mapFn ++ " and " ++ qualifiedToString checkInfo.fn ++ " identity can be combined using " ++ qualifiedToString checkInfo.fn
+                                { message = qualifiedToString mappable.mapFn ++ " and " ++ qualifiedToString checkInfo.fn ++ " identity can be combined using " ++ qualifiedToString checkInfo.fn
                                 , details = [ qualifiedToString checkInfo.fn ++ " is meant for this exact purpose and will also be faster." ]
                                 }
                                 checkInfo.fnRange
@@ -6580,16 +6580,16 @@ mapToOperationWithIdentityCanBeCombinedToOperationChecks config checkInfo =
             Nothing
 
 
-mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks : { mapFn : ( ModuleName, String ) } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks config checkInfo =
+mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks : MappableProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks mappable checkInfo =
     case checkInfo.later.args of
         elementToMaybeMappingArg :: [] ->
             if AstHelpers.isIdentity checkInfo.lookupTable elementToMaybeMappingArg then
-                case ( checkInfo.earlier.fn == config.mapFn, checkInfo.earlier.args ) of
+                case ( checkInfo.earlier.fn == mappable.mapFn, checkInfo.earlier.args ) of
                     ( True, _ :: [] ) ->
                         Just
                             { info =
-                                { message = qualifiedToString config.mapFn ++ " and " ++ qualifiedToString checkInfo.later.fn ++ " identity can be combined using " ++ qualifiedToString checkInfo.later.fn
+                                { message = qualifiedToString mappable.mapFn ++ " and " ++ qualifiedToString checkInfo.later.fn ++ " identity can be combined using " ++ qualifiedToString checkInfo.later.fn
                                 , details = [ qualifiedToString checkInfo.later.fn ++ " is meant for this exact purpose and will also be faster." ]
                                 }
                             , fix =
