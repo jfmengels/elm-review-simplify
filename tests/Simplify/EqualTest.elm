@@ -892,8 +892,8 @@ a = ({ a = 1 }).a == ({ a = 2 - 1 }).a
 a = True
 """
                         , Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value." ]
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                            , details = [ "You can replace accessing this record by just that field's value." ]
                             , under = ".a"
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 37 }, end = { row = 2, column = 39 } }
@@ -901,8 +901,8 @@ a = True
 a = ({ a = 1 }).a == (2 - 1)
 """
                         , Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value." ]
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                            , details = [ "You can replace accessing this record by just that field's value." ]
                             , under = ".a"
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 16 }, end = { row = 2, column = 18 } }
@@ -934,8 +934,8 @@ a = ({ a = 1 }).a == ({ a = 1 }).b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Field access can be simplified"
-                            , details = [ "Accessing the field of a record or record update can be simplified to just that field's value." ]
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                            , details = [ "You can replace accessing this record by just that field's value." ]
                             , under = ".a"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
