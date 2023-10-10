@@ -4970,46 +4970,6 @@ stringJoinChecks =
         ]
 
 
-{-| Check for a function that given an empty separator is equivalent to a given replacement operation.
-
-    intersperseFlat empty something
-    --> replacementOperation something
-
-So for example
-
-    List.Extra.intercalate : List a -> List (List a) -> List a
-    List.Extra.intercalate [] list --> List.concat list
-
-    DList.intersperse : DList a -> List (DList a) -> DList a
-    DList.intersperse DList.empty dList --> DList.concat dList
-
-Note that this really only applies to "flat-intersperse-like" functions, not for example
-
-    concatMap identity type --> concat type
-    -- where identity would be the "empty function"
-
-for that specific example, there is `operationWithIdentityIsEquivalentToFnCheck`
-
--}
-intersperseFlatWithEmptySeparatorIsEquivalentToFnCheck : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
-intersperseFlatWithEmptySeparatorIsEquivalentToFnCheck elementProperties replacementFn checkInfo =
-    if elementProperties.empty.is (extractInferResources checkInfo) checkInfo.firstArg then
-        Just
-            (Rule.errorWithFix
-                { message = qualifiedToString checkInfo.fn ++ " with separator " ++ descriptionWithoutArticle elementProperties.empty.description ++ " is the same as " ++ qualifiedToString replacementFn
-                , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ "." ]
-                }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy
-                    (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
-                    (qualifiedToString (qualify replacementFn checkInfo))
-                ]
-            )
-
-    else
-        Nothing
-
-
 stringRepeatChecks : CheckInfo -> Maybe (Error {})
 stringRepeatChecks =
     emptiableRepeatFlatChecks stringCollection
@@ -5381,6 +5341,46 @@ operationWithIdentityIsEquivalentToFnCheck replacementFn checkInfo =
                 checkInfo.fnRange
                 [ Fix.replaceRangeBy
                     { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
+                    (qualifiedToString (qualify replacementFn checkInfo))
+                ]
+            )
+
+    else
+        Nothing
+
+
+{-| Check for a function that given an empty separator is equivalent to a given replacement operation.
+
+    intersperseFlat empty something
+    --> replacementOperation something
+
+So for example
+
+    List.Extra.intercalate : List a -> List (List a) -> List a
+    List.Extra.intercalate [] list --> List.concat list
+
+    DList.intersperse : DList a -> List (DList a) -> DList a
+    DList.intersperse DList.empty dList --> DList.concat dList
+
+Note that this really only applies to "flat-intersperse-like" functions, not for example
+
+    concatMap identity type --> concat type
+    -- where identity would be the "empty function"
+
+for that specific example, there is `operationWithIdentityIsEquivalentToFnCheck`
+
+-}
+intersperseFlatWithEmptySeparatorIsEquivalentToFnCheck : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
+intersperseFlatWithEmptySeparatorIsEquivalentToFnCheck elementProperties replacementFn checkInfo =
+    if elementProperties.empty.is (extractInferResources checkInfo) checkInfo.firstArg then
+        Just
+            (Rule.errorWithFix
+                { message = qualifiedToString checkInfo.fn ++ " with separator " ++ descriptionWithoutArticle elementProperties.empty.description ++ " is the same as " ++ qualifiedToString replacementFn
+                , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ "." ]
+                }
+                checkInfo.fnRange
+                [ Fix.replaceRangeBy
+                    (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
                     (qualifiedToString (qualify replacementFn checkInfo))
                 ]
             )
