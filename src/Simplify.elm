@@ -7400,7 +7400,7 @@ wrapperMapNChecks wrapper checkInfo =
         Result.map3 f errorOrOkWeDoNotKnow (Err x) thirdResult
         --> Result.map2 f errorOrOkWeDoNotKnow (Err x)
 
-This is pretty similar to `sequenceOrFirstEmptyChecks` where we look at arguments instead of list elements.
+This is pretty similar to `listSequenceOrFirstEmptyChecks` where we look at arguments instead of list elements.
 
 -}
 mapNOrFirstEmptyConstructionChecks :
@@ -7918,7 +7918,7 @@ taskSequenceChecks : CheckInfo -> Maybe (Error {})
 taskSequenceChecks =
     firstThatConstructsJust
         [ listOfWrapperSequenceChecks taskWithSucceedAsWrap
-        , sequenceOrFirstEmptyChecks taskWithSucceedAsWrap
+        , listSequenceOrFirstEmptyChecks taskWithSucceedAsWrap
         ]
 
 
@@ -7927,11 +7927,11 @@ taskSequenceCompositionChecks =
     mappableSequenceCompositionChecks taskWithSucceedAsWrap
 
 
-sequenceOrFirstEmptyChecks :
+listSequenceOrFirstEmptyChecks :
     WrapperProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
-sequenceOrFirstEmptyChecks emptiable checkInfo =
+listSequenceOrFirstEmptyChecks emptiable checkInfo =
     case AstHelpers.getListLiteral checkInfo.firstArg of
         Just list ->
             firstThatConstructsJust
