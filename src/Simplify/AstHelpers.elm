@@ -734,8 +734,8 @@ getTuple2Literal expressionNode =
             Nothing
 
 
-getTuple2 : Node Expression -> ModuleNameLookupTable -> Maybe { first : Node Expression, second : Node Expression }
-getTuple2 expressionNode lookupTable =
+getTuple2 : ModuleNameLookupTable -> Node Expression -> Maybe { first : Node Expression, second : Node Expression }
+getTuple2 lookupTable expressionNode =
     case removeParens expressionNode of
         Node _ (Expression.TupledExpression (first :: second :: [])) ->
             Just { first = first, second = second }
