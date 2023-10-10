@@ -182,6 +182,9 @@ Destructuring using case expressions
     (let a = b in c).d
     --> let a = b in c.d
 
+    (Record first second).first
+    --> first
+
 
 ### Basics functions
 
@@ -1288,6 +1291,8 @@ import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range exposing (Location, Range)
+import Elm.Syntax.TypeAnnotation as TypeAnnotation
+import Elm.Type
 import Fn.Array
 import Fn.Basics
 import Fn.Dict
@@ -1471,14 +1476,17 @@ expectNaN (Configuration config) =
 type alias ProjectContext =
     { customTypesToReportInCases : Set ( ModuleName, ConstructorName )
     , exposedVariants : Dict ModuleName (Set String)
+    , exposedRecordTypeAliases : Dict ModuleName (Dict String (List String))
     }
 
 
 type alias ModuleContext =
     { lookupTable : ModuleNameLookupTable
     , moduleName : ModuleName
-    , exposedVariantTypes : Exposed
+    , exposed : ExposingContext
     , commentRanges : List Range
+    , importRecordTypeAliases : Dict ModuleName (Dict String (List String))
+    , moduleRecordTypeAliases : Dict String (List String)
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
     , branchLocalBindings : RangeDict (Set String)
@@ -1519,6 +1527,11 @@ defaultQualifyResources =
     }
 
 
+type ExposingContext
+    = ExposingAllContext
+    | ExposingSomeContext { typesExposingVariants : Set String, potentialTypeAliases : Set String }
+
+
 type Exposed
     = ExposedAll
     | ExposedSome (Set String)
@@ -1549,6 +1562,7 @@ initialContext : ProjectContext
 initialContext =
     { customTypesToReportInCases = Set.empty
     , exposedVariants = Dict.empty
+    , exposedRecordTypeAliases = Dict.empty
     }
 
 
@@ -1560,6 +1574,25 @@ fromModuleToProject =
             , exposedVariants =
                 Dict.singleton moduleContext.moduleName
                     moduleContext.exposedVariants
+            , exposedRecordTypeAliases =
+                Dict.singleton moduleContext.moduleName
+                    (case moduleContext.exposed of
+                        ExposingAllContext ->
+                            moduleContext.moduleRecordTypeAliases
+
+                        ExposingSomeContext exposingSomeContext ->
+                            Set.foldl
+                                (\exposedPotentialTypeAlias soFar ->
+                                    case Dict.get exposedPotentialTypeAlias moduleContext.moduleRecordTypeAliases of
+                                        Nothing ->
+                                            soFar
+
+                                        Just recordTypeAlias ->
+                                            Dict.insert exposedPotentialTypeAlias recordTypeAlias soFar
+                                )
+                                Dict.empty
+                                exposingSomeContext.potentialTypeAliases
+                    )
             }
         )
 
@@ -1569,10 +1602,6 @@ fromProjectToModule =
     Rule.initContextCreator
         (\lookupTable metadata extractSourceCode fullAst projectContext ->
             let
-                moduleExposedVariantTypes : Exposed
-                moduleExposedVariantTypes =
-                    moduleExposingContext fullAst.moduleDefinition
-
                 imports : ImportLookup
                 imports =
                     List.foldl
@@ -1589,13 +1618,16 @@ fromProjectToModule =
             in
             { lookupTable = lookupTable
             , moduleName = Rule.moduleNameFromMetadata metadata
-            , exposedVariantTypes = moduleExposedVariantTypes
+            , exposed =
+                moduleExposingContext (Elm.Syntax.Module.exposingList (Node.value fullAst.moduleDefinition))
             , importLookup =
                 createImportLookup
                     { imports = imports
                     , importExposedVariants = projectContext.exposedVariants
                     }
             , commentRanges = []
+            , importRecordTypeAliases = projectContext.exposedRecordTypeAliases
+            , moduleRecordTypeAliases = Dict.empty
             , moduleBindings = Set.empty
             , localBindings = RangeDict.empty
             , branchLocalBindings = RangeDict.empty
@@ -1674,24 +1706,37 @@ createImportLookup context =
             )
 
 
-moduleExposingContext : Node Elm.Syntax.Module.Module -> Exposed
-moduleExposingContext moduleHeader =
-    case Elm.Syntax.Module.exposingList (Node.value moduleHeader) of
+moduleExposingContext : Exposing.Exposing -> ExposingContext
+moduleExposingContext exposingSyntax =
+    case exposingSyntax of
         Exposing.All _ ->
-            ExposedAll
+            ExposingAllContext
 
         Exposing.Explicit some ->
-            ExposedSome
+            ExposingSomeContext
                 (List.foldl
-                    (\(Node _ expose) acc ->
-                        case AstHelpers.getTypeExposeIncludingVariants expose of
-                            Just name ->
-                                Set.insert name acc
+                    (\(Node _ expose) soFar ->
+                        case expose of
+                            Exposing.InfixExpose _ ->
+                                soFar
 
-                            Nothing ->
-                                acc
+                            Exposing.FunctionExpose _ ->
+                                soFar
+
+                            Exposing.TypeOrAliasExpose name ->
+                                { soFar | potentialTypeAliases = Set.insert name soFar.potentialTypeAliases }
+
+                            Exposing.TypeExpose variantType ->
+                                case variantType.open of
+                                    Nothing ->
+                                        soFar
+
+                                    Just _ ->
+                                        { soFar | typesExposingVariants = Set.insert variantType.name soFar.typesExposingVariants }
                     )
-                    Set.empty
+                    { typesExposingVariants = Set.empty
+                    , potentialTypeAliases = Set.empty
+                    }
                     some
                 )
 
@@ -1700,6 +1745,7 @@ foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
 foldProjectContexts newContext previousContext =
     { customTypesToReportInCases = Set.empty
     , exposedVariants = Dict.union newContext.exposedVariants previousContext.exposedVariants
+    , exposedRecordTypeAliases = Dict.union newContext.exposedRecordTypeAliases previousContext.exposedRecordTypeAliases
     }
 
 
@@ -1761,6 +1807,28 @@ dependenciesVisitor typeNamesAsStrings dict context =
                 )
                 context.exposedVariants
                 modules
+
+        recordTypeAliases : Dict ModuleName (Dict String (List String))
+        recordTypeAliases =
+            modules
+                |> List.foldl
+                    (\moduleDocs soFar ->
+                        Dict.insert (AstHelpers.moduleNameFromString moduleDocs.name)
+                            (moduleDocs.aliases
+                                |> List.filterMap
+                                    (\typeAliasDocs ->
+                                        case typeAliasDocs.tipe of
+                                            Elm.Type.Record fields Nothing ->
+                                                Just ( typeAliasDocs.name, List.map (\( name, _ ) -> name) fields )
+
+                                            _ ->
+                                                Nothing
+                                    )
+                                |> Dict.fromList
+                            )
+                            soFar
+                    )
+                    Dict.empty
     in
     ( if List.isEmpty unknownTypesToIgnore then
         []
@@ -1769,6 +1837,7 @@ dependenciesVisitor typeNamesAsStrings dict context =
         [ errorForUnknownIgnoredConstructor unknownTypesToIgnore ]
     , { customTypesToReportInCases = customTypesToReportInCases
       , exposedVariants = dependencyExposedVariants
+      , exposedRecordTypeAliases = recordTypeAliases
       }
     )
 
@@ -1804,6 +1873,25 @@ declarationListVisitor : List (Node Declaration) -> ModuleContext -> ModuleConte
 declarationListVisitor declarationList context =
     { context
         | moduleBindings = AstHelpers.declarationListBindings declarationList
+        , moduleRecordTypeAliases =
+            List.foldl
+                (\(Node _ declaration) soFar ->
+                    case declaration of
+                        Declaration.AliasDeclaration typeAliasDeclaration ->
+                            case typeAliasDeclaration.typeAnnotation of
+                                Node _ (TypeAnnotation.Record fields) ->
+                                    Dict.insert (Node.value typeAliasDeclaration.name)
+                                        (List.map (\(Node _ ( Node _ field, _ )) -> field) fields)
+                                        soFar
+
+                                _ ->
+                                    soFar
+
+                        _ ->
+                            soFar
+                )
+                Dict.empty
+                declarationList
     }
 
 
@@ -1816,11 +1904,16 @@ declarationVisitor declarationNode context =
     case Node.value declarationNode of
         Declaration.CustomTypeDeclaration variantType ->
             let
-                variantTypeName : String
-                variantTypeName =
-                    Node.value variantType.name
+                variantsAreExposed : Bool
+                variantsAreExposed =
+                    case context.exposed of
+                        ExposingAllContext ->
+                            True
+
+                        ExposingSomeContext exposingSome ->
+                            Set.member (Node.value variantType.name) exposingSome.typesExposingVariants
             in
-            if isExposedFrom context.exposedVariantTypes variantTypeName then
+            if variantsAreExposed then
                 let
                     exposedVariants : Set String
                     exposedVariants =
@@ -2538,7 +2631,24 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             distributeFieldAccess "a case/of" dotFieldRange (List.map Tuple.second caseOf.cases) fieldName
 
                         _ ->
-                            Nothing
+                            case getRecordTypeAliasConstructorCall record context of
+                                Just recordTypeAliasConstructorCall ->
+                                    if List.length recordTypeAliasConstructorCall.fieldNames == List.length recordTypeAliasConstructorCall.args then
+                                        recordAccessChecks
+                                            { nodeRange = expressionRange
+                                            , fieldName = fieldName
+                                            , maybeRecordNameRange = Nothing
+                                            , setters =
+                                                List.map2 (\name arg -> Node.empty ( Node.empty name, arg ))
+                                                    recordTypeAliasConstructorCall.fieldNames
+                                                    recordTypeAliasConstructorCall.args
+                                            }
+
+                                    else
+                                        Nothing
+
+                                Nothing ->
+                                    Nothing
             in
             onlyMaybeError
                 (maybeErrorInfoAndFix
@@ -11651,6 +11761,51 @@ getRecordLeafExpression expressionNode =
 
         _ ->
             Nothing
+
+
+getRecordTypeAliasConstructorCall :
+    Node Expression
+    ->
+        { checkInfo
+            | importRecordTypeAliases : Dict ModuleName (Dict String (List String))
+            , moduleRecordTypeAliases : Dict String (List String)
+            , lookupTable : ModuleNameLookupTable
+        }
+    -> Maybe { nodeRange : Range, args : List (Node Expression), fieldNames : List String }
+getRecordTypeAliasConstructorCall expressionNode checkInfo =
+    case AstHelpers.getValueOrFnOrFnCall expressionNode of
+        Nothing ->
+            Nothing
+
+        Just valueOrFnOrCall ->
+            case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable valueOrFnOrCall.fnRange of
+                Nothing ->
+                    Nothing
+
+                Just [] ->
+                    Dict.get valueOrFnOrCall.fnName checkInfo.moduleRecordTypeAliases
+                        |> Maybe.map
+                            (\fieldNames ->
+                                { nodeRange = valueOrFnOrCall.nodeRange
+                                , args = valueOrFnOrCall.args
+                                , fieldNames = fieldNames
+                                }
+                            )
+
+                Just (moduleNamePart0 :: moduleNamePart1Up) ->
+                    case Dict.get (moduleNamePart0 :: moduleNamePart1Up) checkInfo.importRecordTypeAliases of
+                        Nothing ->
+                            Nothing
+
+                        Just importModuleRecordTypeAliases ->
+                            Dict.get valueOrFnOrCall.fnName importModuleRecordTypeAliases
+                                |> Maybe.map
+                                    (\fieldNames ->
+                                        { nodeRange = valueOrFnOrCall.nodeRange
+                                        , args = valueOrFnOrCall.args
+                                        , fieldNames = fieldNames
+                                        }
+                                    )
 
 
 

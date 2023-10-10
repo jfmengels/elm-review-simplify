@@ -84,6 +84,7 @@
 - `floor 1` to `1`
 - `truncate 1` to `1`
 - `round (toFloat n)` to `n` (and same for ceiling, floor, truncate)
+- `(Record first second).first` to `first`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`
