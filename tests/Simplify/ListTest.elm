@@ -6590,7 +6590,7 @@ a = List.sortWith (always (always GT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> GT) will always return the same given list"
+                            { message = "List.sortWith with a comparison that always returns GT will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -6606,7 +6606,7 @@ a = List.sortWith (always (always GT)) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> GT) will always return the same given list"
+                            { message = "List.sortWith with a comparison that always returns GT will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sortWith"
                             }
@@ -6622,7 +6622,7 @@ a = List.sortWith (\\_ -> (always GT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> GT) will always return the same given list"
+                            { message = "List.sortWith with a comparison that always returns GT will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -6638,7 +6638,7 @@ a = List.sortWith (\\_ _ -> GT)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> GT) will always return the same given list"
+                            { message = "List.sortWith with a comparison that always returns GT will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -6654,7 +6654,7 @@ a = List.sortWith (always (\\_ -> GT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> GT) will always return the same given list"
+                            { message = "List.sortWith with a comparison that always returns GT will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -6670,7 +6670,7 @@ a = List.sortWith (always (always EQ))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> EQ) will always return the same given list"
+                            { message = "List.sortWith with a comparison that always returns EQ will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -6686,7 +6686,7 @@ a = List.sortWith (always (always EQ)) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> EQ) will always return the same given list"
+                            { message = "List.sortWith with a comparison that always returns EQ will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.sortWith"
                             }
@@ -6702,7 +6702,7 @@ a = List.sortWith (\\_ -> (always EQ))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> EQ) will always return the same given list"
+                            { message = "List.sortWith with a comparison that always returns EQ will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -6718,7 +6718,7 @@ a = List.sortWith (\\_ _ -> EQ)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> EQ) will always return the same given list"
+                            { message = "List.sortWith with a comparison that always returns EQ will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -6734,7 +6734,7 @@ a = List.sortWith (always (\\_ -> EQ))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> EQ) will always return the same given list"
+                            { message = "List.sortWith with a comparison that always returns EQ will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.sortWith"
                             }
@@ -6750,7 +6750,7 @@ a = List.sortWith (always (always LT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> LT) is the same as List.reverse"
+                            { message = "List.sortWith with a comparison that always returns LT is the same as List.reverse"
                             , details = [ "You can replace this call by List.reverse." ]
                             , under = "List.sortWith"
                             }
@@ -6766,7 +6766,7 @@ a = List.sortWith (always (always LT)) list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> LT) is the same as List.reverse"
+                            { message = "List.sortWith with a comparison that always returns LT is the same as List.reverse"
                             , details = [ "You can replace this call by List.reverse." ]
                             , under = "List.sortWith"
                             }
@@ -6782,7 +6782,7 @@ a = List.sortWith (always (always LT)) <| list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> LT) is the same as List.reverse"
+                            { message = "List.sortWith with a comparison that always returns LT is the same as List.reverse"
                             , details = [ "You can replace this call by List.reverse." ]
                             , under = "List.sortWith"
                             }
@@ -6798,7 +6798,7 @@ a = list |> List.sortWith (always (always LT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> LT) is the same as List.reverse"
+                            { message = "List.sortWith with a comparison that always returns LT is the same as List.reverse"
                             , details = [ "You can replace this call by List.reverse." ]
                             , under = "List.sortWith"
                             }
@@ -6814,7 +6814,7 @@ a = List.sortWith (\\_ -> (always LT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> LT) is the same as List.reverse"
+                            { message = "List.sortWith with a comparison that always returns LT is the same as List.reverse"
                             , details = [ "You can replace this call by List.reverse." ]
                             , under = "List.sortWith"
                             }
@@ -6830,7 +6830,7 @@ a = List.sortWith (\\_ _ -> LT)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> LT) is the same as List.reverse"
+                            { message = "List.sortWith with a comparison that always returns LT is the same as List.reverse"
                             , details = [ "You can replace this call by List.reverse." ]
                             , under = "List.sortWith"
                             }
@@ -6846,7 +6846,7 @@ a = List.sortWith (always (\\_ -> LT))
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.sortWith (\\_ _ -> LT) is the same as List.reverse"
+                            { message = "List.sortWith with a comparison that always returns LT is the same as List.reverse"
                             , details = [ "You can replace this call by List.reverse." ]
                             , under = "List.sortWith"
                             }
