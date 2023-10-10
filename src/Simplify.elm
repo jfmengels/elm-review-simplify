@@ -5557,7 +5557,7 @@ listTailChecks =
                 Just _ ->
                     Just
                         (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " on a list with a single element will result in Just []"
+                            { message = qualifiedToString checkInfo.fn ++ " on a singleton list will result in Just []"
                             , details = [ "You can replace this call by Just []." ]
                             }
                             checkInfo.fnRange
