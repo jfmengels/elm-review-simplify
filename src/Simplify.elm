@@ -900,6 +900,21 @@ Destructuring using case expressions
     Array.append (Array.fromList [ a, b ]) (Array.fromList [ c, d ])
     --> Array.fromList [ a, b, c, d ]
 
+    Array.slice n n array
+    --> Array.empty
+
+    Array.slice n 0 array
+    --> Array.empty
+
+    Array.slice a z Array.empty
+    --> Array.empty
+
+    Array.slice 2 1 array
+    --> Array.empty
+
+    Array.slice -1 -2 array
+    --> Array.empty
+
     Array.get n Array.empty
     --> Nothing
 
@@ -2901,6 +2916,7 @@ functionCallChecks =
         , ( Fn.Array.append, ( 2, collectionUnionChecks { leftElementsStayOnTheLeft = True } arrayCollection ) )
         , ( Fn.Array.get, ( 2, getChecks arrayCollection ) )
         , ( Fn.Array.set, ( 3, setChecks arrayCollection ) )
+        , ( Fn.Array.slice, ( 3, collectionSliceChecks arrayCollection ) )
         , ( Fn.Array.foldl, ( 3, arrayFoldlChecks ) )
         , ( Fn.Array.foldr, ( 3, arrayFoldrChecks ) )
         , ( Fn.Set.map, ( 2, emptiableMapChecks setCollection ) )
