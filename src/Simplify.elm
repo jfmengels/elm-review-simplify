@@ -7924,7 +7924,7 @@ taskSequenceChecks =
 
 taskSequenceCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 taskSequenceCompositionChecks =
-    listOfMappableSequenceCompositionChecks taskWithSucceedAsWrap
+    wrapperOfMappableCompositionCheck ( listCollection, taskWithSucceedAsWrap )
 
 
 listSequenceOrFirstEmptyChecks :
@@ -8045,11 +8045,6 @@ listOfWrapperSequenceChecks wrapper =
                 Nothing ->
                     Nothing
         ]
-
-
-listOfMappableSequenceCompositionChecks : { otherProperties | mapFn : ( ModuleName, String ) } -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listOfMappableSequenceCompositionChecks mappable =
-    wrapperOfMappableCompositionCheck ( listCollection, mappable )
 
 
 {-| The sequence composition check
