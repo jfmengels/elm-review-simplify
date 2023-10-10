@@ -7932,9 +7932,21 @@ listSequenceOrFirstEmptyChecks :
     -> CheckInfo
     -> Maybe (Error {})
 listSequenceOrFirstEmptyChecks emptiable =
+    sequenceOrFirstEmptyChecks ( listCollection, emptiable )
+
+
+{-| The sequence checks `sequenceOnCollectionWithKnownEmptyElementCheck` and `sequenceOnFromListWithEmptyIgnoresLaterElementsCheck`
+-}
+sequenceOrFirstEmptyChecks :
+    ( TypeProperties (CollectionProperties (ConstructibleFromListProperties collectionOtherProperties))
+    , EmptiableProperties (TypeSubsetProperties empty) (WrapperProperties elementOtherProperties)
+    )
+    -> CheckInfo
+    -> Maybe (Error {})
+sequenceOrFirstEmptyChecks ( collection, elementEmptiable ) =
     firstThatConstructsJust
-        [ sequenceOnCollectionWithKnownEmptyElementCheck ( listCollection, emptiable )
-        , sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( listCollection, emptiable )
+        [ sequenceOnCollectionWithKnownEmptyElementCheck ( collection, elementEmptiable )
+        , sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( collection, elementEmptiable )
         ]
 
 
