@@ -6037,6 +6037,38 @@ a = [] |> List.length
 a = 0
 """
                         ]
+        , test "should replace List.length (a :: List.repeat 3 b) by 4" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (b :: List.repeat 3 c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of the list is 4"
+                            , details = [ "The length of the list can be determined by looking at the code." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 4
+"""
+                        ]
+        , test "should replace List.length (List.range 3 7) by 4" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.range 3 7)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of the list is 4"
+                            , details = [ "The length of the list can be determined by looking at the code." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 4
+"""
+                        ]
         ]
 
 
