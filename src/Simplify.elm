@@ -7324,7 +7324,7 @@ For example given `resultWithOkAsWrap`:
     Result.map2 f (Ok first) (Ok second)
     --> Ok (f first second)
 
-This is pretty similar to `wrapperSequenceChecks` where we look at arguments instead of list elements.
+This is pretty similar to `listOfWrapperSequenceChecks` where we look at arguments instead of list elements.
 
 -}
 wrapperMapNChecks : TypeProperties (WrapperProperties otherProperties) -> CheckInfo -> Maybe (Error {})
@@ -7917,7 +7917,7 @@ taskOnErrorCompositionChecks =
 taskSequenceChecks : CheckInfo -> Maybe (Error {})
 taskSequenceChecks =
     firstThatConstructsJust
-        [ wrapperSequenceChecks taskWithSucceedAsWrap
+        [ listOfWrapperSequenceChecks taskWithSucceedAsWrap
         , sequenceOrFirstEmptyChecks taskWithSucceedAsWrap
         ]
 
@@ -7983,8 +7983,8 @@ sequenceOrFirstEmptyChecks emptiable checkInfo =
             Nothing
 
 
-wrapperSequenceChecks : WrapperProperties { otherProperties | mapFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
-wrapperSequenceChecks wrapper =
+listOfWrapperSequenceChecks : WrapperProperties { otherProperties | mapFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
+listOfWrapperSequenceChecks wrapper =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
             { resultAsString =
