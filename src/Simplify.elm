@@ -786,6 +786,12 @@ Destructuring using case expressions
     List.drop 0 list
     --> list
 
+    List.drop 3 [ a, b ]
+    --> []
+
+    List.drop 2 [ a, b, c ]
+    --> [ c ]
+
     List.reverse []
     --> []
 
@@ -7153,13 +7159,100 @@ listDropChecks =
         [ \checkInfo ->
             Evaluate.getInt checkInfo checkInfo.firstArg
                 |> Maybe.andThen
-                    (\int ->
-                        callWithNonPositiveIntCheckErrorSituation { int = int, intDescription = "count", fn = checkInfo.fn }
+                    (\count ->
+                        firstThatConstructsJust
+                            [ \() ->
+                                callWithNonPositiveIntCheckErrorSituation
+                                    { int = count, intDescription = "count", fn = checkInfo.fn }
+                                    |> Maybe.map
+                                        (\situation -> alwaysReturnsLastArgError situation listCollection checkInfo)
+                            , \() -> dropOnSmallerCollectionCheck { dropCount = count } listCollection checkInfo
+                            , \() ->
+                                dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck { dropCount = count }
+                                    listCollection
+                                    checkInfo
+                            ]
+                            ()
                     )
-                |> Maybe.map
-                    (\situation -> alwaysReturnsLastArgError situation listCollection checkInfo)
         , unnecessaryCallOnEmptyCheck listCollection
         ]
+
+
+{-| The drop check
+
+    drop n (collection with size <= n) --> empty
+
+So for example
+
+    Array.drop 3 (Array.repeat 2 a) --> []
+
+-}
+dropOnSmallerCollectionCheck : { dropCount : Int } -> TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
+dropOnSmallerCollectionCheck config collection checkInfo =
+    case fullyAppliedLastArg checkInfo of
+        Just listArg ->
+            case listDetermineLength checkInfo listArg of
+                Just (Exactly length) ->
+                    if config.dropCount >= length then
+                        Just
+                            (alwaysResultsInUnparenthesizedConstantError
+                                (qualifiedToString checkInfo.fn ++ " with a count greater than or equal to the given " ++ collection.represents ++ "'s length")
+                                { replacement = collection.empty.asString }
+                                checkInfo
+                            )
+
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
+{-| The drop check
+
+    drop n (fromList on list with size > n)
+    --> (fromList on list with the first n elements removed)
+
+So for example
+
+    Array.drop 2 (Array.fromList [ a, b, c ])
+    --> Array.fromList [ c ]
+
+-}
+dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck : { dropCount : Int } -> TypeProperties (ConstructibleFromListProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck config constructibleFromList checkInfo =
+    case fullyAppliedLastArg checkInfo of
+        Just lastArg ->
+            case fromListGetLiteral constructibleFromList checkInfo.lookupTable lastArg of
+                Just fromListLiteral ->
+                    case List.drop config.dropCount fromListLiteral.elements of
+                        (Node elementAfterDroppedRange _) :: _ ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString checkInfo.fn ++ " with a count less than the given " ++ constructibleFromList.represents ++ "'s length will remove these elements"
+                                    , details = [ "You can remove the first " ++ String.fromInt config.dropCount ++ " elements from the " ++ constructionFromListOnLiteralDescription constructibleFromList.fromList ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range lastArg }
+                                        ++ [ Fix.removeRange
+                                                { start = startWithoutBoundary fromListLiteral.range
+                                                , end = elementAfterDroppedRange.start
+                                                }
+                                           ]
+                                    )
+                                )
+
+                        [] ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+
+        Nothing ->
+            Nothing
 
 
 emptiableMapNChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
@@ -10814,6 +10907,16 @@ collectionUnionChecks config collection =
         ]
 
 
+constructionFromListOnLiteralDescription : ConstructionFromList -> String
+constructionFromListOnLiteralDescription fromListConstruction =
+    case fromListConstruction of
+        ConstructionAsList ->
+            "list literal"
+
+        ConstructionFromListCall fn ->
+            qualifiedToString fn ++ " call"
+
+
 collectionUnionWithLiteralsChecks :
     { leftElementsStayOnTheLeft : Bool }
     ->
@@ -10838,12 +10941,7 @@ collectionUnionWithLiteralsChecks config operationInfo collection checkInfo =
                     let
                         fromListLiteralDescription : String
                         fromListLiteralDescription =
-                            case collection.fromList of
-                                ConstructionAsList ->
-                                    "list literal"
-
-                                ConstructionFromListCall fn ->
-                                    qualifiedToString fn ++ " call"
+                            constructionFromListOnLiteralDescription collection.fromList
                     in
                     Just
                         (Rule.errorWithFix

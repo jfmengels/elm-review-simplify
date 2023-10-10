@@ -7190,6 +7190,54 @@ a = List.drop -1
 a = identity
 """
                         ]
+        , test "should replace [a, b, c] |> List.drop 2 by [c]" <|
+            \() ->
+                """module A exposing (..)
+a = [b, c, d] |> List.drop 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.drop with a count less than the given list's length will remove these elements"
+                            , details = [ "You can remove the first 2 elements from the list literal." ]
+                            , under = "List.drop"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [d]
+"""
+                        ]
+        , test "should replace List.singleton a |> List.drop 1 by []" <|
+            \() ->
+                """module A exposing (..)
+a = List.singleton b |> List.drop 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.drop with a count greater than or equal to the given list's length will always result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.drop"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
+        , test "should replace [ a, b ] |> List.drop 2 by []" <|
+            \() ->
+                """module A exposing (..)
+a = [ b, c ] |> List.drop 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.drop with a count greater than or equal to the given list's length will always result in []"
+                            , details = [ "You can replace this call by []." ]
+                            , under = "List.drop"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = []
+"""
+                        ]
         ]
 
 
