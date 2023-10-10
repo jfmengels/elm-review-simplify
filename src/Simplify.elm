@@ -12454,7 +12454,7 @@ wrapInBackticks s =
 
 
 
--- MATCHERS AND PARSERS
+-- PARSERS
 
 
 needsParens : Expression -> Bool
