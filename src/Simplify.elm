@@ -5130,6 +5130,19 @@ maybeMapNChecks =
         ]
 
 
+maybeAndThenChecks : CheckInfo -> Maybe (Error {})
+maybeAndThenChecks =
+    firstThatConstructsJust
+        [ wrapperAndThenChecks maybeWithJustAsWrap
+        , emptiableAndThenChecks maybeWithJustAsWrap
+        ]
+
+
+maybeAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+maybeAndThenCompositionChecks checkInfo =
+    wrapperAndThenCompositionChecks maybeWithJustAsWrap checkInfo
+
+
 
 -- RESULT FUNCTIONS
 
@@ -5187,6 +5200,54 @@ resultMapErrorCompositionChecks =
         [ wrapToMapCompositionChecks resultWithErrAsWrap
         , unnecessaryCompositionAfterEmptyCheck resultWithErrAsWrap
         ]
+
+
+resultAndThenChecks : CheckInfo -> Maybe (Error {})
+resultAndThenChecks =
+    firstThatConstructsJust
+        [ unnecessaryCallOnEmptyCheck resultWithOkAsWrap
+        , wrapperAndThenChecks resultWithOkAsWrap
+        ]
+
+
+resultAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+resultAndThenCompositionChecks =
+    firstThatConstructsJust
+        [ unnecessaryCompositionAfterEmptyCheck resultWithOkAsWrap
+        , wrapperAndThenCompositionChecks resultWithOkAsWrap
+        ]
+
+
+resultToMaybeCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+resultToMaybeCompositionChecks =
+    firstThatConstructsJust
+        [ onWrapAlwaysReturnsJustIncomingCompositionCheck resultWithOkAsWrap
+        , \checkInfo ->
+            case checkInfo.earlier.fn of
+                ( [ "Result" ], "Err" ) ->
+                    Just
+                        { info =
+                            { message = qualifiedToString Fn.Result.toMaybe ++ " on an error will result in Nothing"
+                            , details = [ "You can replace this call by always Nothing." ]
+                            }
+                        , fix =
+                            compositionReplaceByFix
+                                (qualifiedToString (qualify Fn.Basics.always checkInfo)
+                                    ++ " "
+                                    ++ qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)
+                                )
+                                checkInfo
+                        }
+
+                _ ->
+                    Nothing
+        ]
+
+
+resultFromMaybeChecks : CheckInfo -> Maybe (Error {})
+resultFromMaybeChecks =
+    fromMaybeChecks
+        { onNothingFn = Fn.Result.errVariant, onJustFn = Fn.Result.okVariant }
 
 
 
@@ -10183,35 +10244,6 @@ wrapperAndThenCompositionChecks wrapper checkInfo =
             Nothing
 
 
-maybeAndThenChecks : CheckInfo -> Maybe (Error {})
-maybeAndThenChecks =
-    firstThatConstructsJust
-        [ wrapperAndThenChecks maybeWithJustAsWrap
-        , emptiableAndThenChecks maybeWithJustAsWrap
-        ]
-
-
-maybeAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-maybeAndThenCompositionChecks checkInfo =
-    wrapperAndThenCompositionChecks maybeWithJustAsWrap checkInfo
-
-
-resultAndThenChecks : CheckInfo -> Maybe (Error {})
-resultAndThenChecks =
-    firstThatConstructsJust
-        [ unnecessaryCallOnEmptyCheck resultWithOkAsWrap
-        , wrapperAndThenChecks resultWithOkAsWrap
-        ]
-
-
-resultAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-resultAndThenCompositionChecks =
-    firstThatConstructsJust
-        [ unnecessaryCompositionAfterEmptyCheck resultWithOkAsWrap
-        , wrapperAndThenCompositionChecks resultWithOkAsWrap
-        ]
-
-
 withDefaultChecks :
     WrapperProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
     -> CheckInfo
@@ -10264,38 +10296,6 @@ unwrapToMaybeChecks emptiableWrapper =
             { resultAsString = \res -> qualifiedToString (qualify Fn.Maybe.nothingVariant res) }
             emptiableWrapper
         ]
-
-
-resultToMaybeCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-resultToMaybeCompositionChecks =
-    firstThatConstructsJust
-        [ onWrapAlwaysReturnsJustIncomingCompositionCheck resultWithOkAsWrap
-        , \checkInfo ->
-            case checkInfo.earlier.fn of
-                ( [ "Result" ], "Err" ) ->
-                    Just
-                        { info =
-                            { message = qualifiedToString Fn.Result.toMaybe ++ " on an error will result in Nothing"
-                            , details = [ "You can replace this call by always Nothing." ]
-                            }
-                        , fix =
-                            compositionReplaceByFix
-                                (qualifiedToString (qualify Fn.Basics.always checkInfo)
-                                    ++ " "
-                                    ++ qualifiedToString (qualify Fn.Maybe.nothingVariant checkInfo)
-                                )
-                                checkInfo
-                        }
-
-                _ ->
-                    Nothing
-        ]
-
-
-resultFromMaybeChecks : CheckInfo -> Maybe (Error {})
-resultFromMaybeChecks =
-    fromMaybeChecks
-        { onNothingFn = Fn.Result.errVariant, onJustFn = Fn.Result.okVariant }
 
 
 fromMaybeChecks : { onNothingFn : ( ModuleName, String ), onJustFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
