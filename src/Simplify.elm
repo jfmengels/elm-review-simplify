@@ -7926,35 +7926,53 @@ listSequenceOrFirstEmptyChecks :
 listSequenceOrFirstEmptyChecks emptiable =
     firstThatConstructsJust
         [ sequenceOnCollectionWithKnownEmptyElementCheck ( listCollection, emptiable )
-        , \checkInfo ->
-            case AstHelpers.getListLiteral checkInfo.firstArg of
-                Just list ->
-                    case findMapNeighboring (\el -> getEmpty checkInfo emptiable el) list of
-                        Just emptyAndNeighbors ->
-                            case emptyAndNeighbors.after of
-                                Just _ ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = qualifiedToString checkInfo.fn ++ " on a list containing " ++ descriptionForIndefinite emptiable.empty.description ++ " early will ignore later elements"
-                                            , details = [ "You can remove all list elements after " ++ descriptionForDefinite "the first" emptiable.empty.description ++ "." ]
-                                            }
-                                            checkInfo.fnRange
-                                            [ Fix.removeRange
-                                                { start = emptyAndNeighbors.found.range.end
-                                                , end = endWithoutBoundary (Node.range checkInfo.firstArg)
-                                                }
-                                            ]
-                                        )
+        , sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( listCollection, emptiable )
+        ]
 
-                                Nothing ->
-                                    Nothing
+
+{-| The sequence check
+
+    sequence (construction fromList [ a, empty, b ])
+    --> sequence (construction fromList [ a, empty ])
+
+So for example
+
+    Task.sequence [ aTask, Task.fail x, bTask ]
+    --> Task.sequence [ aTask, Task.fail x ]
+
+-}
+sequenceOnFromListWithEmptyIgnoresLaterElementsCheck :
+    ( TypeProperties (ConstructibleFromListProperties constructibleFromListOtherProperties), EmptiableProperties (TypeSubsetProperties empty) elementOtherProperties )
+    -> CheckInfo
+    -> Maybe (Error {})
+sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( constructibleFromList, elementEmptiable ) checkInfo =
+    case fromListGetLiteral constructibleFromList checkInfo.lookupTable checkInfo.firstArg of
+        Just listLiteral ->
+            case findMapNeighboring (\el -> getEmpty checkInfo elementEmptiable el) listLiteral.elements of
+                Just emptyAndNeighbors ->
+                    case emptyAndNeighbors.after of
+                        Just _ ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString checkInfo.fn ++ " on a " ++ constructibleFromList.represents ++ " containing " ++ descriptionForIndefinite elementEmptiable.empty.description ++ " early will ignore later elements"
+                                    , details = [ "You can remove all " ++ constructibleFromList.represents ++ " elements after " ++ descriptionForDefinite "the first" elementEmptiable.empty.description ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    [ Fix.removeRange
+                                        { start = emptyAndNeighbors.found.range.end
+                                        , end = endWithoutBoundary listLiteral.range
+                                        }
+                                    ]
+                                )
 
                         Nothing ->
                             Nothing
 
                 Nothing ->
                     Nothing
-        ]
+
+        Nothing ->
+            Nothing
 
 
 {-| The sequence check
