@@ -8035,30 +8035,7 @@ listOfWrapperSequenceChecks wrapper =
                 \res -> qualifiedToString (qualify wrapper.wrap.fn res) ++ " []"
             }
             listCollection
-        , \checkInfo ->
-            case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
-                Just singletonList ->
-                    let
-                        replacement : QualifyResources a -> String
-                        replacement qualifyResources =
-                            qualifiedToString (qualify wrapper.mapFn qualifyResources)
-                                ++ " "
-                                ++ qualifiedToString (qualify Fn.List.singleton qualifyResources)
-                    in
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " on a singleton list is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
-                            , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ " on the value inside the singleton list." ]
-                            }
-                            checkInfo.fnRange
-                            (Fix.replaceRangeBy checkInfo.fnRange
-                                (replacement checkInfo)
-                                :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) singletonList.element
-                            )
-                        )
-
-                Nothing ->
-                    Nothing
+        , sequenceOnWrappedIsEquivalentToMapWrapOnValue ( listCollection, wrapper )
         , \checkInfo ->
             case listCollection.elements.get (extractInferResources checkInfo) checkInfo.firstArg of
                 Just elements ->
@@ -8093,6 +8070,56 @@ listOfWrapperSequenceChecks wrapper =
 
 {-| The sequence composition check
 
+    sequence (wrap a) --> map wrap a
+
+So for example
+
+    Task.sequence [ task ]
+    --: Task x (List a)
+    --> Task.map List.singleton task
+
+Note that some functions called "sequence" have equal element and result types, like
+
+    Bytes.Encode.sequence  [ encoder ]
+    --: Bytes.Encode.Encoder
+
+which means you can simplify it to `encoder` using `unnecessaryCallOnWrappedCheck`.
+
+Use together with `wrapperOfMappableCompositionCheck`.
+
+-}
+sequenceOnWrappedIsEquivalentToMapWrapOnValue :
+    ( WrapperProperties wrapperOtherProperties, WrapperProperties { elementOtherProperties | mapFn : ( ModuleName, String ) } )
+    -> CheckInfo
+    -> Maybe (Error {})
+sequenceOnWrappedIsEquivalentToMapWrapOnValue ( collection, elementWrapper ) checkInfo =
+    case collection.wrap.getValue checkInfo.lookupTable checkInfo.firstArg of
+        Just wrappedValue ->
+            let
+                replacement : QualifyResources a -> String
+                replacement qualifyResources =
+                    qualifiedToString (qualify elementWrapper.mapFn qualifyResources)
+                        ++ " "
+                        ++ qualifiedToString (qualify Fn.List.singleton qualifyResources)
+            in
+            Just
+                (Rule.errorWithFix
+                    { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite elementWrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
+                    , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ " on the value inside the singleton list." ]
+                    }
+                    checkInfo.fnRange
+                    (Fix.replaceRangeBy checkInfo.fnRange
+                        (replacement checkInfo)
+                        :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) wrappedValue
+                    )
+                )
+
+        Nothing ->
+            Nothing
+
+
+{-| The sequence composition check
+
     sequence << wrap --> map wrap
 
 So for example
@@ -8107,6 +8134,8 @@ Note that some functions called "sequence" have equal element and result types, 
     --: Bytes.Encode.Encoder -> Bytes.Encode.Encoder
 
 which means you can simplify them to `identity` using `unnecessaryCompositionAfterWrapCheck`.
+
+Use together with `sequenceOnWrappedIsEquivalentToMapWrapOnValue`.
 
 -}
 wrapperOfMappableCompositionCheck :
