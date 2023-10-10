@@ -8008,27 +8008,31 @@ wrapperSequenceChecks wrapper =
                 Nothing ->
                     Nothing
         , \checkInfo ->
-            case AstHelpers.getListLiteral checkInfo.firstArg of
-                Just list ->
-                    case traverse (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) list of
-                        Just wraps ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " on a list where each element is " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString wrapper.wrap.fn ++ " on the values inside"
-                                    , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ " on a list where each element is replaced by its value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (Fix.replaceRangeBy
+            case listCollection.elements.get (extractInferResources checkInfo) checkInfo.firstArg of
+                Just elements ->
+                    if elements.allKnown then
+                        case traverse (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) elements.known of
+                            Just wraps ->
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = qualifiedToString checkInfo.fn ++ " on a list where each element is " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString wrapper.wrap.fn ++ " on the values inside"
+                                        , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ " on a list where each element is replaced by its value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                                        }
                                         checkInfo.fnRange
-                                        (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
-                                        :: List.concatMap
-                                            (\wrap -> keepOnlyFix { parentRange = wrap.nodeRange, keep = Node.range wrap.value })
-                                            wraps
+                                        (Fix.replaceRangeBy
+                                            checkInfo.fnRange
+                                            (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
+                                            :: List.concatMap
+                                                (\wrap -> keepOnlyFix { parentRange = wrap.nodeRange, keep = Node.range wrap.value })
+                                                wraps
+                                        )
                                     )
-                                )
 
-                        Nothing ->
-                            Nothing
+                            Nothing ->
+                                Nothing
+
+                    else
+                        Nothing
 
                 Nothing ->
                     Nothing
