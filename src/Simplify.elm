@@ -5133,14 +5133,14 @@ maybeMapNChecks =
 maybeAndThenChecks : CheckInfo -> Maybe (Error {})
 maybeAndThenChecks =
     firstThatConstructsJust
-        [ wrapperAndThenChecks maybeWithJustAsWrap
-        , emptiableAndThenChecks maybeWithJustAsWrap
+        [ wrapperMapFlatChecks maybeWithJustAsWrap
+        , emptiableMapFlatChecks maybeWithJustAsWrap
         ]
 
 
 maybeAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 maybeAndThenCompositionChecks checkInfo =
-    wrapperAndThenCompositionChecks maybeWithJustAsWrap checkInfo
+    wrapperMapFlatCompositionChecks maybeWithJustAsWrap checkInfo
 
 
 
@@ -5206,7 +5206,7 @@ resultAndThenChecks : CheckInfo -> Maybe (Error {})
 resultAndThenChecks =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck resultWithOkAsWrap
-        , wrapperAndThenChecks resultWithOkAsWrap
+        , wrapperMapFlatChecks resultWithOkAsWrap
         ]
 
 
@@ -5214,7 +5214,7 @@ resultAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndF
 resultAndThenCompositionChecks =
     firstThatConstructsJust
         [ unnecessaryCompositionAfterEmptyCheck resultWithOkAsWrap
-        , wrapperAndThenCompositionChecks resultWithOkAsWrap
+        , wrapperMapFlatCompositionChecks resultWithOkAsWrap
         ]
 
 
@@ -5377,8 +5377,8 @@ listConcatMapChecks : CheckInfo -> Maybe (Error {})
 listConcatMapChecks =
     firstThatConstructsJust
         [ operationWithIdentityIsEquivalentToFnCheck Fn.List.concat
-        , emptiableAndThenChecks listCollection
-        , wrapperAndThenChecks listCollection
+        , emptiableMapFlatChecks listCollection
+        , wrapperMapFlatChecks listCollection
         ]
 
 
@@ -5877,7 +5877,7 @@ arrayToIndexedListMapCompositionCheck checkInfo =
 
 listConcatMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listConcatMapCompositionChecks =
-    wrapperAndThenCompositionChecks listCollection
+    wrapperMapFlatCompositionChecks listCollection
 
 
 listMemberChecks : CheckInfo -> Maybe (Error {})
@@ -7942,7 +7942,7 @@ taskAndThenChecks : CheckInfo -> Maybe (Error {})
 taskAndThenChecks =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck taskWithSucceedAsWrap
-        , wrapperAndThenChecks taskWithSucceedAsWrap
+        , wrapperMapFlatChecks taskWithSucceedAsWrap
         ]
 
 
@@ -7950,7 +7950,7 @@ taskAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 taskAndThenCompositionChecks =
     firstThatConstructsJust
         [ unnecessaryCompositionAfterEmptyCheck taskWithSucceedAsWrap
-        , wrapperAndThenCompositionChecks taskWithSucceedAsWrap
+        , wrapperMapFlatCompositionChecks taskWithSucceedAsWrap
         ]
 
 
@@ -7974,7 +7974,7 @@ taskOnErrorChecks : CheckInfo -> Maybe (Error {})
 taskOnErrorChecks =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck taskWithFailAsWrap
-        , wrapperAndThenChecks taskWithFailAsWrap
+        , wrapperMapFlatChecks taskWithFailAsWrap
         ]
 
 
@@ -7982,7 +7982,7 @@ taskOnErrorCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 taskOnErrorCompositionChecks =
     firstThatConstructsJust
         [ unnecessaryCompositionAfterEmptyCheck taskWithFailAsWrap
-        , wrapperAndThenCompositionChecks taskWithFailAsWrap
+        , wrapperMapFlatCompositionChecks taskWithFailAsWrap
         ]
 
 
@@ -8394,7 +8394,7 @@ jsonDecodeAndThenChecks : CheckInfo -> Maybe (Error {})
 jsonDecodeAndThenChecks =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck jsonDecoderWithSucceedAsWrap
-        , wrapperAndThenChecks jsonDecoderWithSucceedAsWrap
+        , wrapperMapFlatChecks jsonDecoderWithSucceedAsWrap
         ]
 
 
@@ -8402,7 +8402,7 @@ jsonDecodeAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfo
 jsonDecodeAndThenCompositionChecks =
     firstThatConstructsJust
         [ unnecessaryCompositionAfterEmptyCheck jsonDecoderWithSucceedAsWrap
-        , wrapperAndThenCompositionChecks jsonDecoderWithSucceedAsWrap
+        , wrapperMapFlatCompositionChecks jsonDecoderWithSucceedAsWrap
         ]
 
 
@@ -8581,21 +8581,21 @@ randomMapCompositionChecks =
 randomAndThenChecks : CheckInfo -> Maybe (Error {})
 randomAndThenChecks =
     firstThatConstructsJust
-        [ wrapperAndThenChecks randomGeneratorWrapper
-        , nonEmptiableWrapperAndThenAlwaysChecks randomGeneratorWrapper
+        [ wrapperMapFlatChecks randomGeneratorWrapper
+        , nonEmptiableWrapperMapFlatAlwaysChecks randomGeneratorWrapper
         ]
 
 
 randomAndThenCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 randomAndThenCompositionChecks =
-    wrapperAndThenCompositionChecks randomGeneratorWrapper
+    wrapperMapFlatCompositionChecks randomGeneratorWrapper
 
 
-nonEmptiableWrapperAndThenAlwaysChecks :
+nonEmptiableWrapperMapFlatAlwaysChecks :
     TypeProperties (NonEmptiableProperties (WrapperProperties otherProperties))
     -> CheckInfo
     -> Maybe (Error {})
-nonEmptiableWrapperAndThenAlwaysChecks wrapper checkInfo =
+nonEmptiableWrapperMapFlatAlwaysChecks wrapper checkInfo =
     case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
         Just alwaysResult ->
             Just
@@ -8645,7 +8645,7 @@ type alias EmptiableProperties empty otherProperties =
 
 {-| Properties of a structure type that will always have data inside, for example a non-empty list, a `Test`, a `Benchmark` or a tree (but not a forest).
 
-This can be really valuable, for example when you want to know whether the function of a map or andThen will always be called.
+This can be really valuable, for example when you want to know whether the function of a map or mapFlat will always be called.
 
 The way this type is defined,
 it is impossible to have one type that has both `EmptiableProperties` and `NonEmptiableProperties`
@@ -10000,11 +10000,11 @@ mapAlwaysCompositionChecks wrapper checkInfo =
             Nothing
 
 
-emptiableAndThenChecks :
+emptiableMapFlatChecks :
     EmptiableProperties ConstantProperties otherProperties
     -> CheckInfo
     -> Maybe (Error {})
-emptiableAndThenChecks emptiable =
+emptiableMapFlatChecks emptiable =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck emptiable
         , \checkInfo ->
@@ -10031,11 +10031,11 @@ getValueWithNodeRange getValue expressionNode =
         (getValue expressionNode)
 
 
-wrapperAndThenChecks :
+wrapperMapFlatChecks :
     TypeProperties (WrapperProperties (MappableProperties otherProperties))
     -> CheckInfo
     -> Maybe (Error {})
-wrapperAndThenChecks wrapper =
+wrapperMapFlatChecks wrapper =
     firstThatConstructsJust
         [ \checkInfo ->
             case secondArg checkInfo of
@@ -10095,19 +10095,19 @@ wrapperAndThenChecks wrapper =
         ]
 
 
-{-| `andThen f` on a wrapped value is equivalent to `f`
+{-| `mapFlat f` on a wrapped value is equivalent to `f`
 
-    andThen f << wrap --> f
+    mapFlat f << wrap --> f
 
 So for example
 
-    List.concat f << List.singleton --> f
+    List.concatMap f << List.singleton --> f
 
-Use in together with `wrapperAndThenChecks`
+Use in together with `wrapperMapFlatChecks`
 
 -}
-wrapperAndThenCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-wrapperAndThenCompositionChecks wrapper checkInfo =
+wrapperMapFlatCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+wrapperMapFlatCompositionChecks wrapper checkInfo =
     case ( wrapper.wrap.fn == checkInfo.earlier.fn, checkInfo.later.args ) of
         ( True, (Node functionRange _) :: [] ) ->
             Just
