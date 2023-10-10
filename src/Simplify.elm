@@ -12325,38 +12325,25 @@ alwaysReturnsLastArgError usingSpecificSituation lastArgProperties checkInfo =
         Nothing ->
             -- Not enough arguments
             let
-                replacement : { description : String, fix : List Fix }
+                replacement : QualifyResources res -> String
                 replacement =
-                    case checkInfo.argCount - List.length checkInfo.argsAfterFirst - 1 of
+                    case checkInfo.argCount - (1 + List.length checkInfo.argsAfterFirst) - 1 of
+                        0 ->
+                            \res -> qualifiedToString (qualify Fn.Basics.identity checkInfo)
+
                         1 ->
-                            { description = "identity"
-                            , fix =
-                                [ Fix.replaceRangeBy checkInfo.parentRange
-                                    (qualifiedToString (qualify Fn.Basics.identity checkInfo))
-                                ]
-                            }
+                            \res -> qualifiedToString (qualify Fn.Basics.always res) ++ " " ++ qualifiedToString (qualify Fn.Basics.identity res)
 
-                        2 ->
-                            { description = "always identity"
-                            , fix =
-                                [ Fix.replaceRangeBy checkInfo.parentRange
-                                    (qualifiedToString (qualify Fn.Basics.always checkInfo) ++ " " ++ qualifiedToString (qualify Fn.Basics.identity checkInfo))
-                                ]
-                            }
-
-                        _ ->
-                            -- Use-case is absent for now
-                            { description = "the " ++ lastArgProperties.represents ++ " argument"
-                            , fix = []
-                            }
+                        atLeast2 ->
+                            \res -> "(\\" ++ String.repeat atLeast2 "_ " ++ "-> " ++ qualifiedToString (qualify Fn.Basics.identity res) ++ ")"
             in
             Rule.errorWithFix
                 { message = usingSpecificSituation ++ " will always return the same given " ++ lastArgProperties.represents
                 , details =
-                    [ "You can replace this call by " ++ replacement.description ++ "." ]
+                    [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
                 }
                 checkInfo.fnRange
-                replacement.fix
+                [ Fix.replaceRangeBy checkInfo.parentRange (replacement checkInfo) ]
 
 
 {-| In your specific situation, the given arg will always be returned unchanged.
