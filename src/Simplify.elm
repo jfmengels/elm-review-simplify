@@ -8358,20 +8358,8 @@ jsonDecodeAndThenCompositionChecks =
 
 
 oneOfChecks : CheckInfo -> Maybe (Error {})
-oneOfChecks checkInfo =
-    case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
-        Just listSingletonArg ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Unnecessary oneOf"
-                    , details = [ "There is only a single element in the list of elements to try out." ]
-                    }
-                    checkInfo.fnRange
-                    (replaceBySubExpressionFix checkInfo.parentRange listSingletonArg.element)
-                )
-
-        Nothing ->
-            Nothing
+oneOfChecks =
+    callOnWrapReturnsItsValueCheck listCollection
 
 
 

@@ -716,8 +716,8 @@ a = Json.Decode.oneOf [ x ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary oneOf"
-                            , details = [ "There is only a single element in the list of elements to try out." ]
+                            { message = "Json.Decode.oneOf on a singleton list will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the singleton list." ]
                             , under = "Json.Decode.oneOf"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
