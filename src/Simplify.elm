@@ -5342,7 +5342,7 @@ callOnFromListWithIrrelevantEmptyElement situation ( constructibleFromList, empt
                                     , details = [ "Including " ++ descriptionForDefinite "the" emptiableElement.empty.description ++ " in the " ++ constructibleFromList.represents ++ " does not change the result of this call. You can remove the " ++ descriptionWithoutArticle emptiableElement.empty.description ++ " element." ]
                                     }
                                     (Node.range emptyLiteralAndNeighbors.found)
-                                    (listLiteralElementRemoveFix emptyLiteralAndNeighbors)
+                                    (listLiteralRemoveElementFix emptyLiteralAndNeighbors)
                                 )
 
                         Nothing ->
@@ -8324,7 +8324,7 @@ htmlAttributesClassListChecks =
                             Just
                                 (Rule.errorWithFix (htmlAttributesClassListFalseElementError checkInfo)
                                     checkInfo.fnRange
-                                    (listLiteralElementRemoveFix classPart)
+                                    (listLiteralRemoveElementFix classPart)
                                 )
 
                         Nothing ->
@@ -12386,8 +12386,8 @@ returnsArgError usingSituation config checkInfo =
 `findMapNeighboring` where finding returns a record containing the element's Range
 Works for patterns and expressions.
 -}
-listLiteralElementRemoveFix : { before : Maybe (Node element), found : Node element, after : Maybe (Node element) } -> List Fix
-listLiteralElementRemoveFix toRemove =
+listLiteralRemoveElementFix : { before : Maybe (Node element), found : Node element, after : Maybe (Node element) } -> List Fix
+listLiteralRemoveElementFix toRemove =
     case ( toRemove.before, toRemove.after ) of
         -- found the only element
         ( Nothing, Nothing ) ->
