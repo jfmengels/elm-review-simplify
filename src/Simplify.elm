@@ -9829,7 +9829,7 @@ subNoneConstantProperties =
 
 
 
--- GENERIC CHECKS
+-- CHECKS FOR GENERIC TYPES
 
 
 oneOfChecks : CheckInfo -> Maybe (Error {})
@@ -10527,6 +10527,10 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                     error.opToReplaceRange
                     error.fixes
                 )
+
+
+
+-- GENERIC CHECKS
 
 
 {-| Condense applying the same function with equal arguments (except the last one) twice in sequence into one.
