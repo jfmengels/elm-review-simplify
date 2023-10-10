@@ -5089,7 +5089,7 @@ stringReplaceChecks =
                                     Just
                                         (alwaysReturnsLastArgError
                                             (qualifiedToString checkInfo.fn ++ " where the pattern to replace and the replacement are equal")
-                                            { represents = "string" }
+                                            stringCollection
                                             checkInfo
                                         )
 
@@ -7118,7 +7118,7 @@ listSortByChecks =
                     Just
                         (alwaysReturnsLastArgError
                             (qualifiedToString checkInfo.fn ++ " (always a)")
-                            { represents = "list" }
+                            listCollection
                             checkInfo
                         )
 
@@ -7154,7 +7154,7 @@ listSortWithChecks =
                         fixToIdentity =
                             alwaysReturnsLastArgError
                                 (qualifiedToString checkInfo.fn ++ " with a comparison that always returns " ++ AstHelpers.orderToString order)
-                                { represents = "list" }
+                                listCollection
                                 checkInfo
                     in
                     case order of
