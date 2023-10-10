@@ -8819,7 +8819,7 @@ type alias ConstantProperties =
         { asString : QualifyResources {} -> String }
 
 
-{-| Create `ConstantProperties` for a value with a given full qualified name.
+{-| Create `ConstantProperties` for a value with a given fully qualified name.
 -}
 constantFnProperties : ( ModuleName, String ) -> ConstantProperties
 constantFnProperties fullyQualified =
@@ -8829,6 +8829,21 @@ constantFnProperties fullyQualified =
             isJust (AstHelpers.getSpecificValueOrFn fullyQualified res.lookupTable expr)
     , asString =
         \res -> qualifiedToString (qualify fullyQualified res)
+    }
+
+
+{-| Create `ConstructWithOneArgProperties` for a function call with a given fully qualified name with a given `Description`.
+-}
+fnCallConstructWithOneArgProperties : Description -> ( ModuleName, String ) -> ConstructWithOneArgProperties
+fnCallConstructWithOneArgProperties description fullyQualified =
+    { description = description
+    , fn = fullyQualified
+    , getValue =
+        \lookupTable expr ->
+            Maybe.map .firstArg (AstHelpers.getSpecificFnCall fullyQualified lookupTable expr)
+    , is =
+        \res expr ->
+            isJust (AstHelpers.getSpecificFnCall fullyQualified res.lookupTable expr)
     }
 
 
@@ -9086,15 +9101,7 @@ randomGeneratorWrapper =
 
 randomGeneratorConstantConstruct : ConstructWithOneArgProperties
 randomGeneratorConstantConstruct =
-    { description = A "constant generator"
-    , fn = Fn.Random.constant
-    , getValue =
-        \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Random.constant lookupTable expr)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Random.constant res.lookupTable expr)
-    }
+    fnCallConstructWithOneArgProperties (A "constant generator") Fn.Random.constant
 
 
 maybeWithJustAsWrap : TypeProperties (EmptiableProperties ConstantProperties (WrapperProperties (MappableProperties {})))
@@ -9108,15 +9115,7 @@ maybeWithJustAsWrap =
 
 maybeJustConstructProperties : ConstructWithOneArgProperties
 maybeJustConstructProperties =
-    { description = A "just maybe"
-    , fn = Fn.Maybe.justVariant
-    , getValue =
-        \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant lookupTable expr)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant res.lookupTable expr)
-    }
+    fnCallConstructWithOneArgProperties (A "just maybe") Fn.Maybe.justVariant
 
 
 resultWithOkAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneArgProperties (MappableProperties {})))
@@ -9130,28 +9129,12 @@ resultWithOkAsWrap =
 
 resultOkayConstruct : ConstructWithOneArgProperties
 resultOkayConstruct =
-    { description = An "okay result"
-    , fn = Fn.Result.okVariant
-    , getValue =
-        \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Result.okVariant lookupTable expr)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Result.okVariant res.lookupTable expr)
-    }
+    fnCallConstructWithOneArgProperties (An "okay result") Fn.Result.okVariant
 
 
 resultErrorConstruct : ConstructWithOneArgProperties
 resultErrorConstruct =
-    { description = An "error"
-    , fn = Fn.Result.errVariant
-    , getValue =
-        \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Result.errVariant lookupTable expr)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Result.errVariant res.lookupTable expr)
-    }
+    fnCallConstructWithOneArgProperties (An "error") Fn.Result.errVariant
 
 
 resultWithErrAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneArgProperties (MappableProperties {})))
@@ -9174,28 +9157,12 @@ taskWithSucceedAsWrap =
 
 taskSucceedingConstruct : ConstructWithOneArgProperties
 taskSucceedingConstruct =
-    { description = A "succeeding task"
-    , fn = Fn.Task.succeed
-    , getValue =
-        \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Task.succeed lookupTable expr)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Task.succeed res.lookupTable expr)
-    }
+    fnCallConstructWithOneArgProperties (A "succeeding task") Fn.Task.succeed
 
 
 taskFailingConstruct : ConstructWithOneArgProperties
 taskFailingConstruct =
-    { description = A "failing task"
-    , fn = Fn.Task.fail
-    , getValue =
-        \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Task.fail lookupTable expr)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Task.fail res.lookupTable expr)
-    }
+    fnCallConstructWithOneArgProperties (A "failing task") Fn.Task.fail
 
 
 taskWithFailAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneArgProperties (MappableProperties {})))
@@ -9218,28 +9185,12 @@ jsonDecoderWithSucceedAsWrap =
 
 jsonDecoderSucceedingConstruct : ConstructWithOneArgProperties
 jsonDecoderSucceedingConstruct =
-    { description = A "succeeding decoder"
-    , fn = Fn.Json.Decode.succeed
-    , getValue =
-        \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Json.Decode.succeed lookupTable expr)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Json.Decode.succeed res.lookupTable expr)
-    }
+    fnCallConstructWithOneArgProperties (A "succeeding decoder") Fn.Json.Decode.succeed
 
 
 jsonDecoderFailingConstruct : ConstructWithOneArgProperties
 jsonDecoderFailingConstruct =
-    { description = A "failing decoder"
-    , fn = Fn.Json.Decode.fail
-    , getValue =
-        \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Json.Decode.fail lookupTable expr)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Json.Decode.fail res.lookupTable expr)
-    }
+    fnCallConstructWithOneArgProperties (A "failing decoder") Fn.Json.Decode.fail
 
 
 listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties (MappableProperties {})))))
@@ -9369,15 +9320,7 @@ stringEmptyConstant =
 
 singleCharConstruct : ConstructWithOneArgProperties
 singleCharConstruct =
-    { description = A "single-char string"
-    , fn = Fn.String.fromChar
-    , getValue =
-        \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.String.fromChar lookupTable expr)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.String.fromChar res.lookupTable expr)
-    }
+    fnCallConstructWithOneArgProperties (A "single-char string") Fn.String.fromChar
 
 
 stringDetermineLength : Infer.Resources res -> Node Expression -> Maybe CollectionSize
@@ -9529,15 +9472,7 @@ setCollection =
 
 setSingletonConstruct : ConstructWithOneArgProperties
 setSingletonConstruct =
-    { description = A "singleton set"
-    , fn = Fn.Set.singleton
-    , getValue =
-        \lookupTable expr ->
-            Maybe.map .firstArg (AstHelpers.getSpecificFnCall Fn.Set.singleton lookupTable expr)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificFnCall Fn.Set.singleton res.lookupTable expr)
-    }
+    fnCallConstructWithOneArgProperties (A "singleton set") Fn.Set.singleton
 
 
 setGetElements : Infer.Resources a -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
