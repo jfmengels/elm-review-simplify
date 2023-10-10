@@ -6493,7 +6493,7 @@ listFilterMapCompositionChecks =
     mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks { mapFn = Fn.List.map }
 
 
-emptiableWrapperFilterMapChecks : TypeProperties (WrapperProperties (EmptiableProperties ConstantProperties { otherProperties | mapFn : ( ModuleName, String ) })) -> CheckInfo -> Maybe (Error {})
+emptiableWrapperFilterMapChecks : TypeProperties (WrapperProperties (EmptiableProperties ConstantProperties (MappableProperties otherProperties))) -> CheckInfo -> Maybe (Error {})
 emptiableWrapperFilterMapChecks emptiableWrapper =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -8019,7 +8019,7 @@ sequenceOnCollectionWithKnownEmptyElementCheck ( collection, elementEmptiable ) 
             Nothing
 
 
-listOfWrapperSequenceChecks : WrapperProperties { otherProperties | mapFn : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
+listOfWrapperSequenceChecks : WrapperProperties (MappableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 listOfWrapperSequenceChecks wrapper =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
@@ -8099,7 +8099,7 @@ Use together with `wrapperOfMappableCompositionCheck`.
 
 -}
 sequenceOnWrappedIsEquivalentToMapWrapOnValue :
-    ( WrapperProperties wrapperOtherProperties, WrapperProperties { elementOtherProperties | mapFn : ( ModuleName, String ) } )
+    ( WrapperProperties wrapperOtherProperties, WrapperProperties (MappableProperties elementOtherProperties) )
     -> CheckInfo
     -> Maybe (Error {})
 sequenceOnWrappedIsEquivalentToMapWrapOnValue ( wrapper, elementWrapper ) checkInfo =
@@ -8149,7 +8149,7 @@ Use together with `sequenceOnWrappedIsEquivalentToMapWrapOnValue`.
 
 -}
 wrapperOfMappableCompositionCheck :
-    ( WrapperProperties wrapperOtherProperties, { valueOtherProperties | mapFn : ( ModuleName, String ) } )
+    ( WrapperProperties wrapperOtherProperties, MappableProperties valueOtherProperties )
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 wrapperOfMappableCompositionCheck ( wrapper, valueMappable ) checkInfo =
@@ -8708,6 +8708,19 @@ type alias AbsorbableProperties otherProperties =
     }
 
 
+{-| Properties of a type that has a function that can change each current value given a function.
+Examples are `Result.mapError`, `List.map` or `Random.map`.
+
+Types with a `map` function typically have associated `WrapperProperties`.
+For now, this has to be explicitly specified!
+
+-}
+type alias MappableProperties otherProperties =
+    { otherProperties
+        | mapFn : ( ModuleName, String )
+    }
+
+
 {-| Common properties of a specific set of values for a type.
 
 Examples:
@@ -8982,7 +8995,7 @@ numberNaNConstant =
     }
 
 
-randomGeneratorWrapper : TypeProperties (NonEmptiableProperties (WrapperProperties { mapFn : ( ModuleName, String ) }))
+randomGeneratorWrapper : TypeProperties (NonEmptiableProperties (WrapperProperties (MappableProperties {})))
 randomGeneratorWrapper =
     { represents = "random generator"
     , wrap = randomGeneratorConstantConstruct
@@ -9004,12 +9017,7 @@ randomGeneratorConstantConstruct =
     }
 
 
-maybeWithJustAsWrap :
-    TypeProperties
-        (EmptiableProperties
-            ConstantProperties
-            (WrapperProperties { mapFn : ( ModuleName, String ) })
-        )
+maybeWithJustAsWrap : TypeProperties (EmptiableProperties ConstantProperties (WrapperProperties (MappableProperties {})))
 maybeWithJustAsWrap =
     { represents = "maybe"
     , empty =
@@ -9039,14 +9047,7 @@ maybeJustConstructProperties =
     }
 
 
-resultWithOkAsWrap :
-    TypeProperties
-        (WrapperProperties
-            (EmptiableProperties
-                ConstructWithOneArgProperties
-                { mapFn : ( ModuleName, String ) }
-            )
-        )
+resultWithOkAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneArgProperties (MappableProperties {})))
 resultWithOkAsWrap =
     { represents = "result"
     , wrap = resultOkayConstruct
@@ -9081,14 +9082,7 @@ resultErrorConstruct =
     }
 
 
-resultWithErrAsWrap :
-    TypeProperties
-        (WrapperProperties
-            (EmptiableProperties
-                ConstructWithOneArgProperties
-                { mapFn : ( ModuleName, String ) }
-            )
-        )
+resultWithErrAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneArgProperties (MappableProperties {})))
 resultWithErrAsWrap =
     { represents = "result"
     , wrap = resultErrorConstruct
@@ -9097,14 +9091,7 @@ resultWithErrAsWrap =
     }
 
 
-taskWithSucceedAsWrap :
-    TypeProperties
-        (WrapperProperties
-            (EmptiableProperties
-                ConstructWithOneArgProperties
-                { mapFn : ( ModuleName, String ) }
-            )
-        )
+taskWithSucceedAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneArgProperties (MappableProperties {})))
 taskWithSucceedAsWrap =
     { represents = "task"
     , wrap = taskSucceedingConstruct
@@ -9139,14 +9126,7 @@ taskFailingConstruct =
     }
 
 
-taskWithFailAsWrap :
-    TypeProperties
-        (WrapperProperties
-            (EmptiableProperties
-                ConstructWithOneArgProperties
-                { mapFn : ( ModuleName, String ) }
-            )
-        )
+taskWithFailAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneArgProperties (MappableProperties {})))
 taskWithFailAsWrap =
     { represents = "task"
     , wrap = taskFailingConstruct
@@ -9155,14 +9135,7 @@ taskWithFailAsWrap =
     }
 
 
-jsonDecoderWithSucceedAsWrap :
-    TypeProperties
-        (WrapperProperties
-            (EmptiableProperties
-                ConstructWithOneArgProperties
-                { mapFn : ( ModuleName, String ) }
-            )
-        )
+jsonDecoderWithSucceedAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneArgProperties (MappableProperties {})))
 jsonDecoderWithSucceedAsWrap =
     { represents = "json decoder"
     , wrap = jsonDecoderSucceedingConstruct
@@ -9197,7 +9170,7 @@ jsonDecoderFailingConstruct =
     }
 
 
-listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties { mapFn : ( ModuleName, String ) }))))
+listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties (MappableProperties {})))))
 listCollection =
     { represents = "list"
     , empty = listEmptyConstant
@@ -10111,7 +10084,7 @@ getValueWithNodeRange getValue expressionNode =
 
 
 wrapperAndThenChecks :
-    TypeProperties (WrapperProperties { otherProperties | mapFn : ( ModuleName, String ) })
+    TypeProperties (WrapperProperties (MappableProperties otherProperties))
     -> CheckInfo
     -> Maybe (Error {})
 wrapperAndThenChecks wrapper =
