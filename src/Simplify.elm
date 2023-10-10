@@ -6544,32 +6544,16 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
 
 mapToOperationWithIdentityCanBeCombinedToOperationChecks : MappableProperties otherProperties -> CheckInfo -> Maybe (Error {})
 mapToOperationWithIdentityCanBeCombinedToOperationChecks mappable checkInfo =
-    case secondArg checkInfo of
-        Just mappableArg ->
-            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-                case AstHelpers.getSpecificFnCall mappable.mapFn checkInfo.lookupTable mappableArg of
-                    Just mapCall ->
-                        Just
-                            (Rule.errorWithFix
-                                { message = qualifiedToString mappable.mapFn ++ " and " ++ qualifiedToString checkInfo.fn ++ " identity can be combined using " ++ qualifiedToString checkInfo.fn
-                                , details = [ qualifiedToString checkInfo.fn ++ " is meant for this exact purpose and will also be faster." ]
-                                }
-                                checkInfo.fnRange
-                                (replaceBySubExpressionFix checkInfo.parentRange mappableArg
-                                    ++ [ Fix.replaceRangeBy mapCall.fnRange
-                                            (qualifiedToString (qualify checkInfo.fn checkInfo))
-                                       ]
-                                )
-                            )
+    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+        onFnCallCanBeCombinedCheck
+            { laterOperationDescription = qualifiedToString checkInfo.fn ++ " with an identity function"
+            , earlierFn = mappable.mapFn
+            , combinedFn = checkInfo.fn
+            }
+            checkInfo
 
-                    Nothing ->
-                        Nothing
-
-            else
-                Nothing
-
-        Nothing ->
-            Nothing
+    else
+        Nothing
 
 
 mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks : MappableProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
@@ -6577,22 +6561,12 @@ mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks mappable che
     case checkInfo.later.args of
         elementToMaybeMappingArg :: [] ->
             if AstHelpers.isIdentity checkInfo.lookupTable elementToMaybeMappingArg then
-                case ( checkInfo.earlier.fn == mappable.mapFn, checkInfo.earlier.args ) of
-                    ( True, _ :: [] ) ->
-                        Just
-                            { info =
-                                { message = qualifiedToString mappable.mapFn ++ " and " ++ qualifiedToString checkInfo.later.fn ++ " identity can be combined using " ++ qualifiedToString checkInfo.later.fn
-                                , details = [ qualifiedToString checkInfo.later.fn ++ " is meant for this exact purpose and will also be faster." ]
-                                }
-                            , fix =
-                                [ Fix.replaceRangeBy checkInfo.earlier.fnRange
-                                    (qualifiedToString (qualify checkInfo.later.fn checkInfo))
-                                , Fix.removeRange checkInfo.later.removeRange
-                                ]
-                            }
-
-                    _ ->
-                        Nothing
+                compositionAfterFnCanBeCombinedCheck
+                    { laterOperationDescription = qualifiedToString checkInfo.later.fn ++ " with an identity function"
+                    , earlierFn = mappable.mapFn
+                    , combinedFn = checkInfo.later.fn
+                    }
+                    checkInfo
 
             else
                 Nothing
