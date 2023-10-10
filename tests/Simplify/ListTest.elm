@@ -1214,7 +1214,7 @@ a = List.tail (List.singleton b)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.tail on a list with a single element will result in Just []"
+                            { message = "List.tail on a singleton list will result in Just []"
                             , details = [ "You can replace this call by Just []." ]
                             , under = "List.tail"
                             }
@@ -1230,7 +1230,7 @@ a = List.tail <| List.singleton b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.tail on a list with a single element will result in Just []"
+                            { message = "List.tail on a singleton list will result in Just []"
                             , details = [ "You can replace this call by Just []." ]
                             , under = "List.tail"
                             }
@@ -1246,7 +1246,7 @@ a = List.singleton b |> List.tail
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.tail on a list with a single element will result in Just []"
+                            { message = "List.tail on a singleton list will result in Just []"
                             , details = [ "You can replace this call by Just []." ]
                             , under = "List.tail"
                             }
@@ -1262,7 +1262,7 @@ a = List.tail [ b ]
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.tail on a list with a single element will result in Just []"
+                            { message = "List.tail on a singleton list will result in Just []"
                             , details = [ "You can replace this call by Just []." ]
                             , under = "List.tail"
                             }
