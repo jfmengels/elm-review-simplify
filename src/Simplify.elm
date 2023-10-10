@@ -12329,7 +12329,7 @@ alwaysReturnsLastArgError usingSpecificSituation lastArgProperties checkInfo =
                 replacement =
                     case checkInfo.argCount - (1 + List.length checkInfo.argsAfterFirst) - 1 of
                         0 ->
-                            \res -> qualifiedToString (qualify Fn.Basics.identity checkInfo)
+                            \res -> qualifiedToString (qualify Fn.Basics.identity res)
 
                         1 ->
                             \res -> qualifiedToString (qualify Fn.Basics.always res) ++ " " ++ qualifiedToString (qualify Fn.Basics.identity res)
