@@ -9120,6 +9120,26 @@ listDetermineLength resources =
                 |> AstHelpers.getSpecificFnCall Fn.List.singleton resources.lookupTable
                 |> Maybe.map (\_ -> Exactly 1)
         , \expressionNode ->
+            case AstHelpers.getSpecificFnCall Fn.List.repeat resources.lookupTable expressionNode of
+                Just repeatCall ->
+                    Evaluate.getInt resources repeatCall.firstArg
+                        |> Maybe.map (\n -> Exactly (max 0 n))
+
+                Nothing ->
+                    Nothing
+        , \expressionNode ->
+            case AstHelpers.getSpecificFnCall Fn.List.range resources.lookupTable expressionNode of
+                Just rangeCall ->
+                    case ( Evaluate.getInt resources rangeCall.firstArg, Maybe.andThen (Evaluate.getInt resources) (List.head rangeCall.argsAfterFirst) ) of
+                        ( Just start, Just end ) ->
+                            Just (Exactly (max 0 (end - start)))
+
+                        _ ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+        , \expressionNode ->
             case AstHelpers.removeParens expressionNode of
                 Node _ (Expression.OperatorApplication "::" _ _ right) ->
                     maybeCollectionSizeAdd1 (listDetermineLength resources right)
