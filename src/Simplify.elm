@@ -7957,6 +7957,17 @@ listSequenceOrFirstEmptyChecks emptiable =
         ]
 
 
+{-| The sequence check
+
+    sequence (collection containing some wrapped elements, then empty, then other elements)
+    --> empty
+
+So for example
+
+    Task.sequence [ Task.succeed a, Task.fail x, task ]
+    --> Task.fail x
+
+-}
 sequenceOnCollectionWithKnownEmptyElementCheck :
     ( TypeProperties (CollectionProperties collectionOtherProperties), EmptiableProperties (TypeSubsetProperties empty) (WrapperProperties elementOtherProperties) )
     -> CheckInfo
