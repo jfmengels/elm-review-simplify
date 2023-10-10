@@ -4912,6 +4912,22 @@ callWithNonPositiveIntCanBeReplacedByCheck :
     -> CheckInfo
     -> Maybe (Error {})
 callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
+    callWithNonPositiveIntCheckErrorSituation { fn = checkInfo.fn, int = config.int, intDescription = config.intDescription }
+        |> Maybe.map
+            (\situation ->
+                alwaysResultsInUnparenthesizedConstantError situation
+                    { replacement = config.replacement }
+                    checkInfo
+            )
+
+
+callWithNonPositiveIntCheckErrorSituation :
+    { fn : ( ModuleName, String )
+    , int : number
+    , intDescription : String
+    }
+    -> Maybe String
+callWithNonPositiveIntCheckErrorSituation config =
     if config.int <= 0 then
         let
             lengthDescription : String
@@ -4923,10 +4939,7 @@ callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
                     config.intDescription ++ " 0"
         in
         Just
-            (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with " ++ lengthDescription)
-                { replacement = config.replacement }
-                checkInfo
-            )
+            (qualifiedToString config.fn ++ " with " ++ lengthDescription)
 
     else
         Nothing
@@ -7138,17 +7151,13 @@ listDropChecks : CheckInfo -> Maybe (Error {})
 listDropChecks =
     firstThatConstructsJust
         [ \checkInfo ->
-            case Evaluate.getInt checkInfo checkInfo.firstArg of
-                Just 0 ->
-                    Just
-                        (alwaysReturnsLastArgError
-                            (qualifiedToString checkInfo.fn ++ " 0")
-                            { represents = "list" }
-                            checkInfo
-                        )
-
-                _ ->
-                    Nothing
+            Evaluate.getInt checkInfo checkInfo.firstArg
+                |> Maybe.andThen
+                    (\int ->
+                        callWithNonPositiveIntCheckErrorSituation { int = int, intDescription = "count", fn = checkInfo.fn }
+                    )
+                |> Maybe.map
+                    (\situation -> alwaysReturnsLastArgError situation listCollection checkInfo)
         , unnecessaryCallOnEmptyCheck listCollection
         ]
 

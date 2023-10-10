@@ -7118,7 +7118,7 @@ a = List.drop 0 list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.drop 0 will always return the same given list"
+                            { message = "List.drop with count 0 will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.drop"
                             }
@@ -7134,7 +7134,7 @@ a = list |> List.drop 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.drop 0 will always return the same given list"
+                            { message = "List.drop with count 0 will always return the same given list"
                             , details = [ "You can replace this call by the list itself." ]
                             , under = "List.drop"
                             }
@@ -7150,7 +7150,39 @@ a = List.drop 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.drop 0 will always return the same given list"
+                            { message = "List.drop with count 0 will always return the same given list"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "List.drop"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace list |> List.drop -1 by list" <|
+            \() ->
+                """module A exposing (..)
+a = list |> List.drop -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.drop with negative count will always return the same given list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.drop"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list
+"""
+                        ]
+        , test "should replace List.drop -1 by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.drop -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.drop with negative count will always return the same given list"
                             , details = [ "You can replace this call by identity." ]
                             , under = "List.drop"
                             }
