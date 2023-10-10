@@ -10034,6 +10034,10 @@ getValueWithNodeRange getValue expressionNode =
 
     mapFlat f (wrap a) --> f a
 
+    mapFlat wrap wrapper --> wrapper
+
+    mapFlat (\a -> wrap b) wrapper --> map (\a -> b) wrapper
+
 So for example
 
     List.concatMap f [ a ] --> f a
