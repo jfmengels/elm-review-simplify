@@ -6602,7 +6602,7 @@ mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks mappable che
 
 
 {-| Simplify this operation after a given call to `fromFn` into a given `combinedFn`.
-If the `fromFn` call isn't the first argument, use `onFnCallCanBeCombinedCheck`
+If the `fromFn` call isn't the first argument, use `onFnCallCanBeCombinedCheck`.
 
 Examples:
 
@@ -6636,6 +6636,8 @@ Examples:
   - `traverse identity (map f a) --> traverse f a`
   - those listed in `callFromCanBeCombinedCheck`
 
+Use together with `compositionAfterFnCanBeCombinedCheck`.
+
 -}
 onFnCallCanBeCombinedCheck :
     { laterOperationDescription : String, earlierFn : ( ModuleName, String ), combinedFn : ( ModuleName, String ) }
@@ -6663,6 +6665,7 @@ onFnCallCanBeCombinedCheck config checkInfo =
 
 {-| Simplify this operation after a given call to `fromFn` into a given `combinedFn`,
 like `List.concat << List.map f --> List.concatMap f`.
+If the `fromFn` call isn't the first argument, use `compositionAfterFnCanBeCombinedCheck`.
 
 Use in combination with `callFromCanBeCombinedCheck` (where you will also find more examples).
 
@@ -6672,11 +6675,30 @@ compositionFromCanBeCombinedCheck :
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 compositionFromCanBeCombinedCheck config checkInfo =
-    if checkInfo.earlier.fn == config.fromFn then
+    compositionAfterFnCanBeCombinedCheck
+        { laterOperationDescription = qualifiedToString checkInfo.later.fn
+        , earlierFn = config.fromFn
+        , combinedFn = config.combinedFn
+        }
+        checkInfo
+
+
+{-| Simplify this operation after a specific `earlierFn` operation into `combinedFn` with the arguments of the `earlierFn` operation,
+like `List.filterMap identity << List.map f --> List.filterMap f`.
+
+Use together with with `onFnCallCanBeCombinedCheck` (where you will also find more examples).
+
+-}
+compositionAfterFnCanBeCombinedCheck :
+    { laterOperationDescription : String, earlierFn : ( ModuleName, String ), combinedFn : ( ModuleName, String ) }
+    -> CompositionIntoCheckInfo
+    -> Maybe ErrorInfoAndFix
+compositionAfterFnCanBeCombinedCheck config checkInfo =
+    if checkInfo.earlier.fn == config.earlierFn then
         Just
             { info =
-                { message = qualifiedToString config.fromFn ++ ", then " ++ qualifiedToString checkInfo.later.fn ++ " can be combined into " ++ qualifiedToString config.combinedFn
-                , details = [ "You can replace this composition by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.fromFn ++ " which is meant for this exact purpose." ]
+                { message = qualifiedToString config.earlierFn ++ ", then " ++ config.laterOperationDescription ++ " can be combined into " ++ qualifiedToString config.combinedFn
+                , details = [ "You can replace this composition by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.earlierFn ++ " which is meant for this exact purpose." ]
                 }
             , fix =
                 [ Fix.replaceRangeBy
