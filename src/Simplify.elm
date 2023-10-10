@@ -10031,6 +10031,17 @@ getValueWithNodeRange getValue expressionNode =
         (getValue expressionNode)
 
 
+{-| `mapFlat f` on a wrapped value is equivalent to `f`
+
+    mapFlat f (wrap a) --> f a
+
+So for example
+
+    List.concatMap f [ a ] --> f a
+
+Use in together with `wrapperMapFlatCompositionChecks`.
+
+-}
 wrapperMapFlatChecks :
     TypeProperties (WrapperProperties (MappableProperties otherProperties))
     -> CheckInfo
