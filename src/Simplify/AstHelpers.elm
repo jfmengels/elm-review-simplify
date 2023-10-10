@@ -4,6 +4,7 @@ module Simplify.AstHelpers exposing
     , getSpecificFnCall, getSpecificValueOrFn
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
+    , getAccessingRecord, getRecordAccessFunction
     , getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
     , getCollapsedCons, getListLiteral, getListSingleton
     , getTuple2, getTuple2Literal
@@ -31,6 +32,7 @@ module Simplify.AstHelpers exposing
 
 @docs isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
 @docs isTupleFirstAccess, isTupleSecondAccess
+@docs getAccessingRecord, getRecordAccessFunction
 @docs getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
 @docs getCollapsedCons, getListLiteral, getListSingleton
 @docs getTuple2, getTuple2Literal
@@ -352,6 +354,41 @@ isTupleSecondPatternLambda expressionNode =
 
         _ ->
             False
+
+
+{-| Parse a record access or call of a record access function.
+The resulting `range` refers to the unparenthesized range of the access/function application.
+-}
+getAccessingRecord : Node Expression -> Maybe { range : Range, record : Node Expression, field : String }
+getAccessingRecord expressionNode =
+    case removeParens expressionNode of
+        Node range (Expression.RecordAccess record (Node _ fieldName)) ->
+            Just { field = fieldName, record = record, range = range }
+
+        Node range (Expression.Application (function :: record :: [])) ->
+            Maybe.map (\fieldName -> { field = fieldName, record = record, range = range }) (getRecordAccessFunction function)
+
+        Node range (Expression.OperatorApplication "|>" _ record function) ->
+            Maybe.map (\fieldName -> { field = fieldName, record = record, range = range }) (getRecordAccessFunction function)
+
+        Node range (Expression.OperatorApplication "<|" _ function record) ->
+            Maybe.map (\fieldName -> { field = fieldName, record = record, range = range }) (getRecordAccessFunction function)
+
+        _ ->
+            Nothing
+
+
+{-| Parse a function that accesses a specific field and is therefore equivalent to `.field`.
+The resulting String is the field name without the leading dot.
+-}
+getRecordAccessFunction : Node Expression -> Maybe String
+getRecordAccessFunction expressionNode =
+    case expressionNode of
+        Node _ (Expression.RecordAccessFunction fieldName) ->
+            Just (String.replace "." "" fieldName)
+
+        _ ->
+            Nothing
 
 
 getUncomputedNumberValue : Node Expression -> Maybe Float
