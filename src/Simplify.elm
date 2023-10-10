@@ -8811,6 +8811,19 @@ type alias ConstantProperties =
         { asString : QualifyResources {} -> String }
 
 
+{-| Create `ConstantProperties` for a value with a given full qualified name.
+-}
+constantFnProperties : ( ModuleName, String ) -> ConstantProperties
+constantFnProperties fullyQualified =
+    { description = Constant (qualifiedToString (qualify fullyQualified defaultQualifyResources))
+    , is =
+        \res expr ->
+            isJust (AstHelpers.getSpecificValueOrFn fullyQualified res.lookupTable expr)
+    , asString =
+        \res -> qualifiedToString (qualify fullyQualified res)
+    }
+
+
 getEmpty :
     Infer.Resources a
     -> EmptiableProperties (TypeSubsetProperties empty) otherProperties
@@ -9079,15 +9092,7 @@ randomGeneratorConstantConstruct =
 maybeWithJustAsWrap : TypeProperties (EmptiableProperties ConstantProperties (WrapperProperties (MappableProperties {})))
 maybeWithJustAsWrap =
     { represents = "maybe"
-    , empty =
-        { description = Constant "Nothing"
-        , is =
-            \res expr ->
-                isJust (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothingVariant res.lookupTable expr)
-        , asString =
-            \resources ->
-                qualifiedToString (qualify Fn.Maybe.nothingVariant resources)
-        }
+    , empty = constantFnProperties Fn.Maybe.nothingVariant
     , wrap = maybeJustConstructProperties
     , mapFn = Fn.Maybe.map
     }
@@ -9426,25 +9431,13 @@ stringGetElements resources =
 arrayCollection : TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties ConstantProperties {})))
 arrayCollection =
     { represents = "array"
-    , empty = arrayEmptyConstantProperties
+    , empty = constantFnProperties Fn.Array.empty
     , elements =
         { countDescription = "length"
         , determineCount = arrayDetermineLength
         , get = arrayGetElements
         }
     , fromList = ConstructionFromListCall Fn.Array.fromList
-    }
-
-
-arrayEmptyConstantProperties : ConstantProperties
-arrayEmptyConstantProperties =
-    { description = Constant (qualifiedToString Fn.Array.empty)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificValueOrFn Fn.Array.empty res.lookupTable expr)
-    , asString =
-        \resources ->
-            qualifiedToString (qualify Fn.Array.empty resources)
     }
 
 
@@ -9515,7 +9508,7 @@ arrayDetermineLength resources =
 setCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties {}))))
 setCollection =
     { represents = "set"
-    , empty = setEmptyConstantProperties
+    , empty = constantFnProperties Fn.Set.empty
     , elements =
         { countDescription = "size"
         , determineCount = setDetermineSize
@@ -9523,18 +9516,6 @@ setCollection =
         }
     , wrap = setSingletonConstruct
     , fromList = ConstructionFromListCall Fn.Set.fromList
-    }
-
-
-setEmptyConstantProperties : ConstantProperties
-setEmptyConstantProperties =
-    { description = Constant (qualifiedToString Fn.Set.empty)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificValueOrFn Fn.Set.empty res.lookupTable expr)
-    , asString =
-        \resources ->
-            qualifiedToString (qualify Fn.Set.empty resources)
     }
 
 
@@ -9648,25 +9629,13 @@ setDetermineSize resources =
 dictCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties {})))
 dictCollection =
     { represents = "dict"
-    , empty = dictEmptyConstantProperties
+    , empty = constantFnProperties Fn.Dict.empty
     , elements =
         { countDescription = "size"
         , determineCount = dictDetermineSize
         , get = dictGetValues
         }
     , fromList = ConstructionFromListCall Fn.Dict.fromList
-    }
-
-
-dictEmptyConstantProperties : ConstantProperties
-dictEmptyConstantProperties =
-    { description = Constant (qualifiedToString Fn.Dict.empty)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificValueOrFn Fn.Dict.empty res.lookupTable expr)
-    , asString =
-        \resources ->
-            qualifiedToString (qualify Fn.Dict.empty resources)
     }
 
 
@@ -9793,38 +9762,14 @@ getTupleWithComparableFirst lookupTable expressionNode =
 cmdCollection : TypeProperties (EmptiableProperties ConstantProperties {})
 cmdCollection =
     { represents = "command"
-    , empty = cmdNoneConstantProperties
-    }
-
-
-cmdNoneConstantProperties : ConstantProperties
-cmdNoneConstantProperties =
-    { description = Constant "Cmd.none"
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificValueOrFn Fn.Platform.Cmd.none res.lookupTable expr)
-    , asString =
-        \resources ->
-            qualifiedToString (qualify Fn.Platform.Cmd.none resources)
+    , empty = constantFnProperties Fn.Platform.Cmd.none
     }
 
 
 subCollection : TypeProperties (EmptiableProperties ConstantProperties {})
 subCollection =
     { represents = "subscription"
-    , empty = subNoneConstantProperties
-    }
-
-
-subNoneConstantProperties : ConstantProperties
-subNoneConstantProperties =
-    { description = Constant "Sub.none"
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificValueOrFn Fn.Platform.Sub.none res.lookupTable expr)
-    , asString =
-        \resources ->
-            qualifiedToString (qualify Fn.Platform.Sub.none resources)
+    , empty = constantFnProperties Fn.Platform.Sub.none
     }
 
 
