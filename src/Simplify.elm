@@ -5340,7 +5340,7 @@ operationWithIdentityIsEquivalentToFnCheck replacementFn checkInfo =
                 }
                 checkInfo.fnRange
                 [ Fix.replaceRangeBy
-                    { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).end }
+                    (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
                     (qualifiedToString (qualify replacementFn checkInfo))
                 ]
             )
