@@ -7184,7 +7184,7 @@ listDropChecks =
 
 So for example
 
-    Array.drop 3 (Array.repeat 2 a) --> []
+    List.drop 3 [ a, b ] --> []
 
 -}
 dropOnSmallerCollectionCheck : { dropCount : Int } -> TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
