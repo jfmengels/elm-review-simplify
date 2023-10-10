@@ -5342,15 +5342,11 @@ operationWithIdentityIsEquivalentToFnCheck : ( ModuleName, String ) -> CheckInfo
 operationWithIdentityIsEquivalentToFnCheck replacementFn checkInfo =
     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
         Just
-            (Rule.errorWithFix
-                { message = qualifiedToString checkInfo.fn ++ " with an identity function is the same as " ++ qualifiedToString replacementFn
-                , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ "." ]
+            (operationWithFirstArgIsEquivalentToFnError
+                { replacementFn = replacementFn
+                , firstArgDescription = "an identity function"
                 }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy
-                    (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
-                    (qualifiedToString (qualify replacementFn checkInfo))
-                ]
+                checkInfo
             )
 
     else
@@ -5382,19 +5378,28 @@ intersperseFlatWithEmptySeparatorIsEquivalentToFnCheck : EmptiableProperties (Ty
 intersperseFlatWithEmptySeparatorIsEquivalentToFnCheck elementProperties replacementFn checkInfo =
     if elementProperties.empty.is (extractInferResources checkInfo) checkInfo.firstArg then
         Just
-            (Rule.errorWithFix
-                { message = qualifiedToString checkInfo.fn ++ " with separator " ++ descriptionWithoutArticle elementProperties.empty.description ++ " is the same as " ++ qualifiedToString replacementFn
-                , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ "." ]
+            (operationWithFirstArgIsEquivalentToFnError
+                { replacementFn = replacementFn
+                , firstArgDescription = "separator " ++ descriptionWithoutArticle elementProperties.empty.description
                 }
-                checkInfo.fnRange
-                [ Fix.replaceRangeBy
-                    (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
-                    (qualifiedToString (qualify replacementFn checkInfo))
-                ]
+                checkInfo
             )
 
     else
         Nothing
+
+
+operationWithFirstArgIsEquivalentToFnError : { firstArgDescription : String, replacementFn : ( ModuleName, String ) } -> CheckInfo -> Error {}
+operationWithFirstArgIsEquivalentToFnError config checkInfo =
+    Rule.errorWithFix
+        { message = qualifiedToString checkInfo.fn ++ " with " ++ config.firstArgDescription ++ " is the same as " ++ qualifiedToString config.replacementFn
+        , details = [ "You can replace this call by " ++ qualifiedToString config.replacementFn ++ "." ]
+        }
+        checkInfo.fnRange
+        [ Fix.replaceRangeBy
+            (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+            (qualifiedToString (qualify config.replacementFn checkInfo))
+        ]
 
 
 listIndexedMapChecks : CheckInfo -> Maybe (Error {})
