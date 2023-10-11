@@ -3676,102 +3676,6 @@ consChecks =
         ]
 
 
-toggleCallChecks : CheckInfo -> Maybe (Error {})
-toggleCallChecks checkInfo =
-    onCallToInverseReturnsItsArgumentCheck checkInfo.fn checkInfo
-
-
-toggleCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-toggleCompositionChecks checkInfo =
-    inversesCompositionCheck checkInfo.later.fn checkInfo
-
-
-{-| Chaining two operations that are inverses of each other and therefore cancel each other out.
-For example
-
-    Array.fromList (Array.toList array)
-    --> array
-
-    Array.toList (Array.fromList list)
-    --> list
-
-Tip: Add `inversesCompositionCheck` for the same thing as a composition check.
-
-These usually exist in pairs, like above so make sure to add this check for both functions.
-But there are exceptions!
-
-    Set.fromList (Set.toList set)
-    --> set
-
-This will always work because `Set.toList` will never produce a list with duplicate elements. However
-
-    Set.toList (Set.fromList list)
-    --> list
-
-would be an incorrect fix. See for example
-
-    Set.toList (Set.fromList [ 0, 0 ])
-    --> not [ 0, 0 ] bit actually [ 0 ]
-
--}
-onCallToInverseReturnsItsArgumentCheck : ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
-onCallToInverseReturnsItsArgumentCheck inverseFn checkInfo =
-    case AstHelpers.getSpecificFnCall inverseFn checkInfo.lookupTable checkInfo.firstArg of
-        Just call ->
-            Just
-                (Rule.errorWithFix
-                    { message = qualifiedToString inverseFn ++ ", then " ++ qualifiedToString checkInfo.fn ++ " cancels each other out"
-                    , details = [ "You can replace this call by the argument given to " ++ qualifiedToString inverseFn ++ "." ]
-                    }
-                    checkInfo.fnRange
-                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range call.firstArg })
-                )
-
-        Nothing ->
-            Nothing
-
-
-{-| Composing two operations that are inverses of each other and therefore cancel each other out.
-For example
-
-    -- inversesCompositionCheck { later = ( [ "Array" ], "fromList" ), earlier = ( [ "Array" ], "toList" ) }
-    Array.toList >> Array.fromList
-    --> identity
-
-    -- inversesCompositionCheck { later = ( [ "Array" ], "toList" ) , earlier = ( [ "Array" ], "fromList" ) }
-    Array.fromList >> Array.toList
-    --> identity
-
-Tip: Add `onCallToInverseReturnsItsArgumentCheck` for the same thing as a function call check.
-
-These usually exist in pairs, like above so make sure to add this check for both functions.
-But there are exceptions!
-
-    Set.fromList << Set.toList --> identity
-
-This will always work because `Set.toList` will never produce a list with duplicate elements. However
-
-    Set.toList << Set.fromList --> identity
-
-would be an incorrect fix. See for example
-
-    Set.toList (Set.fromList [ 0, 0 ])
-    --> not [ 0, 0 ] bit actually [ 0 ]
-
--}
-inversesCompositionCheck : ( ModuleName, String ) -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-inversesCompositionCheck earlierInverseFn checkInfo =
-    if checkInfo.earlier.fn == earlierInverseFn then
-        Just
-            (compositionAlwaysReturnsIncomingError
-                (qualifiedToString checkInfo.earlier.fn ++ ", then " ++ qualifiedToString checkInfo.later.fn ++ " cancels each other out")
-                checkInfo
-            )
-
-    else
-        Nothing
-
-
 {-| Get the last function in `earlier` and the earliest function in `later` that's not itself a composition.
 
 E.g. for `(i << h) << (g << f)`
@@ -10528,6 +10432,102 @@ operationDoesNotChangeResultOfOperationCompositionCheck checkInfo =
                 }
             , fix = [ Fix.removeRange checkInfo.later.removeRange ]
             }
+
+    else
+        Nothing
+
+
+toggleCallChecks : CheckInfo -> Maybe (Error {})
+toggleCallChecks checkInfo =
+    onCallToInverseReturnsItsArgumentCheck checkInfo.fn checkInfo
+
+
+toggleCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+toggleCompositionChecks checkInfo =
+    inversesCompositionCheck checkInfo.later.fn checkInfo
+
+
+{-| Chaining two operations that are inverses of each other and therefore cancel each other out.
+For example
+
+    Array.fromList (Array.toList array)
+    --> array
+
+    Array.toList (Array.fromList list)
+    --> list
+
+Tip: Add `inversesCompositionCheck` for the same thing as a composition check.
+
+These usually exist in pairs, like above so make sure to add this check for both functions.
+But there are exceptions!
+
+    Set.fromList (Set.toList set)
+    --> set
+
+This will always work because `Set.toList` will never produce a list with duplicate elements. However
+
+    Set.toList (Set.fromList list)
+    --> list
+
+would be an incorrect fix. See for example
+
+    Set.toList (Set.fromList [ 0, 0 ])
+    --> not [ 0, 0 ] bit actually [ 0 ]
+
+-}
+onCallToInverseReturnsItsArgumentCheck : ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
+onCallToInverseReturnsItsArgumentCheck inverseFn checkInfo =
+    case AstHelpers.getSpecificFnCall inverseFn checkInfo.lookupTable checkInfo.firstArg of
+        Just call ->
+            Just
+                (Rule.errorWithFix
+                    { message = qualifiedToString inverseFn ++ ", then " ++ qualifiedToString checkInfo.fn ++ " cancels each other out"
+                    , details = [ "You can replace this call by the argument given to " ++ qualifiedToString inverseFn ++ "." ]
+                    }
+                    checkInfo.fnRange
+                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range call.firstArg })
+                )
+
+        Nothing ->
+            Nothing
+
+
+{-| Composing two operations that are inverses of each other and therefore cancel each other out.
+For example
+
+    -- inversesCompositionCheck { later = ( [ "Array" ], "fromList" ), earlier = ( [ "Array" ], "toList" ) }
+    Array.toList >> Array.fromList
+    --> identity
+
+    -- inversesCompositionCheck { later = ( [ "Array" ], "toList" ) , earlier = ( [ "Array" ], "fromList" ) }
+    Array.fromList >> Array.toList
+    --> identity
+
+Tip: Add `onCallToInverseReturnsItsArgumentCheck` for the same thing as a function call check.
+
+These usually exist in pairs, like above so make sure to add this check for both functions.
+But there are exceptions!
+
+    Set.fromList << Set.toList --> identity
+
+This will always work because `Set.toList` will never produce a list with duplicate elements. However
+
+    Set.toList << Set.fromList --> identity
+
+would be an incorrect fix. See for example
+
+    Set.toList (Set.fromList [ 0, 0 ])
+    --> not [ 0, 0 ] bit actually [ 0 ]
+
+-}
+inversesCompositionCheck : ( ModuleName, String ) -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+inversesCompositionCheck earlierInverseFn checkInfo =
+    if checkInfo.earlier.fn == earlierInverseFn then
+        Just
+            (compositionAlwaysReturnsIncomingError
+                (qualifiedToString checkInfo.earlier.fn ++ ", then " ++ qualifiedToString checkInfo.later.fn ++ " cancels each other out")
+                checkInfo
+            )
 
     else
         Nothing
