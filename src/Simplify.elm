@@ -9930,6 +9930,18 @@ mapWrapChecks wrapper checkInfo =
             Nothing
 
 
+{-| The map composition check
+
+    map f << wrap --> wrap << f
+
+So for example
+
+    Random.map f << Random.constant
+    --> Random.constant << f
+
+Use together with `mapWrapChecks`.
+
+-}
 mapAfterWrapCompositionChecks :
     WrapperProperties otherProperties
     -> CompositionIntoCheckInfo
