@@ -5119,7 +5119,7 @@ maybeMapChecks =
 
 maybeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 maybeMapCompositionChecks =
-    wrapToMapCompositionChecks maybeWithJustAsWrap
+    mapAfterWrapCompositionChecks maybeWithJustAsWrap
 
 
 maybeMapNChecks : CheckInfo -> Maybe (Error {})
@@ -5158,7 +5158,7 @@ resultMapChecks =
 resultMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultMapCompositionChecks =
     firstThatConstructsJust
-        [ wrapToMapCompositionChecks resultWithOkAsWrap
+        [ mapAfterWrapCompositionChecks resultWithOkAsWrap
         , unnecessaryCompositionAfterEmptyCheck resultWithOkAsWrap
         ]
 
@@ -5197,7 +5197,7 @@ resultMapErrorChecks =
 resultMapErrorCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 resultMapErrorCompositionChecks =
     firstThatConstructsJust
-        [ wrapToMapCompositionChecks resultWithErrAsWrap
+        [ mapAfterWrapCompositionChecks resultWithErrAsWrap
         , unnecessaryCompositionAfterEmptyCheck resultWithErrAsWrap
         ]
 
@@ -5816,7 +5816,7 @@ arrayToIndexedListToListMapChecks listMapCheckInfo =
 listMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 listMapCompositionChecks =
     firstThatConstructsJust
-        [ wrapToMapCompositionChecks listCollection
+        [ mapAfterWrapCompositionChecks listCollection
         , dictToListIntoListMapCompositionCheck
         , arrayToIndexedListMapCompositionCheck
         ]
@@ -7925,7 +7925,7 @@ taskMapChecks =
 taskMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 taskMapCompositionChecks =
     firstThatConstructsJust
-        [ wrapToMapCompositionChecks taskWithSucceedAsWrap
+        [ mapAfterWrapCompositionChecks taskWithSucceedAsWrap
         , unnecessaryCompositionAfterEmptyCheck taskWithSucceedAsWrap
         ]
 
@@ -7965,7 +7965,7 @@ taskMapErrorChecks =
 taskMapErrorCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 taskMapErrorCompositionChecks =
     firstThatConstructsJust
-        [ wrapToMapCompositionChecks taskWithFailAsWrap
+        [ mapAfterWrapCompositionChecks taskWithFailAsWrap
         , unnecessaryCompositionAfterEmptyCheck taskWithFailAsWrap
         ]
 
@@ -8467,7 +8467,7 @@ jsonDecodeMapChecks =
 jsonDecodeMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 jsonDecodeMapCompositionChecks =
     firstThatConstructsJust
-        [ wrapToMapCompositionChecks jsonDecoderWithSucceedAsWrap
+        [ mapAfterWrapCompositionChecks jsonDecoderWithSucceedAsWrap
         , unnecessaryCompositionAfterEmptyCheck jsonDecoderWithSucceedAsWrap
         ]
 
@@ -9821,7 +9821,7 @@ emptiableMapWithExtraArgChecks emptiable =
 wrapperMapCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 wrapperMapCompositionChecks wrapper =
     firstThatConstructsJust
-        [ wrapToMapCompositionChecks wrapper
+        [ mapAfterWrapCompositionChecks wrapper
         , nonEmptiableWrapperMapAlwaysCompositionChecks wrapper
         ]
 
@@ -9930,11 +9930,11 @@ mapWrapChecks wrapper checkInfo =
             Nothing
 
 
-wrapToMapCompositionChecks :
+mapAfterWrapCompositionChecks :
     WrapperProperties otherProperties
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
-wrapToMapCompositionChecks wrapper checkInfo =
+mapAfterWrapCompositionChecks wrapper checkInfo =
     case ( checkInfo.earlier.fn == wrapper.wrap.fn, checkInfo.later.args ) of
         ( True, (Node mapperFunctionRange _) :: _ ) ->
             Just
