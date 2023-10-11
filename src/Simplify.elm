@@ -9727,11 +9727,6 @@ oneOfConstantsWithOneAndRestListChecks wrapper checkInfo =
     case secondArg checkInfo of
         Just otherOptionsArg ->
             if listCollection.empty.is (extractInferResources checkInfo) otherOptionsArg then
-                let
-                    onlyValueRange : Range
-                    onlyValueRange =
-                        Node.range checkInfo.firstArg
-                in
                 Just
                     (Rule.errorWithFix
                         { message = qualifiedToString checkInfo.fn ++ " with one possible value will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with that value"
