@@ -6530,357 +6530,6 @@ taskSequenceCompositionChecks =
     afterWrapIsEquivalentToMapWrapCheck ( listCollection, taskWithSucceedAsWrap )
 
 
-{-| The sequence checks `sequenceOnCollectionWithKnownEmptyElementCheck` and `sequenceOnFromListWithEmptyIgnoresLaterElementsCheck`
--}
-sequenceOrFirstEmptyChecks :
-    ( TypeProperties (CollectionProperties (ConstructibleFromListProperties collectionOtherProperties))
-    , EmptiableProperties (TypeSubsetProperties empty) (WrapperProperties elementOtherProperties)
-    )
-    -> CheckInfo
-    -> Maybe (Error {})
-sequenceOrFirstEmptyChecks ( collection, elementEmptiable ) =
-    firstThatConstructsJust
-        [ sequenceOnCollectionWithKnownEmptyElementCheck ( collection, elementEmptiable )
-        , sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( collection, elementEmptiable )
-        ]
-
-
-{-| The sequence check
-
-    sequence (construction fromList [ a, empty, b ])
-    --> sequence (construction fromList [ a, empty ])
-
-So for example
-
-    Task.sequence [ aTask, Task.fail x, bTask ]
-    --> Task.sequence [ aTask, Task.fail x ]
-
--}
-sequenceOnFromListWithEmptyIgnoresLaterElementsCheck :
-    ( TypeProperties (ConstructibleFromListProperties constructibleFromListOtherProperties), EmptiableProperties (TypeSubsetProperties empty) elementOtherProperties )
-    -> CheckInfo
-    -> Maybe (Error {})
-sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( constructibleFromList, elementEmptiable ) checkInfo =
-    case fromListGetLiteral constructibleFromList checkInfo.lookupTable checkInfo.firstArg of
-        Just listLiteral ->
-            case findMapNeighboring (\el -> getEmptyExpressionNode checkInfo elementEmptiable el) listLiteral.elements of
-                Just emptyAndNeighbors ->
-                    case emptyAndNeighbors.after of
-                        Just _ ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " on a " ++ constructibleFromList.represents ++ " containing " ++ descriptionForIndefinite elementEmptiable.empty.description ++ " early will ignore later elements"
-                                    , details = [ "You can remove all " ++ constructibleFromList.represents ++ " elements after " ++ descriptionForDefinite "the first" elementEmptiable.empty.description ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    [ Fix.removeRange
-                                        { start = (Node.range emptyAndNeighbors.found).end
-                                        , end = endWithoutBoundary listLiteral.range
-                                        }
-                                    ]
-                                )
-
-                        Nothing ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
-
-        Nothing ->
-            Nothing
-
-
-{-| The sequence check
-
-    sequence (collection containing some wrapped elements, then empty, then other elements)
-    --> empty
-
-So for example
-
-    Task.sequence [ Task.succeed a, Task.fail x, task ]
-    --> Task.fail x
-
--}
-sequenceOnCollectionWithKnownEmptyElementCheck :
-    ( TypeProperties (CollectionProperties collectionOtherProperties), EmptiableProperties (TypeSubsetProperties empty) (WrapperProperties elementOtherProperties) )
-    -> CheckInfo
-    -> Maybe (Error {})
-sequenceOnCollectionWithKnownEmptyElementCheck ( collection, elementEmptiable ) checkInfo =
-    case collection.elements.get (extractInferResources checkInfo) checkInfo.firstArg of
-        Just elements ->
-            case List.filter (\el -> isNothing (elementEmptiable.wrap.getValue checkInfo.lookupTable el)) elements.known of
-                firstNonWrappedElement :: _ ->
-                    if elementEmptiable.empty.is (extractInferResources checkInfo) firstNonWrappedElement then
-                        Just
-                            (Rule.errorWithFix
-                                { message = qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " containing " ++ descriptionForIndefinite elementEmptiable.empty.description ++ " will result in " ++ descriptionForDefinite "the first" elementEmptiable.empty.description
-                                , details = [ "You can replace this call by " ++ descriptionForDefinite "the first" elementEmptiable.empty.description ++ " in the " ++ collection.represents ++ "." ]
-                                }
-                                checkInfo.fnRange
-                                (replaceBySubExpressionFix checkInfo.parentRange firstNonWrappedElement)
-                            )
-
-                    else
-                        Nothing
-
-                [] ->
-                    Nothing
-
-        Nothing ->
-            Nothing
-
-
-listOfWrapperSequenceChecks : WrapperProperties (MappableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-listOfWrapperSequenceChecks wrapper =
-    firstThatConstructsJust
-        [ callOnEmptyReturnsCheck
-            { resultAsString =
-                \res -> qualifiedToString (qualify wrapper.wrap.fn res) ++ " []"
-            }
-            listCollection
-        , onWrappedIsEquivalentToMapWrapOnValueCheck ( listCollection, wrapper )
-        , sequenceOnCollectionWithAllElementsWrapped ( listCollection, wrapper )
-        ]
-
-
-{-| The sequence check
-
-    sequence (collection with each element being wrapped)
-    --> wrap (collection with each value)
-
-so for example
-
-    Task.sequence [ Task.succeed a, Task.succeed b ]
-    --> Task.succeed [ a, b ]
-
--}
-sequenceOnCollectionWithAllElementsWrapped :
-    ( TypeProperties (CollectionProperties otherCollectionProperties), WrapperProperties elementOtherProperties )
-    -> CheckInfo
-    -> Maybe (Error {})
-sequenceOnCollectionWithAllElementsWrapped ( collection, elementWrapper ) checkInfo =
-    case collection.elements.get (extractInferResources checkInfo) checkInfo.firstArg of
-        Just elements ->
-            if elements.allKnown then
-                case traverse (getValueWithNodeRange (elementWrapper.wrap.getValue checkInfo.lookupTable)) elements.known of
-                    Just wrappeds ->
-                        Just
-                            (Rule.errorWithFix
-                                { message = qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " where each element is " ++ descriptionForIndefinite elementWrapper.wrap.description ++ " will result in " ++ qualifiedToString elementWrapper.wrap.fn ++ " on the values inside"
-                                , details = [ "You can replace this call by " ++ qualifiedToString elementWrapper.wrap.fn ++ " on a list where each element is replaced by its value inside " ++ descriptionForDefinite "the" elementWrapper.wrap.description ++ "." ]
-                                }
-                                checkInfo.fnRange
-                                (Fix.replaceRangeBy
-                                    checkInfo.fnRange
-                                    (qualifiedToString (qualify elementWrapper.wrap.fn checkInfo))
-                                    :: List.concatMap
-                                        (\wrapped -> keepOnlyFix { parentRange = wrapped.nodeRange, keep = Node.range wrapped.value })
-                                        wrappeds
-                                )
-                            )
-
-                    Nothing ->
-                        Nothing
-
-            else
-                Nothing
-
-        Nothing ->
-            Nothing
-
-
-{-| The check
-
-    operation (wrap a) --> map wrap a
-
-So for example
-
-    Task.sequence [ task ]
-    --: Task x (List a)
-    --> Task.map List.singleton task
-
-Note that some functions called "sequence" have equal element and result types, like
-
-    Bytes.Encode.sequence  [ encoder ]
-    --: Bytes.Encode.Encoder
-
-which means you can simplify it to `encoder` using `unnecessaryCallOnWrappedCheck`.
-
-Use together with `afterWrapIsEquivalentToMapWrapCheck`.
-
--}
-onWrappedIsEquivalentToMapWrapOnValueCheck :
-    ( WrapperProperties wrapperOtherProperties, WrapperProperties (MappableProperties elementOtherProperties) )
-    -> CheckInfo
-    -> Maybe (Error {})
-onWrappedIsEquivalentToMapWrapOnValueCheck ( wrapper, elementWrapper ) checkInfo =
-    case fullyAppliedLastArg checkInfo of
-        Just lastArg ->
-            case wrapper.wrap.getValue checkInfo.lookupTable lastArg of
-                Just wrappedValue ->
-                    let
-                        replacement : QualifyResources a -> String
-                        replacement qualifyResources =
-                            qualifiedToString (qualify elementWrapper.mapFn qualifyResources)
-                                ++ " "
-                                ++ qualifiedToString (qualify wrapper.wrap.fn qualifyResources)
-                    in
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
-                            , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ " on the value inside the singleton list." ]
-                            }
-                            checkInfo.fnRange
-                            (Fix.replaceRangeBy checkInfo.fnRange
-                                (replacement checkInfo)
-                                :: replaceBySubExpressionFix (Node.range lastArg) wrappedValue
-                            )
-                        )
-
-                Nothing ->
-                    Nothing
-
-        Nothing ->
-            Nothing
-
-
-{-| The composition check
-
-    operation << wrap --> map wrap
-
-So for example
-
-    Task.sequence << List.singleton
-    --: Task x a -> Task x (List a)
-    --> Task.map List.singleton
-
-Note that some functions called "sequence" have equal element and result types, like
-
-    Bytes.Encode.sequence << List.singleton
-    --: Bytes.Encode.Encoder -> Bytes.Encode.Encoder
-
-which means you can simplify them to `identity` using `unnecessaryCompositionAfterWrapCheck`.
-
-Use together with `onWrappedIsEquivalentToMapWrapOnValueCheck`.
-
--}
-afterWrapIsEquivalentToMapWrapCheck :
-    ( WrapperProperties wrapperOtherProperties, MappableProperties valueOtherProperties )
-    -> CompositionIntoCheckInfo
-    -> Maybe ErrorInfoAndFix
-afterWrapIsEquivalentToMapWrapCheck ( wrapper, valueMappable ) checkInfo =
-    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
-        let
-            replacement : QualifyResources a -> String
-            replacement qualifyResources =
-                qualifiedToString (qualify valueMappable.mapFn qualifyResources)
-                    ++ " "
-                    ++ qualifiedToString (qualify wrapper.wrap.fn qualifyResources)
-        in
-        Just
-            { info =
-                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
-                , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
-                }
-            , fix = compositionReplaceByFix (replacement checkInfo) checkInfo
-            }
-
-    else
-        Nothing
-
-
-{-| The "sequenceRepeat" operation checks
-
-    sequenceRepeat 0 wrapper --> wrap []
-
-    sequenceRepeat 1 wrapper --> map List.singleton wrapper
-
-    sequenceRepeat n (wrap a) --> wrap (List.repeat n a)
-
-Examples of such functions:
-
-    Random.list : Int -> Generator a -> Generator (List a)
-    Parser.repeat : Int -> Parser a -> Parser (List a) -- by dasch
-
--}
-sequenceRepeatChecks : WrapperProperties (MappableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-sequenceRepeatChecks wrapper =
-    firstThatConstructsJust
-        [ \checkInfo ->
-            case Evaluate.getInt checkInfo checkInfo.firstArg of
-                Just lengthInt ->
-                    firstThatConstructsJust
-                        [ \() ->
-                            case lengthInt of
-                                1 ->
-                                    let
-                                        replacement : QualifyResources res -> String
-                                        replacement res =
-                                            qualifiedToString (qualify wrapper.mapFn res)
-                                                ++ " "
-                                                ++ qualifiedToString (qualify Fn.List.singleton res)
-                                    in
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = qualifiedToString checkInfo.fn ++ " 1 will result in " ++ replacement defaultQualifyResources
-                                            , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
-                                            }
-                                            checkInfo.fnRange
-                                            [ Fix.replaceRangeBy
-                                                (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
-                                                (replacement checkInfo)
-                                            ]
-                                        )
-
-                                _ ->
-                                    Nothing
-                        , \() ->
-                            callWithNonPositiveIntCheckErrorSituation { fn = checkInfo.fn, int = lengthInt, intDescription = "length" }
-                                |> Maybe.map
-                                    (\situation ->
-                                        alwaysResultsInConstantError situation
-                                            { replacement =
-                                                \res -> qualifiedToString (qualify Fn.Random.constant res) ++ " []"
-                                            , replacementNeedsParens = True
-                                            }
-                                            checkInfo
-                                    )
-                        ]
-                        ()
-
-                Nothing ->
-                    Nothing
-        , \checkInfo ->
-            case secondArg checkInfo of
-                Just elementArg ->
-                    case AstHelpers.getSpecificFnCall wrapper.wrap.fn checkInfo.lookupTable elementArg of
-                        Just wrapCall ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the value in " ++ descriptionForDefinite "that" wrapper.wrap.description
-                                    , details = [ "You can replace the call by " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the same length and the value inside " ++ descriptionForDefinite "the given" wrapper.wrap.description ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (replaceBySubExpressionFix wrapCall.nodeRange wrapCall.firstArg
-                                        ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                                (qualifiedToString (qualify Fn.List.repeat checkInfo))
-                                           , Fix.insertAt checkInfo.parentRange.start
-                                                (qualifiedToString (qualify wrapper.wrap.fn checkInfo)
-                                                    ++ " ("
-                                                )
-                                           , Fix.insertAt checkInfo.parentRange.end ")"
-                                           ]
-                                    )
-                                )
-
-                        Nothing ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
-        ]
-
-
 
 -- HTML.ATTRIBUTES
 
@@ -9466,6 +9115,257 @@ collectionAnyChecks collection =
         ]
 
 
+{-| The sequence checks `sequenceOnCollectionWithKnownEmptyElementCheck` and `sequenceOnFromListWithEmptyIgnoresLaterElementsCheck`
+-}
+sequenceOrFirstEmptyChecks :
+    ( TypeProperties (CollectionProperties (ConstructibleFromListProperties collectionOtherProperties))
+    , EmptiableProperties (TypeSubsetProperties empty) (WrapperProperties elementOtherProperties)
+    )
+    -> CheckInfo
+    -> Maybe (Error {})
+sequenceOrFirstEmptyChecks ( collection, elementEmptiable ) =
+    firstThatConstructsJust
+        [ sequenceOnCollectionWithKnownEmptyElementCheck ( collection, elementEmptiable )
+        , sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( collection, elementEmptiable )
+        ]
+
+
+{-| The sequence check
+
+    sequence (construction fromList [ a, empty, b ])
+    --> sequence (construction fromList [ a, empty ])
+
+So for example
+
+    Task.sequence [ aTask, Task.fail x, bTask ]
+    --> Task.sequence [ aTask, Task.fail x ]
+
+-}
+sequenceOnFromListWithEmptyIgnoresLaterElementsCheck :
+    ( TypeProperties (ConstructibleFromListProperties constructibleFromListOtherProperties), EmptiableProperties (TypeSubsetProperties empty) elementOtherProperties )
+    -> CheckInfo
+    -> Maybe (Error {})
+sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( constructibleFromList, elementEmptiable ) checkInfo =
+    case fromListGetLiteral constructibleFromList checkInfo.lookupTable checkInfo.firstArg of
+        Just listLiteral ->
+            case findMapNeighboring (\el -> getEmptyExpressionNode checkInfo elementEmptiable el) listLiteral.elements of
+                Just emptyAndNeighbors ->
+                    case emptyAndNeighbors.after of
+                        Just _ ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString checkInfo.fn ++ " on a " ++ constructibleFromList.represents ++ " containing " ++ descriptionForIndefinite elementEmptiable.empty.description ++ " early will ignore later elements"
+                                    , details = [ "You can remove all " ++ constructibleFromList.represents ++ " elements after " ++ descriptionForDefinite "the first" elementEmptiable.empty.description ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    [ Fix.removeRange
+                                        { start = (Node.range emptyAndNeighbors.found).end
+                                        , end = endWithoutBoundary listLiteral.range
+                                        }
+                                    ]
+                                )
+
+                        Nothing ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
+{-| The sequence check
+
+    sequence (collection containing some wrapped elements, then empty, then other elements)
+    --> empty
+
+So for example
+
+    Task.sequence [ Task.succeed a, Task.fail x, task ]
+    --> Task.fail x
+
+-}
+sequenceOnCollectionWithKnownEmptyElementCheck :
+    ( TypeProperties (CollectionProperties collectionOtherProperties), EmptiableProperties (TypeSubsetProperties empty) (WrapperProperties elementOtherProperties) )
+    -> CheckInfo
+    -> Maybe (Error {})
+sequenceOnCollectionWithKnownEmptyElementCheck ( collection, elementEmptiable ) checkInfo =
+    case collection.elements.get (extractInferResources checkInfo) checkInfo.firstArg of
+        Just elements ->
+            case List.filter (\el -> isNothing (elementEmptiable.wrap.getValue checkInfo.lookupTable el)) elements.known of
+                firstNonWrappedElement :: _ ->
+                    if elementEmptiable.empty.is (extractInferResources checkInfo) firstNonWrappedElement then
+                        Just
+                            (Rule.errorWithFix
+                                { message = qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " containing " ++ descriptionForIndefinite elementEmptiable.empty.description ++ " will result in " ++ descriptionForDefinite "the first" elementEmptiable.empty.description
+                                , details = [ "You can replace this call by " ++ descriptionForDefinite "the first" elementEmptiable.empty.description ++ " in the " ++ collection.represents ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                (replaceBySubExpressionFix checkInfo.parentRange firstNonWrappedElement)
+                            )
+
+                    else
+                        Nothing
+
+                [] ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
+listOfWrapperSequenceChecks : WrapperProperties (MappableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+listOfWrapperSequenceChecks wrapper =
+    firstThatConstructsJust
+        [ callOnEmptyReturnsCheck
+            { resultAsString =
+                \res -> qualifiedToString (qualify wrapper.wrap.fn res) ++ " []"
+            }
+            listCollection
+        , onWrappedIsEquivalentToMapWrapOnValueCheck ( listCollection, wrapper )
+        , sequenceOnCollectionWithAllElementsWrapped ( listCollection, wrapper )
+        ]
+
+
+{-| The sequence check
+
+    sequence (collection with each element being wrapped)
+    --> wrap (collection with each value)
+
+so for example
+
+    Task.sequence [ Task.succeed a, Task.succeed b ]
+    --> Task.succeed [ a, b ]
+
+-}
+sequenceOnCollectionWithAllElementsWrapped :
+    ( TypeProperties (CollectionProperties otherCollectionProperties), WrapperProperties elementOtherProperties )
+    -> CheckInfo
+    -> Maybe (Error {})
+sequenceOnCollectionWithAllElementsWrapped ( collection, elementWrapper ) checkInfo =
+    case collection.elements.get (extractInferResources checkInfo) checkInfo.firstArg of
+        Just elements ->
+            if elements.allKnown then
+                case traverse (getValueWithNodeRange (elementWrapper.wrap.getValue checkInfo.lookupTable)) elements.known of
+                    Just wrappeds ->
+                        Just
+                            (Rule.errorWithFix
+                                { message = qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " where each element is " ++ descriptionForIndefinite elementWrapper.wrap.description ++ " will result in " ++ qualifiedToString elementWrapper.wrap.fn ++ " on the values inside"
+                                , details = [ "You can replace this call by " ++ qualifiedToString elementWrapper.wrap.fn ++ " on a list where each element is replaced by its value inside " ++ descriptionForDefinite "the" elementWrapper.wrap.description ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                (Fix.replaceRangeBy
+                                    checkInfo.fnRange
+                                    (qualifiedToString (qualify elementWrapper.wrap.fn checkInfo))
+                                    :: List.concatMap
+                                        (\wrapped -> keepOnlyFix { parentRange = wrapped.nodeRange, keep = Node.range wrapped.value })
+                                        wrappeds
+                                )
+                            )
+
+                    Nothing ->
+                        Nothing
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
+
+
+{-| The "sequenceRepeat" operation checks
+
+    sequenceRepeat 0 wrapper --> wrap []
+
+    sequenceRepeat 1 wrapper --> map List.singleton wrapper
+
+    sequenceRepeat n (wrap a) --> wrap (List.repeat n a)
+
+Examples of such functions:
+
+    Random.list : Int -> Generator a -> Generator (List a)
+    Parser.repeat : Int -> Parser a -> Parser (List a) -- by dasch
+
+-}
+sequenceRepeatChecks : WrapperProperties (MappableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+sequenceRepeatChecks wrapper =
+    firstThatConstructsJust
+        [ \checkInfo ->
+            case Evaluate.getInt checkInfo checkInfo.firstArg of
+                Just lengthInt ->
+                    firstThatConstructsJust
+                        [ \() ->
+                            case lengthInt of
+                                1 ->
+                                    let
+                                        replacement : QualifyResources res -> String
+                                        replacement res =
+                                            qualifiedToString (qualify wrapper.mapFn res)
+                                                ++ " "
+                                                ++ qualifiedToString (qualify Fn.List.singleton res)
+                                    in
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = qualifiedToString checkInfo.fn ++ " 1 will result in " ++ replacement defaultQualifyResources
+                                            , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
+                                            }
+                                            checkInfo.fnRange
+                                            [ Fix.replaceRangeBy
+                                                (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+                                                (replacement checkInfo)
+                                            ]
+                                        )
+
+                                _ ->
+                                    Nothing
+                        , \() ->
+                            callWithNonPositiveIntCheckErrorSituation { fn = checkInfo.fn, int = lengthInt, intDescription = "length" }
+                                |> Maybe.map
+                                    (\situation ->
+                                        alwaysResultsInConstantError situation
+                                            { replacement =
+                                                \res -> qualifiedToString (qualify Fn.Random.constant res) ++ " []"
+                                            , replacementNeedsParens = True
+                                            }
+                                            checkInfo
+                                    )
+                        ]
+                        ()
+
+                Nothing ->
+                    Nothing
+        , \checkInfo ->
+            case secondArg checkInfo of
+                Just elementArg ->
+                    case AstHelpers.getSpecificFnCall wrapper.wrap.fn checkInfo.lookupTable elementArg of
+                        Just wrapCall ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the value in " ++ descriptionForDefinite "that" wrapper.wrap.description
+                                    , details = [ "You can replace the call by " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the same length and the value inside " ++ descriptionForDefinite "the given" wrapper.wrap.description ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (replaceBySubExpressionFix wrapCall.nodeRange wrapCall.firstArg
+                                        ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                                (qualifiedToString (qualify Fn.List.repeat checkInfo))
+                                           , Fix.insertAt checkInfo.parentRange.start
+                                                (qualifiedToString (qualify wrapper.wrap.fn checkInfo)
+                                                    ++ " ("
+                                                )
+                                           , Fix.insertAt checkInfo.parentRange.end ")"
+                                           ]
+                                    )
+                                )
+
+                        Nothing ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+        ]
+
+
 {-| The Folding/reducing checks
 
     fold f initial empty
@@ -10436,6 +10336,106 @@ compositionAfterFnCanBeCombinedCheck config checkInfo =
                     (qualifiedToString (qualify config.combinedFn checkInfo))
                 , Fix.removeRange checkInfo.later.removeRange
                 ]
+            }
+
+    else
+        Nothing
+
+
+{-| The check
+
+    operation (wrap a) --> map wrap a
+
+So for example
+
+    Task.sequence [ task ]
+    --: Task x (List a)
+    --> Task.map List.singleton task
+
+Note that some functions called "sequence" have equal element and result types, like
+
+    Bytes.Encode.sequence  [ encoder ]
+    --: Bytes.Encode.Encoder
+
+which means you can simplify it to `encoder` using `unnecessaryCallOnWrappedCheck`.
+
+Use together with `afterWrapIsEquivalentToMapWrapCheck`.
+
+-}
+onWrappedIsEquivalentToMapWrapOnValueCheck :
+    ( WrapperProperties wrapperOtherProperties, WrapperProperties (MappableProperties elementOtherProperties) )
+    -> CheckInfo
+    -> Maybe (Error {})
+onWrappedIsEquivalentToMapWrapOnValueCheck ( wrapper, elementWrapper ) checkInfo =
+    case fullyAppliedLastArg checkInfo of
+        Just lastArg ->
+            case wrapper.wrap.getValue checkInfo.lookupTable lastArg of
+                Just wrappedValue ->
+                    let
+                        replacement : QualifyResources a -> String
+                        replacement qualifyResources =
+                            qualifiedToString (qualify elementWrapper.mapFn qualifyResources)
+                                ++ " "
+                                ++ qualifiedToString (qualify wrapper.wrap.fn qualifyResources)
+                    in
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
+                            , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ " on the value inside the singleton list." ]
+                            }
+                            checkInfo.fnRange
+                            (Fix.replaceRangeBy checkInfo.fnRange
+                                (replacement checkInfo)
+                                :: replaceBySubExpressionFix (Node.range lastArg) wrappedValue
+                            )
+                        )
+
+                Nothing ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
+{-| The composition check
+
+    operation << wrap --> map wrap
+
+So for example
+
+    Task.sequence << List.singleton
+    --: Task x a -> Task x (List a)
+    --> Task.map List.singleton
+
+Note that some functions called "sequence" have equal element and result types, like
+
+    Bytes.Encode.sequence << List.singleton
+    --: Bytes.Encode.Encoder -> Bytes.Encode.Encoder
+
+which means you can simplify them to `identity` using `unnecessaryCompositionAfterWrapCheck`.
+
+Use together with `onWrappedIsEquivalentToMapWrapOnValueCheck`.
+
+-}
+afterWrapIsEquivalentToMapWrapCheck :
+    ( WrapperProperties wrapperOtherProperties, MappableProperties valueOtherProperties )
+    -> CompositionIntoCheckInfo
+    -> Maybe ErrorInfoAndFix
+afterWrapIsEquivalentToMapWrapCheck ( wrapper, valueMappable ) checkInfo =
+    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
+        let
+            replacement : QualifyResources a -> String
+            replacement qualifyResources =
+                qualifiedToString (qualify valueMappable.mapFn qualifyResources)
+                    ++ " "
+                    ++ qualifiedToString (qualify wrapper.wrap.fn qualifyResources)
+        in
+        Just
+            { info =
+                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
+                , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
+                }
+            , fix = compositionReplaceByFix (replacement checkInfo) checkInfo
             }
 
     else
