@@ -8470,25 +8470,16 @@ randomListChecks =
                         )
 
                 Just non1Length ->
-                    if non1Length <= 0 then
-                        Just
-                            (alwaysResultsInConstantError
-                                (case non1Length of
-                                    0 ->
-                                        "Random.list with length 0"
-
-                                    _ ->
-                                        "Random.list with a negative length"
-                                )
-                                { replacement =
-                                    \res -> qualifiedToString (qualify Fn.Random.constant res) ++ " []"
-                                , replacementNeedsParens = True
-                                }
-                                checkInfo
+                    callWithNonPositiveIntCheckErrorSituation { fn = checkInfo.fn, int = non1Length, intDescription = "length" }
+                        |> Maybe.map
+                            (\situation ->
+                                alwaysResultsInConstantError situation
+                                    { replacement =
+                                        \res -> qualifiedToString (qualify Fn.Random.constant res) ++ " []"
+                                    , replacementNeedsParens = True
+                                    }
+                                    checkInfo
                             )
-
-                    else
-                        Nothing
 
                 Nothing ->
                     Nothing

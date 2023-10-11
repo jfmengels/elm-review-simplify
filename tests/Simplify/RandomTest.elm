@@ -396,7 +396,7 @@ a = Random.list -1 generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list with a negative length will always result in Random.constant []"
+                            { message = "Random.list with negative length will always result in Random.constant []"
                             , details = [ "You can replace this call by Random.constant []." ]
                             , under = "Random.list"
                             }
@@ -414,7 +414,7 @@ a = Random.list -1 <| generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list with a negative length will always result in Random.constant []"
+                            { message = "Random.list with negative length will always result in Random.constant []"
                             , details = [ "You can replace this call by Random.constant []." ]
                             , under = "Random.list"
                             }
@@ -432,7 +432,7 @@ a = generator |> Random.list -1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list with a negative length will always result in Random.constant []"
+                            { message = "Random.list with negative length will always result in Random.constant []"
                             , details = [ "You can replace this call by Random.constant []." ]
                             , under = "Random.list"
                             }
@@ -450,7 +450,7 @@ a = Random.list -1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list with a negative length will always result in Random.constant []"
+                            { message = "Random.list with negative length will always result in Random.constant []"
                             , details = [ "You can replace this call by always (Random.constant [])." ]
                             , under = "Random.list"
                             }
