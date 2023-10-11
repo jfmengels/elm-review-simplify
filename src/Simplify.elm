@@ -8936,6 +8936,31 @@ wrapperFromMaybeCompositionChecks wrapper checkInfo =
             Nothing
 
 
+{-| The "flatFromList" checks
+
+    flatFromList []
+    --> empty
+
+    flatFromList [ emptiable ]
+    --> emptiable
+
+    flatFromList [ aEmptiable, empty, bEmptiable ]
+    --> flatFromList [ aEmptiable, bEmptiable ]
+
+So for example with `emptiableWrapperFlatFromListChecks stringCollection`
+
+    String.concat []
+    --> ""
+
+    String.concat [ string ]
+    --> string
+
+    String.concat [ "hello", "", "world" ]
+    --> String.concat [ "hello", "world" ]
+
+Use together with `wrapperFlatFromListCompositionChecks`.
+
+-}
 emptiableWrapperFlatFromListChecks :
     EmptiableProperties ConstantProperties otherProperties
     -> CheckInfo
