@@ -8542,38 +8542,7 @@ randomAndThenCompositionChecks =
     wrapperMapFlatCompositionChecks randomGeneratorWrapper
 
 
-nonEmptiableWrapperMapFlatAlwaysChecks :
-    TypeProperties (NonEmptiableProperties (WrapperProperties otherProperties))
-    -> CheckInfo
-    -> Maybe (Error {})
-nonEmptiableWrapperMapFlatAlwaysChecks wrapper checkInfo =
-    case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
-        Just alwaysResult ->
-            Just
-                (let
-                    replacementAndFix : { replacementDescription : String, fix : List Fix }
-                    replacementAndFix =
-                        case secondArg checkInfo of
-                            Nothing ->
-                                { replacementDescription = "always with the " ++ wrapper.represents ++ " produced by the function"
-                                , fix = keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
-                                }
 
-                            Just _ ->
-                                { replacementDescription = "the " ++ wrapper.represents ++ " produced by the function"
-                                , fix = replaceBySubExpressionFix checkInfo.parentRange alwaysResult
-                                }
-                 in
-                 Rule.errorWithFix
-                    { message = qualifiedToString checkInfo.fn ++ " with a function that always returns to the same " ++ wrapper.represents ++ " will result in that " ++ wrapper.represents
-                    , details = [ "You can replace this call by " ++ replacementAndFix.replacementDescription ++ "." ]
-                    }
-                    checkInfo.fnRange
-                    replacementAndFix.fix
-                )
-
-        Nothing ->
-            Nothing
 
 
 
@@ -10203,6 +10172,38 @@ withDefaultChecks emptiable =
         , callOnWrapReturnsItsValueCheck emptiable
         ]
 
+nonEmptiableWrapperMapFlatAlwaysChecks :
+    TypeProperties (NonEmptiableProperties (WrapperProperties otherProperties))
+    -> CheckInfo
+    -> Maybe (Error {})
+nonEmptiableWrapperMapFlatAlwaysChecks wrapper checkInfo =
+    case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+        Just alwaysResult ->
+            Just
+                (let
+                    replacementAndFix : { replacementDescription : String, fix : List Fix }
+                    replacementAndFix =
+                        case secondArg checkInfo of
+                            Nothing ->
+                                { replacementDescription = "always with the " ++ wrapper.represents ++ " produced by the function"
+                                , fix = keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                                }
+
+                            Just _ ->
+                                { replacementDescription = "the " ++ wrapper.represents ++ " produced by the function"
+                                , fix = replaceBySubExpressionFix checkInfo.parentRange alwaysResult
+                                }
+                 in
+                 Rule.errorWithFix
+                    { message = qualifiedToString checkInfo.fn ++ " with a function that always returns to the same " ++ wrapper.represents ++ " will result in that " ++ wrapper.represents
+                    , details = [ "You can replace this call by " ++ replacementAndFix.replacementDescription ++ "." ]
+                    }
+                    checkInfo.fnRange
+                    replacementAndFix.fix
+                )
+
+        Nothing ->
+            Nothing
 
 wrapperWithDefaultChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 wrapperWithDefaultChecks wrapper =
