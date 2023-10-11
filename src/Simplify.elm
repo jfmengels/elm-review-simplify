@@ -10285,6 +10285,16 @@ wrapperWithDefaultChecks wrapper =
     onWrapAlwaysReturnsIncomingCompositionCheck wrapper
 
 
+{-| The "withDefault" checks
+
+    withDefault default empty --> empty
+
+so for example
+
+    Result.withDefault "okay" (Err 1)
+    --> "okay"
+
+-}
 emptiableWithDefaultChecks :
     EmptiableProperties (TypeSubsetProperties empty) otherProperties
     -> CheckInfo
