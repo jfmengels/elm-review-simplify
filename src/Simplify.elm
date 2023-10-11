@@ -4966,7 +4966,7 @@ stringJoinChecks : CheckInfo -> Maybe (Error {})
 stringJoinChecks =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection
-        , intersperseFlatWithEmptySeparatorIsEquivalentToFnCheck stringCollection Fn.String.concat
+        , flatIntersperseWithEmptySeparatorIsEquivalentToFnCheck stringCollection Fn.String.concat
         ]
 
 
@@ -5408,7 +5408,7 @@ operationWithIdentityIsEquivalentToFnCheck replacementFn checkInfo =
 
 {-| Check for a function that given an empty separator is equivalent to a given replacement operation.
 
-    intersperseFlat empty something
+    flatIntersperse empty something
     --> replacementOperation something
 
 So for example
@@ -5427,8 +5427,8 @@ Note that this really only applies to "flat-intersperse-like" functions, not for
 for that specific example, there is `operationWithIdentityIsEquivalentToFnCheck`
 
 -}
-intersperseFlatWithEmptySeparatorIsEquivalentToFnCheck : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
-intersperseFlatWithEmptySeparatorIsEquivalentToFnCheck elementProperties replacementFn checkInfo =
+flatIntersperseWithEmptySeparatorIsEquivalentToFnCheck : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
+flatIntersperseWithEmptySeparatorIsEquivalentToFnCheck elementProperties replacementFn checkInfo =
     if elementProperties.empty.is (extractInferResources checkInfo) checkInfo.firstArg then
         Just
             (operationWithFirstArgIsEquivalentToFnError
