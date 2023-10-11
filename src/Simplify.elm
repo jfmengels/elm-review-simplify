@@ -2866,12 +2866,6 @@ thirdArg checkInfo =
     checkInfo.thirdArg
 
 
-type alias ErrorInfoAndFix =
-    { info : { message : String, details : List String }
-    , fix : List Fix
-    }
-
-
 functionCallChecks : Dict ( ModuleName, String ) ( Int, CheckInfo -> Maybe (Error {}) )
 functionCallChecks =
     -- The number of arguments is used to determine how many arguments to pass to the check function.
@@ -3144,6 +3138,12 @@ type alias CompositionIntoCheckInfo =
         , removeRange : Range
         }
     , isEmbeddedInComposition : Bool
+    }
+
+
+type alias ErrorInfoAndFix =
+    { info : { message : String, details : List String }
+    , fix : List Fix
     }
 
 
