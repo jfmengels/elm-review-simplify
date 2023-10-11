@@ -8448,8 +8448,8 @@ oneOfConstantsWithOneAndRestListChecks wrapper checkInfo =
                 in
                 Just
                     (Rule.errorWithFix
-                        { message = qualifiedToString checkInfo.fn ++ " with only one possible value can be replaced by " ++ qualifiedToString wrapper.wrap.fn
-                        , details = [ "Only a single value can be produced by this " ++ qualifiedToString checkInfo.fn ++ " call. You can replace the call with " ++ qualifiedToString wrapper.wrap.fn ++ " with the value." ]
+                        { message = qualifiedToString checkInfo.fn ++ " with one possible value will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with that value"
+                        , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ " with the first given value." ]
                         }
                         checkInfo.fnRange
                         (Fix.replaceRangeBy checkInfo.fnRange

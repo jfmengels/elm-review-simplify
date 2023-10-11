@@ -39,8 +39,8 @@ a = Random.uniform a []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.uniform with only one possible value can be replaced by Random.constant"
-                            , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
+                            { message = "Random.uniform with one possible value will result in Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the first given value." ]
                             , under = "Random.uniform"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -57,8 +57,8 @@ a = Random.uniform a <| []
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.uniform with only one possible value can be replaced by Random.constant"
-                            , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
+                            { message = "Random.uniform with one possible value will result in Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the first given value." ]
                             , under = "Random.uniform"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -75,8 +75,8 @@ a = [] |> Random.uniform a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.uniform with only one possible value can be replaced by Random.constant"
-                            , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
+                            { message = "Random.uniform with one possible value will result in Random.constant with that value"
+                            , details = [ "You can replace this call by Random.constant with the first given value." ]
                             , under = "Random.uniform"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
