@@ -4975,76 +4975,6 @@ stringRepeatChecks =
     emptiableRepeatFlatChecks stringCollection
 
 
-{-| Checks for a repeat function that flattens the resulting list into the same type
-
-    repeatFlat -1 emptiable --> empty
-
-    repeatFlat n empty --> empty
-
-    repeatFlat 1 emptiable --> emptiable
-
-Examples of such functions:
-
-    String.Graphemes.repeat : Int -> String -> String
-    Animation.repeat : Int -> Animation.Step msg -> Animation.Step msg
-    applyTimes : Int -> (a -> a) -> a -> a
-
--}
-emptiableRepeatFlatChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-emptiableRepeatFlatChecks emptiable =
-    firstThatConstructsJust
-        [ \checkInfo ->
-            case secondArg checkInfo of
-                Just emptiableArg ->
-                    if emptiable.empty.is (extractInferResources checkInfo) emptiableArg then
-                        Just
-                            (Rule.errorWithFix
-                                { message = qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite emptiable.empty.description ++ " will result in " ++ descriptionForDefinite "the given" emptiable.empty.description
-                                , details = [ "You can replace this call by " ++ descriptionForDefinite "the given" emptiable.empty.description ++ "." ]
-                                }
-                                checkInfo.fnRange
-                                (keepOnlyFix
-                                    { parentRange = checkInfo.parentRange
-                                    , keep = Node.range emptiableArg
-                                    }
-                                )
-                            )
-
-                    else
-                        Nothing
-
-                Nothing ->
-                    Nothing
-        , \checkInfo ->
-            case Evaluate.getInt checkInfo checkInfo.firstArg of
-                Just intValue ->
-                    firstThatConstructsJust
-                        [ \() ->
-                            case intValue of
-                                1 ->
-                                    Just
-                                        (alwaysReturnsLastArgError (qualifiedToString checkInfo.fn ++ " 1")
-                                            { represents = emptiable.represents ++ " to repeat" }
-                                            checkInfo
-                                        )
-
-                                _ ->
-                                    Nothing
-                        , \() ->
-                            callWithNonPositiveIntCanBeReplacedByCheck
-                                { int = intValue
-                                , intDescription = "length"
-                                , replacement = emptiable.empty.asString
-                                }
-                                checkInfo
-                        ]
-                        ()
-
-                _ ->
-                    Nothing
-        ]
-
-
 stringReplaceChecks : CheckInfo -> Maybe (Error {})
 stringReplaceChecks =
     firstThatConstructsJust
@@ -6442,7 +6372,7 @@ dictFoldrChecks =
 
 
 
--- TASK
+-- TASK FUNCTIONS
 
 
 taskMapChecks : CheckInfo -> Maybe (Error {})
@@ -6531,7 +6461,7 @@ taskSequenceCompositionChecks =
 
 
 
--- HTML.ATTRIBUTES
+-- HTML.ATTRIBUTES FUNCTIONS
 
 
 getTupleWithSpecificSecondBoolExpressionNode : Bool -> ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
@@ -6633,7 +6563,7 @@ htmlAttributesClassListChecks =
 
 
 
--- JSON.DECODE
+-- JSON.DECODE FUNCTIONS
 
 
 jsonDecodeMapChecks : CheckInfo -> Maybe (Error {})
@@ -6677,7 +6607,7 @@ jsonDecodeAndThenCompositionChecks =
 
 
 
--- RANDOM
+-- RANDOM FUNCTIONS
 
 
 randomUniformChecks : CheckInfo -> Maybe (Error {})
@@ -9362,6 +9292,76 @@ sequenceRepeatChecks wrapper =
                             Nothing
 
                 Nothing ->
+                    Nothing
+        ]
+
+
+{-| Checks for a repeat function that flattens the resulting list into the same type
+
+    repeatFlat -1 emptiable --> empty
+
+    repeatFlat n empty --> empty
+
+    repeatFlat 1 emptiable --> emptiable
+
+Examples of such functions:
+
+    String.Graphemes.repeat : Int -> String -> String
+    Animation.repeat : Int -> Animation.Step msg -> Animation.Step msg
+    applyTimes : Int -> (a -> a) -> a -> a
+
+-}
+emptiableRepeatFlatChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiableRepeatFlatChecks emptiable =
+    firstThatConstructsJust
+        [ \checkInfo ->
+            case secondArg checkInfo of
+                Just emptiableArg ->
+                    if emptiable.empty.is (extractInferResources checkInfo) emptiableArg then
+                        Just
+                            (Rule.errorWithFix
+                                { message = qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite emptiable.empty.description ++ " will result in " ++ descriptionForDefinite "the given" emptiable.empty.description
+                                , details = [ "You can replace this call by " ++ descriptionForDefinite "the given" emptiable.empty.description ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                (keepOnlyFix
+                                    { parentRange = checkInfo.parentRange
+                                    , keep = Node.range emptiableArg
+                                    }
+                                )
+                            )
+
+                    else
+                        Nothing
+
+                Nothing ->
+                    Nothing
+        , \checkInfo ->
+            case Evaluate.getInt checkInfo checkInfo.firstArg of
+                Just intValue ->
+                    firstThatConstructsJust
+                        [ \() ->
+                            case intValue of
+                                1 ->
+                                    Just
+                                        (alwaysReturnsLastArgError (qualifiedToString checkInfo.fn ++ " 1")
+                                            { represents = emptiable.represents ++ " to repeat" }
+                                            checkInfo
+                                        )
+
+                                _ ->
+                                    Nothing
+                        , \() ->
+                            callWithNonPositiveIntCanBeReplacedByCheck
+                                { int = intValue
+                                , intDescription = "length"
+                                , replacement = emptiable.empty.asString
+                                }
+                                checkInfo
+                        ]
+                        ()
+
+                _ ->
                     Nothing
         ]
 
