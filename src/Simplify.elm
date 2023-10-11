@@ -3772,14 +3772,6 @@ inversesCompositionCheck earlierInverseFn checkInfo =
         Nothing
 
 
-compositionReplaceByFnFix :
-    ( ModuleName, String )
-    -> QualifyResources { checkInfo | later : { later | range : Range }, earlier : { earlier | removeRange : Range } }
-    -> List Fix
-compositionReplaceByFnFix replacementFn checkInfo =
-    compositionReplaceByFix (qualifiedToString (qualify replacementFn checkInfo)) checkInfo
-
-
 {-| Get the last function in `earlier` and the earliest function in `later` that's not itself a composition.
 
 E.g. for `(i << h) << (g << f)`
@@ -12464,6 +12456,14 @@ compositionReplaceByFix replacement checkInfo =
     [ Fix.replaceRangeBy checkInfo.later.range replacement
     , Fix.removeRange checkInfo.earlier.removeRange
     ]
+
+
+compositionReplaceByFnFix :
+    ( ModuleName, String )
+    -> QualifyResources { checkInfo | later : { later | range : Range }, earlier : { earlier | removeRange : Range } }
+    -> List Fix
+compositionReplaceByFnFix replacementFn checkInfo =
+    compositionReplaceByFix (qualifiedToString (qualify replacementFn checkInfo)) checkInfo
 
 
 operationDoesNotChangeSpecificLastArgErrorInfo : { fn : ( ModuleName, String ), specific : Description } -> { message : String, details : List String }
