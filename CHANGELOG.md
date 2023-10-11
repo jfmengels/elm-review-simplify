@@ -102,6 +102,7 @@ Bug fixes:
 - Fixed an issue where e.g. `List.sortBy f << g` would be fixed to `g`
 - Fixed an issue where `Dict.partition (always (always True/False)) dict` would not be reported
 - Fixed an issue where `List.filterMap f [ a, Nothing, b ]` would be fixed to `List.filterMap f [ a, b ]`
+- Fixed an issue where `Random.map << always` would be fixed to `Random.constant`
 
 ## [2.1.2] - 2023-09-28
 

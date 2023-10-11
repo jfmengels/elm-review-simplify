@@ -1177,7 +1177,7 @@ import Random
 a = always (Random.constant (f x))
 """
                         ]
-        , test "should replace always >> Random.map by Random.constant" <|
+        , test "should replace always >> Random.map by Random.constant >> always" <|
             \() ->
                 """module A exposing (..)
 import Random
@@ -1186,16 +1186,16 @@ a = always >> Random.map
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant"
-                            , details = [ "You can replace this call by Random.constant." ]
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant, then `always`"
+                            , details = [ "You can replace this call by Random.constant, then `always`." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Random
-a = Random.constant
+a = Random.constant >> always
 """
                         ]
-        , test "should replace Random.map << always by Random.constant" <|
+        , test "should replace Random.map << always by always << Random.constant" <|
             \() ->
                 """module A exposing (..)
 import Random
@@ -1204,13 +1204,13 @@ a = Random.map << always
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant"
-                            , details = [ "You can replace this call by Random.constant." ]
+                            { message = "Random.map with a function that always maps to the same value is equivalent to Random.constant, then `always`"
+                            , details = [ "You can replace this call by Random.constant, then `always`." ]
                             , under = "Random.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Random
-a = Random.constant
+a = always << Random.constant
 """
                         ]
         , test "should replace Random.map f (Random.constant x) by (Random.constant (f x))" <|
