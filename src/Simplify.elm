@@ -8742,6 +8742,41 @@ operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck replacementFn c
                 )
 
 
+isEqualToSomethingFunction : Node Expression -> Maybe { something : Node Expression }
+isEqualToSomethingFunction rawNode =
+    case Node.value (AstHelpers.removeParens rawNode) of
+        Expression.Application ((Node _ (Expression.PrefixOperator "==")) :: expr :: []) ->
+            Just { something = expr }
+
+        Expression.LambdaExpression lambda ->
+            case lambda.args of
+                [ Node _ (Pattern.VarPattern var) ] ->
+                    case Node.value (AstHelpers.removeParens lambda.expression) of
+                        Expression.OperatorApplication "==" _ left right ->
+                            let
+                                nodeToFind : Expression
+                                nodeToFind =
+                                    Expression.FunctionOrValue [] var
+                            in
+                            if Node.value left == nodeToFind then
+                                Just { something = right }
+
+                            else if Node.value right == nodeToFind then
+                                Just { something = left }
+
+                            else
+                                Nothing
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
 {-| The sequence checks `sequenceOnCollectionWithKnownEmptyElementCheck` and `sequenceOnFromListWithEmptyIgnoresLaterElementsCheck`
 -}
 sequenceOrFirstEmptyChecks :
