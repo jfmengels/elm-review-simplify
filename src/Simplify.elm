@@ -9970,6 +9970,18 @@ mapAfterWrapCompositionChecks wrapper checkInfo =
             Nothing
 
 
+{-| The map check
+
+    map (always a) wrapper --> wrap a
+
+So for example
+
+    Random.map (always a) generator
+    --> Random.constant a
+
+Use together with `nonEmptiableWrapperMapAlwaysCompositionChecks`.
+
+-}
 nonEmptiableWrapperMapAlwaysChecks :
     NonEmptiableProperties (WrapperProperties otherProperties)
     -> CheckInfo
