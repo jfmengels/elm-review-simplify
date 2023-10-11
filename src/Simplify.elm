@@ -8526,7 +8526,10 @@ randomMapChecks =
 
 randomMapCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 randomMapCompositionChecks =
-    wrapperMapCompositionChecks randomGeneratorWrapper
+    firstThatConstructsJust
+        [ mapAfterWrapCompositionChecks randomGeneratorWrapper
+        , nonEmptiableWrapperMapAlwaysCompositionChecks randomGeneratorWrapper
+        ]
 
 
 randomAndThenChecks : CheckInfo -> Maybe (Error {})
@@ -9815,14 +9818,6 @@ emptiableMapWithExtraArgChecks emptiable =
 
                 Nothing ->
                     Nothing
-        ]
-
-
-wrapperMapCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-wrapperMapCompositionChecks wrapper =
-    firstThatConstructsJust
-        [ mapAfterWrapCompositionChecks wrapper
-        , nonEmptiableWrapperMapAlwaysCompositionChecks wrapper
         ]
 
 
