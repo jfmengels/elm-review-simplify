@@ -8412,37 +8412,36 @@ randomWeightedChecks : CheckInfo -> Maybe (Error {})
 randomWeightedChecks checkInfo =
     case secondArg checkInfo of
         Just otherOptionsArg ->
-            case AstHelpers.getListLiteral otherOptionsArg of
-                Just [] ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Random.weighted with only one possible value can be replaced by Random.constant"
-                            , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
-                            }
-                            checkInfo.fnRange
-                            (case Node.value checkInfo.firstArg of
-                                Expression.TupledExpression (_ :: (Node valuePartRange _) :: []) ->
-                                    [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = valuePartRange.start }
-                                        (qualifiedToString (qualify Fn.Random.constant checkInfo) ++ " ")
-                                    , Fix.removeRange { start = valuePartRange.end, end = checkInfo.parentRange.end }
-                                    ]
+            if listCollection.empty.is (extractInferResources checkInfo) otherOptionsArg then
+                Just
+                    (Rule.errorWithFix
+                        { message = "Random.weighted with only one possible value can be replaced by Random.constant"
+                        , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
+                        }
+                        checkInfo.fnRange
+                        (case Node.value checkInfo.firstArg of
+                            Expression.TupledExpression (_ :: (Node valuePartRange _) :: []) ->
+                                [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = valuePartRange.start }
+                                    (qualifiedToString (qualify Fn.Random.constant checkInfo) ++ " ")
+                                , Fix.removeRange { start = valuePartRange.end, end = checkInfo.parentRange.end }
+                                ]
 
-                                _ ->
-                                    let
-                                        tupleRange : Range
-                                        tupleRange =
-                                            Node.range checkInfo.firstArg
-                                    in
-                                    [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = tupleRange.start }
-                                        (qualifiedToString (qualify Fn.Random.constant checkInfo) ++ " (Tuple.first ")
-                                    , Fix.replaceRangeBy { start = tupleRange.end, end = checkInfo.parentRange.end }
-                                        ")"
-                                    ]
-                            )
+                            _ ->
+                                let
+                                    tupleRange : Range
+                                    tupleRange =
+                                        Node.range checkInfo.firstArg
+                                in
+                                [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = tupleRange.start }
+                                    (qualifiedToString (qualify Fn.Random.constant checkInfo) ++ " (Tuple.first ")
+                                , Fix.replaceRangeBy { start = tupleRange.end, end = checkInfo.parentRange.end }
+                                    ")"
+                                ]
                         )
+                    )
 
-                _ ->
-                    Nothing
+            else
+                Nothing
 
         Nothing ->
             Nothing
