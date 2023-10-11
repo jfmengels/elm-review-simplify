@@ -8107,7 +8107,7 @@ listOfWrapperSequenceChecks wrapper =
                 \res -> qualifiedToString (qualify wrapper.wrap.fn res) ++ " []"
             }
             listCollection
-        , sequenceOnWrappedIsEquivalentToMapWrapOnValue ( listCollection, wrapper )
+        , onWrappedIsEquivalentToMapWrapOnValueCheck ( listCollection, wrapper )
         , sequenceOnCollectionWithAllElementsWrapped ( listCollection, wrapper )
         ]
 
@@ -8158,9 +8158,9 @@ sequenceOnCollectionWithAllElementsWrapped ( collection, elementWrapper ) checkI
             Nothing
 
 
-{-| The sequence composition check
+{-| The check
 
-    sequence (wrap a) --> map wrap a
+    operation (wrap a) --> map wrap a
 
 So for example
 
@@ -8178,11 +8178,11 @@ which means you can simplify it to `encoder` using `unnecessaryCallOnWrappedChec
 Use together with `afterWrapIsEquivalentToMapWrapCheck`.
 
 -}
-sequenceOnWrappedIsEquivalentToMapWrapOnValue :
+onWrappedIsEquivalentToMapWrapOnValueCheck :
     ( WrapperProperties wrapperOtherProperties, WrapperProperties (MappableProperties elementOtherProperties) )
     -> CheckInfo
     -> Maybe (Error {})
-sequenceOnWrappedIsEquivalentToMapWrapOnValue ( wrapper, elementWrapper ) checkInfo =
+onWrappedIsEquivalentToMapWrapOnValueCheck ( wrapper, elementWrapper ) checkInfo =
     case wrapper.wrap.getValue checkInfo.lookupTable checkInfo.firstArg of
         Just wrappedValue ->
             let
@@ -8208,9 +8208,9 @@ sequenceOnWrappedIsEquivalentToMapWrapOnValue ( wrapper, elementWrapper ) checkI
             Nothing
 
 
-{-| The sequence composition check
+{-| The composition check
 
-    sequence << wrap --> map wrap
+    operation << wrap --> map wrap
 
 So for example
 
@@ -8225,7 +8225,7 @@ Note that some functions called "sequence" have equal element and result types, 
 
 which means you can simplify them to `identity` using `unnecessaryCompositionAfterWrapCheck`.
 
-Use together with `sequenceOnWrappedIsEquivalentToMapWrapOnValue`.
+Use together with `onWrappedIsEquivalentToMapWrapOnValueCheck`.
 
 -}
 afterWrapIsEquivalentToMapWrapCheck :
