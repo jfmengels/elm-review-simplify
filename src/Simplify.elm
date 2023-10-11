@@ -8477,18 +8477,22 @@ repeatSequenceChecks wrapper =
                         [ \() ->
                             case lengthInt of
                                 1 ->
+                                    let
+                                        replacement : QualifyResources res -> String
+                                        replacement res =
+                                            qualifiedToString (qualify wrapper.mapFn res)
+                                                ++ " "
+                                                ++ qualifiedToString (qualify Fn.List.singleton res)
+                                    in
                                     Just
                                         (Rule.errorWithFix
-                                            { message = qualifiedToString checkInfo.fn ++ " 1 can be replaced by " ++ qualifiedToString wrapper.mapFn ++ " " ++ qualifiedToString Fn.List.singleton
-                                            , details = [ "This " ++ qualifiedToString checkInfo.fn ++ " call always produces a list with one generated element. This means you can replace the call with " ++ qualifiedToString wrapper.mapFn ++ " " ++ qualifiedToString Fn.List.singleton ++ "." ]
+                                            { message = qualifiedToString checkInfo.fn ++ " 1 will result in " ++ replacement defaultQualifyResources
+                                            , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
                                             }
                                             checkInfo.fnRange
                                             [ Fix.replaceRangeBy
                                                 (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
-                                                (qualifiedToString (qualify wrapper.mapFn checkInfo)
-                                                    ++ " "
-                                                    ++ qualifiedToString (qualify Fn.List.singleton checkInfo)
-                                                )
+                                                (replacement checkInfo)
                                             ]
                                         )
 
@@ -8515,19 +8519,10 @@ repeatSequenceChecks wrapper =
                 Just elementArg ->
                     case AstHelpers.getSpecificFnCall wrapper.wrap.fn checkInfo.lookupTable elementArg of
                         Just wrapCall ->
-                            let
-                                currentAsString : String
-                                currentAsString =
-                                    qualifiedToString checkInfo.fn ++ " n (" ++ qualifiedToString wrapper.wrap.fn ++ " el)"
-
-                                replacementAsString : String
-                                replacementAsString =
-                                    qualifiedToString wrapper.wrap.fn ++ " (" ++ qualifiedToString Fn.List.repeat ++ " n el)"
-                            in
                             Just
                                 (Rule.errorWithFix
-                                    { message = currentAsString ++ " can be replaced by " ++ replacementAsString
-                                    , details = [ currentAsString ++ " generates the same value for each of the n elements. This means you can replace the call with " ++ replacementAsString ++ "." ]
+                                    { message = qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the value in " ++ descriptionForDefinite "that" wrapper.wrap.description
+                                    , details = [ "You can replace the call by " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the same length and the value inside " ++ descriptionForDefinite "the given" wrapper.wrap.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (replaceBySubExpressionFix wrapCall.nodeRange wrapCall.firstArg
