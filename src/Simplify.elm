@@ -8725,7 +8725,7 @@ So for example
 -}
 operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck : ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
 operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck replacementFn checkInfo =
-    case Evaluate.isEqualToSomethingFunction checkInfo.firstArg of
+    case isEqualToConstantFunction checkInfo.firstArg of
         Nothing ->
             Nothing
 
@@ -8737,16 +8737,16 @@ operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck replacementFn c
                     }
                     checkInfo.fnRange
                     (Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify replacementFn checkInfo))
-                        :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) equatedTo.something
+                        :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) equatedTo.constant
                     )
                 )
 
 
-isEqualToSomethingFunction : Node Expression -> Maybe { something : Node Expression }
-isEqualToSomethingFunction rawNode =
+isEqualToConstantFunction : Node Expression -> Maybe { constant : Node Expression }
+isEqualToConstantFunction rawNode =
     case Node.value (AstHelpers.removeParens rawNode) of
         Expression.Application ((Node _ (Expression.PrefixOperator "==")) :: expr :: []) ->
-            Just { something = expr }
+            Just { constant = expr }
 
         Expression.LambdaExpression lambda ->
             case lambda.args of
@@ -8758,11 +8758,11 @@ isEqualToSomethingFunction rawNode =
                                 nodeToFind =
                                     Expression.FunctionOrValue [] var
                             in
-                            if Node.value left == nodeToFind then
-                                Just { something = right }
+                            if (Node.value left == nodeToFind) && not (expressionContainsVariable var (Node.value right)) then
+                                Just { constant = right }
 
-                            else if Node.value right == nodeToFind then
-                                Just { something = left }
+                            else if (Node.value right == nodeToFind) && not (expressionContainsVariable var (Node.value left)) then
+                                Just { constant = left }
 
                             else
                                 Nothing
@@ -8775,6 +8775,17 @@ isEqualToSomethingFunction rawNode =
 
         _ ->
             Nothing
+
+
+expressionContainsVariable : String -> Expression -> Bool
+expressionContainsVariable variableToFind expressionNode =
+    case expressionNode of
+        Expression.FunctionOrValue [] variable ->
+            variable == variableToFind
+
+        nonVariableExpressionNode ->
+            List.any (\(Node _ sub) -> expressionContainsVariable variableToFind sub)
+                (AstHelpers.subExpressions nonVariableExpressionNode)
 
 
 {-| The sequence checks `sequenceOnCollectionWithKnownEmptyElementCheck` and `sequenceOnFromListWithEmptyIgnoresLaterElementsCheck`
