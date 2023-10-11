@@ -8409,42 +8409,8 @@ randomUniformChecks =
 
 
 randomWeightedChecks : CheckInfo -> Maybe (Error {})
-randomWeightedChecks checkInfo =
-    case secondArg checkInfo of
-        Just otherOptionsArg ->
-            if listCollection.empty.is (extractInferResources checkInfo) otherOptionsArg then
-                Just
-                    (Rule.errorWithFix
-                        { message = "Random.weighted with only one possible value can be replaced by Random.constant"
-                        , details = [ "Only a single value can be produced by this Random.weighted call. You can replace the call with Random.constant with the value." ]
-                        }
-                        checkInfo.fnRange
-                        (case Node.value checkInfo.firstArg of
-                            Expression.TupledExpression (_ :: (Node valuePartRange _) :: []) ->
-                                [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = valuePartRange.start }
-                                    (qualifiedToString (qualify Fn.Random.constant checkInfo) ++ " ")
-                                , Fix.removeRange { start = valuePartRange.end, end = checkInfo.parentRange.end }
-                                ]
-
-                            _ ->
-                                let
-                                    tupleRange : Range
-                                    tupleRange =
-                                        Node.range checkInfo.firstArg
-                                in
-                                [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = tupleRange.start }
-                                    (qualifiedToString (qualify Fn.Random.constant checkInfo) ++ " (Tuple.first ")
-                                , Fix.replaceRangeBy { start = tupleRange.end, end = checkInfo.parentRange.end }
-                                    ")"
-                                ]
-                        )
-                    )
-
-            else
-                Nothing
-
-        Nothing ->
-            Nothing
+randomWeightedChecks =
+    oneOfWeightedConstantsWithOneAndRestChecks randomGeneratorWrapper
 
 
 randomListChecks : CheckInfo -> Maybe (Error {})
@@ -9738,6 +9704,67 @@ oneOfConstantsWithOneAndRestListChecks wrapper checkInfo =
                                 { parentRange = checkInfo.parentRange
                                 , keep = Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ]
                                 }
+                        )
+                    )
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
+
+
+{-| The "oneOfWeightedConstants" checks
+
+    oneOfWeightedConstants ( w, a ) [] --> wrap a
+
+    oneOfWeightedConstants weighted [] --> wrap (Tuple.first weighted)
+
+Examples of such functions:
+
+    Random.weighted : ( Float, a ) -> List ( Float, a ) -> Generator a
+    -- ↓ doesn't exist
+    SucceedingFuzzer.frequencyValues : ( Float, a ) -> List ( Float, a ) -> SucceedingFuzzer a
+
+-}
+oneOfWeightedConstantsWithOneAndRestChecks : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
+oneOfWeightedConstantsWithOneAndRestChecks wrapper checkInfo =
+    case secondArg checkInfo of
+        Just otherOptionsArg ->
+            if listCollection.empty.is (extractInferResources checkInfo) otherOptionsArg then
+                Just
+                    (Rule.errorWithFix
+                        { message = qualifiedToString checkInfo.fn ++ " with only one possible value can be replaced by " ++ qualifiedToString wrapper.wrap.fn
+                        , details = [ "Only a single value can be produced by this " ++ qualifiedToString checkInfo.fn ++ " call. You can replace the call with " ++ qualifiedToString wrapper.wrap.fn ++ " with the value." ]
+                        }
+                        checkInfo.fnRange
+                        (case AstHelpers.getTuple2 checkInfo.lookupTable checkInfo.firstArg of
+                            Just tuple ->
+                                keepOnlyFix
+                                    { parentRange = checkInfo.parentRange
+                                    , keep = Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ]
+                                    }
+                                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                            (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
+                                       ]
+                                    ++ replaceBySubExpressionFix (Node.range checkInfo.firstArg) tuple.second
+
+                            Nothing ->
+                                let
+                                    tupleArgRange : Range
+                                    tupleArgRange =
+                                        Node.range checkInfo.firstArg
+                                in
+                                keepOnlyFix
+                                    { parentRange = checkInfo.parentRange
+                                    , keep = Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ]
+                                    }
+                                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                            (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
+                                       , Fix.insertAt tupleArgRange.start
+                                            ("(" ++ qualifiedToString Fn.Tuple.first ++ " ")
+                                       , Fix.insertAt tupleArgRange.end ")"
+                                       ]
                         )
                     )
 
