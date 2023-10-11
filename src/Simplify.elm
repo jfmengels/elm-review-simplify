@@ -10040,6 +10040,19 @@ nonEmptiableWrapperMapAlwaysChecks wrapper checkInfo =
             Nothing
 
 
+{-| The map composition check
+
+    map << always --> always << wrap
+
+So for example
+
+    Random.map << always
+    --: a -> Generator a -> Generator a
+    --> always << Random.constant
+
+Use together with `nonEmptiableWrapperMapAlwaysChecks`.
+
+-}
 nonEmptiableWrapperMapAlwaysCompositionChecks :
     WrapperProperties otherProperties
     -> CompositionIntoCheckInfo
@@ -10047,13 +10060,22 @@ nonEmptiableWrapperMapAlwaysCompositionChecks :
 nonEmptiableWrapperMapAlwaysCompositionChecks wrapper checkInfo =
     case ( ( checkInfo.earlier.fn, checkInfo.earlier.args ), checkInfo.later.args ) of
         ( ( ( [ "Basics" ], "always" ), [] ), [] ) ->
+            let
+                equivalent : String
+                equivalent =
+                    qualifiedToString wrapper.wrap.fn ++ ", then `always`"
+            in
             Just
                 { info =
-                    { message = qualifiedToString checkInfo.later.fn ++ " with a function that always maps to the same value is equivalent to " ++ qualifiedToString wrapper.wrap.fn
-                    , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ "." ]
+                    { message = qualifiedToString checkInfo.later.fn ++ " with a function that always maps to the same value is equivalent to " ++ equivalent
+                    , details = [ "You can replace this call by " ++ equivalent ++ "." ]
                     }
                 , fix =
-                    compositionReplaceByFnFix wrapper.wrap.fn checkInfo
+                    [ Fix.replaceRangeBy checkInfo.earlier.fnRange
+                        (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
+                    , Fix.replaceRangeBy checkInfo.later.fnRange
+                        (qualifiedToString (qualify Fn.Basics.always checkInfo))
+                    ]
                 }
 
         _ ->
