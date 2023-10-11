@@ -8407,27 +8407,26 @@ randomUniformChecks : CheckInfo -> Maybe (Error {})
 randomUniformChecks checkInfo =
     case secondArg checkInfo of
         Just otherOptionsArg ->
-            case AstHelpers.getListLiteral otherOptionsArg of
-                Just [] ->
-                    let
-                        onlyValueRange : Range
-                        onlyValueRange =
-                            Node.range checkInfo.firstArg
-                    in
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Random.uniform with only one possible value can be replaced by Random.constant"
-                            , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
-                            }
-                            checkInfo.fnRange
-                            [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = onlyValueRange.start }
-                                (qualifiedToString (qualify Fn.Random.constant checkInfo) ++ " ")
-                            , Fix.removeRange { start = onlyValueRange.end, end = checkInfo.parentRange.end }
-                            ]
-                        )
+            if listCollection.empty.is (extractInferResources checkInfo) otherOptionsArg then
+                let
+                    onlyValueRange : Range
+                    onlyValueRange =
+                        Node.range checkInfo.firstArg
+                in
+                Just
+                    (Rule.errorWithFix
+                        { message = "Random.uniform with only one possible value can be replaced by Random.constant"
+                        , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = onlyValueRange.start }
+                            (qualifiedToString (qualify Fn.Random.constant checkInfo) ++ " ")
+                        , Fix.removeRange { start = onlyValueRange.end, end = checkInfo.parentRange.end }
+                        ]
+                    )
 
-                _ ->
-                    Nothing
+            else
+                Nothing
 
         Nothing ->
             Nothing
