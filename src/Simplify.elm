@@ -5113,7 +5113,7 @@ maybeMapChecks : CheckInfo -> Maybe (Error {})
 maybeMapChecks =
     firstThatConstructsJust
         [ emptiableMapChecks maybeWithJustAsWrap
-        , mapWrapChecks maybeWithJustAsWrap
+        , mapOnWrappedChecks maybeWithJustAsWrap
         ]
 
 
@@ -5151,7 +5151,7 @@ resultMapChecks : CheckInfo -> Maybe (Error {})
 resultMapChecks =
     firstThatConstructsJust
         [ emptiableMapChecks resultWithOkAsWrap
-        , mapWrapChecks resultWithOkAsWrap
+        , mapOnWrappedChecks resultWithOkAsWrap
         ]
 
 
@@ -5190,7 +5190,7 @@ resultMapErrorChecks : CheckInfo -> Maybe (Error {})
 resultMapErrorChecks =
     firstThatConstructsJust
         [ emptiableMapChecks resultWithErrAsWrap
-        , mapWrapChecks resultWithErrAsWrap
+        , mapOnWrappedChecks resultWithErrAsWrap
         ]
 
 
@@ -5645,7 +5645,7 @@ listMapChecks =
 
 listMapOnSingletonCheck : CheckInfo -> Maybe (Error {})
 listMapOnSingletonCheck checkInfo =
-    -- we do not re-use mapWrapChecks because that would fix e.g.
+    -- we do not re-use mapOnWrappedChecks because that would fix e.g.
     -- map f (if c then List.singleton a else [ b ]) --> map f (List.singleton (if c then a else b))
     -- while we instead fix it to the more compact form
     -- map f [ if c then a else b ]
@@ -7918,7 +7918,7 @@ taskMapChecks : CheckInfo -> Maybe (Error {})
 taskMapChecks =
     firstThatConstructsJust
         [ emptiableMapChecks taskWithSucceedAsWrap
-        , mapWrapChecks taskWithSucceedAsWrap
+        , mapOnWrappedChecks taskWithSucceedAsWrap
         ]
 
 
@@ -7958,7 +7958,7 @@ taskMapErrorChecks : CheckInfo -> Maybe (Error {})
 taskMapErrorChecks =
     firstThatConstructsJust
         [ emptiableMapChecks taskWithFailAsWrap
-        , mapWrapChecks taskWithFailAsWrap
+        , mapOnWrappedChecks taskWithFailAsWrap
         ]
 
 
@@ -8460,7 +8460,7 @@ jsonDecodeMapChecks : CheckInfo -> Maybe (Error {})
 jsonDecodeMapChecks =
     firstThatConstructsJust
         [ emptiableMapChecks jsonDecoderWithSucceedAsWrap
-        , mapWrapChecks jsonDecoderWithSucceedAsWrap
+        , mapOnWrappedChecks jsonDecoderWithSucceedAsWrap
         ]
 
 
@@ -8519,7 +8519,7 @@ randomMapChecks : CheckInfo -> Maybe (Error {})
 randomMapChecks =
     firstThatConstructsJust
         [ mapIdentityChecks randomGeneratorWrapper
-        , mapWrapChecks randomGeneratorWrapper
+        , mapOnWrappedChecks randomGeneratorWrapper
         , nonEmptiableWrapperMapAlwaysChecks randomGeneratorWrapper
         ]
 
@@ -9838,11 +9838,11 @@ So for example
 Use together with `mapAfterWrapCompositionChecks`.
 
 -}
-mapWrapChecks :
+mapOnWrappedChecks :
     WrapperProperties otherProperties
     -> CheckInfo
     -> Maybe (Error {})
-mapWrapChecks wrapper checkInfo =
+mapOnWrappedChecks wrapper checkInfo =
     case secondArg checkInfo of
         Just wrapperArg ->
             firstThatConstructsJust
@@ -9951,7 +9951,7 @@ So for example
     Random.map f << Random.constant
     --> Random.constant << f
 
-Use together with `mapWrapChecks`.
+Use together with `mapOnWrappedChecks`.
 
 -}
 mapAfterWrapCompositionChecks :
