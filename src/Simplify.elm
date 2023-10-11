@@ -7996,7 +7996,7 @@ taskSequenceChecks =
 
 taskSequenceCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 taskSequenceCompositionChecks =
-    wrapperOfMappableCompositionCheck ( listCollection, taskWithSucceedAsWrap )
+    afterWrapIsEquivalentToMapWrapCheck ( listCollection, taskWithSucceedAsWrap )
 
 
 {-| The sequence checks `sequenceOnCollectionWithKnownEmptyElementCheck` and `sequenceOnFromListWithEmptyIgnoresLaterElementsCheck`
@@ -8175,7 +8175,7 @@ Note that some functions called "sequence" have equal element and result types, 
 
 which means you can simplify it to `encoder` using `unnecessaryCallOnWrappedCheck`.
 
-Use together with `wrapperOfMappableCompositionCheck`.
+Use together with `afterWrapIsEquivalentToMapWrapCheck`.
 
 -}
 sequenceOnWrappedIsEquivalentToMapWrapOnValue :
@@ -8228,11 +8228,11 @@ which means you can simplify them to `identity` using `unnecessaryCompositionAft
 Use together with `sequenceOnWrappedIsEquivalentToMapWrapOnValue`.
 
 -}
-wrapperOfMappableCompositionCheck :
+afterWrapIsEquivalentToMapWrapCheck :
     ( WrapperProperties wrapperOtherProperties, MappableProperties valueOtherProperties )
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
-wrapperOfMappableCompositionCheck ( wrapper, valueMappable ) checkInfo =
+afterWrapIsEquivalentToMapWrapCheck ( wrapper, valueMappable ) checkInfo =
     if checkInfo.earlier.fn == wrapper.wrap.fn then
         let
             replacement : QualifyResources a -> String
