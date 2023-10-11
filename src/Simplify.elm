@@ -8419,10 +8419,13 @@ randomUniformChecks checkInfo =
                         , details = [ "Only a single value can be produced by this Random.uniform call. You can replace the call with Random.constant with the value." ]
                         }
                         checkInfo.fnRange
-                        [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = onlyValueRange.start }
-                            (qualifiedToString (qualify Fn.Random.constant checkInfo) ++ " ")
-                        , Fix.removeRange { start = onlyValueRange.end, end = checkInfo.parentRange.end }
-                        ]
+                        (Fix.replaceRangeBy checkInfo.fnRange
+                            (qualifiedToString (qualify Fn.Random.constant checkInfo))
+                            :: keepOnlyFix
+                                { parentRange = checkInfo.parentRange
+                                , keep = Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ]
+                                }
+                        )
                     )
 
             else
