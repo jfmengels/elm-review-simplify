@@ -4972,7 +4972,7 @@ stringJoinChecks =
 
 stringRepeatChecks : CheckInfo -> Maybe (Error {})
 stringRepeatChecks =
-    emptiableRepeatFlatChecks stringCollection
+    emptiableFlatRepeatChecks stringCollection
 
 
 stringReplaceChecks : CheckInfo -> Maybe (Error {})
@@ -9298,11 +9298,11 @@ sequenceRepeatChecks wrapper =
 
 {-| Checks for a repeat function that flattens the resulting list into the same type
 
-    repeatFlat -1 emptiable --> empty
+    flatRepeat -1 emptiable --> empty
 
-    repeatFlat n empty --> empty
+    flatRepeat n empty --> empty
 
-    repeatFlat 1 emptiable --> emptiable
+    flatRepeat 1 emptiable --> emptiable
 
 Examples of such functions:
 
@@ -9311,8 +9311,8 @@ Examples of such functions:
     applyTimes : Int -> (a -> a) -> a -> a
 
 -}
-emptiableRepeatFlatChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-emptiableRepeatFlatChecks emptiable =
+emptiableFlatRepeatChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiableFlatRepeatChecks emptiable =
     firstThatConstructsJust
         [ \checkInfo ->
             case secondArg checkInfo of
