@@ -9822,7 +9822,7 @@ wrapperMapCompositionChecks : WrapperProperties otherProperties -> CompositionIn
 wrapperMapCompositionChecks wrapper =
     firstThatConstructsJust
         [ wrapToMapCompositionChecks wrapper
-        , mapAlwaysCompositionChecks wrapper
+        , nonEmptiableWrapperMapAlwaysCompositionChecks wrapper
         ]
 
 
@@ -10009,11 +10009,11 @@ nonEmptiableWrapperMapAlwaysChecks wrapper checkInfo =
             Nothing
 
 
-mapAlwaysCompositionChecks :
+nonEmptiableWrapperMapAlwaysCompositionChecks :
     WrapperProperties otherProperties
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
-mapAlwaysCompositionChecks wrapper checkInfo =
+nonEmptiableWrapperMapAlwaysCompositionChecks wrapper checkInfo =
     case ( ( checkInfo.earlier.fn, checkInfo.earlier.args ), checkInfo.later.args ) of
         ( ( ( [ "Basics" ], "always" ), [] ), [] ) ->
             Just
