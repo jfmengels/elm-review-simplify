@@ -234,8 +234,8 @@ a = Random.list 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list 1 can be replaced by Random.map List.singleton"
-                            , details = [ "This Random.list call always produces a list with one generated element. This means you can replace the call with Random.map List.singleton." ]
+                            { message = "Random.list 1 will result in Random.map List.singleton"
+                            , details = [ "You can replace this call by Random.map List.singleton." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -252,8 +252,8 @@ a = 1 |> Random.list
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list 1 can be replaced by Random.map List.singleton"
-                            , details = [ "This Random.list call always produces a list with one generated element. This means you can replace the call with Random.map List.singleton." ]
+                            { message = "Random.list 1 will result in Random.map List.singleton"
+                            , details = [ "You can replace this call by Random.map List.singleton." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -270,8 +270,8 @@ a = Random.list 1 generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list 1 can be replaced by Random.map List.singleton"
-                            , details = [ "This Random.list call always produces a list with one generated element. This means you can replace the call with Random.map List.singleton." ]
+                            { message = "Random.list 1 will result in Random.map List.singleton"
+                            , details = [ "You can replace this call by Random.map List.singleton." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -288,8 +288,8 @@ a = Random.list 1 <| generator
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list 1 can be replaced by Random.map List.singleton"
-                            , details = [ "This Random.list call always produces a list with one generated element. This means you can replace the call with Random.map List.singleton." ]
+                            { message = "Random.list 1 will result in Random.map List.singleton"
+                            , details = [ "You can replace this call by Random.map List.singleton." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -306,8 +306,8 @@ a = generator |> Random.list 1
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list 1 can be replaced by Random.map List.singleton"
-                            , details = [ "This Random.list call always produces a list with one generated element. This means you can replace the call with Random.map List.singleton." ]
+                            { message = "Random.list 1 will result in Random.map List.singleton"
+                            , details = [ "You can replace this call by Random.map List.singleton." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -468,8 +468,8 @@ a = Random.list n (Random.constant el)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
-                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            { message = "Random.list with a constant generator will result in Random.constant with List.repeat with the value in that constant generator"
+                            , details = [ "You can replace the call by Random.constant with List.repeat with the same length and the value inside the given constant generator." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -486,8 +486,8 @@ a = Random.list n (Random.constant <| el)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
-                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            { message = "Random.list with a constant generator will result in Random.constant with List.repeat with the value in that constant generator"
+                            , details = [ "You can replace the call by Random.constant with List.repeat with the same length and the value inside the given constant generator." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -504,8 +504,8 @@ a = Random.list n (el |> Random.constant)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
-                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            { message = "Random.list with a constant generator will result in Random.constant with List.repeat with the value in that constant generator"
+                            , details = [ "You can replace the call by Random.constant with List.repeat with the same length and the value inside the given constant generator." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -522,8 +522,8 @@ a = Random.list n <| Random.constant el
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
-                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            { message = "Random.list with a constant generator will result in Random.constant with List.repeat with the value in that constant generator"
+                            , details = [ "You can replace the call by Random.constant with List.repeat with the same length and the value inside the given constant generator." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -540,8 +540,8 @@ a = Random.list n <| Random.constant <| el
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
-                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            { message = "Random.list with a constant generator will result in Random.constant with List.repeat with the value in that constant generator"
+                            , details = [ "You can replace the call by Random.constant with List.repeat with the same length and the value inside the given constant generator." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -558,8 +558,8 @@ a = Random.list n <| (el |> Random.constant)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
-                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            { message = "Random.list with a constant generator will result in Random.constant with List.repeat with the value in that constant generator"
+                            , details = [ "You can replace the call by Random.constant with List.repeat with the same length and the value inside the given constant generator." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -576,8 +576,8 @@ a = Random.constant el |> Random.list n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
-                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            { message = "Random.list with a constant generator will result in Random.constant with List.repeat with the value in that constant generator"
+                            , details = [ "You can replace the call by Random.constant with List.repeat with the same length and the value inside the given constant generator." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -594,8 +594,8 @@ a = el |> Random.constant |> Random.list n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
-                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            { message = "Random.list with a constant generator will result in Random.constant with List.repeat with the value in that constant generator"
+                            , details = [ "You can replace the call by Random.constant with List.repeat with the same length and the value inside the given constant generator." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -612,8 +612,8 @@ a = (Random.constant <| el) |> Random.list n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Random.list n (Random.constant el) can be replaced by Random.constant (List.repeat n el)"
-                            , details = [ "Random.list n (Random.constant el) generates the same value for each of the n elements. This means you can replace the call with Random.constant (List.repeat n el)." ]
+                            { message = "Random.list with a constant generator will result in Random.constant with List.repeat with the value in that constant generator"
+                            , details = [ "You can replace the call by Random.constant with List.repeat with the same length and the value inside the given constant generator." ]
                             , under = "Random.list"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
