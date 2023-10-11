@@ -8543,9 +8543,6 @@ randomAndThenCompositionChecks =
 
 
 
-
-
-
 -- TYPE PROPERTIES
 
 
@@ -10172,6 +10169,17 @@ withDefaultChecks emptiable =
         , callOnWrapReturnsItsValueCheck emptiable
         ]
 
+
+{-| The mapFlat check
+
+    mapFlat (always nextWrapper) wrapper --> nextWrapper
+
+So for example
+
+    Random.andThen (always nextGenerator) generator
+    --> nextGenerator
+
+-}
 nonEmptiableWrapperMapFlatAlwaysChecks :
     TypeProperties (NonEmptiableProperties (WrapperProperties otherProperties))
     -> CheckInfo
@@ -10204,6 +10212,7 @@ nonEmptiableWrapperMapFlatAlwaysChecks wrapper checkInfo =
 
         Nothing ->
             Nothing
+
 
 wrapperWithDefaultChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
 wrapperWithDefaultChecks wrapper =
