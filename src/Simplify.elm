@@ -3676,132 +3676,6 @@ consChecks =
         ]
 
 
-{-| Get the last function in `earlier` and the earliest function in `later` that's not itself a composition.
-
-E.g. for `(i << h) << (g << f)`
-
-    getInnerComposition { earlier = (g << f), later = (i << h) }
-    --> { earlier = g, later = h }
-
-which works for nested parens ans any combination of `>>` and `<<`.
-
-The returned `removeEarlier/LaterRange` can be used together with `Fix.removeRange` to only remove one side of the composition.
-The returned `isEmbeddedInComposition` is true if there are other functions composed before `earlier` or after `later`.
-
--}
-getInnerComposition :
-    { compositionInfo
-        | earlier : Node Expression
-        , later : Node Expression
-    }
-    ->
-        { earlier :
-            { node : Node Expression
-            , removeRange : Range
-            }
-        , later :
-            { node : Node Expression
-            , removeRange : Range
-            }
-        , isEmbeddedInComposition : Bool
-        }
-getInnerComposition compositionInfo =
-    let
-        laterAsComposition : Maybe { earliest : Node Expression, later : Node Expression }
-        laterAsComposition =
-            getCompositionFromEarliest compositionInfo.later
-
-        earlierAsComposition : Maybe { earlier : Node Expression, last : Node Expression }
-        earlierAsComposition =
-            getCompositionToLast compositionInfo.earlier
-    in
-    { earlier =
-        case earlierAsComposition of
-            Just earlier ->
-                { node = earlier.last
-                , removeRange =
-                    andBetweenRange { included = Node.range earlier.last, excluded = Node.range earlier.earlier }
-                }
-
-            Nothing ->
-                { node = compositionInfo.earlier
-                , removeRange =
-                    andBetweenRange { included = Node.range compositionInfo.earlier, excluded = Node.range compositionInfo.later }
-                }
-    , later =
-        case laterAsComposition of
-            Just later ->
-                { node = later.earliest
-                , removeRange =
-                    andBetweenRange { included = Node.range later.earliest, excluded = Node.range later.later }
-                }
-
-            Nothing ->
-                { node = compositionInfo.later
-                , removeRange =
-                    andBetweenRange { included = Node.range compositionInfo.later, excluded = Node.range compositionInfo.earlier }
-                }
-    , isEmbeddedInComposition =
-        isJust earlierAsComposition || isJust laterAsComposition
-    }
-
-
-{-| The function applied later than all the others in a composition chain and the function directly before.
-
-E.g. `(f << g) << h` would return `Just { earlier = g, last = f }`
-
--}
-getCompositionToLast : Node Expression -> Maybe { earlier : Node Expression, last : Node Expression }
-getCompositionToLast expressionNode =
-    case getFullComposition expressionNode of
-        Just fullComposition ->
-            case getCompositionToLast fullComposition.composedLater of
-                Just actualLast ->
-                    Just actualLast
-
-                Nothing ->
-                    Just { earlier = fullComposition.earlier, last = fullComposition.composedLater }
-
-        Nothing ->
-            Nothing
-
-
-{-| The function applied earlier than all the others in a composition chain and the function directly before.
-
-E.g. `f << (g << h)` would return `Just { later = g, earliest = h }`
-
--}
-getCompositionFromEarliest : Node Expression -> Maybe { earliest : Node Expression, later : Node Expression }
-getCompositionFromEarliest expressionNode =
-    case getFullComposition expressionNode of
-        Just fullComposition ->
-            case getCompositionFromEarliest fullComposition.earlier of
-                Just actualEarlier ->
-                    Just actualEarlier
-
-                Nothing ->
-                    Just { earliest = fullComposition.earlier, later = fullComposition.composedLater }
-
-        Nothing ->
-            Nothing
-
-
-{-| Unlike `AstHelpers.getComposition` which only looks at the earliest 2 composed functions, e.g. `f << g` for `f << g << h`.
-`getFullComposition` returns the later part as an expression, e.g. `{ earlier = f, composedLater = g << h }`.
--}
-getFullComposition : Node Expression -> Maybe { earlier : Node Expression, composedLater : Node Expression }
-getFullComposition expressionNode =
-    case Node.value (AstHelpers.removeParens expressionNode) of
-        Expression.OperatorApplication "<<" _ composedLater earlier ->
-            Just { earlier = earlier, composedLater = composedLater }
-
-        Expression.OperatorApplication ">>" _ earlier composedLater ->
-            Just { earlier = earlier, composedLater = composedLater }
-
-        _ ->
-            Nothing
-
-
 
 -- EQUALITY
 
@@ -12643,6 +12517,132 @@ wrapInBackticks s =
 
 
 -- PARSERS
+
+
+{-| Get the last function in `earlier` and the earliest function in `later` that's not itself a composition.
+
+E.g. for `(i << h) << (g << f)`
+
+    getInnerComposition { earlier = (g << f), later = (i << h) }
+    --> { earlier = g, later = h }
+
+which works for nested parens ans any combination of `>>` and `<<`.
+
+The returned `removeEarlier/LaterRange` can be used together with `Fix.removeRange` to only remove one side of the composition.
+The returned `isEmbeddedInComposition` is true if there are other functions composed before `earlier` or after `later`.
+
+-}
+getInnerComposition :
+    { compositionInfo
+        | earlier : Node Expression
+        , later : Node Expression
+    }
+    ->
+        { earlier :
+            { node : Node Expression
+            , removeRange : Range
+            }
+        , later :
+            { node : Node Expression
+            , removeRange : Range
+            }
+        , isEmbeddedInComposition : Bool
+        }
+getInnerComposition compositionInfo =
+    let
+        laterAsComposition : Maybe { earliest : Node Expression, later : Node Expression }
+        laterAsComposition =
+            getCompositionFromEarliest compositionInfo.later
+
+        earlierAsComposition : Maybe { earlier : Node Expression, last : Node Expression }
+        earlierAsComposition =
+            getCompositionToLast compositionInfo.earlier
+    in
+    { earlier =
+        case earlierAsComposition of
+            Just earlier ->
+                { node = earlier.last
+                , removeRange =
+                    andBetweenRange { included = Node.range earlier.last, excluded = Node.range earlier.earlier }
+                }
+
+            Nothing ->
+                { node = compositionInfo.earlier
+                , removeRange =
+                    andBetweenRange { included = Node.range compositionInfo.earlier, excluded = Node.range compositionInfo.later }
+                }
+    , later =
+        case laterAsComposition of
+            Just later ->
+                { node = later.earliest
+                , removeRange =
+                    andBetweenRange { included = Node.range later.earliest, excluded = Node.range later.later }
+                }
+
+            Nothing ->
+                { node = compositionInfo.later
+                , removeRange =
+                    andBetweenRange { included = Node.range compositionInfo.later, excluded = Node.range compositionInfo.earlier }
+                }
+    , isEmbeddedInComposition =
+        isJust earlierAsComposition || isJust laterAsComposition
+    }
+
+
+{-| The function applied later than all the others in a composition chain and the function directly before.
+
+E.g. `(f << g) << h` would return `Just { earlier = g, last = f }`
+
+-}
+getCompositionToLast : Node Expression -> Maybe { earlier : Node Expression, last : Node Expression }
+getCompositionToLast expressionNode =
+    case getFullComposition expressionNode of
+        Just fullComposition ->
+            case getCompositionToLast fullComposition.composedLater of
+                Just actualLast ->
+                    Just actualLast
+
+                Nothing ->
+                    Just { earlier = fullComposition.earlier, last = fullComposition.composedLater }
+
+        Nothing ->
+            Nothing
+
+
+{-| The function applied earlier than all the others in a composition chain and the function directly before.
+
+E.g. `f << (g << h)` would return `Just { later = g, earliest = h }`
+
+-}
+getCompositionFromEarliest : Node Expression -> Maybe { earliest : Node Expression, later : Node Expression }
+getCompositionFromEarliest expressionNode =
+    case getFullComposition expressionNode of
+        Just fullComposition ->
+            case getCompositionFromEarliest fullComposition.earlier of
+                Just actualEarlier ->
+                    Just actualEarlier
+
+                Nothing ->
+                    Just { earliest = fullComposition.earlier, later = fullComposition.composedLater }
+
+        Nothing ->
+            Nothing
+
+
+{-| Unlike `AstHelpers.getComposition` which only looks at the earliest 2 composed functions, e.g. `f << g` for `f << g << h`.
+`getFullComposition` returns the later part as an expression, e.g. `{ earlier = f, composedLater = g << h }`.
+-}
+getFullComposition : Node Expression -> Maybe { earlier : Node Expression, composedLater : Node Expression }
+getFullComposition expressionNode =
+    case Node.value (AstHelpers.removeParens expressionNode) of
+        Expression.OperatorApplication "<<" _ composedLater earlier ->
+            Just { earlier = earlier, composedLater = composedLater }
+
+        Expression.OperatorApplication ">>" _ earlier composedLater ->
+            Just { earlier = earlier, composedLater = composedLater }
+
+        _ ->
+            Nothing
 
 
 needsParens : Expression -> Bool
