@@ -8238,7 +8238,7 @@ afterWrapIsEquivalentToMapWrapCheck :
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 afterWrapIsEquivalentToMapWrapCheck ( wrapper, valueMappable ) checkInfo =
-    if checkInfo.earlier.fn == wrapper.wrap.fn then
+    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
         let
             replacement : QualifyResources a -> String
             replacement qualifyResources =
