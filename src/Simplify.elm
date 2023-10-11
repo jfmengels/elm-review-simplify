@@ -4066,7 +4066,7 @@ comparisonError bool checkInfo =
 
 
 
--- BASICS
+-- BASICS FUNCTIONS
 
 
 basicsIdentityChecks : CheckInfo -> Maybe (Error {})
@@ -4457,7 +4457,7 @@ listConditions operatorToLookFor redundantConditionResolution expressionNode =
 
 
 
--- TUPLE
+-- TUPLE FUNCTIONS
 
 
 tuplePairChecks : CheckInfo -> Maybe (Error {})
@@ -4738,7 +4738,7 @@ tuplePartCompositionChecks partConfig =
 
 
 
--- STRING
+-- STRING FUNCTIONS
 
 
 stringToListChecks : CheckInfo -> Maybe (Error {})
