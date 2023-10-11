@@ -103,7 +103,7 @@ Bug fixes:
 - Fixed an issue where `Dict.partition (always (always True/False)) dict` would not be reported
 - Fixed an issue where `List.filterMap f [ a, Nothing, b ]` would be fixed to `List.filterMap f [ a, b ]`
 - Fixed an issue where `Random.map << always` would be fixed to `Random.constant`
-- Fixed an issue where `List.any (\\z -> x == y) list` would be fixed to `List.member (f x) list`
+- Fixed an issue where `List.any (\x -> x == (f x)) list` would be fixed to `List.member (f x) list`
 
 ## [2.1.2] - 2023-09-28
 
