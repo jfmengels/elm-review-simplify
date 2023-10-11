@@ -7317,6 +7317,49 @@ subCollection =
 
 
 -- CHECKS FOR GENERIC TYPES
+{-
+   Abstract names used for operations in the generic checks below
+
+   #### "flat"
+
+   Turns a collection of a type into _that exact type_.
+
+   Examples:
+
+       String.concat : List String -> String
+       Test.concat : List Test -> Test
+       Range.combine : List Range -> Range
+       Bytes.Encode.sequence : List Encoder -> Encoder
+       Platform.Cmd.batch : List (Cmd a) -> Cmd a
+       List.concat : List (List a) -> List a
+       List.NonEmpty.concat : Nonempty (Nonempty a) -> Nonempty a
+       Parser.Sequence.concat : List (Parser (List a)) -> Parser (List a) -- by lambda-phi
+
+   Note the difference to "sequence":
+
+   #### "sequence"
+
+   Turns a collection of a type with an argument `a` into _that type with argument `collection a`_.
+
+   Examples:
+
+       Random.Extra.sequence : List (Generator a) -> Generator (List a)
+       Json.Extra.sequence : List (Decoder a) -> Decoder (List a)
+       Task.sequence : List (Task x a) -> Task x (List a)
+       Maybe.Extra.combineArray : Array (Maybe a) -> Maybe (Array a)
+
+   #### someName ++ otherName
+
+   You'll find names that are a combination of two operation names like "sequenceRepeat" or "sequenceMap".
+   How to interpret them?
+
+   "sequenceMap ..args" for example is equivalent to `sequence (map ..args)` which means:
+   First map the type, then apply a sequence operation to the result.
+
+   This intuition works for all these.
+   So "sequenceRepeat ..args" is equivalent to `sequence (repeat ..args)` which means:
+   First create the collection using repeat, then apply a sequence operation to the result.
+-}
 
 
 oneOfChecks : CheckInfo -> Maybe (Error {})
