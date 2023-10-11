@@ -3772,30 +3772,6 @@ inversesCompositionCheck earlierInverseFn checkInfo =
         Nothing
 
 
-{-| `ErrorInfoAndFix` for when a specific composition is equivalent to identity, e.g. `Just >> Maybe.withDefault x`.
--}
-compositionAlwaysReturnsIncomingError : String -> CompositionIntoCheckInfo -> ErrorInfoAndFix
-compositionAlwaysReturnsIncomingError message checkInfo =
-    if checkInfo.isEmbeddedInComposition then
-        { info =
-            { message = message
-            , details = [ "You can remove these two functions." ]
-            }
-        , fix =
-            [ Fix.removeRange checkInfo.earlier.removeRange
-            , Fix.removeRange checkInfo.later.removeRange
-            ]
-        }
-
-    else
-        { info =
-            { message = message
-            , details = [ "You can replace this composition by identity." ]
-            }
-        , fix = compositionReplaceByFnFix Fn.Basics.identity checkInfo
-        }
-
-
 compositionReplaceByFnFix :
     ( ModuleName, String )
     -> QualifyResources { checkInfo | later : { later | range : Range }, earlier : { earlier | removeRange : Range } }
@@ -12564,6 +12540,30 @@ returnsArgError usingSituation config checkInfo =
         }
         checkInfo.fnRange
         (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range config.arg })
+
+
+{-| `ErrorInfoAndFix` for when a specific composition is equivalent to identity, e.g. `Just >> Maybe.withDefault x`.
+-}
+compositionAlwaysReturnsIncomingError : String -> CompositionIntoCheckInfo -> ErrorInfoAndFix
+compositionAlwaysReturnsIncomingError message checkInfo =
+    if checkInfo.isEmbeddedInComposition then
+        { info =
+            { message = message
+            , details = [ "You can remove these two functions." ]
+            }
+        , fix =
+            [ Fix.removeRange checkInfo.earlier.removeRange
+            , Fix.removeRange checkInfo.later.removeRange
+            ]
+        }
+
+    else
+        { info =
+            { message = message
+            , details = [ "You can replace this composition by identity." ]
+            }
+        , fix = compositionReplaceByFnFix Fn.Basics.identity checkInfo
+        }
 
 
 {-| Use in combination with
