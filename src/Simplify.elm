@@ -10082,6 +10082,19 @@ nonEmptiableWrapperMapAlwaysCompositionChecks wrapper checkInfo =
             Nothing
 
 
+{-| The map checks
+
+    mapFlat (always emptyConstant) emptyConstant --> emptyConstant
+
+    mapFlat f empty --> empty
+
+So for example
+
+    List.concatMap (always []) list --> []
+
+    List.concatMap f [] --> []
+
+-}
 emptiableMapFlatChecks :
     EmptiableProperties ConstantProperties otherProperties
     -> CheckInfo
