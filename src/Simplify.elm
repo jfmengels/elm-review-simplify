@@ -2965,9 +2965,9 @@ functionCallChecks =
         , ( Fn.String.append, ( 2, collectionUnionChecks { leftElementsStayOnTheLeft = True } stringCollection ) )
         , ( Fn.String.foldl, ( 3, stringFoldlChecks ) )
         , ( Fn.String.foldr, ( 3, stringFoldrChecks ) )
-        , ( Fn.Platform.Cmd.batch, ( 1, subAndCmdBatchChecks cmdCollection ) )
+        , ( Fn.Platform.Cmd.batch, ( 1, emptiableWrapperFlatFromListChecks cmdCollection ) )
         , ( Fn.Platform.Cmd.map, ( 2, emptiableMapChecks cmdCollection ) )
-        , ( Fn.Platform.Sub.batch, ( 1, subAndCmdBatchChecks subCollection ) )
+        , ( Fn.Platform.Sub.batch, ( 1, emptiableWrapperFlatFromListChecks subCollection ) )
         , ( Fn.Platform.Sub.map, ( 2, emptiableMapChecks subCollection ) )
         , ( Fn.Task.map, ( 2, taskMapChecks ) )
         , ( Fn.Task.map2, ( 3, taskMapNChecks ) )
@@ -6441,11 +6441,11 @@ dictFoldrChecks =
     emptiableFoldWithExtraArgChecks dictCollection
 
 
-subAndCmdBatchChecks :
+emptiableWrapperFlatFromListChecks :
     EmptiableProperties ConstantProperties otherProperties
     -> CheckInfo
     -> Maybe (Error {})
-subAndCmdBatchChecks batchable =
+emptiableWrapperFlatFromListChecks batchable =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection
         , callOnWrapReturnsItsValueCheck listCollection
