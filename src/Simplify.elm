@@ -8408,66 +8408,6 @@ randomUniformChecks =
     oneOfConstantsWithOneAndRestListChecks randomGeneratorWrapper
 
 
-{-| Checks for a "oneOfConstants" operation:
-
-    oneOfConstants firstPossibility [] --> wrap firstPossibility
-
-so for example
-
-    Random.uniform firstPossibility []
-    --> Random.constant firstPossibility
-
-Note that this is different (mostly in terms of error info) from both e.g.
-
-    List.NonEmpty.fromCons firstState [] --> List.NonEmpty.singleton firstState
-
-    Set.insert first Set.empty --> Set.singleton first
-
-(For the second, you can use `collectionInsertChecks`.)
-
-Note also that "oneOfConstants" is different from "oneOf":
-
-    Codec.oneOf : Codec a -> List (Codec a) -> Codec a
-    -- vs
-    Random.uniform : a -> List a -> Random.Generator a
-
-where the simplification would be
-
-    Code.oneOf codec [] --> codec
-
--}
-oneOfConstantsWithOneAndRestListChecks : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
-oneOfConstantsWithOneAndRestListChecks wrapper checkInfo =
-    case secondArg checkInfo of
-        Just otherOptionsArg ->
-            if listCollection.empty.is (extractInferResources checkInfo) otherOptionsArg then
-                let
-                    onlyValueRange : Range
-                    onlyValueRange =
-                        Node.range checkInfo.firstArg
-                in
-                Just
-                    (Rule.errorWithFix
-                        { message = qualifiedToString checkInfo.fn ++ " with one possible value will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with that value"
-                        , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ " with the first given value." ]
-                        }
-                        checkInfo.fnRange
-                        (Fix.replaceRangeBy checkInfo.fnRange
-                            (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
-                            :: keepOnlyFix
-                                { parentRange = checkInfo.parentRange
-                                , keep = Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ]
-                                }
-                        )
-                    )
-
-            else
-                Nothing
-
-        Nothing ->
-            Nothing
-
-
 randomWeightedChecks : CheckInfo -> Maybe (Error {})
 randomWeightedChecks checkInfo =
     case secondArg checkInfo of
@@ -9739,6 +9679,66 @@ subCollection =
 oneOfChecks : CheckInfo -> Maybe (Error {})
 oneOfChecks =
     callOnWrapReturnsItsValueCheck listCollection
+
+
+{-| Checks for a "oneOfConstants" operation:
+
+    oneOfConstants firstPossibility [] --> wrap firstPossibility
+
+so for example
+
+    Random.uniform firstPossibility []
+    --> Random.constant firstPossibility
+
+Note that this is different (mostly in terms of error info) from both e.g.
+
+    List.NonEmpty.fromCons firstState [] --> List.NonEmpty.singleton firstState
+
+    Set.insert first Set.empty --> Set.singleton first
+
+(For the second, you can use `collectionInsertChecks`.)
+
+Note also that "oneOfConstants" is different from "oneOf":
+
+    Codec.oneOf : Codec a -> List (Codec a) -> Codec a
+    -- vs
+    Random.uniform : a -> List a -> Random.Generator a
+
+where the simplification would be
+
+    Code.oneOf codec [] --> codec
+
+-}
+oneOfConstantsWithOneAndRestListChecks : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
+oneOfConstantsWithOneAndRestListChecks wrapper checkInfo =
+    case secondArg checkInfo of
+        Just otherOptionsArg ->
+            if listCollection.empty.is (extractInferResources checkInfo) otherOptionsArg then
+                let
+                    onlyValueRange : Range
+                    onlyValueRange =
+                        Node.range checkInfo.firstArg
+                in
+                Just
+                    (Rule.errorWithFix
+                        { message = qualifiedToString checkInfo.fn ++ " with one possible value will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with that value"
+                        , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ " with the first given value." ]
+                        }
+                        checkInfo.fnRange
+                        (Fix.replaceRangeBy checkInfo.fnRange
+                            (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
+                            :: keepOnlyFix
+                                { parentRange = checkInfo.parentRange
+                                , keep = Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ]
+                                }
+                        )
+                    )
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
 
 
 {-| The map checks
