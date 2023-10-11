@@ -5542,27 +5542,7 @@ listAnyChecks =
     firstThatConstructsJust
         [ emptiableAnyChecks listCollection
         , collectionAnyChecks listCollection
-        , \checkInfo ->
-            case Evaluate.isEqualToSomethingFunction checkInfo.firstArg of
-                Nothing ->
-                    Nothing
-
-                Just equatedTo ->
-                    let
-                        replacementFn : ( ModuleName, String )
-                        replacementFn =
-                            Fn.List.member
-                    in
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " with a check for equality with a specific value can be replaced by " ++ qualifiedToString replacementFn ++ " with that value"
-                            , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ " with the specific value to find which meant for this exact purpose." ]
-                            }
-                            checkInfo.fnRange
-                            (Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify replacementFn checkInfo))
-                                :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) equatedTo.something
-                            )
-                        )
+        , operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck Fn.List.member
         ]
 
 
@@ -8666,6 +8646,43 @@ collectionAnyChecks collection =
                 Nothing ->
                     Nothing
         ]
+
+
+{-| The check
+
+    fn (\el -> el == constant) something
+    --> replacementFn constant something
+
+So for example
+
+    List.any (\el -> el == constant) list
+    --> List.member constant list
+
+    List.Extra.removeIfIndex (\i -> i == constant) list
+    --> List.Extra.removeAt constant list
+
+    -- ↓ doesn't exist
+    Set.Extra.filterNot (\k -> k == constant) set
+    --> Set.remove constant
+
+-}
+operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck : ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
+operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck replacementFn checkInfo =
+    case Evaluate.isEqualToSomethingFunction checkInfo.firstArg of
+        Nothing ->
+            Nothing
+
+        Just equatedTo ->
+            Just
+                (Rule.errorWithFix
+                    { message = qualifiedToString checkInfo.fn ++ " with a check for equality with a specific value can be replaced by " ++ qualifiedToString replacementFn ++ " with that value"
+                    , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ " with the specific value to find which meant for this exact purpose." ]
+                    }
+                    checkInfo.fnRange
+                    (Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify replacementFn checkInfo))
+                        :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) equatedTo.something
+                    )
+                )
 
 
 {-| The sequence checks `sequenceOnCollectionWithKnownEmptyElementCheck` and `sequenceOnFromListWithEmptyIgnoresLaterElementsCheck`
