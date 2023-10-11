@@ -8253,6 +8253,98 @@ wrapperOfMappableCompositionCheck ( wrapper, valueMappable ) checkInfo =
         Nothing
 
 
+{-| The "repeatSequence" operation checks
+
+    repeatSequence 0 wrapper --> wrap []
+
+    repeatSequence 1 wrapper --> map List.singleton wrapper
+
+    repeatSequence n (wrap a) --> wrap (List.repeat n a)
+
+Examples of such functions:
+
+    Random.list : Int -> Generator a -> Generator (List a)
+    Parser.repeat : Int -> Parser a -> Parser (List a) -- by dasch
+
+-}
+repeatSequenceChecks : WrapperProperties (MappableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+repeatSequenceChecks wrapper =
+    firstThatConstructsJust
+        [ \checkInfo ->
+            case Evaluate.getInt checkInfo checkInfo.firstArg of
+                Just lengthInt ->
+                    firstThatConstructsJust
+                        [ \() ->
+                            case lengthInt of
+                                1 ->
+                                    let
+                                        replacement : QualifyResources res -> String
+                                        replacement res =
+                                            qualifiedToString (qualify wrapper.mapFn res)
+                                                ++ " "
+                                                ++ qualifiedToString (qualify Fn.List.singleton res)
+                                    in
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = qualifiedToString checkInfo.fn ++ " 1 will result in " ++ replacement defaultQualifyResources
+                                            , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
+                                            }
+                                            checkInfo.fnRange
+                                            [ Fix.replaceRangeBy
+                                                (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+                                                (replacement checkInfo)
+                                            ]
+                                        )
+
+                                _ ->
+                                    Nothing
+                        , \() ->
+                            callWithNonPositiveIntCheckErrorSituation { fn = checkInfo.fn, int = lengthInt, intDescription = "length" }
+                                |> Maybe.map
+                                    (\situation ->
+                                        alwaysResultsInConstantError situation
+                                            { replacement =
+                                                \res -> qualifiedToString (qualify Fn.Random.constant res) ++ " []"
+                                            , replacementNeedsParens = True
+                                            }
+                                            checkInfo
+                                    )
+                        ]
+                        ()
+
+                Nothing ->
+                    Nothing
+        , \checkInfo ->
+            case secondArg checkInfo of
+                Just elementArg ->
+                    case AstHelpers.getSpecificFnCall wrapper.wrap.fn checkInfo.lookupTable elementArg of
+                        Just wrapCall ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the value in " ++ descriptionForDefinite "that" wrapper.wrap.description
+                                    , details = [ "You can replace the call by " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the same length and the value inside " ++ descriptionForDefinite "the given" wrapper.wrap.description ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (replaceBySubExpressionFix wrapCall.nodeRange wrapCall.firstArg
+                                        ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                                (qualifiedToString (qualify Fn.List.repeat checkInfo))
+                                           , Fix.insertAt checkInfo.parentRange.start
+                                                (qualifiedToString (qualify wrapper.wrap.fn checkInfo)
+                                                    ++ " ("
+                                                )
+                                           , Fix.insertAt checkInfo.parentRange.end ")"
+                                           ]
+                                    )
+                                )
+
+                        Nothing ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+        ]
+
+
 
 -- HTML.ATTRIBUTES
 
@@ -8416,98 +8508,6 @@ randomWeightedChecks =
 randomListChecks : CheckInfo -> Maybe (Error {})
 randomListChecks =
     repeatSequenceChecks randomGeneratorWrapper
-
-
-{-| The "repeatSequence" operation checks
-
-    repeatSequence 0 wrapper --> wrap []
-
-    repeatSequence 1 wrapper --> map List.singleton wrapper
-
-    repeatSequence n (wrap a) --> wrap (List.repeat n a)
-
-Examples of such functions:
-
-    Random.list : Int -> Generator a -> Generator (List a)
-    Parser.repeat : Int -> Parser a -> Parser (List a) -- by dasch
-
--}
-repeatSequenceChecks : WrapperProperties (MappableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-repeatSequenceChecks wrapper =
-    firstThatConstructsJust
-        [ \checkInfo ->
-            case Evaluate.getInt checkInfo checkInfo.firstArg of
-                Just lengthInt ->
-                    firstThatConstructsJust
-                        [ \() ->
-                            case lengthInt of
-                                1 ->
-                                    let
-                                        replacement : QualifyResources res -> String
-                                        replacement res =
-                                            qualifiedToString (qualify wrapper.mapFn res)
-                                                ++ " "
-                                                ++ qualifiedToString (qualify Fn.List.singleton res)
-                                    in
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = qualifiedToString checkInfo.fn ++ " 1 will result in " ++ replacement defaultQualifyResources
-                                            , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
-                                            }
-                                            checkInfo.fnRange
-                                            [ Fix.replaceRangeBy
-                                                (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
-                                                (replacement checkInfo)
-                                            ]
-                                        )
-
-                                _ ->
-                                    Nothing
-                        , \() ->
-                            callWithNonPositiveIntCheckErrorSituation { fn = checkInfo.fn, int = lengthInt, intDescription = "length" }
-                                |> Maybe.map
-                                    (\situation ->
-                                        alwaysResultsInConstantError situation
-                                            { replacement =
-                                                \res -> qualifiedToString (qualify Fn.Random.constant res) ++ " []"
-                                            , replacementNeedsParens = True
-                                            }
-                                            checkInfo
-                                    )
-                        ]
-                        ()
-
-                Nothing ->
-                    Nothing
-        , \checkInfo ->
-            case secondArg checkInfo of
-                Just elementArg ->
-                    case AstHelpers.getSpecificFnCall wrapper.wrap.fn checkInfo.lookupTable elementArg of
-                        Just wrapCall ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the value in " ++ descriptionForDefinite "that" wrapper.wrap.description
-                                    , details = [ "You can replace the call by " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the same length and the value inside " ++ descriptionForDefinite "the given" wrapper.wrap.description ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (replaceBySubExpressionFix wrapCall.nodeRange wrapCall.firstArg
-                                        ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                                (qualifiedToString (qualify Fn.List.repeat checkInfo))
-                                           , Fix.insertAt checkInfo.parentRange.start
-                                                (qualifiedToString (qualify wrapper.wrap.fn checkInfo)
-                                                    ++ " ("
-                                                )
-                                           , Fix.insertAt checkInfo.parentRange.end ")"
-                                           ]
-                                    )
-                                )
-
-                        Nothing ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
-        ]
 
 
 randomMapChecks : CheckInfo -> Maybe (Error {})
