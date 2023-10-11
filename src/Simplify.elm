@@ -2774,6 +2774,46 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             onlyMaybeError Nothing
 
 
+type alias OperatorCheckInfo =
+    { lookupTable : ModuleNameLookupTable
+    , extractSourceCode : Range -> String
+    , expectNaN : Bool
+    , importLookup : ImportLookup
+    , moduleBindings : Set String
+    , localBindings : RangeDict (Set String)
+    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
+    , parentRange : Range
+    , operator : String
+    , operatorRange : Range
+    , left : Node Expression
+    , leftRange : Range
+    , right : Node Expression
+    , rightRange : Range
+    , isOnTheRightSideOfPlusPlus : Bool
+    }
+
+
+operatorApplicationChecks : Dict String (OperatorCheckInfo -> Maybe (Error {}))
+operatorApplicationChecks =
+    Dict.fromList
+        [ ( "+", plusChecks )
+        , ( "-", minusChecks )
+        , ( "*", multiplyChecks )
+        , ( "/", divisionChecks )
+        , ( "//", intDivideChecks )
+        , ( "++", plusplusChecks )
+        , ( "::", consChecks )
+        , ( "||", orChecks )
+        , ( "&&", andChecks )
+        , ( "==", equalityChecks True )
+        , ( "/=", equalityChecks False )
+        , ( "<", numberComparisonChecks (<) )
+        , ( ">", numberComparisonChecks (>) )
+        , ( "<=", numberComparisonChecks (<=) )
+        , ( ">=", numberComparisonChecks (>=) )
+        ]
+
+
 type alias CheckInfo =
     { lookupTable : ModuleNameLookupTable
     , expectNaN : Bool
@@ -2996,46 +3036,6 @@ functionCallChecks =
         , ( Fn.Random.list, ( 2, randomListChecks ) )
         , ( Fn.Random.map, ( 2, randomMapChecks ) )
         , ( Fn.Random.andThen, ( 2, randomAndThenChecks ) )
-        ]
-
-
-type alias OperatorCheckInfo =
-    { lookupTable : ModuleNameLookupTable
-    , extractSourceCode : Range -> String
-    , expectNaN : Bool
-    , importLookup : ImportLookup
-    , moduleBindings : Set String
-    , localBindings : RangeDict (Set String)
-    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
-    , parentRange : Range
-    , operator : String
-    , operatorRange : Range
-    , left : Node Expression
-    , leftRange : Range
-    , right : Node Expression
-    , rightRange : Range
-    , isOnTheRightSideOfPlusPlus : Bool
-    }
-
-
-operatorApplicationChecks : Dict String (OperatorCheckInfo -> Maybe (Error {}))
-operatorApplicationChecks =
-    Dict.fromList
-        [ ( "+", plusChecks )
-        , ( "-", minusChecks )
-        , ( "*", multiplyChecks )
-        , ( "/", divisionChecks )
-        , ( "//", intDivideChecks )
-        , ( "++", plusplusChecks )
-        , ( "::", consChecks )
-        , ( "||", orChecks )
-        , ( "&&", andChecks )
-        , ( "==", equalityChecks True )
-        , ( "/=", equalityChecks False )
-        , ( "<", numberComparisonChecks (<) )
-        , ( ">", numberComparisonChecks (>) )
-        , ( "<=", numberComparisonChecks (<=) )
-        , ( ">=", numberComparisonChecks (>=) )
         ]
 
 
