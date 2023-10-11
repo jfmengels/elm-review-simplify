@@ -6104,6 +6104,156 @@ listRepeatChecks =
         ]
 
 
+listReverseChecks : CheckInfo -> Maybe (Error {})
+listReverseChecks =
+    firstThatConstructsJust
+        [ emptiableReverseChecks listCollection
+        , unnecessaryCallOnWrappedCheck listCollection
+        ]
+
+
+listReverseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+listReverseCompositionChecks =
+    firstThatConstructsJust
+        [ unnecessaryCompositionAfterWrapCheck listCollection
+        , toggleCompositionChecks
+        ]
+
+
+listSortChecks : CheckInfo -> Maybe (Error {})
+listSortChecks =
+    firstThatConstructsJust
+        [ unnecessaryCallOnEmptyCheck listCollection
+        , unnecessaryCallOnWrappedCheck listCollection
+        , operationDoesNotChangeResultOfOperationCheck
+        ]
+
+
+listSortCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+listSortCompositionChecks =
+    operationDoesNotChangeResultOfOperationCompositionCheck
+
+
+listSortByChecks : CheckInfo -> Maybe (Error {})
+listSortByChecks =
+    firstThatConstructsJust
+        [ unnecessaryCallOnEmptyCheck listCollection
+        , unnecessaryCallOnWrappedCheck listCollection
+        , \checkInfo ->
+            case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+                Just _ ->
+                    Just
+                        (alwaysReturnsLastArgError
+                            (qualifiedToString checkInfo.fn ++ " with a function that always returns the same constant")
+                            listCollection
+                            checkInfo
+                        )
+
+                Nothing ->
+                    Nothing
+        , operationWithIdentityIsEquivalentToFnCheck Fn.List.sort
+        , operationDoesNotChangeResultOfOperationCheck
+        ]
+
+
+listSortByCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+listSortByCompositionChecks =
+    operationDoesNotChangeResultOfOperationCompositionCheck
+
+
+listSortWithChecks : CheckInfo -> Maybe (Error {})
+listSortWithChecks =
+    firstThatConstructsJust
+        [ unnecessaryCallOnEmptyCheck listCollection
+        , unnecessaryCallOnWrappedCheck listCollection
+        , \checkInfo ->
+            let
+                alwaysAlwaysOrder : Maybe Order
+                alwaysAlwaysOrder =
+                    AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg
+                        |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
+                        |> Maybe.andThen (AstHelpers.getOrder checkInfo.lookupTable)
+            in
+            case alwaysAlwaysOrder of
+                Just order ->
+                    let
+                        fixToIdentity : Error {}
+                        fixToIdentity =
+                            alwaysReturnsLastArgError
+                                (qualifiedToString checkInfo.fn ++ " with a comparison that always returns " ++ AstHelpers.orderToString order)
+                                listCollection
+                                checkInfo
+                    in
+                    case order of
+                        LT ->
+                            Just
+                                (operationWithFirstArgIsEquivalentToFnError
+                                    { firstArgDescription = "a comparison that always returns LT"
+                                    , replacementFn = Fn.List.reverse
+                                    }
+                                    checkInfo
+                                )
+
+                        EQ ->
+                            Just fixToIdentity
+
+                        GT ->
+                            Just fixToIdentity
+
+                Nothing ->
+                    Nothing
+        ]
+
+
+listTakeChecks : CheckInfo -> Maybe (Error {})
+listTakeChecks =
+    firstThatConstructsJust
+        [ \checkInfo ->
+            case Evaluate.getInt checkInfo checkInfo.firstArg of
+                Just length ->
+                    callWithNonPositiveIntCanBeReplacedByCheck
+                        { int = length
+                        , intDescription = "length"
+                        , replacement = listCollection.empty.asString
+                        }
+                        checkInfo
+
+                Nothing ->
+                    Nothing
+        , unnecessaryCallOnEmptyCheck listCollection
+        ]
+
+
+listDropChecks : CheckInfo -> Maybe (Error {})
+listDropChecks =
+    firstThatConstructsJust
+        [ \checkInfo ->
+            Evaluate.getInt checkInfo checkInfo.firstArg
+                |> Maybe.andThen
+                    (\count ->
+                        firstThatConstructsJust
+                            [ \() ->
+                                callWithNonPositiveIntCheckErrorSituation
+                                    { int = count, intDescription = "count", fn = checkInfo.fn }
+                                    |> Maybe.map
+                                        (\situation -> alwaysReturnsLastArgError situation listCollection checkInfo)
+                            , \() -> dropOnSmallerCollectionCheck { dropCount = count } listCollection checkInfo
+                            , \() ->
+                                dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck { dropCount = count }
+                                    listCollection
+                                    checkInfo
+                            ]
+                            ()
+                    )
+        , unnecessaryCallOnEmptyCheck listCollection
+        ]
+
+
+listUnzipChecks : CheckInfo -> Maybe (Error {})
+listUnzipChecks =
+    callOnEmptyReturnsCheck { resultAsString = \_ -> "( [], [] )" } listCollection
+
+
 callOnFromListWithIrrelevantEmptyElement :
     String
     ->
@@ -7479,156 +7629,6 @@ arrayFoldlChecks =
 arrayFoldrChecks : CheckInfo -> Maybe (Error {})
 arrayFoldrChecks =
     emptiableFoldChecks arrayCollection
-
-
-listReverseChecks : CheckInfo -> Maybe (Error {})
-listReverseChecks =
-    firstThatConstructsJust
-        [ emptiableReverseChecks listCollection
-        , unnecessaryCallOnWrappedCheck listCollection
-        ]
-
-
-listReverseCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listReverseCompositionChecks =
-    firstThatConstructsJust
-        [ unnecessaryCompositionAfterWrapCheck listCollection
-        , toggleCompositionChecks
-        ]
-
-
-listSortChecks : CheckInfo -> Maybe (Error {})
-listSortChecks =
-    firstThatConstructsJust
-        [ unnecessaryCallOnEmptyCheck listCollection
-        , unnecessaryCallOnWrappedCheck listCollection
-        , operationDoesNotChangeResultOfOperationCheck
-        ]
-
-
-listSortCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listSortCompositionChecks =
-    operationDoesNotChangeResultOfOperationCompositionCheck
-
-
-listSortByChecks : CheckInfo -> Maybe (Error {})
-listSortByChecks =
-    firstThatConstructsJust
-        [ unnecessaryCallOnEmptyCheck listCollection
-        , unnecessaryCallOnWrappedCheck listCollection
-        , \checkInfo ->
-            case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
-                Just _ ->
-                    Just
-                        (alwaysReturnsLastArgError
-                            (qualifiedToString checkInfo.fn ++ " with a function that always returns the same constant")
-                            listCollection
-                            checkInfo
-                        )
-
-                Nothing ->
-                    Nothing
-        , operationWithIdentityIsEquivalentToFnCheck Fn.List.sort
-        , operationDoesNotChangeResultOfOperationCheck
-        ]
-
-
-listSortByCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-listSortByCompositionChecks =
-    operationDoesNotChangeResultOfOperationCompositionCheck
-
-
-listSortWithChecks : CheckInfo -> Maybe (Error {})
-listSortWithChecks =
-    firstThatConstructsJust
-        [ unnecessaryCallOnEmptyCheck listCollection
-        , unnecessaryCallOnWrappedCheck listCollection
-        , \checkInfo ->
-            let
-                alwaysAlwaysOrder : Maybe Order
-                alwaysAlwaysOrder =
-                    AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg
-                        |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
-                        |> Maybe.andThen (AstHelpers.getOrder checkInfo.lookupTable)
-            in
-            case alwaysAlwaysOrder of
-                Just order ->
-                    let
-                        fixToIdentity : Error {}
-                        fixToIdentity =
-                            alwaysReturnsLastArgError
-                                (qualifiedToString checkInfo.fn ++ " with a comparison that always returns " ++ AstHelpers.orderToString order)
-                                listCollection
-                                checkInfo
-                    in
-                    case order of
-                        LT ->
-                            Just
-                                (operationWithFirstArgIsEquivalentToFnError
-                                    { firstArgDescription = "a comparison that always returns LT"
-                                    , replacementFn = Fn.List.reverse
-                                    }
-                                    checkInfo
-                                )
-
-                        EQ ->
-                            Just fixToIdentity
-
-                        GT ->
-                            Just fixToIdentity
-
-                Nothing ->
-                    Nothing
-        ]
-
-
-listTakeChecks : CheckInfo -> Maybe (Error {})
-listTakeChecks =
-    firstThatConstructsJust
-        [ \checkInfo ->
-            case Evaluate.getInt checkInfo checkInfo.firstArg of
-                Just length ->
-                    callWithNonPositiveIntCanBeReplacedByCheck
-                        { int = length
-                        , intDescription = "length"
-                        , replacement = listCollection.empty.asString
-                        }
-                        checkInfo
-
-                Nothing ->
-                    Nothing
-        , unnecessaryCallOnEmptyCheck listCollection
-        ]
-
-
-listDropChecks : CheckInfo -> Maybe (Error {})
-listDropChecks =
-    firstThatConstructsJust
-        [ \checkInfo ->
-            Evaluate.getInt checkInfo checkInfo.firstArg
-                |> Maybe.andThen
-                    (\count ->
-                        firstThatConstructsJust
-                            [ \() ->
-                                callWithNonPositiveIntCheckErrorSituation
-                                    { int = count, intDescription = "count", fn = checkInfo.fn }
-                                    |> Maybe.map
-                                        (\situation -> alwaysReturnsLastArgError situation listCollection checkInfo)
-                            , \() -> dropOnSmallerCollectionCheck { dropCount = count } listCollection checkInfo
-                            , \() ->
-                                dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck { dropCount = count }
-                                    listCollection
-                                    checkInfo
-                            ]
-                            ()
-                    )
-        , unnecessaryCallOnEmptyCheck listCollection
-        ]
-
-
-listUnzipChecks : CheckInfo -> Maybe (Error {})
-listUnzipChecks =
-    callOnEmptyReturnsCheck { resultAsString = \_ -> "( [], [] )" } listCollection
 
 
 setFromListChecks : CheckInfo -> Maybe (Error {})
