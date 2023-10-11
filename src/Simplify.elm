@@ -8255,7 +8255,7 @@ emptiableRangeChecks emptiable checkInfo =
                         Just
                             (resultsInConstantError
                                 (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
-                                listCollection.empty.asString
+                                emptiable.empty.asString
                                 checkInfo
                             )
 
