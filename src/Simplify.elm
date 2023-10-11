@@ -3780,16 +3780,6 @@ compositionReplaceByFnFix replacementFn checkInfo =
     compositionReplaceByFix (qualifiedToString (qualify replacementFn checkInfo)) checkInfo
 
 
-compositionReplaceByFix :
-    String
-    -> { checkInfo | later : { later | range : Range }, earlier : { earlier | removeRange : Range } }
-    -> List Fix
-compositionReplaceByFix replacement checkInfo =
-    [ Fix.replaceRangeBy checkInfo.later.range replacement
-    , Fix.removeRange checkInfo.earlier.removeRange
-    ]
-
-
 {-| Get the last function in `earlier` and the earliest function in `later` that's not itself a composition.
 
 E.g. for `(i << h) << (g << f)`
@@ -12464,6 +12454,16 @@ resultsInConstantError usingSituation replacement checkInfo =
         }
         checkInfo.fnRange
         [ Fix.replaceRangeBy checkInfo.parentRange (replacement (extractQualifyResources checkInfo)) ]
+
+
+compositionReplaceByFix :
+    String
+    -> { checkInfo | later : { later | range : Range }, earlier : { earlier | removeRange : Range } }
+    -> List Fix
+compositionReplaceByFix replacement checkInfo =
+    [ Fix.replaceRangeBy checkInfo.later.range replacement
+    , Fix.removeRange checkInfo.earlier.removeRange
+    ]
 
 
 operationDoesNotChangeSpecificLastArgErrorInfo : { fn : ( ModuleName, String ), specific : Description } -> { message : String, details : List String }
