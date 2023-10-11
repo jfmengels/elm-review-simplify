@@ -5840,6 +5840,13 @@ a = List.any (\\z -> x == y)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not replace List.any (\\x -> x == (f x))" <|
+            \() ->
+                """module A exposing (..)
+a = List.any (\\x -> x == (f x))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should not report List.any on list with True but non-identity and non-not function" <|
             \() ->
                 """module A exposing (..)
