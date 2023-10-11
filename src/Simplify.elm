@@ -6399,6 +6399,10 @@ setFoldrChecks =
     emptiableFoldChecks setCollection
 
 
+
+-- DICT FUNCTIONS
+
+
 dictFromListChecks : CheckInfo -> Maybe (Error {})
 dictFromListChecks =
     firstThatConstructsJust
