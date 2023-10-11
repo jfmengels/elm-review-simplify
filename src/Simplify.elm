@@ -8258,13 +8258,13 @@ afterWrapIsEquivalentToMapWrapCheck ( wrapper, valueMappable ) checkInfo =
         Nothing
 
 
-{-| The "repeatSequence" operation checks
+{-| The "sequenceRepeat" operation checks
 
-    repeatSequence 0 wrapper --> wrap []
+    sequenceRepeat 0 wrapper --> wrap []
 
-    repeatSequence 1 wrapper --> map List.singleton wrapper
+    sequenceRepeat 1 wrapper --> map List.singleton wrapper
 
-    repeatSequence n (wrap a) --> wrap (List.repeat n a)
+    sequenceRepeat n (wrap a) --> wrap (List.repeat n a)
 
 Examples of such functions:
 
@@ -8272,8 +8272,8 @@ Examples of such functions:
     Parser.repeat : Int -> Parser a -> Parser (List a) -- by dasch
 
 -}
-repeatSequenceChecks : WrapperProperties (MappableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-repeatSequenceChecks wrapper =
+sequenceRepeatChecks : WrapperProperties (MappableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+sequenceRepeatChecks wrapper =
     firstThatConstructsJust
         [ \checkInfo ->
             case Evaluate.getInt checkInfo checkInfo.firstArg of
@@ -8512,7 +8512,7 @@ randomWeightedChecks =
 
 randomListChecks : CheckInfo -> Maybe (Error {})
 randomListChecks =
-    repeatSequenceChecks randomGeneratorWrapper
+    sequenceRepeatChecks randomGeneratorWrapper
 
 
 randomMapChecks : CheckInfo -> Maybe (Error {})
