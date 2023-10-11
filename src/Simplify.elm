@@ -3195,8 +3195,8 @@ compositionIntoChecks =
         , ( Fn.Task.mapError, ( 2, taskMapErrorCompositionChecks ) )
         , ( Fn.Task.onError, ( 2, taskOnErrorCompositionChecks ) )
         , ( Fn.Task.sequence, ( 1, taskSequenceCompositionChecks ) )
-        , ( Fn.Platform.Cmd.batch, ( 1, batchCompositionChecks ) )
-        , ( Fn.Platform.Sub.batch, ( 1, batchCompositionChecks ) )
+        , ( Fn.Platform.Cmd.batch, ( 1, wrapperFlatFromListCompositionChecks ) )
+        , ( Fn.Platform.Sub.batch, ( 1, wrapperFlatFromListCompositionChecks ) )
         , ( Fn.Json.Decode.map, ( 2, jsonDecodeMapCompositionChecks ) )
         , ( Fn.Json.Decode.andThen, ( 2, jsonDecodeAndThenCompositionChecks ) )
         , ( Fn.Random.map, ( 2, randomMapCompositionChecks ) )
@@ -6456,8 +6456,8 @@ emptiableWrapperFlatFromListChecks batchable =
         ]
 
 
-batchCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-batchCompositionChecks =
+wrapperFlatFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+wrapperFlatFromListCompositionChecks =
     onWrapAlwaysReturnsIncomingCompositionCheck listCollection
 
 
