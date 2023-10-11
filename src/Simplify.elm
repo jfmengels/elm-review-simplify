@@ -6368,6 +6368,10 @@ arrayFoldrChecks =
     emptiableFoldChecks arrayCollection
 
 
+
+-- SET FUNCTIONS
+
+
 setFromListChecks : CheckInfo -> Maybe (Error {})
 setFromListChecks =
     firstThatConstructsJust
