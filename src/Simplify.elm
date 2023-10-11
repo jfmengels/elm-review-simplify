@@ -6399,204 +6399,6 @@ setFoldrChecks =
     emptiableFoldChecks setCollection
 
 
-{-| The Folding/reducing checks
-
-    fold f initial empty
-    --> initial
-
-    fold (\_ soFar -> soFar) initial emptiable
-    --> initial
-
-which applies to for example
-
-    Graph.fold : (NodeContext n e -> b -> b) -> b -> Graph n e -> b
-
-but also functions like
-
-    Either.foldl foldOnLeft initial (Either.Right r) --> initial
-
-    Effects.apply f initial Effects.none
-
-Any other argument order is not supported:
-
-    Maybe.Extra.unwrap initial f Nothing
-    -- not simplified
-
-    Result.Extra.unwrap initial f (Err x)
-    -- not simplified
-
-    RemoteData.unwrap initial f (Err x)
-    -- not simplified
-
-If your fold function takes two arguments, use `emptiableFoldWithExtraArgChecks`
-
--}
-emptiableFoldChecks :
-    TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
-    -> CheckInfo
-    -> Maybe (Error {})
-emptiableFoldChecks emptiable =
-    firstThatConstructsJust
-        [ foldToUnchangedAccumulatorCheck emptiable
-        , foldOnEmptyChecks emptiable
-        ]
-
-
-foldOnEmptyChecks : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> CheckInfo -> Maybe (Error {})
-foldOnEmptyChecks emptiable checkInfo =
-    case checkInfo.argsAfterFirst of
-        initialArg :: emptiableArg :: [] ->
-            if emptiable.empty.is (extractInferResources checkInfo) emptiableArg then
-                Just
-                    (returnsArgError
-                        (qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite emptiable.empty.description)
-                        { argRepresents = "initial accumulator"
-                        , arg = initialArg
-                        }
-                        checkInfo
-                    )
-
-            else
-                Nothing
-
-        _ ->
-            Nothing
-
-
-foldToUnchangedAccumulatorCheck : TypeProperties otherProperties -> CheckInfo -> Maybe (Error {})
-foldToUnchangedAccumulatorCheck typeProperties checkInfo =
-    case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
-        Just reduceAlwaysResult ->
-            if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
-                let
-                    replacement : { description : String, fix : List Fix }
-                    replacement =
-                        case checkInfo.argsAfterFirst of
-                            -- fold (\_ -> identity)
-                            [] ->
-                                { description = "`always` because the incoming accumulator will be returned, no matter which " ++ typeProperties.represents ++ " is supplied next"
-                                , fix =
-                                    [ Fix.replaceRangeBy checkInfo.parentRange
-                                        (qualifiedToString (qualify Fn.Basics.always checkInfo))
-                                    ]
-                                }
-
-                            -- fold (\_ -> identity) initial
-                            _ :: [] ->
-                                { description = "`always` with the given initial accumulator"
-                                , fix =
-                                    [ Fix.replaceRangeBy
-                                        (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
-                                        (qualifiedToString (qualify Fn.Basics.always checkInfo))
-                                    ]
-                                }
-
-                            -- fully applied
-                            initialArg :: _ :: _ ->
-                                { description = "the given initial accumulator"
-                                , fix =
-                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg }
-                                }
-                in
-                Just
-                    (Rule.errorWithFix
-                        { message = qualifiedToString checkInfo.fn ++ " with a function that always returns the unchanged accumulator will result in the initial accumulator"
-                        , details = [ "You can replace this call by " ++ replacement.description ++ "." ]
-                        }
-                        checkInfo.fnRange
-                        replacement.fix
-                    )
-
-            else
-                Nothing
-
-        Nothing ->
-            Nothing
-
-
-{-| Folding/reducing checks with a reduce function that not only takes the current element but more information as an extra argument
-
-    fold f initial empty --> initial
-
-    fold (\_ _ soFar -> soFar) emptiable --> initial
-
-which applies to for example
-
-    Dict.foldl : (k -> v -> b -> b) -> b -> Dict.Dict k v -> b
-    Graph.Tree.levelOrder : (l -> Forest l -> b -> b) -> b -> Tree l -> b
-
-If your fold function does not have an extra arg, use `emptiableFoldChecks`.
-
--}
-emptiableFoldWithExtraArgChecks :
-    TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
-    -> CheckInfo
-    -> Maybe (Error {})
-emptiableFoldWithExtraArgChecks emptiable =
-    firstThatConstructsJust
-        [ foldToUnchangedAccumulatorWithExtraArgCheck emptiable
-        , foldOnEmptyChecks emptiable
-        ]
-
-
-foldToUnchangedAccumulatorWithExtraArgCheck : TypeProperties otherProperties -> CheckInfo -> Maybe (Error {})
-foldToUnchangedAccumulatorWithExtraArgCheck typeProperties checkInfo =
-    let
-        maybeReduceFunctionResult : Maybe (Node Expression)
-        maybeReduceFunctionResult =
-            checkInfo.firstArg
-                |> AstHelpers.getAlwaysResult checkInfo.lookupTable
-                |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
-    in
-    case maybeReduceFunctionResult of
-        Just reduceAlwaysResult ->
-            if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
-                let
-                    replacement : { description : String, fix : List Fix }
-                    replacement =
-                        case checkInfo.argsAfterFirst of
-                            -- fold (\_ -> identity)
-                            [] ->
-                                { description = "`always` because the incoming accumulator will be returned, no matter which " ++ typeProperties.represents ++ " is supplied next"
-                                , fix =
-                                    [ Fix.replaceRangeBy checkInfo.parentRange
-                                        (qualifiedToString (qualify Fn.Basics.always checkInfo))
-                                    ]
-                                }
-
-                            -- fold (\_ -> identity) initial
-                            _ :: [] ->
-                                { description = "`always` with the given initial accumulator"
-                                , fix =
-                                    [ Fix.replaceRangeBy
-                                        (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
-                                        (qualifiedToString (qualify Fn.Basics.always checkInfo))
-                                    ]
-                                }
-
-                            -- fully applied
-                            initialArg :: _ :: _ ->
-                                { description = "the given initial accumulator"
-                                , fix =
-                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg }
-                                }
-                in
-                Just
-                    (Rule.errorWithFix
-                        { message = qualifiedToString checkInfo.fn ++ " with a function that always returns the unchanged accumulator will result in the initial accumulator"
-                        , details = [ "You can replace this call by " ++ replacement.description ++ "." ]
-                        }
-                        checkInfo.fnRange
-                        replacement.fix
-                    )
-
-            else
-                Nothing
-
-        Nothing ->
-            Nothing
-
-
 dictFromListChecks : CheckInfo -> Maybe (Error {})
 dictFromListChecks =
     firstThatConstructsJust
@@ -9633,6 +9435,204 @@ collectionAnyChecks collection =
                 Nothing ->
                     Nothing
         ]
+
+
+{-| The Folding/reducing checks
+
+    fold f initial empty
+    --> initial
+
+    fold (\_ soFar -> soFar) initial emptiable
+    --> initial
+
+which applies to for example
+
+    Graph.fold : (NodeContext n e -> b -> b) -> b -> Graph n e -> b
+
+but also functions like
+
+    Either.foldl foldOnLeft initial (Either.Right r) --> initial
+
+    Effects.apply f initial Effects.none
+
+Any other argument order is not supported:
+
+    Maybe.Extra.unwrap initial f Nothing
+    -- not simplified
+
+    Result.Extra.unwrap initial f (Err x)
+    -- not simplified
+
+    RemoteData.unwrap initial f (Err x)
+    -- not simplified
+
+If your fold function takes two arguments, use `emptiableFoldWithExtraArgChecks`
+
+-}
+emptiableFoldChecks :
+    TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
+    -> CheckInfo
+    -> Maybe (Error {})
+emptiableFoldChecks emptiable =
+    firstThatConstructsJust
+        [ foldToUnchangedAccumulatorCheck emptiable
+        , foldOnEmptyChecks emptiable
+        ]
+
+
+foldOnEmptyChecks : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> CheckInfo -> Maybe (Error {})
+foldOnEmptyChecks emptiable checkInfo =
+    case checkInfo.argsAfterFirst of
+        initialArg :: emptiableArg :: [] ->
+            if emptiable.empty.is (extractInferResources checkInfo) emptiableArg then
+                Just
+                    (returnsArgError
+                        (qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite emptiable.empty.description)
+                        { argRepresents = "initial accumulator"
+                        , arg = initialArg
+                        }
+                        checkInfo
+                    )
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
+
+
+foldToUnchangedAccumulatorCheck : TypeProperties otherProperties -> CheckInfo -> Maybe (Error {})
+foldToUnchangedAccumulatorCheck typeProperties checkInfo =
+    case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+        Just reduceAlwaysResult ->
+            if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
+                let
+                    replacement : { description : String, fix : List Fix }
+                    replacement =
+                        case checkInfo.argsAfterFirst of
+                            -- fold (\_ -> identity)
+                            [] ->
+                                { description = "`always` because the incoming accumulator will be returned, no matter which " ++ typeProperties.represents ++ " is supplied next"
+                                , fix =
+                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                        (qualifiedToString (qualify Fn.Basics.always checkInfo))
+                                    ]
+                                }
+
+                            -- fold (\_ -> identity) initial
+                            _ :: [] ->
+                                { description = "`always` with the given initial accumulator"
+                                , fix =
+                                    [ Fix.replaceRangeBy
+                                        (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+                                        (qualifiedToString (qualify Fn.Basics.always checkInfo))
+                                    ]
+                                }
+
+                            -- fully applied
+                            initialArg :: _ :: _ ->
+                                { description = "the given initial accumulator"
+                                , fix =
+                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg }
+                                }
+                in
+                Just
+                    (Rule.errorWithFix
+                        { message = qualifiedToString checkInfo.fn ++ " with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                        , details = [ "You can replace this call by " ++ replacement.description ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        replacement.fix
+                    )
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
+
+
+{-| Folding/reducing checks with a reduce function that not only takes the current element but more information as an extra argument
+
+    fold f initial empty --> initial
+
+    fold (\_ _ soFar -> soFar) emptiable --> initial
+
+which applies to for example
+
+    Dict.foldl : (k -> v -> b -> b) -> b -> Dict.Dict k v -> b
+    Graph.Tree.levelOrder : (l -> Forest l -> b -> b) -> b -> Tree l -> b
+
+If your fold function does not have an extra arg, use `emptiableFoldChecks`.
+
+-}
+emptiableFoldWithExtraArgChecks :
+    TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
+    -> CheckInfo
+    -> Maybe (Error {})
+emptiableFoldWithExtraArgChecks emptiable =
+    firstThatConstructsJust
+        [ foldToUnchangedAccumulatorWithExtraArgCheck emptiable
+        , foldOnEmptyChecks emptiable
+        ]
+
+
+foldToUnchangedAccumulatorWithExtraArgCheck : TypeProperties otherProperties -> CheckInfo -> Maybe (Error {})
+foldToUnchangedAccumulatorWithExtraArgCheck typeProperties checkInfo =
+    let
+        maybeReduceFunctionResult : Maybe (Node Expression)
+        maybeReduceFunctionResult =
+            checkInfo.firstArg
+                |> AstHelpers.getAlwaysResult checkInfo.lookupTable
+                |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
+    in
+    case maybeReduceFunctionResult of
+        Just reduceAlwaysResult ->
+            if AstHelpers.isIdentity checkInfo.lookupTable reduceAlwaysResult then
+                let
+                    replacement : { description : String, fix : List Fix }
+                    replacement =
+                        case checkInfo.argsAfterFirst of
+                            -- fold (\_ -> identity)
+                            [] ->
+                                { description = "`always` because the incoming accumulator will be returned, no matter which " ++ typeProperties.represents ++ " is supplied next"
+                                , fix =
+                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                        (qualifiedToString (qualify Fn.Basics.always checkInfo))
+                                    ]
+                                }
+
+                            -- fold (\_ -> identity) initial
+                            _ :: [] ->
+                                { description = "`always` with the given initial accumulator"
+                                , fix =
+                                    [ Fix.replaceRangeBy
+                                        (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+                                        (qualifiedToString (qualify Fn.Basics.always checkInfo))
+                                    ]
+                                }
+
+                            -- fully applied
+                            initialArg :: _ :: _ ->
+                                { description = "the given initial accumulator"
+                                , fix =
+                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg }
+                                }
+                in
+                Just
+                    (Rule.errorWithFix
+                        { message = qualifiedToString checkInfo.fn ++ " with a function that always returns the unchanged accumulator will result in the initial accumulator"
+                        , details = [ "You can replace this call by " ++ replacement.description ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        replacement.fix
+                    )
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
 
 
 emptiableRepeatChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
