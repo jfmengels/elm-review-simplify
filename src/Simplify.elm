@@ -8183,26 +8183,31 @@ onWrappedIsEquivalentToMapWrapOnValueCheck :
     -> CheckInfo
     -> Maybe (Error {})
 onWrappedIsEquivalentToMapWrapOnValueCheck ( wrapper, elementWrapper ) checkInfo =
-    case wrapper.wrap.getValue checkInfo.lookupTable checkInfo.firstArg of
-        Just wrappedValue ->
-            let
-                replacement : QualifyResources a -> String
-                replacement qualifyResources =
-                    qualifiedToString (qualify elementWrapper.mapFn qualifyResources)
-                        ++ " "
-                        ++ qualifiedToString (qualify wrapper.wrap.fn qualifyResources)
-            in
-            Just
-                (Rule.errorWithFix
-                    { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
-                    , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ " on the value inside the singleton list." ]
-                    }
-                    checkInfo.fnRange
-                    (Fix.replaceRangeBy checkInfo.fnRange
-                        (replacement checkInfo)
-                        :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) wrappedValue
-                    )
-                )
+    case fullyAppliedLastArg checkInfo of
+        Just lastArg ->
+            case wrapper.wrap.getValue checkInfo.lookupTable lastArg of
+                Just wrappedValue ->
+                    let
+                        replacement : QualifyResources a -> String
+                        replacement qualifyResources =
+                            qualifiedToString (qualify elementWrapper.mapFn qualifyResources)
+                                ++ " "
+                                ++ qualifiedToString (qualify wrapper.wrap.fn qualifyResources)
+                    in
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
+                            , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ " on the value inside the singleton list." ]
+                            }
+                            checkInfo.fnRange
+                            (Fix.replaceRangeBy checkInfo.fnRange
+                                (replacement checkInfo)
+                                :: replaceBySubExpressionFix (Node.range lastArg) wrappedValue
+                            )
+                        )
+
+                Nothing ->
+                    Nothing
 
         Nothing ->
             Nothing
