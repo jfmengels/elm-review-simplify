@@ -5603,30 +5603,8 @@ listFilterMapCompositionChecks =
 
 
 listRangeChecks : CheckInfo -> Maybe (Error {})
-listRangeChecks checkInfo =
-    case secondArg checkInfo of
-        Just rangeEndArg ->
-            case ( Evaluate.getInt checkInfo checkInfo.firstArg, Evaluate.getInt checkInfo rangeEndArg ) of
-                ( Just rangeStartValue, Just rangeEndValue ) ->
-                    if rangeStartValue > rangeEndValue then
-                        Just
-                            (resultsInConstantError
-                                (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
-                                listCollection.empty.asString
-                                checkInfo
-                            )
-
-                    else
-                        Nothing
-
-                ( Nothing, _ ) ->
-                    Nothing
-
-                ( _, Nothing ) ->
-                    Nothing
-
-        Nothing ->
-            Nothing
+listRangeChecks =
+    emptiableRangeChecks listCollection
 
 
 listRepeatChecks : CheckInfo -> Maybe (Error {})
@@ -8213,6 +8191,42 @@ findConsecutiveListLiterals firstListElement restOfListElements =
 
         _ ->
             []
+
+
+{-| The range checks
+
+    range 5 4 --> empty
+
+So for example
+
+    List.range 5 4 --> []
+
+-}
+emptiableRangeChecks : EmptiableProperties ConstantProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableRangeChecks emptiable checkInfo =
+    case secondArg checkInfo of
+        Just rangeEndArg ->
+            case ( Evaluate.getInt checkInfo checkInfo.firstArg, Evaluate.getInt checkInfo rangeEndArg ) of
+                ( Just rangeStartValue, Just rangeEndValue ) ->
+                    if rangeStartValue > rangeEndValue then
+                        Just
+                            (resultsInConstantError
+                                (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
+                                listCollection.empty.asString
+                                checkInfo
+                            )
+
+                    else
+                        Nothing
+
+                ( Nothing, _ ) ->
+                    Nothing
+
+                ( _, Nothing ) ->
+                    Nothing
+
+        Nothing ->
+            Nothing
 
 
 {-| Turn `yourFn identity` into `replacementFn`. If `replacementFn` should be `identity`, use `alwaysReturnsLastArgError` instead
