@@ -1339,7 +1339,7 @@ import Set exposing (Set)
 import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, qualifiedToString)
 import Simplify.Evaluate as Evaluate
 import Simplify.Infer as Infer
-import Simplify.Match as Match exposing (Match(..))
+import Simplify.Match exposing (Match(..))
 import Simplify.Normalize as Normalize
 import Simplify.RangeDict as RangeDict exposing (RangeDict)
 
@@ -5069,7 +5069,7 @@ listMapOnSingletonCheck checkInfo =
                             Nothing
                 , \() ->
                     case sameInAllBranches (getValueWithNodeRange (listCollection.wrap.getValue checkInfo.lookupTable)) listArg of
-                        Determined wraps ->
+                        Just wraps ->
                             let
                                 mappingArgRange : Range
                                 mappingArgRange =
@@ -5094,7 +5094,7 @@ listMapOnSingletonCheck checkInfo =
                                     )
                                 )
 
-                        Undetermined ->
+                        Nothing ->
                             Nothing
                 ]
                 ()
@@ -7596,7 +7596,7 @@ mapOnWrappedChecks wrapper checkInfo =
                             Nothing
                 , \() ->
                     case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) wrapperArg of
-                        Determined wraps ->
+                        Just wraps ->
                             let
                                 mappingArgRange : Range
                                 mappingArgRange =
@@ -7641,7 +7641,7 @@ mapOnWrappedChecks wrapper checkInfo =
                                     )
                                 )
 
-                        Undetermined ->
+                        Nothing ->
                             Nothing
                 ]
                 ()
@@ -7817,7 +7817,7 @@ emptiableFlatMapChecks emptiable =
         [ unnecessaryCallOnEmptyCheck emptiable
         , \checkInfo ->
             case constructs (sameInAllBranches (getEmptyExpressionNode checkInfo emptiable)) checkInfo.lookupTable checkInfo.firstArg of
-                Determined _ ->
+                Just _ ->
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
                             (qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ emptiable.empty.asString defaultQualifyResources)
@@ -7825,7 +7825,7 @@ emptiableFlatMapChecks emptiable =
                             checkInfo
                         )
 
-                Undetermined ->
+                Nothing ->
                     Nothing
         ]
 
@@ -7855,7 +7855,7 @@ wrapperFlatMapChecks wrapper =
             case secondArg checkInfo of
                 Just maybeArg ->
                     case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) maybeArg of
-                        Determined wrapCalls ->
+                        Just wrapCalls ->
                             Just
                                 (Rule.errorWithFix
                                     { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionForDefinite "the" wrapper.wrap.description
@@ -7867,7 +7867,7 @@ wrapperFlatMapChecks wrapper =
                                     )
                                 )
 
-                        Undetermined ->
+                        Nothing ->
                             Nothing
 
                 Nothing ->
@@ -7891,7 +7891,7 @@ wrapperFlatMapChecks wrapper =
                     checkInfo.lookupTable
                     checkInfo.firstArg
             of
-                Determined wrapCalls ->
+                Just wrapCalls ->
                     Just
                         (Rule.errorWithFix
                             { message = qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside"
@@ -7904,7 +7904,7 @@ wrapperFlatMapChecks wrapper =
                             )
                         )
 
-                Undetermined ->
+                Nothing ->
                     Nothing
         ]
 
@@ -8016,7 +8016,7 @@ emptiableWithDefaultChecks emptiable checkInfo =
     case secondArg checkInfo of
         Just emptiableArg ->
             case sameInAllBranches (getEmptyExpressionNode checkInfo emptiable) emptiableArg of
-                Determined _ ->
+                Just _ ->
                     Just
                         (Rule.errorWithFix
                             { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite emptiable.empty.description ++ " will result in the default value"
@@ -8026,7 +8026,7 @@ emptiableWithDefaultChecks emptiable checkInfo =
                             (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
                         )
 
-                Undetermined ->
+                Nothing ->
                     Nothing
 
         Nothing ->
@@ -8053,7 +8053,7 @@ fromMaybeChecks config checkInfo =
             firstThatConstructsJust
                 [ \() ->
                     case sameInAllBranches (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothingVariant checkInfo.lookupTable) maybeArg of
-                        Determined _ ->
+                        Just _ ->
                             Just
                                 (Rule.errorWithFix
                                     { message = qualifiedToString checkInfo.fn ++ " on Nothing will result in " ++ qualifiedToString (qualify config.onNothingFn checkInfo) ++ " with the given first value"
@@ -8069,11 +8069,11 @@ fromMaybeChecks config checkInfo =
                                     )
                                 )
 
-                        Undetermined ->
+                        Nothing ->
                             Nothing
                 , \() ->
                     case sameInAllBranches (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant checkInfo.lookupTable) maybeArg of
-                        Determined justCalls ->
+                        Just justCalls ->
                             Just
                                 (Rule.errorWithFix
                                     { message = qualifiedToString checkInfo.fn ++ " on a just maybe will result in " ++ qualifiedToString (qualify config.onJustFn checkInfo) ++ " with the value inside"
@@ -8090,7 +8090,7 @@ fromMaybeChecks config checkInfo =
                                     )
                                 )
 
-                        Undetermined ->
+                        Nothing ->
                             Nothing
                 ]
                 ()
@@ -9794,7 +9794,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
     firstThatConstructsJust
         [ \checkInfo ->
             case constructs (sameInAllBranches (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
-                Determined justCalls ->
+                Just justCalls ->
                     Just
                         (Rule.errorWithFix
                             { message = qualifiedToString checkInfo.fn ++ " with a function that will always return Just is the same as " ++ qualifiedToString emptiableWrapper.mapFn
@@ -9807,7 +9807,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
                             )
                         )
 
-                Undetermined ->
+                Nothing ->
                     Nothing
         , \checkInfo ->
             case AstHelpers.getSpecificValueOrFn Fn.Maybe.justVariant checkInfo.lookupTable checkInfo.firstArg of
@@ -9823,7 +9823,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
                     Nothing
         , \checkInfo ->
             case constructs (sameInAllBranches (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothingVariant checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
-                Determined _ ->
+                Just _ ->
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
                             (qualifiedToString checkInfo.fn ++ " with a function that will always return Nothing")
@@ -9831,7 +9831,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
                             checkInfo
                         )
 
-                Undetermined ->
+                Nothing ->
                     Nothing
         , mapToOperationWithIdentityCanBeCombinedToOperationChecks emptiableWrapper
         , unnecessaryCallOnEmptyCheck emptiableWrapper
@@ -10448,7 +10448,7 @@ unnecessaryCallOnCheck constructable checkInfo =
                         Nothing
             in
             case sameInAllBranches getConstructable constructableArg of
-                Determined _ ->
+                Just _ ->
                     Just
                         (Rule.errorWithFix
                             (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = constructable.description })
@@ -10460,7 +10460,7 @@ unnecessaryCallOnCheck constructable checkInfo =
                             )
                         )
 
-                Undetermined ->
+                Nothing ->
                     Nothing
 
         Nothing ->
@@ -10632,10 +10632,10 @@ callOnWrapReturnsItsValueCheck wrapper checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just wrapperArg ->
             case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) wrapperArg of
-                Undetermined ->
+                Nothing ->
                     Nothing
 
-                Determined wraps ->
+                Just wraps ->
                     Just
                         (Rule.errorWithFix
                             { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in the value inside"
@@ -10700,7 +10700,7 @@ callOnWrapReturnsJustItsValue withWrap checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just withWrapArg ->
             case sameInAllBranches (getValueWithNodeRange (withWrap.wrap.getValue checkInfo.lookupTable)) withWrapArg of
-                Determined wraps ->
+                Just wraps ->
                     Just
                         (Rule.errorWithFix
                             { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in Just the value inside"
@@ -10715,7 +10715,7 @@ callOnWrapReturnsJustItsValue withWrap checkInfo =
                             )
                         )
 
-                Undetermined ->
+                Nothing ->
                     Nothing
 
         Nothing ->
@@ -11939,7 +11939,7 @@ accessingRecordCompositionChecks checkInfo =
     case AstHelpers.getRecordAccessFunction checkInfo.later.node of
         Just accessFunctionFieldName ->
             case constructs getRecordWithKnownFields checkInfo.lookupTable checkInfo.earlier.node of
-                Determined recordWithKnownField ->
+                Just recordWithKnownField ->
                     accessingRecordWithKnownFieldsChecks
                         { nodeRange = recordWithKnownField.range
                         , fieldName = accessFunctionFieldName
@@ -11953,32 +11953,32 @@ accessingRecordCompositionChecks checkInfo =
                                     (Fix.removeRange checkInfo.later.removeRange :: e.fix)
                             )
 
-                Undetermined ->
+                Nothing ->
                     Nothing
 
         Nothing ->
             Nothing
 
 
-getRecordWithKnownFields : Node Expression -> Match { range : Range, maybeRecordNameRange : Maybe Range, knownFields : List (Node ( Node String, Node Expression )) }
+getRecordWithKnownFields : Node Expression -> Maybe { range : Range, maybeRecordNameRange : Maybe Range, knownFields : List (Node ( Node String, Node Expression )) }
 getRecordWithKnownFields expressionNode =
     case AstHelpers.removeParens expressionNode of
         Node range (Expression.RecordExpr fields) ->
-            Determined
+            Just
                 { range = range
                 , maybeRecordNameRange = Nothing
                 , knownFields = fields
                 }
 
         Node range (Expression.RecordUpdateExpression (Node recordNameRange _) setFields) ->
-            Determined
+            Just
                 { range = range
                 , maybeRecordNameRange = Just recordNameRange
                 , knownFields = setFields
                 }
 
         _ ->
-            Undetermined
+            Nothing
 
 
 accessingRecordWithKnownFieldsChecks :
@@ -12050,12 +12050,8 @@ distributeFieldAccess kind branches checkInfo =
 
 returnsRecordInAllBranches : List (Node Expression) -> Maybe (List (Node Expression))
 returnsRecordInAllBranches nodes =
-    case Match.traverse (sameInAllBranches getRecordLeafExpression) nodes of
-        Match.Determined leaves ->
-            Just (List.concat leaves)
-
-        Match.Undetermined ->
-            Nothing
+    traverse (sameInAllBranches getRecordLeafExpression) nodes
+        |> Maybe.map List.concat
 
 
 getRecordLeafExpression : Node Expression -> Maybe (Node Expression)
@@ -12742,10 +12738,10 @@ needsParens expr =
 {-| Take one argument and return a value that matches a given parser.
 -}
 constructs :
-    (Node Expression -> Match specific)
+    (Node Expression -> Maybe specific)
     -> ModuleNameLookupTable
     -> Node Expression
-    -> Match specific
+    -> Maybe specific
 constructs getSpecific lookupTable expressionNode =
     case AstHelpers.getSpecificFnCall Fn.Basics.always lookupTable expressionNode of
         Just alwaysCall ->
@@ -12759,20 +12755,20 @@ constructs getSpecific lookupTable expressionNode =
                             getSpecific lambda.expression
 
                         _ ->
-                            Undetermined
+                            Nothing
 
                 _ ->
-                    Undetermined
+                    Nothing
 
 
 sameInAllBranches :
     (Node Expression -> Maybe info)
     -> Node Expression
-    -> Match (List info)
+    -> Maybe (List info)
 sameInAllBranches getSpecific baseExpressionNode =
     case getSpecific baseExpressionNode of
         Just specific ->
-            Determined [ specific ]
+            Just [ specific ]
 
         Nothing ->
             case Node.value (AstHelpers.removeParens baseExpressionNode) of
@@ -12780,19 +12776,19 @@ sameInAllBranches getSpecific baseExpressionNode =
                     sameInAllBranches getSpecific letIn.expression
 
                 Expression.IfBlock _ thenBranch elseBranch ->
-                    Match.traverse
+                    traverse
                         (\branchExpression -> sameInAllBranches getSpecific branchExpression)
                         [ thenBranch, elseBranch ]
-                        |> Match.map List.concat
+                        |> Maybe.map List.concat
 
                 Expression.CaseExpression caseOf ->
-                    Match.traverse
+                    traverse
                         (\( _, caseExpression ) -> sameInAllBranches getSpecific caseExpression)
                         caseOf.cases
-                        |> Match.map List.concat
+                        |> Maybe.map List.concat
 
                 _ ->
-                    Undetermined
+                    Nothing
 
 
 getComparableExpression : Node Expression -> Maybe (List Expression)
