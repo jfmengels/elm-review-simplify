@@ -4902,47 +4902,6 @@ stringLeftChecks =
         ]
 
 
-callWithNonPositiveIntCanBeReplacedByCheck :
-    { int : number
-    , intDescription : String
-    , replacement : QualifyResources {} -> String
-    }
-    -> CheckInfo
-    -> Maybe (Error {})
-callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
-    callWithNonPositiveIntCheckErrorSituation { fn = checkInfo.fn, int = config.int, intDescription = config.intDescription }
-        |> Maybe.map
-            (\situation ->
-                alwaysResultsInUnparenthesizedConstantError situation
-                    { replacement = config.replacement }
-                    checkInfo
-            )
-
-
-callWithNonPositiveIntCheckErrorSituation :
-    { fn : ( ModuleName, String )
-    , int : number
-    , intDescription : String
-    }
-    -> Maybe String
-callWithNonPositiveIntCheckErrorSituation config =
-    if config.int <= 0 then
-        let
-            lengthDescription : String
-            lengthDescription =
-                if config.int < 0 then
-                    "negative " ++ config.intDescription
-
-                else
-                    config.intDescription ++ " 0"
-        in
-        Just
-            (qualifiedToString config.fn ++ " with " ++ lengthDescription)
-
-    else
-        Nothing
-
-
 stringRightChecks : CheckInfo -> Maybe (Error {})
 stringRightChecks =
     firstThatConstructsJust
@@ -10811,6 +10770,47 @@ unnecessaryCompositionAfterCheck construct checkInfo =
             , fix =
                 [ Fix.removeRange checkInfo.later.removeRange ]
             }
+
+    else
+        Nothing
+
+
+callWithNonPositiveIntCanBeReplacedByCheck :
+    { int : number
+    , intDescription : String
+    , replacement : QualifyResources {} -> String
+    }
+    -> CheckInfo
+    -> Maybe (Error {})
+callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
+    callWithNonPositiveIntCheckErrorSituation { fn = checkInfo.fn, int = config.int, intDescription = config.intDescription }
+        |> Maybe.map
+            (\situation ->
+                alwaysResultsInUnparenthesizedConstantError situation
+                    { replacement = config.replacement }
+                    checkInfo
+            )
+
+
+callWithNonPositiveIntCheckErrorSituation :
+    { fn : ( ModuleName, String )
+    , int : number
+    , intDescription : String
+    }
+    -> Maybe String
+callWithNonPositiveIntCheckErrorSituation config =
+    if config.int <= 0 then
+        let
+            lengthDescription : String
+            lengthDescription =
+                if config.int < 0 then
+                    "negative " ++ config.intDescription
+
+                else
+                    config.intDescription ++ " 0"
+        in
+        Just
+            (qualifiedToString config.fn ++ " with " ++ lengthDescription)
 
     else
         Nothing
