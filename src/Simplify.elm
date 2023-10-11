@@ -6441,26 +6441,6 @@ dictFoldrChecks =
     emptiableFoldWithExtraArgChecks dictCollection
 
 
-emptiableWrapperFlatFromListChecks :
-    EmptiableProperties ConstantProperties otherProperties
-    -> CheckInfo
-    -> Maybe (Error {})
-emptiableWrapperFlatFromListChecks batchable =
-    firstThatConstructsJust
-        [ callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection
-        , callOnWrapReturnsItsValueCheck listCollection
-        , \checkInfo ->
-            callOnFromListWithIrrelevantEmptyElement (qualifiedToString (qualify checkInfo.fn defaultQualifyResources))
-                ( listCollection, batchable )
-                checkInfo
-        ]
-
-
-wrapperFlatFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-wrapperFlatFromListCompositionChecks =
-    onWrapAlwaysReturnsIncomingCompositionCheck listCollection
-
-
 
 -- TASK
 
@@ -8954,6 +8934,26 @@ wrapperFromMaybeCompositionChecks wrapper checkInfo =
 
         _ ->
             Nothing
+
+
+emptiableWrapperFlatFromListChecks :
+    EmptiableProperties ConstantProperties otherProperties
+    -> CheckInfo
+    -> Maybe (Error {})
+emptiableWrapperFlatFromListChecks batchable =
+    firstThatConstructsJust
+        [ callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection
+        , callOnWrapReturnsItsValueCheck listCollection
+        , \checkInfo ->
+            callOnFromListWithIrrelevantEmptyElement (qualifiedToString (qualify checkInfo.fn defaultQualifyResources))
+                ( listCollection, batchable )
+                checkInfo
+        ]
+
+
+wrapperFlatFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+wrapperFlatFromListCompositionChecks =
+    onWrapAlwaysReturnsIncomingCompositionCheck listCollection
 
 
 callOnFromListWithIrrelevantEmptyElement :
