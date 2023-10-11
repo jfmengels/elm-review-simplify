@@ -9826,6 +9826,18 @@ wrapperMapCompositionChecks wrapper =
         ]
 
 
+{-| The map check
+
+    map f (wrap a) --> wrap (f a)
+
+So for example
+
+    Random.map f (Random.constant a)
+    --> Random.constant (f a)
+
+Use together with `mapAfterWrapCompositionChecks`.
+
+-}
 mapWrapChecks :
     WrapperProperties otherProperties
     -> CheckInfo
