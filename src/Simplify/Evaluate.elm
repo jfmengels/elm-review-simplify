@@ -2,7 +2,6 @@ module Simplify.Evaluate exposing (getBoolean, getInt, getNumber, isAlwaysBoolea
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
-import Elm.Syntax.Pattern as Pattern
 import Review.ModuleNameLookupTable as ModuleNameLookupTable
 import Simplify.AstHelpers as AstHelpers
 import Simplify.Infer as Infer
