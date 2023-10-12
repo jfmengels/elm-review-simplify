@@ -8558,16 +8558,21 @@ emptiableAllChecks emptiable =
             { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.trueVariant res) }
             emptiable
         , \checkInfo ->
-            case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
-                Determined True ->
-                    Just
-                        (alwaysResultsInUnparenthesizedConstantError
-                            (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
-                            { replacement = \res -> qualifiedToString (qualify Fn.Basics.trueVariant res) }
-                            checkInfo
-                        )
+            case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+                Just alwaysResult ->
+                    case Evaluate.getBoolean checkInfo alwaysResult of
+                        Determined True ->
+                            Just
+                                (alwaysResultsInUnparenthesizedConstantError
+                                    (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
+                                    { replacement = \res -> qualifiedToString (qualify Fn.Basics.trueVariant res) }
+                                    checkInfo
+                                )
 
-                _ ->
+                        _ ->
+                            Nothing
+
+                Nothing ->
                     Nothing
         ]
 
@@ -8635,16 +8640,21 @@ emptiableAnyChecks emptiable =
             { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
             emptiable
         , \checkInfo ->
-            case Evaluate.isAlwaysBoolean checkInfo checkInfo.firstArg of
-                Determined False ->
-                    Just
-                        (alwaysResultsInUnparenthesizedConstantError
-                            (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
-                            { replacement = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
-                            checkInfo
-                        )
+            case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+                Just alwaysResult ->
+                    case Evaluate.getBoolean checkInfo alwaysResult of
+                        Determined False ->
+                            Just
+                                (alwaysResultsInUnparenthesizedConstantError
+                                    (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
+                                    { replacement = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
+                                    checkInfo
+                                )
 
-                _ ->
+                        _ ->
+                            Nothing
+
+                Nothing ->
                     Nothing
         ]
 
