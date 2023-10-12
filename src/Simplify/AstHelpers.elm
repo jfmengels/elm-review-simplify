@@ -109,9 +109,8 @@ subExpressions expression =
         Expression.LetExpression letBlock ->
             letBlock.expression
                 :: (letBlock.declarations
-                        |> List.map Node.value
                         |> List.map
-                            (\letDeclaration ->
+                            (\(Node _ letDeclaration) ->
                                 case letDeclaration of
                                     Expression.LetFunction letFunction ->
                                         letFunction.declaration |> Node.value |> .expression
