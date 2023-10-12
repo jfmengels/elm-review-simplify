@@ -7322,7 +7322,7 @@ subCollection =
 
    #### "flat"
 
-   Turns a collection of a type into _that exact type_.
+   Turns a wrapper of a type into _that exact type_.
 
    Examples:
 
@@ -7330,8 +7330,10 @@ subCollection =
        Test.concat : List Test -> Test
        Range.combine : List Range -> Range
        Bytes.Encode.sequence : List Encoder -> Encoder
+       Result.Extra.merge : Result a a -> a
        Platform.Cmd.batch : List (Cmd a) -> Cmd a
        List.concat : List (List a) -> List a
+       Maybe.Extra.join : Maybe (Maybe a) -> Maybe a
        List.NonEmpty.concat : Nonempty (Nonempty a) -> Nonempty a
        Parser.Sequence.concat : List (Parser (List a)) -> Parser (List a) -- by lambda-phi
 
@@ -7339,7 +7341,7 @@ subCollection =
 
    #### "sequence"
 
-   Turns a collection of a type with an argument `a` into _that type with argument `collection a`_.
+   Turns a wrapper of a type with an argument `a` into _that type with argument `wrapper a`_.
 
    Examples:
 
@@ -7347,6 +7349,11 @@ subCollection =
        Json.Extra.sequence : List (Decoder a) -> Decoder (List a)
        Task.sequence : List (Task x a) -> Task x (List a)
        Maybe.Extra.combineArray : Array (Maybe a) -> Maybe (Array a)
+       -- ↓ don't exist
+       Result.Maybe.toMaybe : Result x (Maybe a) -> Maybe (Result x e)
+       Maybe.Function.applyIfJust : Maybe (a -> b) -> (a -> Maybe b)
+       Result.Function.applyIfOk : Result x (a -> b) -> (a -> Result x b)
+       List.Function.feedEach : List (a -> b) -> (a -> List b)
 
    #### someName ++ otherName
 
