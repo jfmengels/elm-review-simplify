@@ -2907,7 +2907,7 @@ functionCallChecks =
         , ( Fn.List.tail, ( 1, listTailChecks ) )
         , ( Fn.List.member, ( 2, listMemberChecks ) )
         , ( Fn.List.map, ( 2, listMapChecks ) )
-        , ( Fn.List.filter, ( 2, emptiableFilterChecks listCollection ) )
+        , ( Fn.List.filter, ( 2, emptiableKeepWhenChecks listCollection ) )
         , ( Fn.List.filterMap, ( 2, listFilterMapChecks ) )
         , ( Fn.List.concat, ( 1, listConcatChecks ) )
         , ( Fn.List.concatMap, ( 2, listConcatMapChecks ) )
@@ -2942,7 +2942,7 @@ functionCallChecks =
         , ( Fn.Array.fromList, ( 1, arrayFromListChecks ) )
         , ( Fn.Array.map, ( 2, emptiableMapChecks arrayCollection ) )
         , ( Fn.Array.indexedMap, ( 2, arrayIndexedMapChecks ) )
-        , ( Fn.Array.filter, ( 2, emptiableFilterChecks arrayCollection ) )
+        , ( Fn.Array.filter, ( 2, emptiableKeepWhenChecks arrayCollection ) )
         , ( Fn.Array.isEmpty, ( 1, collectionIsEmptyChecks arrayCollection ) )
         , ( Fn.Array.length, ( 1, arrayLengthChecks ) )
         , ( Fn.Array.repeat, ( 2, arrayRepeatChecks ) )
@@ -2954,7 +2954,7 @@ functionCallChecks =
         , ( Fn.Array.foldl, ( 3, arrayFoldlChecks ) )
         , ( Fn.Array.foldr, ( 3, arrayFoldrChecks ) )
         , ( Fn.Set.map, ( 2, emptiableMapChecks setCollection ) )
-        , ( Fn.Set.filter, ( 2, emptiableFilterChecks setCollection ) )
+        , ( Fn.Set.filter, ( 2, emptiableKeepWhenChecks setCollection ) )
         , ( Fn.Set.remove, ( 2, collectionRemoveChecks setCollection ) )
         , ( Fn.Set.isEmpty, ( 1, collectionIsEmptyChecks setCollection ) )
         , ( Fn.Set.size, ( 1, collectionSizeChecks setCollection ) )
@@ -5929,7 +5929,7 @@ dictFromListCompositionChecks =
 
 dictFilterChecks : CheckInfo -> Maybe (Error {})
 dictFilterChecks =
-    emptiableFilterWithExtraArgChecks dictCollection
+    emptiableKeepWhenWithExtraArgChecks dictCollection
 
 
 dictPartitionChecks : CheckInfo -> Maybe (Error {})
@@ -7366,6 +7366,18 @@ subCollection =
    This intuition works for all these.
    So "sequenceRepeat ..args" is equivalent to `sequence (repeat ..args)` which means:
    First create the collection using repeat, then apply a sequence operation to the result.
+
+   #### handle ++ "when"
+
+   For each value, only "handle" it when the given function results in True.
+
+   Examples:
+
+       Array.Extra.removeWhen : (a -> Bool) -> Array a -> Array a
+       List.Extra.setIf : (a -> Bool) -> a -> List a -> List a
+       List.Extra.updateIf : (a -> Bool) -> (a -> a) -> List a -> List a
+       Set.filter : (comparable -> Bool) -> Set comparable -> Set comparable
+       Maybe.Extra.filter : (a -> Bool) -> Maybe a -> Maybe a
 -}
 
 
@@ -10872,31 +10884,31 @@ onWrapAlwaysReturnsJustIncomingCompositionCheck wrapper checkInfo =
 
 {-| The filter checks
 
-    filter f empty --> empty
+    keepWhen f empty --> empty
 
-    filter (\_ -> True) emptiable --> emptiable
+    keepWhen (\_ -> True) emptiable --> emptiable
 
-    filter (\_ -> False) emptiable --> empty
+    keepWhen (\_ -> False) emptiable --> empty
 
-If your function only takes two arguments like `Dict.filter`, use `emptiableFilterWithExtraArgChecks`
+If your function only takes two arguments like `Dict.filter`, use `emptiableKeepWhenWithExtraArgChecks`
 
 -}
-emptiableFilterChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-emptiableFilterChecks emptiable =
+emptiableKeepWhenChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiableKeepWhenChecks emptiable =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck emptiable
         , \checkInfo ->
             case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
                 Just constantFunctionResult ->
-                    filterWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo
+                    keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo
 
                 Nothing ->
                     Nothing
         ]
 
 
-filterWithConstantFunctionResultChecks : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-filterWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo =
+keepWhenWithConstantFunctionResultChecks : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo =
     case Evaluate.getBoolean checkInfo constantFunctionResult of
         Determined True ->
             Just
@@ -10920,17 +10932,17 @@ filterWithConstantFunctionResultChecks constantFunctionResult emptiable checkInf
 
 {-| Filter checks where the function takes 2 arguments
 
-    filter f empty --> empty
+    keepWhenWithExtraArg f empty --> empty
 
-    filter (\_ _ -> True) emptiable --> emptiable
+    keepWhenWithExtraArg (\_ _ -> True) emptiable --> emptiable
 
-    filter (\_ _ -> False) emptiable --> empty
+    keepWhenWithExtraArg (\_ _ -> False) emptiable --> empty
 
-If your function only takes one argument like `List.filter`, use `emptiableFilterChecks`
+If your function only takes one argument like `List.filter`, use `emptiableKeepWhenChecks`
 
 -}
-emptiableFilterWithExtraArgChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-emptiableFilterWithExtraArgChecks emptiable =
+emptiableKeepWhenWithExtraArgChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiableKeepWhenWithExtraArgChecks emptiable =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck emptiable
         , \checkInfo ->
@@ -10943,7 +10955,7 @@ emptiableFilterWithExtraArgChecks emptiable =
             in
             case maybeFilterFunctionResult of
                 Just constantFunctionResult ->
-                    filterWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo
+                    keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo
 
                 Nothing ->
                     Nothing
