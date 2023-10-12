@@ -1,4 +1,4 @@
-module Simplify.Evaluate exposing (getBoolean, getInt, getNumber, isAlwaysBoolean)
+module Simplify.Evaluate exposing (getBoolean, getInt, getNumber)
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
@@ -61,30 +61,6 @@ getBoolean resources baseNode =
 
                 Nothing ->
                     Undetermined
-
-
-isAlwaysBoolean : Infer.Resources a -> Node Expression -> Match Bool
-isAlwaysBoolean resources node =
-    case Node.value (AstHelpers.removeParens node) of
-        Expression.Application ((Node alwaysRange (Expression.FunctionOrValue _ "always")) :: boolean :: []) ->
-            case ModuleNameLookupTable.moduleNameAt resources.lookupTable alwaysRange of
-                Just [ "Basics" ] ->
-                    getBoolean resources boolean
-
-                _ ->
-                    Undetermined
-
-        Expression.LambdaExpression lambda ->
-            case lambda.args of
-                -- exactly one irrelevant arg pattern
-                _ :: [] ->
-                    getBoolean resources lambda.expression
-
-                _ ->
-                    Undetermined
-
-        _ ->
-            Undetermined
 
 
 getInt : Infer.Resources a -> Node Expression -> Maybe Int
