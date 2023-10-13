@@ -2868,171 +2868,227 @@ thirdArg checkInfo =
     checkInfo.thirdArg
 
 
-functionCallChecks : Dict ( ModuleName, String ) ( Int, CheckInfo -> Maybe (Error {}) )
-functionCallChecks =
+type alias CompositionIntoCheckInfo =
+    { lookupTable : ModuleNameLookupTable
+    , importLookup : ImportLookup
+    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
+    , moduleBindings : Set String
+    , localBindings : RangeDict (Set String)
+    , extractSourceCode : Range -> String
+    , later :
+        { range : Range
+        , fn : ( ModuleName, String )
+        , fnRange : Range
+        , args : List (Node Expression)
+        , -- how many arguments a fully applied call would have
+          argCount : Int
+        , removeRange : Range
+        }
+    , earlier :
+        { range : Range
+        , fn : ( ModuleName, String )
+        , fnRange : Range
+        , args : List (Node Expression)
+        , removeRange : Range
+        }
+    , isEmbeddedInComposition : Bool
+    }
+
+
+type alias ErrorInfoAndFix =
+    { info : { message : String, details : List String }
+    , fix : List Fix
+    }
+
+
+{-| Checking both the function call of and composition into a specific fn.
+
+Construct the record directly or use `intoFnCheckOnlyCall`.
+
+-}
+type alias IntoFnCheck =
+    { call : CheckInfo -> Maybe (Error {})
+    , composition : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+    }
+
+
+{-| There is no equivalent composition check.
+-}
+intoFnCheckOnlyCall : (CheckInfo -> Maybe (Error {})) -> IntoFnCheck
+intoFnCheckOnlyCall callFnCheck =
+    { call = callFnCheck, composition = \_ -> Nothing }
+
+
+intoFnChecks : Dict ( ModuleName, String ) ( Int, IntoFnCheck )
+intoFnChecks =
     -- The number of arguments is used to determine how many arguments to pass to the check function.
     -- This corresponds to the number of arguments that the function to check is expected to have.
     -- Any additional arguments will be ignored in order to avoid removing too many arguments
     -- when replacing the entire argument, which is quite common.
     Dict.fromList
-        [ ( Fn.Basics.identity, ( 1, basicsIdentityChecks ) )
-        , ( Fn.Basics.always, ( 2, basicsAlwaysChecks ) )
-        , ( Fn.Basics.not, ( 1, basicsNotChecks ) )
-        , ( Fn.Basics.negate, ( 1, basicsNegateChecks ) )
-        , ( Fn.Basics.toFloat, ( 1, basicsToFloatChecks ) )
-        , ( Fn.Basics.round, ( 1, intToIntChecks ) )
-        , ( Fn.Basics.ceiling, ( 1, intToIntChecks ) )
-        , ( Fn.Basics.floor, ( 1, intToIntChecks ) )
-        , ( Fn.Basics.truncate, ( 1, intToIntChecks ) )
-        , ( Fn.Tuple.first, ( 1, tupleFirstChecks ) )
-        , ( Fn.Tuple.second, ( 1, tupleSecondChecks ) )
-        , ( Fn.Tuple.pair, ( 2, tuplePairChecks ) )
-        , ( Fn.Maybe.map, ( 2, maybeMapChecks ) )
-        , ( Fn.Maybe.map2, ( 3, maybeMapNChecks ) )
-        , ( Fn.Maybe.map3, ( 4, maybeMapNChecks ) )
-        , ( Fn.Maybe.map4, ( 5, maybeMapNChecks ) )
-        , ( Fn.Maybe.map5, ( 6, maybeMapNChecks ) )
-        , ( Fn.Maybe.andThen, ( 2, maybeAndThenChecks ) )
-        , ( Fn.Maybe.withDefault, ( 2, withDefaultChecks maybeWithJustAsWrap ) )
-        , ( Fn.Result.map, ( 2, resultMapChecks ) )
-        , ( Fn.Result.map2, ( 3, resultMapNChecks ) )
-        , ( Fn.Result.map3, ( 4, resultMapNChecks ) )
-        , ( Fn.Result.map4, ( 5, resultMapNChecks ) )
-        , ( Fn.Result.map5, ( 6, resultMapNChecks ) )
-        , ( Fn.Result.mapError, ( 2, resultMapErrorChecks ) )
-        , ( Fn.Result.andThen, ( 2, resultAndThenChecks ) )
-        , ( Fn.Result.withDefault, ( 2, withDefaultChecks resultWithOkAsWrap ) )
-        , ( Fn.Result.toMaybe, ( 1, unwrapToMaybeChecks resultWithOkAsWrap ) )
-        , ( Fn.Result.fromMaybe, ( 2, resultFromMaybeChecks ) )
-        , ( Fn.List.append, ( 2, collectionUnionChecks { leftElementsStayOnTheLeft = True } listCollection ) )
-        , ( Fn.List.head, ( 1, listHeadChecks ) )
-        , ( Fn.List.tail, ( 1, listTailChecks ) )
-        , ( Fn.List.member, ( 2, listMemberChecks ) )
-        , ( Fn.List.map, ( 2, listMapChecks ) )
-        , ( Fn.List.filter, ( 2, emptiableKeepWhenChecks listCollection ) )
-        , ( Fn.List.filterMap, ( 2, listFilterMapChecks ) )
-        , ( Fn.List.concat, ( 1, listConcatChecks ) )
-        , ( Fn.List.concatMap, ( 2, listConcatMapChecks ) )
-        , ( Fn.List.indexedMap, ( 2, listIndexedMapChecks ) )
-        , ( Fn.List.intersperse, ( 2, listIntersperseChecks ) )
-        , ( Fn.List.sum, ( 1, listSumChecks ) )
-        , ( Fn.List.product, ( 1, listProductChecks ) )
-        , ( Fn.List.minimum, ( 1, listMinimumChecks ) )
-        , ( Fn.List.maximum, ( 1, listMaximumChecks ) )
-        , ( Fn.List.foldl, ( 3, listFoldlChecks ) )
-        , ( Fn.List.foldr, ( 3, listFoldrChecks ) )
-        , ( Fn.List.all, ( 2, listAllChecks ) )
-        , ( Fn.List.any, ( 2, listAnyChecks ) )
-        , ( Fn.List.range, ( 2, listRangeChecks ) )
-        , ( Fn.List.length, ( 1, collectionSizeChecks listCollection ) )
-        , ( Fn.List.repeat, ( 2, listRepeatChecks ) )
-        , ( Fn.List.isEmpty, ( 1, collectionIsEmptyChecks listCollection ) )
-        , ( Fn.List.partition, ( 2, collectionPartitionChecks listCollection ) )
-        , ( Fn.List.reverse, ( 1, listReverseChecks ) )
-        , ( Fn.List.sort, ( 1, listSortChecks ) )
-        , ( Fn.List.sortBy, ( 2, listSortByChecks ) )
-        , ( Fn.List.sortWith, ( 2, listSortWithChecks ) )
-        , ( Fn.List.take, ( 2, listTakeChecks ) )
-        , ( Fn.List.drop, ( 2, listDropChecks ) )
-        , ( Fn.List.map2, ( 3, emptiableMapNChecks listCollection ) )
-        , ( Fn.List.map3, ( 4, emptiableMapNChecks listCollection ) )
-        , ( Fn.List.map4, ( 5, emptiableMapNChecks listCollection ) )
-        , ( Fn.List.map5, ( 6, emptiableMapNChecks listCollection ) )
-        , ( Fn.List.unzip, ( 1, listUnzipChecks ) )
-        , ( Fn.Array.toList, ( 1, arrayToListChecks ) )
-        , ( Fn.Array.toIndexedList, ( 1, arrayToIndexedListChecks ) )
-        , ( Fn.Array.fromList, ( 1, arrayFromListChecks ) )
-        , ( Fn.Array.map, ( 2, emptiableMapChecks arrayCollection ) )
-        , ( Fn.Array.indexedMap, ( 2, arrayIndexedMapChecks ) )
-        , ( Fn.Array.filter, ( 2, emptiableKeepWhenChecks arrayCollection ) )
-        , ( Fn.Array.isEmpty, ( 1, collectionIsEmptyChecks arrayCollection ) )
-        , ( Fn.Array.length, ( 1, arrayLengthChecks ) )
-        , ( Fn.Array.repeat, ( 2, arrayRepeatChecks ) )
-        , ( Fn.Array.initialize, ( 2, arrayInitializeChecks ) )
-        , ( Fn.Array.append, ( 2, collectionUnionChecks { leftElementsStayOnTheLeft = True } arrayCollection ) )
-        , ( Fn.Array.get, ( 2, getChecks arrayCollection ) )
-        , ( Fn.Array.set, ( 3, setChecks arrayCollection ) )
-        , ( Fn.Array.slice, ( 3, collectionSliceChecks arrayCollection ) )
-        , ( Fn.Array.foldl, ( 3, arrayFoldlChecks ) )
-        , ( Fn.Array.foldr, ( 3, arrayFoldrChecks ) )
-        , ( Fn.Set.map, ( 2, emptiableMapChecks setCollection ) )
-        , ( Fn.Set.filter, ( 2, emptiableKeepWhenChecks setCollection ) )
-        , ( Fn.Set.remove, ( 2, collectionRemoveChecks setCollection ) )
-        , ( Fn.Set.isEmpty, ( 1, collectionIsEmptyChecks setCollection ) )
-        , ( Fn.Set.size, ( 1, collectionSizeChecks setCollection ) )
-        , ( Fn.Set.member, ( 2, collectionMemberChecks setCollection ) )
-        , ( Fn.Set.fromList, ( 1, setFromListChecks ) )
-        , ( Fn.Set.toList, ( 1, emptiableToListChecks setCollection ) )
-        , ( Fn.Set.partition, ( 2, collectionPartitionChecks setCollection ) )
-        , ( Fn.Set.intersect, ( 2, collectionIntersectChecks setCollection ) )
-        , ( Fn.Set.diff, ( 2, collectionDiffChecks setCollection ) )
-        , ( Fn.Set.union, ( 2, collectionUnionChecks { leftElementsStayOnTheLeft = True } setCollection ) )
-        , ( Fn.Set.insert, ( 2, collectionInsertChecks setCollection ) )
-        , ( Fn.Set.foldl, ( 3, setFoldlChecks ) )
-        , ( Fn.Set.foldr, ( 3, setFoldrChecks ) )
-        , ( Fn.Dict.isEmpty, ( 1, collectionIsEmptyChecks dictCollection ) )
-        , ( Fn.Dict.fromList, ( 1, dictFromListChecks ) )
-        , ( Fn.Dict.toList, ( 1, emptiableToListChecks dictCollection ) )
-        , ( Fn.Dict.size, ( 1, collectionSizeChecks dictCollection ) )
-        , ( Fn.Dict.member, ( 2, collectionMemberChecks dictCollection ) )
-        , ( Fn.Dict.remove, ( 2, collectionRemoveChecks dictCollection ) )
-        , ( Fn.Dict.filter, ( 2, dictFilterChecks ) )
-        , ( Fn.Dict.partition, ( 2, dictPartitionChecks ) )
-        , ( Fn.Dict.map, ( 2, dictMapChecks ) )
-        , ( Fn.Dict.intersect, ( 2, collectionIntersectChecks dictCollection ) )
-        , ( Fn.Dict.diff, ( 2, collectionDiffChecks dictCollection ) )
-        , ( Fn.Dict.union, ( 2, collectionUnionChecks { leftElementsStayOnTheLeft = False } dictCollection ) )
-        , ( Fn.Dict.foldl, ( 3, dictFoldlChecks ) )
-        , ( Fn.Dict.foldr, ( 3, dictFoldrChecks ) )
-        , ( Fn.String.toList, ( 1, stringToListChecks ) )
-        , ( Fn.String.fromList, ( 1, stringFromListChecks ) )
-        , ( Fn.String.isEmpty, ( 1, collectionIsEmptyChecks stringCollection ) )
-        , ( Fn.String.concat, ( 1, stringConcatChecks ) )
-        , ( Fn.String.join, ( 2, stringJoinChecks ) )
-        , ( Fn.String.length, ( 1, collectionSizeChecks stringCollection ) )
-        , ( Fn.String.repeat, ( 2, stringRepeatChecks ) )
-        , ( Fn.String.replace, ( 3, stringReplaceChecks ) )
-        , ( Fn.String.words, ( 1, stringWordsChecks ) )
-        , ( Fn.String.lines, ( 1, stringLinesChecks ) )
-        , ( Fn.String.reverse, ( 1, stringReverseChecks ) )
-        , ( Fn.String.slice, ( 3, collectionSliceChecks stringCollection ) )
-        , ( Fn.String.left, ( 2, stringLeftChecks ) )
-        , ( Fn.String.right, ( 2, stringRightChecks ) )
-        , ( Fn.String.append, ( 2, collectionUnionChecks { leftElementsStayOnTheLeft = True } stringCollection ) )
-        , ( Fn.String.foldl, ( 3, stringFoldlChecks ) )
-        , ( Fn.String.foldr, ( 3, stringFoldrChecks ) )
-        , ( Fn.Platform.Cmd.batch, ( 1, emptiableWrapperFlatFromListChecks cmdCollection ) )
-        , ( Fn.Platform.Cmd.map, ( 2, emptiableMapChecks cmdCollection ) )
-        , ( Fn.Platform.Sub.batch, ( 1, emptiableWrapperFlatFromListChecks subCollection ) )
-        , ( Fn.Platform.Sub.map, ( 2, emptiableMapChecks subCollection ) )
-        , ( Fn.Task.map, ( 2, taskMapChecks ) )
-        , ( Fn.Task.map2, ( 3, taskMapNChecks ) )
-        , ( Fn.Task.map3, ( 4, taskMapNChecks ) )
-        , ( Fn.Task.map4, ( 5, taskMapNChecks ) )
-        , ( Fn.Task.map5, ( 6, taskMapNChecks ) )
-        , ( Fn.Task.andThen, ( 2, taskAndThenChecks ) )
-        , ( Fn.Task.mapError, ( 2, taskMapErrorChecks ) )
-        , ( Fn.Task.onError, ( 2, taskOnErrorChecks ) )
-        , ( Fn.Task.sequence, ( 1, taskSequenceChecks ) )
-        , ( Fn.Json.Decode.oneOf, ( 1, oneOfChecks ) )
-        , ( Fn.Json.Decode.map, ( 2, jsonDecodeMapChecks ) )
-        , ( Fn.Json.Decode.map2, ( 3, jsonDecodeMapNChecks ) )
-        , ( Fn.Json.Decode.map3, ( 4, jsonDecodeMapNChecks ) )
-        , ( Fn.Json.Decode.map4, ( 5, jsonDecodeMapNChecks ) )
-        , ( Fn.Json.Decode.map5, ( 6, jsonDecodeMapNChecks ) )
-        , ( Fn.Json.Decode.map6, ( 7, jsonDecodeMapNChecks ) )
-        , ( Fn.Json.Decode.map7, ( 8, jsonDecodeMapNChecks ) )
-        , ( Fn.Json.Decode.map8, ( 9, jsonDecodeMapNChecks ) )
-        , ( Fn.Json.Decode.andThen, ( 2, jsonDecodeAndThenChecks ) )
-        , ( Fn.Html.Attributes.classList, ( 1, htmlAttributesClassListChecks ) )
-        , ( Fn.Parser.oneOf, ( 1, oneOfChecks ) )
-        , ( Fn.Parser.Advanced.oneOf, ( 1, oneOfChecks ) )
-        , ( Fn.Random.uniform, ( 2, randomUniformChecks ) )
-        , ( Fn.Random.weighted, ( 2, randomWeightedChecks ) )
-        , ( Fn.Random.list, ( 2, randomListChecks ) )
-        , ( Fn.Random.map, ( 2, randomMapChecks ) )
-        , ( Fn.Random.andThen, ( 2, randomAndThenChecks ) )
+        [ ( Fn.Basics.identity, ( 1, intoFnCheckOnlyCall basicsIdentityChecks ) )
+        , ( Fn.Basics.always, ( 2, { call = basicsAlwaysChecks, composition = basicsAlwaysCompositionChecks } ) )
+        , ( Fn.Basics.not, ( 1, { call = basicsNotChecks, composition = toggleCompositionChecks } ) )
+        , ( Fn.Basics.negate, ( 1, { call = basicsNegateChecks, composition = toggleCompositionChecks } ) )
+        , ( Fn.Basics.toFloat, ( 1, intoFnCheckOnlyCall basicsToFloatChecks ) )
+        , ( Fn.Basics.round, ( 1, { call = intToIntChecks, composition = inversesCompositionCheck Fn.Basics.toFloat } ) )
+        , ( Fn.Basics.ceiling, ( 1, { call = intToIntChecks, composition = inversesCompositionCheck Fn.Basics.toFloat } ) )
+        , ( Fn.Basics.floor, ( 1, { call = intToIntChecks, composition = inversesCompositionCheck Fn.Basics.toFloat } ) )
+        , ( Fn.Basics.truncate, ( 1, { call = intToIntChecks, composition = inversesCompositionCheck Fn.Basics.toFloat } ) )
+        , ( Fn.Tuple.first, ( 1, { call = tupleFirstChecks, composition = tupleFirstCompositionChecks } ) )
+        , ( Fn.Tuple.second, ( 1, { call = tupleSecondChecks, composition = tupleSecondCompositionChecks } ) )
+        , ( Fn.Tuple.pair, ( 2, intoFnCheckOnlyCall tuplePairChecks ) )
+        , ( Fn.Maybe.map, ( 2, { call = maybeMapChecks, composition = maybeMapCompositionChecks } ) )
+        , ( Fn.Maybe.map2, ( 3, intoFnCheckOnlyCall maybeMapNChecks ) )
+        , ( Fn.Maybe.map3, ( 4, intoFnCheckOnlyCall maybeMapNChecks ) )
+        , ( Fn.Maybe.map4, ( 5, intoFnCheckOnlyCall maybeMapNChecks ) )
+        , ( Fn.Maybe.map5, ( 6, intoFnCheckOnlyCall maybeMapNChecks ) )
+        , ( Fn.Maybe.andThen, ( 2, { call = maybeAndThenChecks, composition = maybeAndThenCompositionChecks } ) )
+        , ( Fn.Maybe.withDefault, ( 2, { call = withDefaultChecks maybeWithJustAsWrap, composition = wrapperWithDefaultChecks maybeWithJustAsWrap } ) )
+        , ( Fn.Result.map, ( 2, { call = resultMapChecks, composition = resultMapCompositionChecks } ) )
+        , ( Fn.Result.map2, ( 3, intoFnCheckOnlyCall resultMapNChecks ) )
+        , ( Fn.Result.map3, ( 4, intoFnCheckOnlyCall resultMapNChecks ) )
+        , ( Fn.Result.map4, ( 5, intoFnCheckOnlyCall resultMapNChecks ) )
+        , ( Fn.Result.map5, ( 6, intoFnCheckOnlyCall resultMapNChecks ) )
+        , ( Fn.Result.mapError, ( 2, { call = resultMapErrorChecks, composition = resultMapErrorCompositionChecks } ) )
+        , ( Fn.Result.andThen, ( 2, { call = resultAndThenChecks, composition = resultAndThenCompositionChecks } ) )
+        , ( Fn.Result.withDefault, ( 2, { call = withDefaultChecks resultWithOkAsWrap, composition = wrapperWithDefaultChecks resultWithOkAsWrap } ) )
+        , ( Fn.Result.toMaybe, ( 1, { call = unwrapToMaybeChecks resultWithOkAsWrap, composition = resultToMaybeCompositionChecks } ) )
+        , ( Fn.Result.fromMaybe, ( 2, { call = resultFromMaybeChecks, composition = wrapperFromMaybeCompositionChecks resultWithOkAsWrap } ) )
+        , ( Fn.List.append, ( 2, intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = True } listCollection) ) )
+        , ( Fn.List.head, ( 1, intoFnCheckOnlyCall listHeadChecks ) )
+        , ( Fn.List.tail, ( 1, intoFnCheckOnlyCall listTailChecks ) )
+        , ( Fn.List.member, ( 2, intoFnCheckOnlyCall listMemberChecks ) )
+        , ( Fn.List.map, ( 2, { call = listMapChecks, composition = listMapCompositionChecks } ) )
+        , ( Fn.List.filter, ( 2, intoFnCheckOnlyCall (emptiableKeepWhenChecks listCollection) ) )
+        , ( Fn.List.filterMap, ( 2, { call = listFilterMapChecks, composition = listFilterMapCompositionChecks } ) )
+        , ( Fn.List.concat, ( 1, { call = listConcatChecks, composition = listConcatCompositionChecks } ) )
+        , ( Fn.List.concatMap, ( 2, { call = listConcatMapChecks, composition = listConcatMapCompositionChecks } ) )
+        , ( Fn.List.indexedMap, ( 2, intoFnCheckOnlyCall listIndexedMapChecks ) )
+        , ( Fn.List.intersperse, ( 2, { call = listIntersperseChecks, composition = listIntersperseCompositionChecks } ) )
+        , ( Fn.List.sum, ( 1, { call = listSumChecks, composition = sumCompositionChecks listCollection } ) )
+        , ( Fn.List.product, ( 1, { call = listProductChecks, composition = productCompositionChecks listCollection } ) )
+        , ( Fn.List.minimum, ( 1, { call = listMinimumChecks, composition = minimumCompositionChecks listCollection } ) )
+        , ( Fn.List.maximum, ( 1, { call = listMaximumChecks, composition = maximumCompositionChecks listCollection } ) )
+        , ( Fn.List.foldl, ( 3, { call = listFoldlChecks, composition = listFoldlCompositionChecks } ) )
+        , ( Fn.List.foldr, ( 3, { call = listFoldrChecks, composition = listFoldrCompositionChecks } ) )
+        , ( Fn.List.all, ( 2, intoFnCheckOnlyCall listAllChecks ) )
+        , ( Fn.List.any, ( 2, intoFnCheckOnlyCall listAnyChecks ) )
+        , ( Fn.List.range, ( 2, intoFnCheckOnlyCall listRangeChecks ) )
+        , ( Fn.List.length, ( 1, intoFnCheckOnlyCall (collectionSizeChecks listCollection) ) )
+        , ( Fn.List.repeat, ( 2, intoFnCheckOnlyCall listRepeatChecks ) )
+        , ( Fn.List.isEmpty, ( 1, intoFnCheckOnlyCall (collectionIsEmptyChecks listCollection) ) )
+        , ( Fn.List.partition, ( 2, intoFnCheckOnlyCall (collectionPartitionChecks listCollection) ) )
+        , ( Fn.List.reverse, ( 1, { call = listReverseChecks, composition = listReverseCompositionChecks } ) )
+        , ( Fn.List.sort, ( 1, { call = listSortChecks, composition = listSortCompositionChecks } ) )
+        , ( Fn.List.sortBy, ( 2, { call = listSortByChecks, composition = listSortByCompositionChecks } ) )
+        , ( Fn.List.sortWith, ( 2, intoFnCheckOnlyCall listSortWithChecks ) )
+        , ( Fn.List.take, ( 2, intoFnCheckOnlyCall listTakeChecks ) )
+        , ( Fn.List.drop, ( 2, intoFnCheckOnlyCall listDropChecks ) )
+        , ( Fn.List.map2, ( 3, intoFnCheckOnlyCall (emptiableMapNChecks listCollection) ) )
+        , ( Fn.List.map3, ( 4, intoFnCheckOnlyCall (emptiableMapNChecks listCollection) ) )
+        , ( Fn.List.map4, ( 5, intoFnCheckOnlyCall (emptiableMapNChecks listCollection) ) )
+        , ( Fn.List.map5, ( 6, intoFnCheckOnlyCall (emptiableMapNChecks listCollection) ) )
+        , ( Fn.List.unzip, ( 1, intoFnCheckOnlyCall listUnzipChecks ) )
+        , ( Fn.Array.toList, ( 1, { call = arrayToListChecks, composition = arrayToListCompositionChecks } ) )
+        , ( Fn.Array.toIndexedList, ( 1, intoFnCheckOnlyCall arrayToIndexedListChecks ) )
+        , ( Fn.Array.fromList, ( 1, { call = arrayFromListChecks, composition = arrayFromListCompositionChecks } ) )
+        , ( Fn.Array.map, ( 2, intoFnCheckOnlyCall (emptiableMapChecks arrayCollection) ) )
+        , ( Fn.Array.indexedMap, ( 2, intoFnCheckOnlyCall arrayIndexedMapChecks ) )
+        , ( Fn.Array.filter, ( 2, intoFnCheckOnlyCall (emptiableKeepWhenChecks arrayCollection) ) )
+        , ( Fn.Array.isEmpty, ( 1, intoFnCheckOnlyCall (collectionIsEmptyChecks arrayCollection) ) )
+        , ( Fn.Array.length, ( 1, intoFnCheckOnlyCall arrayLengthChecks ) )
+        , ( Fn.Array.repeat, ( 2, intoFnCheckOnlyCall arrayRepeatChecks ) )
+        , ( Fn.Array.initialize, ( 2, intoFnCheckOnlyCall arrayInitializeChecks ) )
+        , ( Fn.Array.append, ( 2, intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = True } arrayCollection) ) )
+        , ( Fn.Array.get, ( 2, intoFnCheckOnlyCall (getChecks arrayCollection) ) )
+        , ( Fn.Array.set, ( 3, intoFnCheckOnlyCall (setChecks arrayCollection) ) )
+        , ( Fn.Array.slice, ( 3, intoFnCheckOnlyCall (collectionSliceChecks arrayCollection) ) )
+        , ( Fn.Array.foldl, ( 3, intoFnCheckOnlyCall arrayFoldlChecks ) )
+        , ( Fn.Array.foldr, ( 3, intoFnCheckOnlyCall arrayFoldrChecks ) )
+        , ( Fn.Set.map, ( 2, intoFnCheckOnlyCall (emptiableMapChecks setCollection) ) )
+        , ( Fn.Set.filter, ( 2, intoFnCheckOnlyCall (emptiableKeepWhenChecks setCollection) ) )
+        , ( Fn.Set.remove, ( 2, intoFnCheckOnlyCall (collectionRemoveChecks setCollection) ) )
+        , ( Fn.Set.isEmpty, ( 1, intoFnCheckOnlyCall (collectionIsEmptyChecks setCollection) ) )
+        , ( Fn.Set.size, ( 1, intoFnCheckOnlyCall (collectionSizeChecks setCollection) ) )
+        , ( Fn.Set.member, ( 2, intoFnCheckOnlyCall (collectionMemberChecks setCollection) ) )
+        , ( Fn.Set.fromList, ( 1, { call = setFromListChecks, composition = setFromListCompositionChecks } ) )
+        , ( Fn.Set.toList, ( 1, intoFnCheckOnlyCall (emptiableToListChecks setCollection) ) )
+        , ( Fn.Set.partition, ( 2, intoFnCheckOnlyCall (collectionPartitionChecks setCollection) ) )
+        , ( Fn.Set.intersect, ( 2, intoFnCheckOnlyCall (collectionIntersectChecks setCollection) ) )
+        , ( Fn.Set.diff, ( 2, intoFnCheckOnlyCall (collectionDiffChecks setCollection) ) )
+        , ( Fn.Set.union, ( 2, intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = True } setCollection) ) )
+        , ( Fn.Set.insert, ( 2, intoFnCheckOnlyCall (collectionInsertChecks setCollection) ) )
+        , ( Fn.Set.foldl, ( 3, intoFnCheckOnlyCall setFoldlChecks ) )
+        , ( Fn.Set.foldr, ( 3, intoFnCheckOnlyCall setFoldrChecks ) )
+        , ( Fn.Dict.isEmpty, ( 1, intoFnCheckOnlyCall (collectionIsEmptyChecks dictCollection) ) )
+        , ( Fn.Dict.fromList, ( 1, { call = dictFromListChecks, composition = dictFromListCompositionChecks } ) )
+        , ( Fn.Dict.toList, ( 1, intoFnCheckOnlyCall (emptiableToListChecks dictCollection) ) )
+        , ( Fn.Dict.size, ( 1, intoFnCheckOnlyCall (collectionSizeChecks dictCollection) ) )
+        , ( Fn.Dict.member, ( 2, intoFnCheckOnlyCall (collectionMemberChecks dictCollection) ) )
+        , ( Fn.Dict.remove, ( 2, intoFnCheckOnlyCall (collectionRemoveChecks dictCollection) ) )
+        , ( Fn.Dict.filter, ( 2, intoFnCheckOnlyCall dictFilterChecks ) )
+        , ( Fn.Dict.partition, ( 2, intoFnCheckOnlyCall dictPartitionChecks ) )
+        , ( Fn.Dict.map, ( 2, intoFnCheckOnlyCall dictMapChecks ) )
+        , ( Fn.Dict.intersect, ( 2, intoFnCheckOnlyCall (collectionIntersectChecks dictCollection) ) )
+        , ( Fn.Dict.diff, ( 2, intoFnCheckOnlyCall (collectionDiffChecks dictCollection) ) )
+        , ( Fn.Dict.union, ( 2, intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = False } dictCollection) ) )
+        , ( Fn.Dict.foldl, ( 3, intoFnCheckOnlyCall dictFoldlChecks ) )
+        , ( Fn.Dict.foldr, ( 3, intoFnCheckOnlyCall dictFoldrChecks ) )
+        , ( Fn.String.toList, ( 1, { call = stringToListChecks, composition = stringToListCompositionChecks } ) )
+        , ( Fn.String.fromList, ( 1, { call = stringFromListChecks, composition = stringFromListCompositionChecks } ) )
+        , ( Fn.String.isEmpty, ( 1, intoFnCheckOnlyCall (collectionIsEmptyChecks stringCollection) ) )
+        , ( Fn.String.concat, ( 1, { call = stringConcatChecks, composition = stringConcatCompositionChecks } ) )
+        , ( Fn.String.join, ( 2, intoFnCheckOnlyCall stringJoinChecks ) )
+        , ( Fn.String.length, ( 1, intoFnCheckOnlyCall (collectionSizeChecks stringCollection) ) )
+        , ( Fn.String.repeat, ( 2, intoFnCheckOnlyCall stringRepeatChecks ) )
+        , ( Fn.String.replace, ( 3, intoFnCheckOnlyCall stringReplaceChecks ) )
+        , ( Fn.String.words, ( 1, intoFnCheckOnlyCall stringWordsChecks ) )
+        , ( Fn.String.lines, ( 1, intoFnCheckOnlyCall stringLinesChecks ) )
+        , ( Fn.String.reverse, ( 1, { call = stringReverseChecks, composition = stringReverseCompositionChecks } ) )
+        , ( Fn.String.slice, ( 3, intoFnCheckOnlyCall (collectionSliceChecks stringCollection) ) )
+        , ( Fn.String.left, ( 2, intoFnCheckOnlyCall stringLeftChecks ) )
+        , ( Fn.String.right, ( 2, intoFnCheckOnlyCall stringRightChecks ) )
+        , ( Fn.String.append, ( 2, intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = True } stringCollection) ) )
+        , ( Fn.String.foldl, ( 3, intoFnCheckOnlyCall stringFoldlChecks ) )
+        , ( Fn.String.foldr, ( 3, intoFnCheckOnlyCall stringFoldrChecks ) )
+        , ( Fn.Platform.Cmd.batch, ( 1, { call = emptiableWrapperFlatFromListChecks cmdCollection, composition = wrapperFlatFromListCompositionChecks } ) )
+        , ( Fn.Platform.Cmd.map, ( 2, intoFnCheckOnlyCall (emptiableMapChecks cmdCollection) ) )
+        , ( Fn.Platform.Sub.batch, ( 1, { call = emptiableWrapperFlatFromListChecks subCollection, composition = wrapperFlatFromListCompositionChecks } ) )
+        , ( Fn.Platform.Sub.map, ( 2, intoFnCheckOnlyCall (emptiableMapChecks subCollection) ) )
+        , ( Fn.Task.map, ( 2, { call = taskMapChecks, composition = taskMapCompositionChecks } ) )
+        , ( Fn.Task.map2, ( 3, intoFnCheckOnlyCall taskMapNChecks ) )
+        , ( Fn.Task.map3, ( 4, intoFnCheckOnlyCall taskMapNChecks ) )
+        , ( Fn.Task.map4, ( 5, intoFnCheckOnlyCall taskMapNChecks ) )
+        , ( Fn.Task.map5, ( 6, intoFnCheckOnlyCall taskMapNChecks ) )
+        , ( Fn.Task.andThen, ( 2, { call = taskAndThenChecks, composition = taskAndThenCompositionChecks } ) )
+        , ( Fn.Task.mapError, ( 2, { call = taskMapErrorChecks, composition = taskMapErrorCompositionChecks } ) )
+        , ( Fn.Task.onError, ( 2, { call = taskOnErrorChecks, composition = taskOnErrorCompositionChecks } ) )
+        , ( Fn.Task.sequence, ( 1, { call = taskSequenceChecks, composition = taskSequenceCompositionChecks } ) )
+        , ( Fn.Json.Decode.oneOf, ( 1, intoFnCheckOnlyCall oneOfChecks ) )
+        , ( Fn.Json.Decode.map, ( 2, { call = jsonDecodeMapChecks, composition = jsonDecodeMapCompositionChecks } ) )
+        , ( Fn.Json.Decode.map2, ( 3, intoFnCheckOnlyCall jsonDecodeMapNChecks ) )
+        , ( Fn.Json.Decode.map3, ( 4, intoFnCheckOnlyCall jsonDecodeMapNChecks ) )
+        , ( Fn.Json.Decode.map4, ( 5, intoFnCheckOnlyCall jsonDecodeMapNChecks ) )
+        , ( Fn.Json.Decode.map5, ( 6, intoFnCheckOnlyCall jsonDecodeMapNChecks ) )
+        , ( Fn.Json.Decode.map6, ( 7, intoFnCheckOnlyCall jsonDecodeMapNChecks ) )
+        , ( Fn.Json.Decode.map7, ( 8, intoFnCheckOnlyCall jsonDecodeMapNChecks ) )
+        , ( Fn.Json.Decode.map8, ( 9, intoFnCheckOnlyCall jsonDecodeMapNChecks ) )
+        , ( Fn.Json.Decode.andThen, ( 2, { call = jsonDecodeAndThenChecks, composition = jsonDecodeAndThenCompositionChecks } ) )
+        , ( Fn.Html.Attributes.classList, ( 1, intoFnCheckOnlyCall htmlAttributesClassListChecks ) )
+        , ( Fn.Parser.oneOf, ( 1, intoFnCheckOnlyCall oneOfChecks ) )
+        , ( Fn.Parser.Advanced.oneOf, ( 1, intoFnCheckOnlyCall oneOfChecks ) )
+        , ( Fn.Random.uniform, ( 2, intoFnCheckOnlyCall randomUniformChecks ) )
+        , ( Fn.Random.weighted, ( 2, intoFnCheckOnlyCall randomWeightedChecks ) )
+        , ( Fn.Random.list, ( 2, intoFnCheckOnlyCall randomListChecks ) )
+        , ( Fn.Random.map, ( 2, { call = randomMapChecks, composition = randomMapCompositionChecks } ) )
+        , ( Fn.Random.andThen, ( 2, { call = randomAndThenChecks, composition = randomAndThenCompositionChecks } ) )
         ]
+
+
+functionCallChecks : Dict ( ModuleName, String ) ( Int, CheckInfo -> Maybe (Error {}) )
+functionCallChecks =
+    Dict.map (\_ ( argCount, checks ) -> ( argCount, checks.call )) intoFnChecks
 
 
 type alias CompositionCheckInfo =
@@ -3118,94 +3174,9 @@ compositionChecks =
     ]
 
 
-type alias CompositionIntoCheckInfo =
-    { lookupTable : ModuleNameLookupTable
-    , importLookup : ImportLookup
-    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
-    , moduleBindings : Set String
-    , localBindings : RangeDict (Set String)
-    , extractSourceCode : Range -> String
-    , later :
-        { range : Range
-        , fn : ( ModuleName, String )
-        , fnRange : Range
-        , args : List (Node Expression)
-        , -- how many arguments a fully applied call would have
-          argCount : Int
-        , removeRange : Range
-        }
-    , earlier :
-        { range : Range
-        , fn : ( ModuleName, String )
-        , fnRange : Range
-        , args : List (Node Expression)
-        , removeRange : Range
-        }
-    , isEmbeddedInComposition : Bool
-    }
-
-
-type alias ErrorInfoAndFix =
-    { info : { message : String, details : List String }
-    , fix : List Fix
-    }
-
-
 compositionIntoChecks : Dict ( ModuleName, String ) ( Int, CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix )
 compositionIntoChecks =
-    Dict.fromList
-        [ ( Fn.Basics.always, ( 2, basicsAlwaysCompositionChecks ) )
-        , ( Fn.Basics.not, ( 1, toggleCompositionChecks ) )
-        , ( Fn.Basics.round, ( 1, inversesCompositionCheck Fn.Basics.toFloat ) )
-        , ( Fn.Basics.ceiling, ( 1, inversesCompositionCheck Fn.Basics.toFloat ) )
-        , ( Fn.Basics.floor, ( 1, inversesCompositionCheck Fn.Basics.toFloat ) )
-        , ( Fn.Basics.truncate, ( 1, inversesCompositionCheck Fn.Basics.toFloat ) )
-        , ( Fn.Basics.negate, ( 1, toggleCompositionChecks ) )
-        , ( Fn.String.reverse, ( 1, stringReverseCompositionChecks ) )
-        , ( Fn.String.fromList, ( 1, stringFromListCompositionChecks ) )
-        , ( Fn.String.toList, ( 1, stringToListCompositionChecks ) )
-        , ( Fn.String.concat, ( 1, stringConcatCompositionChecks ) )
-        , ( Fn.Tuple.first, ( 1, tupleFirstCompositionChecks ) )
-        , ( Fn.Tuple.second, ( 1, tupleSecondCompositionChecks ) )
-        , ( Fn.Maybe.map, ( 2, maybeMapCompositionChecks ) )
-        , ( Fn.Maybe.andThen, ( 2, maybeAndThenCompositionChecks ) )
-        , ( Fn.Maybe.withDefault, ( 2, wrapperWithDefaultChecks maybeWithJustAsWrap ) )
-        , ( Fn.Result.map, ( 2, resultMapCompositionChecks ) )
-        , ( Fn.Result.mapError, ( 2, resultMapErrorCompositionChecks ) )
-        , ( Fn.Result.andThen, ( 2, resultAndThenCompositionChecks ) )
-        , ( Fn.Result.toMaybe, ( 1, resultToMaybeCompositionChecks ) )
-        , ( Fn.Result.fromMaybe, ( 3, wrapperFromMaybeCompositionChecks resultWithOkAsWrap ) )
-        , ( Fn.Result.withDefault, ( 2, wrapperWithDefaultChecks resultWithOkAsWrap ) )
-        , ( Fn.List.reverse, ( 1, listReverseCompositionChecks ) )
-        , ( Fn.List.sort, ( 1, listSortCompositionChecks ) )
-        , ( Fn.List.sortBy, ( 2, listSortByCompositionChecks ) )
-        , ( Fn.List.map, ( 2, listMapCompositionChecks ) )
-        , ( Fn.List.concatMap, ( 2, listConcatMapCompositionChecks ) )
-        , ( Fn.List.filterMap, ( 2, listFilterMapCompositionChecks ) )
-        , ( Fn.List.intersperse, ( 2, listIntersperseCompositionChecks ) )
-        , ( Fn.List.concat, ( 1, listConcatCompositionChecks ) )
-        , ( Fn.List.sum, ( 1, sumCompositionChecks listCollection ) )
-        , ( Fn.List.product, ( 1, productCompositionChecks listCollection ) )
-        , ( Fn.List.minimum, ( 1, minimumCompositionChecks listCollection ) )
-        , ( Fn.List.maximum, ( 1, maximumCompositionChecks listCollection ) )
-        , ( Fn.List.foldl, ( 3, listFoldlCompositionChecks ) )
-        , ( Fn.List.foldr, ( 3, listFoldrCompositionChecks ) )
-        , ( Fn.Set.fromList, ( 1, setFromListCompositionChecks ) )
-        , ( Fn.Dict.fromList, ( 1, dictFromListCompositionChecks ) )
-        , ( Fn.Array.toList, ( 1, arrayToListCompositionChecks ) )
-        , ( Fn.Array.fromList, ( 1, arrayFromListCompositionChecks ) )
-        , ( Fn.Task.map, ( 2, taskMapCompositionChecks ) )
-        , ( Fn.Task.andThen, ( 2, taskAndThenCompositionChecks ) )
-        , ( Fn.Task.mapError, ( 2, taskMapErrorCompositionChecks ) )
-        , ( Fn.Task.onError, ( 2, taskOnErrorCompositionChecks ) )
-        , ( Fn.Task.sequence, ( 1, taskSequenceCompositionChecks ) )
-        , ( Fn.Platform.Cmd.batch, ( 1, wrapperFlatFromListCompositionChecks ) )
-        , ( Fn.Platform.Sub.batch, ( 1, wrapperFlatFromListCompositionChecks ) )
-        , ( Fn.Json.Decode.map, ( 2, jsonDecodeMapCompositionChecks ) )
-        , ( Fn.Json.Decode.andThen, ( 2, jsonDecodeAndThenCompositionChecks ) )
-        , ( Fn.Random.map, ( 2, randomMapCompositionChecks ) )
-        , ( Fn.Random.andThen, ( 2, randomAndThenCompositionChecks ) )
-        ]
+    Dict.map (\_ ( argCount, checks ) -> ( argCount, checks.composition )) intoFnChecks
 
 
 findOperatorRange :
