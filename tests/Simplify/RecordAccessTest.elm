@@ -735,4 +735,26 @@ a =
     always first
 """
                         ]
+        , test "should simplify record accesses for if/then/else expressions as record type alias constructions" <|
+            \() ->
+                """module A exposing (..)
+type alias F =
+    { f : Int }
+a =
+    (if x then F 3 else { z | f = 3 }).f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Accessing a field outside an if...then...else will result in accessing it in each branch"
+                            , details = [ "You can replace accessing this record outside an if...then...else by accessing the record inside each branch." ]
+                            , under = ".f"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+type alias F =
+    { f : Int }
+a =
+    (if x then (F 3).f else { z | f = 3 }.f)
+"""
+                        ]
         ]
