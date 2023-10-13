@@ -89,7 +89,11 @@
 - `floor 1` to `1`
 - `truncate 1` to `1`
 - `round (toFloat n)` to `n` (and same for ceiling, floor, truncate)
-- `(Record first second).first` to `first`
+- where `type alias Record = { first : Int, second : Int }`:
+    - all simplifications for `(Record first second)` that already exist for literal records,
+      like `(Record first second).first` to `first`
+    - `.second << Record first` to `identity`
+    - `.first << Record first` to `always first`
 - `List.drop -1 list` to `list`
 - `List.drop 3 [ a, b ]` to `[]` (same for lists with determined size like `List.singleton`)
 - `List.drop 2 [ a, b, c ]` to `[ c ]`
