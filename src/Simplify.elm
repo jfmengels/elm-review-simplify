@@ -12159,6 +12159,7 @@ accessingRecordCompositionChecks checkInfo =
 
                                         else
                                             let
+                                                maybeAccessedFieldExpressionNode : Maybe (Node Expression)
                                                 maybeAccessedFieldExpressionNode =
                                                     findMap
                                                         (\field ->
