@@ -691,4 +691,48 @@ type alias Record =
                             ]
                           )
                         ]
+        , test "should replace record type alias constructor into last field access function by identity" <|
+            \() ->
+                """module A exposing (..)
+type alias Record =
+    { first : Int, second : Int }
+a =
+    .second << Record first
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary constructing a record around a field that is then being accessed"
+                            , details = [ "This composition will construct a record with the incoming value stored in the field `second`. This exact field is then immediately accessed which means you can replace this composition by identity." ]
+                            , under = ".second"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+type alias Record =
+    { first : Int, second : Int }
+a =
+    identity
+"""
+                        ]
+        , test "should replace record type alias constructor into known field access function by always that field value" <|
+            \() ->
+                """module A exposing (..)
+type alias Record =
+    { first : Int, second : Int }
+a =
+    .first << Record first
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                            , details = [ "This composition will construct a record where we known the value of the field `first`. This exact field is then immediately accessed which means you can replace this composition by `always` with that value." ]
+                            , under = ".first"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+type alias Record =
+    { first : Int, second : Int }
+a =
+    always first
+"""
+                        ]
         ]

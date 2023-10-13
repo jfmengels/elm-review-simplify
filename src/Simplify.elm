@@ -2339,6 +2339,8 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             in
             { lookupTable = context.lookupTable
             , importLookup = context.importLookup
+            , importRecordTypeAliases = context.importRecordTypeAliases
+            , moduleRecordTypeAliases = context.moduleRecordTypeAliases
             , inferredConstants = context.inferredConstants
             , moduleBindings = context.moduleBindings
             , localBindings = context.localBindings
@@ -3036,6 +3038,8 @@ functionCallChecks =
 type alias CompositionCheckInfo =
     { lookupTable : ModuleNameLookupTable
     , importLookup : ImportLookup
+    , importRecordTypeAliases : Dict ModuleName (Dict String (List String))
+    , moduleRecordTypeAliases : Dict String (List String)
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
@@ -12111,30 +12115,105 @@ accessingRecordCompositionChecks : CompositionCheckInfo -> Maybe (Error {})
 accessingRecordCompositionChecks checkInfo =
     case AstHelpers.getRecordAccessFunction checkInfo.later.node of
         Just accessFunctionFieldName ->
-            case constructs getRecordWithKnownFields checkInfo.lookupTable checkInfo.earlier.node of
-                Just recordWithKnownField ->
-                    accessingRecordWithKnownFieldsChecks
-                        { nodeRange = recordWithKnownField.range
-                        , fieldName = accessFunctionFieldName
-                        , maybeRecordNameRange = recordWithKnownField.maybeRecordNameRange
-                        , knownFields = recordWithKnownField.knownFields
-                        }
-                        |> Maybe.map
-                            (\e ->
-                                Rule.errorWithFix e.info
-                                    (Node.range checkInfo.later.node)
-                                    (Fix.removeRange checkInfo.later.removeRange :: e.fix)
-                            )
+            firstThatConstructsJust
+                [ \() ->
+                    case constructs (getRecordWithKnownFields checkInfo) checkInfo.lookupTable checkInfo.earlier.node of
+                        Just recordWithKnownField ->
+                            accessingRecordWithKnownFieldsChecks
+                                { nodeRange = recordWithKnownField.range
+                                , fieldName = accessFunctionFieldName
+                                , maybeRecordNameRange = recordWithKnownField.maybeRecordNameRange
+                                , knownFields = recordWithKnownField.knownFields
+                                }
+                                |> Maybe.map
+                                    (\e ->
+                                        Rule.errorWithFix e.info
+                                            (Node.range checkInfo.later.node)
+                                            (Fix.removeRange checkInfo.later.removeRange :: e.fix)
+                                    )
 
-                Nothing ->
-                    Nothing
+                        Nothing ->
+                            Nothing
+                , \() ->
+                    case getRecordTypeAliasConstructorCall checkInfo.earlier.node checkInfo of
+                        Just recordTypeAliasConstructorCall ->
+                            if List.length recordTypeAliasConstructorCall.fieldNames == (List.length recordTypeAliasConstructorCall.args + 1) then
+                                case recordTypeAliasConstructorCall.fieldNames of
+                                    -- alias to {} (which is actually allowed by elm)
+                                    [] ->
+                                        Nothing
+
+                                    firstFirstName :: afterFirstFieldName ->
+                                        if listFilledLast ( firstFirstName, afterFirstFieldName ) == accessFunctionFieldName then
+                                            Just
+                                                (Rule.errorWithFix
+                                                    { message = "Unnecessary constructing a record around a field that is then being accessed"
+                                                    , details = [ "This composition will construct a record with the incoming value stored in the field " ++ wrapInBackticks accessFunctionFieldName ++ ". This exact field is then immediately accessed which means you can replace this composition by identity." ]
+                                                    }
+                                                    (Node.range checkInfo.later.node)
+                                                    [ Fix.removeRange checkInfo.earlier.removeRange
+                                                    , Fix.replaceRangeBy (Node.range checkInfo.later.node)
+                                                        (qualifiedToString (qualify Fn.Basics.identity checkInfo))
+                                                    ]
+                                                )
+
+                                        else
+                                            let
+                                                maybeAccessedFieldExpressionNode =
+                                                    findMap
+                                                        (\field ->
+                                                            if field.name == accessFunctionFieldName then
+                                                                Just field.arg
+
+                                                            else
+                                                                Nothing
+                                                        )
+                                                        (List.map2 (\name arg -> { name = name, arg = arg })
+                                                            recordTypeAliasConstructorCall.fieldNames
+                                                            recordTypeAliasConstructorCall.args
+                                                        )
+                                            in
+                                            case maybeAccessedFieldExpressionNode of
+                                                Just accessedFieldExpressionNode ->
+                                                    Just
+                                                        (Rule.errorWithFix
+                                                            { message = "Accessing a field of a record where we know that field's value will return that field's value"
+                                                            , details = [ "This composition will construct a record where we known the value of the field " ++ wrapInBackticks accessFunctionFieldName ++ ". This exact field is then immediately accessed which means you can replace this composition by `always` with that value." ]
+                                                            }
+                                                            (Node.range checkInfo.later.node)
+                                                            (replaceBySubExpressionFix (Node.range checkInfo.earlier.node) accessedFieldExpressionNode
+                                                                ++ [ Fix.insertAt (Node.range checkInfo.earlier.node).start
+                                                                        (qualifiedToString (qualify Fn.Basics.always checkInfo) ++ " ")
+                                                                   , Fix.removeRange checkInfo.later.removeRange
+                                                                   ]
+                                                            )
+                                                        )
+
+                                                -- compile-time error
+                                                Nothing ->
+                                                    Nothing
+
+                            else
+                                Nothing
+
+                        Nothing ->
+                            Nothing
+                ]
+                ()
 
         Nothing ->
             Nothing
 
 
-getRecordWithKnownFields : Node Expression -> Maybe { range : Range, maybeRecordNameRange : Maybe Range, knownFields : List (Node ( Node String, Node Expression )) }
-getRecordWithKnownFields expressionNode =
+getRecordWithKnownFields :
+    { checkInfo
+        | importRecordTypeAliases : Dict ModuleName (Dict String (List String))
+        , moduleRecordTypeAliases : Dict String (List String)
+        , lookupTable : ModuleNameLookupTable
+    }
+    -> Node Expression
+    -> Maybe { range : Range, maybeRecordNameRange : Maybe Range, knownFields : List (Node ( Node String, Node Expression )) }
+getRecordWithKnownFields resources expressionNode =
     case AstHelpers.removeParens expressionNode of
         Node range (Expression.RecordExpr fields) ->
             Just
@@ -12150,8 +12229,24 @@ getRecordWithKnownFields expressionNode =
                 , knownFields = setFields
                 }
 
-        _ ->
-            Nothing
+        nonRecordLiteralExpressionNode ->
+            case getRecordTypeAliasConstructorCall nonRecordLiteralExpressionNode resources of
+                Just recordTypeAliasConstructorCall ->
+                    if List.length recordTypeAliasConstructorCall.fieldNames == List.length recordTypeAliasConstructorCall.args then
+                        Just
+                            { range = Node.range nonRecordLiteralExpressionNode
+                            , maybeRecordNameRange = Nothing
+                            , knownFields =
+                                List.map2 (\name arg -> Node.empty ( Node.empty name, arg ))
+                                    recordTypeAliasConstructorCall.fieldNames
+                                    recordTypeAliasConstructorCall.args
+                            }
+
+                    else
+                        Nothing
+
+                Nothing ->
+                    Nothing
 
 
 accessingRecordWithKnownFieldsChecks :
@@ -12203,9 +12298,36 @@ accessingRecordWithKnownFieldsChecks checkInfo =
                     Nothing
 
 
-distributeFieldAccess : String -> List (Node Expression) -> { checkInfo | parentRange : Range, record : Node Expression, fieldName : String } -> Maybe ErrorInfoAndFix
+distributeFieldAccess :
+    String
+    -> List (Node Expression)
+    ->
+        { checkInfo
+            | parentRange : Range
+            , record : Node Expression
+            , fieldName : String
+            , importRecordTypeAliases : Dict ModuleName (Dict String (List String))
+            , moduleRecordTypeAliases : Dict String (List String)
+            , lookupTable : ModuleNameLookupTable
+        }
+    -> Maybe ErrorInfoAndFix
 distributeFieldAccess kind branches checkInfo =
-    case returnsRecordInAllBranches branches of
+    let
+        recordWithKnownFieldsInAllBranches : Maybe (List (Node Expression))
+        recordWithKnownFieldsInAllBranches =
+            traverse
+                (\surfaceBranch ->
+                    sameInAllBranches
+                        (\innerBranch ->
+                            getRecordWithKnownFields checkInfo innerBranch
+                                |> Maybe.map (\_ -> innerBranch)
+                        )
+                        surfaceBranch
+                )
+                branches
+                |> Maybe.map List.concat
+    in
+    case recordWithKnownFieldsInAllBranches of
         Just records ->
             Just
                 { info =
@@ -12214,29 +12336,10 @@ distributeFieldAccess kind branches checkInfo =
                     }
                 , fix =
                     keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.record }
-                        ++ List.concatMap (\leaf -> replaceSubExpressionByRecordAccessFix checkInfo.fieldName leaf) records
+                        ++ List.concatMap (\recordWithKnownFields -> replaceSubExpressionByRecordAccessFix checkInfo.fieldName recordWithKnownFields) records
                 }
 
         Nothing ->
-            Nothing
-
-
-returnsRecordInAllBranches : List (Node Expression) -> Maybe (List (Node Expression))
-returnsRecordInAllBranches nodes =
-    traverse (sameInAllBranches getRecordLeafExpression) nodes
-        |> Maybe.map List.concat
-
-
-getRecordLeafExpression : Node Expression -> Maybe (Node Expression)
-getRecordLeafExpression expressionNode =
-    case Node.value (AstHelpers.removeParens expressionNode) of
-        Expression.RecordExpr _ ->
-            Just expressionNode
-
-        Expression.RecordUpdateExpression _ _ ->
-            Just expressionNode
-
-        _ ->
             Nothing
 
 
