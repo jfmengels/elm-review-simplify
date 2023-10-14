@@ -2903,7 +2903,7 @@ type alias ErrorInfoAndFix =
 
 {-| Checking both the function call of and composition into a specific fn.
 
-Construct the record directly or use `intoFnCheckOnlyCall`.
+Construct the record directly or use `intoFnCheckOnlyCall`/`intoFnCheckOnlyComposition`.
 
 -}
 type alias IntoFnCheck =
@@ -2917,6 +2917,13 @@ type alias IntoFnCheck =
 intoFnCheckOnlyCall : (CheckInfo -> Maybe (Error {})) -> IntoFnCheck
 intoFnCheckOnlyCall callFnCheck =
     { call = callFnCheck, composition = \_ -> Nothing }
+
+
+{-| There is no equivalent call check.
+-}
+intoFnCheckOnlyComposition : (CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix) -> IntoFnCheck
+intoFnCheckOnlyComposition compositionIntoFnCheck =
+    { composition = compositionIntoFnCheck, call = \_ -> Nothing }
 
 
 {-| Try the given `IntoFnCheck`s in order and report the first found error.
@@ -4767,11 +4774,10 @@ resultWithDefaultChecks =
 
 resultToMaybeChecks : IntoFnCheck
 resultToMaybeChecks =
-    { call = unwrapToMaybeChecks resultWithOkAsWrap
-    , composition =
-        firstThatConstructsJust
-            [ onWrapAlwaysReturnsJustIncomingCompositionCheck resultWithOkAsWrap
-            , \checkInfo ->
+    intoFnChecksFirstThatConstructsError
+        [ unwrapToMaybeChecks resultWithOkAsWrap
+        , intoFnCheckOnlyComposition
+            (\checkInfo ->
                 case checkInfo.earlier.fn of
                     ( [ "Result" ], "Err" ) ->
                         Just
@@ -4790,8 +4796,8 @@ resultToMaybeChecks =
 
                     _ ->
                         Nothing
-            ]
-    }
+            )
+        ]
 
 
 resultFromMaybeChecks : IntoFnCheck
@@ -5308,24 +5314,20 @@ listProductChecks =
 
 listMinimumChecks : IntoFnCheck
 listMinimumChecks =
-    { call =
-        firstThatConstructsJust
-            [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection
-            , callOnWrapReturnsJustItsValue listCollection
-            ]
-    , composition = minimumCompositionChecks listCollection
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection)
+        , callOnWrapReturnsJustItsValue listCollection
+        ]
 
 
 listMaximumChecks : IntoFnCheck
 listMaximumChecks =
-    { call =
-        firstThatConstructsJust
-            [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection
-            , callOnWrapReturnsJustItsValue listCollection
-            ]
-    , composition = maximumCompositionChecks listCollection
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection)
+        , callOnWrapReturnsJustItsValue listCollection
+        ]
 
 
 listFoldlChecks : IntoFnCheck
@@ -8192,14 +8194,15 @@ emptiableWithDefaultChecks emptiable checkInfo =
 
 unwrapToMaybeChecks :
     WrapperProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
-    -> CheckInfo
-    -> Maybe (Error {})
+    -> IntoFnCheck
 unwrapToMaybeChecks emptiableWrapper =
-    firstThatConstructsJust
+    intoFnChecksFirstThatConstructsError
         [ callOnWrapReturnsJustItsValue emptiableWrapper
-        , callOnEmptyReturnsCheck
-            { resultAsString = \res -> qualifiedToString (qualify Fn.Maybe.nothingVariant res) }
-            emptiableWrapper
+        , intoFnCheckOnlyCall
+            (callOnEmptyReturnsCheck
+                { resultAsString = \res -> qualifiedToString (qualify Fn.Maybe.nothingVariant res) }
+                emptiableWrapper
+            )
         ]
 
 
@@ -8659,16 +8662,6 @@ knownMemberChecks collection checkInfo =
 
             Nothing ->
                 Nothing
-
-
-minimumCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-minimumCompositionChecks wrapper =
-    onWrapAlwaysReturnsJustIncomingCompositionCheck wrapper
-
-
-maximumCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-maximumCompositionChecks wrapper =
-    onWrapAlwaysReturnsJustIncomingCompositionCheck wrapper
 
 
 {-| Replace a call on a collection containing an absorbing element to the absorbing element.
@@ -10911,73 +10904,60 @@ callOnWrapReturnsItsValueCheck wrapper =
 
     operation (wrap a) --> Just a
 
-For example
-
-    List.minimum [ a ] --> Just a
-
-    Result.toMaybe (Ok a) --> Just a
-
-Use together with `callOnWrapReturnsJustItsValue`.
-
--}
-callOnWrapReturnsJustItsValue :
-    { otherProperties
-        | wrap : ConstructWithOneArgProperties
-    }
-    -> CheckInfo
-    -> Maybe (Error {})
-callOnWrapReturnsJustItsValue withWrap checkInfo =
-    case fullyAppliedLastArg checkInfo of
-        Just withWrapArg ->
-            case sameInAllBranches (getValueWithNodeRange (withWrap.wrap.getValue checkInfo.lookupTable)) withWrapArg of
-                Just wraps ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite withWrap.wrap.description ++ " will result in Just the value inside"
-                            , details = [ "You can replace this call by Just the value inside " ++ descriptionForDefinite "the" withWrap.wrap.description ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            (Fix.removeRange { start = (Node.range withWrapArg).end, end = checkInfo.parentRange.end }
-                                :: List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
-                                ++ [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = (Node.range withWrapArg).start }
-                                        (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo) ++ " ")
-                                   ]
-                            )
-                        )
-
-                Nothing ->
-                    Nothing
-
-        Nothing ->
-            Nothing
-
-
-{-| This operation is equivalent to Just when called on a wrapped value.
-
     operation << wrap --> Just
 
 For example
 
+    List.minimum [ a ] --> Just a
+
     List.minimum << List.singleton --> Just
+
+    Result.toMaybe (Ok a) --> Just a
 
     Result.toMaybe << Ok --> Just
 
-Use together with `callOnWrapReturnsJustItsValue`.
-
 -}
-onWrapAlwaysReturnsJustIncomingCompositionCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-onWrapAlwaysReturnsJustIncomingCompositionCheck wrapper checkInfo =
-    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
-        Just
-            { info =
-                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in Just the value inside"
-                , details = [ "You can replace this call by Just." ]
-                }
-            , fix = compositionReplaceByFnFix Fn.Maybe.justVariant checkInfo
-            }
+callOnWrapReturnsJustItsValue : WrapperProperties otherProperties -> IntoFnCheck
+callOnWrapReturnsJustItsValue wrapper =
+    { call =
+        \checkInfo ->
+            case fullyAppliedLastArg checkInfo of
+                Just withWrapArg ->
+                    case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) withWrapArg of
+                        Just wraps ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in Just the value inside"
+                                    , details = [ "You can replace this call by Just the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.removeRange { start = (Node.range withWrapArg).end, end = checkInfo.parentRange.end }
+                                        :: List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
+                                        ++ [ Fix.replaceRangeBy { start = checkInfo.parentRange.start, end = (Node.range withWrapArg).start }
+                                                (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo) ++ " ")
+                                           ]
+                                    )
+                                )
 
-    else
-        Nothing
+                        Nothing ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+    , composition =
+        \checkInfo ->
+            if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
+                Just
+                    { info =
+                        { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in Just the value inside"
+                        , details = [ "You can replace this call by Just." ]
+                        }
+                    , fix = compositionReplaceByFnFix Fn.Maybe.justVariant checkInfo
+                    }
+
+            else
+                Nothing
+    }
 
 
 {-| The filter checks
