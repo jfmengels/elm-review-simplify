@@ -5288,208 +5288,206 @@ listMaximumChecks =
 
 listFoldlChecks : IntoFnCheck
 listFoldlChecks =
-    { call = listFoldAnyDirectionChecks
-    , composition = foldAndSetToListCompositionChecks
-    }
+    listFoldAnyDirectionChecks
 
 
 listFoldrChecks : IntoFnCheck
 listFoldrChecks =
-    { call = listFoldAnyDirectionChecks
-    , composition = foldAndSetToListCompositionChecks
-    }
+    listFoldAnyDirectionChecks
 
 
-listFoldAnyDirectionChecks : CheckInfo -> Maybe (Error {})
+listFoldAnyDirectionChecks : IntoFnCheck
 listFoldAnyDirectionChecks =
-    firstThatConstructsJust
-        [ emptiableFoldChecks listCollection
-        , \checkInfo ->
-            case secondArg checkInfo of
-                Nothing ->
-                    Nothing
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (emptiableFoldChecks listCollection)
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case secondArg checkInfo of
+                    Nothing ->
+                        Nothing
 
-                Just initialArg ->
-                    let
-                        maybeListArg : Maybe (Node Expression)
-                        maybeListArg =
-                            thirdArg checkInfo
+                    Just initialArg ->
+                        let
+                            maybeListArg : Maybe (Node Expression)
+                            maybeListArg =
+                                thirdArg checkInfo
 
-                        numberBinaryOperationChecks : { identity : Int, two : String, list : String } -> Maybe (Error {})
-                        numberBinaryOperationChecks operation =
-                            let
-                                fixWith : List Fix -> Error {}
-                                fixWith fixes =
-                                    let
-                                        replacementOperationAsString : String
-                                        replacementOperationAsString =
-                                            qualifiedToString ( [ "List" ], operation.list )
-                                    in
-                                    Rule.errorWithFix
-                                        { message = qualifiedToString checkInfo.fn ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as " ++ replacementOperationAsString
-                                        , details = [ "You can replace this call by " ++ replacementOperationAsString ++ " which is meant for this exact purpose." ]
-                                        }
-                                        checkInfo.fnRange
-                                        fixes
-                            in
-                            if AstHelpers.getUncomputedNumberValue initialArg == Just (Basics.toFloat operation.identity) then
-                                Just
-                                    (fixWith
-                                        [ Fix.replaceRangeBy
-                                            { start = checkInfo.fnRange.start
-                                            , end = (Node.range initialArg).end
+                            numberBinaryOperationChecks : { identity : Int, two : String, list : String } -> Maybe (Error {})
+                            numberBinaryOperationChecks operation =
+                                let
+                                    fixWith : List Fix -> Error {}
+                                    fixWith fixes =
+                                        let
+                                            replacementOperationAsString : String
+                                            replacementOperationAsString =
+                                                qualifiedToString ( [ "List" ], operation.list )
+                                        in
+                                        Rule.errorWithFix
+                                            { message = qualifiedToString checkInfo.fn ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as " ++ replacementOperationAsString
+                                            , details = [ "You can replace this call by " ++ replacementOperationAsString ++ " which is meant for this exact purpose." ]
                                             }
-                                            (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo))
-                                        ]
-                                    )
-
-                            else
-                                case maybeListArg of
-                                    Nothing ->
-                                        Nothing
-
-                                    Just _ ->
-                                        case checkInfo.callStyle of
-                                            Pipe LeftToRight ->
-                                                -- list |> fold op initial --> ((list |> List.op) op initial)
-                                                Just
-                                                    (fixWith
-                                                        [ Fix.insertAt (Node.range initialArg).end ")"
-                                                        , Fix.insertAt (Node.range initialArg).start (operation.two ++ " ")
-                                                        , Fix.replaceRangeBy
-                                                            { start = checkInfo.fnRange.start
-                                                            , end = (Node.range checkInfo.firstArg).end
-                                                            }
-                                                            (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo) ++ ")")
-                                                        , Fix.insertAt checkInfo.parentRange.start "(("
-                                                        ]
-                                                    )
-
-                                            -- Pipe RightToLeft | Application ->
-                                            _ ->
-                                                -- fold op initial list --> (initial op (List.op list))
-                                                Just
-                                                    (fixWith
-                                                        [ Fix.insertAt checkInfo.parentRange.end ")"
-                                                        , Fix.insertAt (Node.range initialArg).end
-                                                            (" "
-                                                                ++ operation.two
-                                                                ++ " ("
-                                                                ++ qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo)
-                                                            )
-                                                        , Fix.removeRange
-                                                            { start = checkInfo.fnRange.start
-                                                            , end = (Node.range initialArg).start
-                                                            }
-                                                        ]
-                                                    )
-
-                        boolBinaryOperationChecks : { two : String, list : String, determining : Bool } -> Bool -> Error {}
-                        boolBinaryOperationChecks operation initialIsDetermining =
-                            if initialIsDetermining == operation.determining then
-                                let
-                                    determiningAsString : String
-                                    determiningAsString =
-                                        AstHelpers.boolToString operation.determining
+                                            checkInfo.fnRange
+                                            fixes
                                 in
-                                alwaysResultsInUnparenthesizedConstantError
-                                    (qualifiedToString checkInfo.fn ++ " with (" ++ operation.two ++ ") and the initial accumulator " ++ determiningAsString)
-                                    { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], determiningAsString ) res) }
-                                    checkInfo
-
-                            else
-                                -- initialIsTrue /= operation.determining
-                                let
-                                    replacementOperationAsString : String
-                                    replacementOperationAsString =
-                                        qualifiedToString ( [ "List" ], operation.list ) ++ " identity"
-                                in
-                                Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as " ++ replacementOperationAsString
-                                    , details = [ "You can replace this call by " ++ replacementOperationAsString ++ " which is meant for this exact purpose." ]
-                                    }
-                                    checkInfo.fnRange
-                                    [ Fix.replaceRangeBy
-                                        { start = checkInfo.fnRange.start, end = (Node.range initialArg).end }
-                                        (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo)
-                                            ++ " "
-                                            ++ qualifiedToString (qualify Fn.Basics.identity checkInfo)
+                                if AstHelpers.getUncomputedNumberValue initialArg == Just (Basics.toFloat operation.identity) then
+                                    Just
+                                        (fixWith
+                                            [ Fix.replaceRangeBy
+                                                { start = checkInfo.fnRange.start
+                                                , end = (Node.range initialArg).end
+                                                }
+                                                (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo))
+                                            ]
                                         )
-                                    ]
-                    in
-                    firstThatConstructsJust
-                        [ \() ->
-                            case maybeListArg of
-                                Just listArg ->
-                                    case AstHelpers.getSpecificFnCall Fn.Set.toList checkInfo.lookupTable listArg of
-                                        Just setToListCall ->
-                                            Just
-                                                (Rule.errorWithFix
-                                                    { message = "To fold a set, you don't need to convert to a List"
-                                                    , details = [ "Using " ++ qualifiedToString ( [ "Set" ], AstHelpers.qualifiedName checkInfo.fn ) ++ " directly is meant for this exact purpose and will also be faster." ]
-                                                    }
-                                                    checkInfo.fnRange
-                                                    (replaceBySubExpressionFix setToListCall.nodeRange setToListCall.firstArg
-                                                        ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                                                (qualifiedToString (qualify ( [ "Set" ], AstHelpers.qualifiedName checkInfo.fn ) checkInfo))
-                                                           ]
-                                                    )
-                                                )
 
+                                else
+                                    case maybeListArg of
                                         Nothing ->
                                             Nothing
 
+                                        Just _ ->
+                                            case checkInfo.callStyle of
+                                                Pipe LeftToRight ->
+                                                    -- list |> fold op initial --> ((list |> List.op) op initial)
+                                                    Just
+                                                        (fixWith
+                                                            [ Fix.insertAt (Node.range initialArg).end ")"
+                                                            , Fix.insertAt (Node.range initialArg).start (operation.two ++ " ")
+                                                            , Fix.replaceRangeBy
+                                                                { start = checkInfo.fnRange.start
+                                                                , end = (Node.range checkInfo.firstArg).end
+                                                                }
+                                                                (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo) ++ ")")
+                                                            , Fix.insertAt checkInfo.parentRange.start "(("
+                                                            ]
+                                                        )
+
+                                                -- Pipe RightToLeft | Application ->
+                                                _ ->
+                                                    -- fold op initial list --> (initial op (List.op list))
+                                                    Just
+                                                        (fixWith
+                                                            [ Fix.insertAt checkInfo.parentRange.end ")"
+                                                            , Fix.insertAt (Node.range initialArg).end
+                                                                (" "
+                                                                    ++ operation.two
+                                                                    ++ " ("
+                                                                    ++ qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo)
+                                                                )
+                                                            , Fix.removeRange
+                                                                { start = checkInfo.fnRange.start
+                                                                , end = (Node.range initialArg).start
+                                                                }
+                                                            ]
+                                                        )
+
+                            boolBinaryOperationChecks : { two : String, list : String, determining : Bool } -> Bool -> Error {}
+                            boolBinaryOperationChecks operation initialIsDetermining =
+                                if initialIsDetermining == operation.determining then
+                                    let
+                                        determiningAsString : String
+                                        determiningAsString =
+                                            AstHelpers.boolToString operation.determining
+                                    in
+                                    alwaysResultsInUnparenthesizedConstantError
+                                        (qualifiedToString checkInfo.fn ++ " with (" ++ operation.two ++ ") and the initial accumulator " ++ determiningAsString)
+                                        { replacement = \res -> qualifiedToString (qualify ( [ "Basics" ], determiningAsString ) res) }
+                                        checkInfo
+
+                                else
+                                    -- initialIsTrue /= operation.determining
+                                    let
+                                        replacementOperationAsString : String
+                                        replacementOperationAsString =
+                                            qualifiedToString ( [ "List" ], operation.list ) ++ " identity"
+                                    in
+                                    Rule.errorWithFix
+                                        { message = qualifiedToString checkInfo.fn ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as " ++ replacementOperationAsString
+                                        , details = [ "You can replace this call by " ++ replacementOperationAsString ++ " which is meant for this exact purpose." ]
+                                        }
+                                        checkInfo.fnRange
+                                        [ Fix.replaceRangeBy
+                                            { start = checkInfo.fnRange.start, end = (Node.range initialArg).end }
+                                            (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo)
+                                                ++ " "
+                                                ++ qualifiedToString (qualify Fn.Basics.identity checkInfo)
+                                            )
+                                        ]
+                        in
+                        firstThatConstructsJust
+                            [ \() ->
+                                if AstHelpers.isSpecificUnappliedBinaryOperation "*" checkInfo checkInfo.firstArg then
+                                    numberBinaryOperationChecks { two = "*", list = "product", identity = 1 }
+
+                                else
+                                    Nothing
+                            , \() ->
+                                if AstHelpers.isSpecificUnappliedBinaryOperation "+" checkInfo checkInfo.firstArg then
+                                    numberBinaryOperationChecks { two = "+", list = "sum", identity = 0 }
+
+                                else
+                                    Nothing
+                            , \() ->
+                                case Evaluate.getBoolean checkInfo initialArg of
+                                    Undetermined ->
+                                        Nothing
+
+                                    Determined initialBool ->
+                                        if AstHelpers.isSpecificUnappliedBinaryOperation "&&" checkInfo checkInfo.firstArg then
+                                            Just (boolBinaryOperationChecks { two = "&&", list = "all", determining = False } initialBool)
+
+                                        else if AstHelpers.isSpecificUnappliedBinaryOperation "||" checkInfo checkInfo.firstArg then
+                                            Just (boolBinaryOperationChecks { two = "||", list = "any", determining = True } initialBool)
+
+                                        else
+                                            Nothing
+                            ]
+                            ()
+            )
+        , { call =
+                \checkInfo ->
+                    case thirdArg checkInfo of
+                        Just listArg ->
+                            case AstHelpers.getSpecificFnCall Fn.Set.toList checkInfo.lookupTable listArg of
+                                Just setToListCall ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = "To fold a set, you don't need to convert to a List"
+                                            , details = [ "Using " ++ qualifiedToString ( [ "Set" ], AstHelpers.qualifiedName checkInfo.fn ) ++ " directly is meant for this exact purpose and will also be faster." ]
+                                            }
+                                            checkInfo.fnRange
+                                            (replaceBySubExpressionFix setToListCall.nodeRange setToListCall.firstArg
+                                                ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                                        (qualifiedToString (qualify ( [ "Set" ], AstHelpers.qualifiedName checkInfo.fn ) checkInfo))
+                                                   ]
+                                            )
+                                        )
+
                                 Nothing ->
                                     Nothing
-                        , \() ->
-                            if AstHelpers.isSpecificUnappliedBinaryOperation "*" checkInfo checkInfo.firstArg then
-                                numberBinaryOperationChecks { two = "*", list = "product", identity = 1 }
 
-                            else
-                                Nothing
-                        , \() ->
-                            if AstHelpers.isSpecificUnappliedBinaryOperation "+" checkInfo checkInfo.firstArg then
-                                numberBinaryOperationChecks { two = "+", list = "sum", identity = 0 }
+                        Nothing ->
+                            Nothing
+          , composition =
+                \checkInfo ->
+                    case checkInfo.earlier.fn of
+                        ( [ "Set" ], "toList" ) ->
+                            Just
+                                { info =
+                                    { message = "To fold a set, you don't need to convert to a List"
+                                    , details = [ "Using " ++ qualifiedToString ( [ "Set" ], AstHelpers.qualifiedName checkInfo.later.fn ) ++ " directly is meant for this exact purpose and will also be faster." ]
+                                    }
+                                , fix =
+                                    [ Fix.replaceRangeBy checkInfo.later.fnRange
+                                        (qualifiedToString (qualify ( [ "Set" ], AstHelpers.qualifiedName checkInfo.later.fn ) checkInfo))
+                                    , Fix.removeRange checkInfo.earlier.removeRange
+                                    ]
+                                }
 
-                            else
-                                Nothing
-                        , \() ->
-                            case Evaluate.getBoolean checkInfo initialArg of
-                                Undetermined ->
-                                    Nothing
-
-                                Determined initialBool ->
-                                    if AstHelpers.isSpecificUnappliedBinaryOperation "&&" checkInfo checkInfo.firstArg then
-                                        Just (boolBinaryOperationChecks { two = "&&", list = "all", determining = False } initialBool)
-
-                                    else if AstHelpers.isSpecificUnappliedBinaryOperation "||" checkInfo checkInfo.firstArg then
-                                        Just (boolBinaryOperationChecks { two = "||", list = "any", determining = True } initialBool)
-
-                                    else
-                                        Nothing
-                        ]
-                        ()
+                        _ ->
+                            Nothing
+          }
         ]
-
-
-foldAndSetToListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-foldAndSetToListCompositionChecks checkInfo =
-    case checkInfo.earlier.fn of
-        ( [ "Set" ], "toList" ) ->
-            Just
-                { info =
-                    { message = "To fold a set, you don't need to convert to a List"
-                    , details = [ "Using " ++ qualifiedToString ( [ "Set" ], AstHelpers.qualifiedName checkInfo.later.fn ) ++ " directly is meant for this exact purpose and will also be faster." ]
-                    }
-                , fix =
-                    [ Fix.replaceRangeBy checkInfo.later.fnRange
-                        (qualifiedToString (qualify ( [ "Set" ], AstHelpers.qualifiedName checkInfo.later.fn ) checkInfo))
-                    , Fix.removeRange checkInfo.earlier.removeRange
-                    ]
-                }
-
-        _ ->
-            Nothing
 
 
 listIsEmptyChecks : IntoFnCheck
