@@ -4967,7 +4967,7 @@ listMapChecks =
         [ emptiableMapChecks listCollection
         , listMapOnSingletonCheck
         , { call = dictToListMapChecks, composition = dictToListIntoListMapCompositionCheck }
-        , { call = arrayToIndexedListToListMapChecks, composition = arrayToIndexedListMapCompositionCheck }
+        ,  arrayToIndexedListToListMapChecks
         ]
 
 
@@ -5114,40 +5114,66 @@ dictToListMapChecks listMapCheckInfo =
             Nothing
 
 
-arrayToIndexedListToListMapChecks : CheckInfo -> Maybe (Error {})
-arrayToIndexedListToListMapChecks listMapCheckInfo =
-    case secondArg listMapCheckInfo of
-        Just listArgument ->
-            case AstHelpers.getSpecificFnCall Fn.Array.toIndexedList listMapCheckInfo.lookupTable listArgument of
-                Just arrayToIndexedList ->
-                    if AstHelpers.isTupleSecondAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
+arrayToIndexedListToListMapChecks : IntoFnCheck
+arrayToIndexedListToListMapChecks =
+    { call =
+        \listMapCheckInfo ->
+            case secondArg listMapCheckInfo of
+                Just listArgument ->
+                    case AstHelpers.getSpecificFnCall Fn.Array.toIndexedList listMapCheckInfo.lookupTable listArgument of
+                        Just arrayToIndexedList ->
+                            if AstHelpers.isTupleSecondAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
+                                let
+                                    combinedFn : ( ModuleName, String )
+                                    combinedFn =
+                                        Fn.Array.toList
+                                in
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = qualifiedToString Fn.Array.toIndexedList ++ ", then " ++ qualifiedToString Fn.List.map ++ " " ++ qualifiedToString Fn.Tuple.second ++ " is the same as " ++ qualifiedToString combinedFn
+                                        , details = [ "You can replace this call by " ++ qualifiedToString combinedFn ++ " on the array given to " ++ qualifiedToString Fn.Array.toIndexedList ++ " which is meant for this exact purpose and will also be faster." ]
+                                        }
+                                        listMapCheckInfo.fnRange
+                                        (keepOnlyFix { parentRange = Node.range listArgument, keep = Node.range arrayToIndexedList.firstArg }
+                                            ++ [ Fix.replaceRangeBy
+                                                    (Range.combine [ listMapCheckInfo.fnRange, Node.range listMapCheckInfo.firstArg ])
+                                                    (qualifiedToString (qualify combinedFn listMapCheckInfo))
+                                               ]
+                                        )
+                                    )
+
+                            else
+                                Nothing
+
+                        Nothing ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+    , composition =
+        \checkInfo ->
+            case ( checkInfo.earlier.fn, checkInfo.later.args ) of
+                ( ( [ "Array" ], "toIndexedList" ), elementMappingArg :: [] ) ->
+                    if AstHelpers.isTupleSecondAccess checkInfo.lookupTable elementMappingArg then
                         let
                             combinedFn : ( ModuleName, String )
                             combinedFn =
                                 Fn.Array.toList
                         in
                         Just
-                            (Rule.errorWithFix
+                            { info =
                                 { message = qualifiedToString Fn.Array.toIndexedList ++ ", then " ++ qualifiedToString Fn.List.map ++ " " ++ qualifiedToString Fn.Tuple.second ++ " is the same as " ++ qualifiedToString combinedFn
-                                , details = [ "You can replace this call by " ++ qualifiedToString combinedFn ++ " on the array given to " ++ qualifiedToString Fn.Array.toIndexedList ++ " which is meant for this exact purpose and will also be faster." ]
+                                , details = [ "You can replace this composition by " ++ qualifiedToString combinedFn ++ " which is meant for this exact purpose and will also be faster." ]
                                 }
-                                listMapCheckInfo.fnRange
-                                (keepOnlyFix { parentRange = Node.range listArgument, keep = Node.range arrayToIndexedList.firstArg }
-                                    ++ [ Fix.replaceRangeBy
-                                            (Range.combine [ listMapCheckInfo.fnRange, Node.range listMapCheckInfo.firstArg ])
-                                            (qualifiedToString (qualify combinedFn listMapCheckInfo))
-                                       ]
-                                )
-                            )
+                            , fix = compositionReplaceByFnFix combinedFn checkInfo
+                            }
 
                     else
                         Nothing
 
-                Nothing ->
+                _ ->
                     Nothing
-
-        Nothing ->
-            Nothing
+    }
 
 
 dictToListIntoListMapCompositionCheck : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
@@ -5170,31 +5196,6 @@ dictToListIntoListMapCompositionCheck checkInfo =
 
             else if AstHelpers.isTupleSecondAccess checkInfo.lookupTable elementMappingArg then
                 Just (error { tuplePart = "second", toEntryAspectList = "values" })
-
-            else
-                Nothing
-
-        _ ->
-            Nothing
-
-
-arrayToIndexedListMapCompositionCheck : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-arrayToIndexedListMapCompositionCheck checkInfo =
-    case ( checkInfo.earlier.fn, checkInfo.later.args ) of
-        ( ( [ "Array" ], "toIndexedList" ), elementMappingArg :: [] ) ->
-            if AstHelpers.isTupleSecondAccess checkInfo.lookupTable elementMappingArg then
-                let
-                    combinedFn : ( ModuleName, String )
-                    combinedFn =
-                        Fn.Array.toList
-                in
-                Just
-                    { info =
-                        { message = qualifiedToString Fn.Array.toIndexedList ++ ", then " ++ qualifiedToString Fn.List.map ++ " " ++ qualifiedToString Fn.Tuple.second ++ " is the same as " ++ qualifiedToString combinedFn
-                        , details = [ "You can replace this composition by " ++ qualifiedToString combinedFn ++ " which is meant for this exact purpose and will also be faster." ]
-                        }
-                    , fix = compositionReplaceByFnFix combinedFn checkInfo
-                    }
 
             else
                 Nothing
