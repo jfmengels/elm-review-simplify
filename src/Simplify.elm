@@ -8297,8 +8297,6 @@ So for example with `emptiableWrapperFlatFromListChecks stringCollection`
     String.concat [ "hello", "", "world" ]
     --> String.concat [ "hello", "world" ]
 
-Use together with `wrapperFlatFromListCompositionChecks`.
-
 -}
 emptiableWrapperFlatFromListChecks : EmptiableProperties ConstantProperties otherProperties -> IntoFnCheck
 emptiableWrapperFlatFromListChecks batchable =
