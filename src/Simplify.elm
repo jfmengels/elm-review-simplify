@@ -5636,9 +5636,7 @@ listSortChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck listCollection)
         , unnecessaryCallOnWrappedCheck listCollection
-        , { call = operationDoesNotChangeResultOfOperationCheck
-          , composition = operationDoesNotChangeResultOfOperationCompositionCheck
-          }
+        , operationDoesNotChangeResultOfOperationCheck
         ]
 
 
@@ -5662,9 +5660,7 @@ listSortByChecks =
                         Nothing
             )
         , intoFnCheckOnlyCall (operationWithIdentityIsEquivalentToFnCheck Fn.List.sort)
-        , { call = operationDoesNotChangeResultOfOperationCheck
-          , composition = operationDoesNotChangeResultOfOperationCompositionCheck
-          }
+        , operationDoesNotChangeResultOfOperationCheck
         ]
 
 
@@ -10471,73 +10467,74 @@ Note that `update` or `setWhere` operations for example _can_ have an effect eve
 For operations that toggle between 2 states, like `reverse` or `List.Extra.swapAt i j`, use `toggleCallChecks`
 
 -}
-operationDoesNotChangeResultOfOperationCheck : CheckInfo -> Maybe (Error {})
-operationDoesNotChangeResultOfOperationCheck checkInfo =
-    case Maybe.andThen (AstHelpers.getSpecificFnCall checkInfo.fn checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
-        Just lastArgCall ->
+operationDoesNotChangeResultOfOperationCheck : IntoFnCheck
+operationDoesNotChangeResultOfOperationCheck =
+    { call =
+        \checkInfo ->
+            case Maybe.andThen (AstHelpers.getSpecificFnCall checkInfo.fn checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
+                Just lastArgCall ->
+                    let
+                        areAllArgsEqual : Bool
+                        areAllArgsEqual =
+                            List.all
+                                (\( arg, lastArgCallArg ) ->
+                                    Normalize.compare checkInfo arg lastArgCallArg == Normalize.ConfirmedEquality
+                                )
+                                (List.map2 Tuple.pair
+                                    (listFilledInit ( checkInfo.firstArg, checkInfo.argsAfterFirst ))
+                                    (listFilledInit ( lastArgCall.firstArg, lastArgCall.argsAfterFirst ))
+                                )
+                    in
+                    if areAllArgsEqual then
+                        Just
+                            (Rule.errorWithFix
+                                { message =
+                                    case checkInfo.argCount of
+                                        1 ->
+                                            "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " after " ++ qualifiedToString checkInfo.fn
+
+                                        _ ->
+                                            "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " after equivalent " ++ qualifiedToString checkInfo.fn
+                                , details = [ "You can remove this additional operation." ]
+                                }
+                                checkInfo.fnRange
+                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = lastArgCall.nodeRange })
+                            )
+
+                    else
+                        Nothing
+
+                Nothing ->
+                    Nothing
+    , composition =
+        \checkInfo ->
             let
-                areAllArgsEqual : Bool
-                areAllArgsEqual =
+                areAllArgsEqual : () -> Bool
+                areAllArgsEqual () =
                     List.all
-                        (\( arg, lastArgCallArg ) ->
-                            Normalize.compare checkInfo arg lastArgCallArg == Normalize.ConfirmedEquality
+                        (\( arg, earlierArg ) ->
+                            Normalize.compare checkInfo arg earlierArg == Normalize.ConfirmedEquality
                         )
-                        (List.map2 Tuple.pair
-                            (listFilledInit ( checkInfo.firstArg, checkInfo.argsAfterFirst ))
-                            (listFilledInit ( lastArgCall.firstArg, lastArgCall.argsAfterFirst ))
-                        )
+                        (List.map2 Tuple.pair checkInfo.later.args checkInfo.earlier.args)
             in
-            if areAllArgsEqual then
+            if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == checkInfo.later.fn) && areAllArgsEqual () then
                 Just
-                    (Rule.errorWithFix
+                    { info =
                         { message =
-                            case checkInfo.argCount of
+                            case checkInfo.later.argCount of
                                 1 ->
-                                    "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " after " ++ qualifiedToString checkInfo.fn
+                                    "Unnecessary " ++ qualifiedToString checkInfo.later.fn ++ " after " ++ qualifiedToString checkInfo.earlier.fn
 
                                 _ ->
-                                    "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " after equivalent " ++ qualifiedToString checkInfo.fn
+                                    "Unnecessary " ++ qualifiedToString checkInfo.later.fn ++ " after equivalent " ++ qualifiedToString checkInfo.earlier.fn
                         , details = [ "You can remove this additional operation." ]
                         }
-                        checkInfo.fnRange
-                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = lastArgCall.nodeRange })
-                    )
+                    , fix = [ Fix.removeRange checkInfo.later.removeRange ]
+                    }
 
             else
                 Nothing
-
-        Nothing ->
-            Nothing
-
-
-operationDoesNotChangeResultOfOperationCompositionCheck : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-operationDoesNotChangeResultOfOperationCompositionCheck checkInfo =
-    let
-        areAllArgsEqual : () -> Bool
-        areAllArgsEqual () =
-            List.all
-                (\( arg, earlierArg ) ->
-                    Normalize.compare checkInfo arg earlierArg == Normalize.ConfirmedEquality
-                )
-                (List.map2 Tuple.pair checkInfo.later.args checkInfo.earlier.args)
-    in
-    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == checkInfo.later.fn) && areAllArgsEqual () then
-        Just
-            { info =
-                { message =
-                    case checkInfo.later.argCount of
-                        1 ->
-                            "Unnecessary " ++ qualifiedToString checkInfo.later.fn ++ " after " ++ qualifiedToString checkInfo.earlier.fn
-
-                        _ ->
-                            "Unnecessary " ++ qualifiedToString checkInfo.later.fn ++ " after equivalent " ++ qualifiedToString checkInfo.earlier.fn
-                , details = [ "You can remove this additional operation." ]
-                }
-            , fix = [ Fix.removeRange checkInfo.later.removeRange ]
-            }
-
-    else
-        Nothing
+    }
 
 
 toggleFnChecks : IntoFnCheck
