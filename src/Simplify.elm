@@ -4723,7 +4723,7 @@ maybeAndThenChecks =
 
 maybeWithDefaultChecks : IntoFnCheck
 maybeWithDefaultChecks =
-    { call = withDefaultChecks maybeWithJustAsWrap, composition = wrapperWithDefaultChecks maybeWithJustAsWrap }
+    withDefaultChecks maybeWithJustAsWrap
 
 
 
@@ -4802,9 +4802,7 @@ resultAndThenChecks =
 
 resultWithDefaultChecks : IntoFnCheck
 resultWithDefaultChecks =
-    { call = withDefaultChecks resultWithOkAsWrap
-    , composition = wrapperWithDefaultChecks resultWithOkAsWrap
-    }
+    withDefaultChecks resultWithOkAsWrap
 
 
 resultToMaybeChecks : IntoFnCheck
@@ -4857,63 +4855,62 @@ listAppendChecks =
 
 listConcatChecks : IntoFnCheck
 listConcatChecks =
-    { call =
-        firstThatConstructsJust
-            [ unnecessaryCallOnEmptyCheck listCollection
-            , callOnWrapReturnsItsValueCheck listCollection
-            , \checkInfo ->
-                callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
-                    ( listCollection, listCollection )
-                    checkInfo
-            , \checkInfo ->
-                case fromListGetLiteral listCollection checkInfo.lookupTable checkInfo.firstArg of
-                    Just listLiteral ->
-                        firstThatConstructsJust
-                            [ \() ->
-                                case traverse AstHelpers.getListLiteral listLiteral.elements of
-                                    Just _ ->
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message = "Expression could be simplified to be a single List"
-                                                , details = [ "Try moving all the elements into a single list." ]
-                                                }
-                                                checkInfo.fnRange
-                                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
-                                                    ++ List.concatMap removeBoundariesFix listLiteral.elements
-                                                )
-                                            )
+    intoFnChecksFirstThatConstructsError
+        [ callOnWrapReturnsItsValueCheck listCollection
+        , { call =
+                firstThatConstructsJust
+                    [ unnecessaryCallOnEmptyCheck listCollection
+                    , \checkInfo ->
+                        callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
+                            ( listCollection, listCollection )
+                            checkInfo
+                    , \checkInfo ->
+                        case fromListGetLiteral listCollection checkInfo.lookupTable checkInfo.firstArg of
+                            Just listLiteral ->
+                                firstThatConstructsJust
+                                    [ \() ->
+                                        case traverse AstHelpers.getListLiteral listLiteral.elements of
+                                            Just _ ->
+                                                Just
+                                                    (Rule.errorWithFix
+                                                        { message = "Expression could be simplified to be a single List"
+                                                        , details = [ "Try moving all the elements into a single list." ]
+                                                        }
+                                                        checkInfo.fnRange
+                                                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                                                            ++ List.concatMap removeBoundariesFix listLiteral.elements
+                                                        )
+                                                    )
 
-                                    Nothing ->
-                                        Nothing
-                            , \() ->
-                                case mergeConsecutiveFromListLiteralsFix listCollection checkInfo listLiteral.elements of
-                                    firstFix :: fixesAfterFirst ->
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message = "Consecutive literal lists can be merged"
-                                                , details = [ "Try moving all the elements from consecutive list literals so that they form a single list." ]
-                                                }
-                                                checkInfo.fnRange
-                                                (firstFix :: fixesAfterFirst)
-                                            )
+                                            Nothing ->
+                                                Nothing
+                                    , \() ->
+                                        case mergeConsecutiveFromListLiteralsFix listCollection checkInfo listLiteral.elements of
+                                            firstFix :: fixesAfterFirst ->
+                                                Just
+                                                    (Rule.errorWithFix
+                                                        { message = "Consecutive literal lists can be merged"
+                                                        , details = [ "Try moving all the elements from consecutive list literals so that they form a single list." ]
+                                                        }
+                                                        checkInfo.fnRange
+                                                        (firstFix :: fixesAfterFirst)
+                                                    )
 
-                                    [] ->
-                                        Nothing
-                            ]
-                            ()
+                                            [] ->
+                                                Nothing
+                                    ]
+                                    ()
 
-                    Nothing ->
-                        Nothing
-            , callFromCanBeCombinedCheck
-                { fromFn = Fn.List.map, combinedFn = Fn.List.concatMap }
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ compositionFromCanBeCombinedCheck
-                { fromFn = Fn.List.map, combinedFn = Fn.List.concatMap }
-            , onWrapAlwaysReturnsIncomingCompositionCheck listCollection
-            ]
-    }
+                            Nothing ->
+                                Nothing
+                    , callFromCanBeCombinedCheck
+                        { fromFn = Fn.List.map, combinedFn = Fn.List.concatMap }
+                    ]
+          , composition =
+                compositionFromCanBeCombinedCheck
+                    { fromFn = Fn.List.map, combinedFn = Fn.List.concatMap }
+          }
+        ]
 
 
 listConcatMapChecks : IntoFnCheck
@@ -5311,50 +5308,52 @@ listMemberChecks =
 
 listSumChecks : IntoFnCheck
 listSumChecks =
-    { call =
-        firstThatConstructsJust
-            [ callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection
-            , callOnWrapReturnsItsValueCheck listCollection
-            , \checkInfo ->
-                callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
-                    ( listCollection, numberForAddProperties )
-                    checkInfo
-            , \checkInfo ->
-                if checkInfo.expectNaN then
-                    callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn)
+    intoFnChecksFirstThatConstructsError
+        [ callOnWrapReturnsItsValueCheck listCollection
+        , intoFnCheckOnlyCall
+            (firstThatConstructsJust
+                [ callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection
+                , \checkInfo ->
+                    callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
                         ( listCollection, numberForAddProperties )
                         checkInfo
+                , \checkInfo ->
+                    if checkInfo.expectNaN then
+                        callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn)
+                            ( listCollection, numberForAddProperties )
+                            checkInfo
 
-                else
-                    Nothing
-            ]
-    , composition = sumCompositionChecks listCollection
-    }
+                    else
+                        Nothing
+                ]
+            )
+        ]
 
 
 listProductChecks : IntoFnCheck
 listProductChecks =
-    { call =
-        firstThatConstructsJust
-            [ callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection
-            , callOnWrapReturnsItsValueCheck listCollection
-            , \checkInfo ->
-                callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
-                    ( listCollection, numberForMultiplyProperties )
-                    checkInfo
-            , \checkInfo ->
-                if checkInfo.expectNaN then
-                    callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn)
+    intoFnChecksFirstThatConstructsError
+        [ callOnWrapReturnsItsValueCheck listCollection
+        , intoFnCheckOnlyCall
+            (firstThatConstructsJust
+                [ callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection
+                , \checkInfo ->
+                    callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
                         ( listCollection, numberForMultiplyProperties )
                         checkInfo
+                , \checkInfo ->
+                    if checkInfo.expectNaN then
+                        callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn)
+                            ( listCollection, numberForMultiplyProperties )
+                            checkInfo
 
-                else
-                    callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn)
-                        ( listCollection, numberNotExpectingNaNForMultiplyProperties )
-                        checkInfo
-            ]
-    , composition = productCompositionChecks listCollection
-    }
+                    else
+                        callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn)
+                            ( listCollection, numberNotExpectingNaNForMultiplyProperties )
+                            checkInfo
+                ]
+            )
+        ]
 
 
 listMinimumChecks : IntoFnCheck
@@ -6178,9 +6177,7 @@ dictFoldrChecks =
 
 platformCmdBatchChecks : IntoFnCheck
 platformCmdBatchChecks =
-    { call = emptiableWrapperFlatFromListChecks cmdCollection
-    , composition = wrapperFlatFromListCompositionChecks
-    }
+    emptiableWrapperFlatFromListChecks cmdCollection
 
 
 platformCmdMapChecks : IntoFnCheck
@@ -6194,9 +6191,7 @@ platformCmdMapChecks =
 
 platformSubBatchChecks : IntoFnCheck
 platformSubBatchChecks =
-    { call = emptiableWrapperFlatFromListChecks subCollection
-    , composition = wrapperFlatFromListCompositionChecks
-    }
+    emptiableWrapperFlatFromListChecks subCollection
 
 
 platformSubChecks : IntoFnCheck
@@ -6440,7 +6435,7 @@ jsonDecodeAndThenChecks =
 
 jsonDecodeOneOfChecks : IntoFnCheck
 jsonDecodeOneOfChecks =
-    intoFnCheckOnlyCall oneOfChecks
+    oneOfChecks
 
 
 
@@ -6496,7 +6491,7 @@ randomAndThenChecks =
 
 parserOneOfChecks : IntoFnCheck
 parserOneOfChecks =
-    intoFnCheckOnlyCall oneOfChecks
+    oneOfChecks
 
 
 
@@ -6505,7 +6500,7 @@ parserOneOfChecks =
 
 parserAdvancedOneOfChecks : IntoFnCheck
 parserAdvancedOneOfChecks =
-    intoFnCheckOnlyCall oneOfChecks
+    oneOfChecks
 
 
 
@@ -7653,7 +7648,7 @@ subCollection =
 -}
 
 
-oneOfChecks : CheckInfo -> Maybe (Error {})
+oneOfChecks : IntoFnCheck
 oneOfChecks =
     callOnWrapReturnsItsValueCheck listCollection
 
@@ -8252,12 +8247,11 @@ wrapperFlatMapCompositionChecks wrapper checkInfo =
 
 withDefaultChecks :
     WrapperProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
-    -> CheckInfo
-    -> Maybe (Error {})
+    -> IntoFnCheck
 withDefaultChecks emptiable =
-    firstThatConstructsJust
-        [ emptiableWithDefaultChecks emptiable
-        , callOnWrapReturnsItsValueCheck emptiable
+    intoFnChecksFirstThatConstructsError
+        [ callOnWrapReturnsItsValueCheck emptiable
+        , intoFnCheckOnlyCall (emptiableWithDefaultChecks emptiable)
         ]
 
 
@@ -8303,11 +8297,6 @@ nonEmptiableWrapperFlatMapAlwaysChecks wrapper checkInfo =
 
         Nothing ->
             Nothing
-
-
-wrapperWithDefaultChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-wrapperWithDefaultChecks wrapper =
-    onWrapAlwaysReturnsIncomingCompositionCheck wrapper
 
 
 {-| The "withDefault" checks
@@ -8455,24 +8444,18 @@ So for example with `emptiableWrapperFlatFromListChecks stringCollection`
 Use together with `wrapperFlatFromListCompositionChecks`.
 
 -}
-emptiableWrapperFlatFromListChecks :
-    EmptiableProperties ConstantProperties otherProperties
-    -> CheckInfo
-    -> Maybe (Error {})
+emptiableWrapperFlatFromListChecks : EmptiableProperties ConstantProperties otherProperties -> IntoFnCheck
 emptiableWrapperFlatFromListChecks batchable =
-    firstThatConstructsJust
-        [ callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection
-        , callOnWrapReturnsItsValueCheck listCollection
-        , \checkInfo ->
-            callOnFromListWithIrrelevantEmptyElement (qualifiedToString (qualify checkInfo.fn defaultQualifyResources))
-                ( listCollection, batchable )
-                checkInfo
+    intoFnChecksFirstThatConstructsError
+        [ callOnWrapReturnsItsValueCheck listCollection
+        , intoFnCheckOnlyCall (callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection)
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                callOnFromListWithIrrelevantEmptyElement (qualifiedToString (qualify checkInfo.fn defaultQualifyResources))
+                    ( listCollection, batchable )
+                    checkInfo
+            )
         ]
-
-
-wrapperFlatFromListCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-wrapperFlatFromListCompositionChecks =
-    onWrapAlwaysReturnsIncomingCompositionCheck listCollection
 
 
 callOnFromListWithIrrelevantEmptyElement :
@@ -8822,16 +8805,6 @@ knownMemberChecks collection checkInfo =
 
             Nothing ->
                 Nothing
-
-
-sumCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-sumCompositionChecks wrapper =
-    onWrapAlwaysReturnsIncomingCompositionCheck wrapper
-
-
-productCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-productCompositionChecks wrapper =
-    onWrapAlwaysReturnsIncomingCompositionCheck wrapper
 
 
 minimumCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
@@ -11063,11 +11036,17 @@ onlyLastArgIsCurried functionInfo =
 
     operation (wrap a) --> a
 
+    operation << wrap --> identity
+
 For example
 
     List.sum [ a ] --> a
 
     Cmd.batch [ a ] --> a
+
+    List.sum << List.singleton --> identity
+
+    Cmd.batch << List.singleton --> identity
 
 Use together with `onWrapAlwaysReturnsIncomingCompositionCheck`
 
@@ -11076,55 +11055,42 @@ callOnWrapReturnsItsValueCheck :
     { otherProperties
         | wrap : ConstructWithOneArgProperties
     }
-    -> CheckInfo
-    -> Maybe (Error {})
-callOnWrapReturnsItsValueCheck wrapper checkInfo =
-    case fullyAppliedLastArg checkInfo of
-        Just wrapperArg ->
-            case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) wrapperArg of
+    -> IntoFnCheck
+callOnWrapReturnsItsValueCheck wrapper =
+    { call =
+        \checkInfo ->
+            case fullyAppliedLastArg checkInfo of
+                Just wrapperArg ->
+                    case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) wrapperArg of
+                        Nothing ->
+                            Nothing
+
+                        Just wraps ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in the value inside"
+                                    , details = [ "You can replace this call by the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range wrapperArg }
+                                        ++ List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
+                                    )
+                                )
+
                 Nothing ->
                     Nothing
+    , composition =
+        \checkInfo ->
+            if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
+                Just
+                    (compositionAlwaysReturnsIncomingError
+                        (qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in the value inside")
+                        checkInfo
+                    )
 
-                Just wraps ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in the value inside"
-                            , details = [ "You can replace this call by the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range wrapperArg }
-                                ++ List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
-                            )
-                        )
-
-        Nothing ->
-            Nothing
-
-
-{-| This operation is equivalent to identity when called on a wrapped value.
-
-    operation << wrap --> identity
-
-For example
-
-    List.sum << List.singleton --> identity
-
-    Cmd.batch << List.singleton --> identity
-
-Use together with `callOnWrapReturnsItsValueCheck`.
-
--}
-onWrapAlwaysReturnsIncomingCompositionCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-onWrapAlwaysReturnsIncomingCompositionCheck wrapper checkInfo =
-    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
-        Just
-            (compositionAlwaysReturnsIncomingError
-                (qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in the value inside")
-                checkInfo
-            )
-
-    else
-        Nothing
+            else
+                Nothing
+    }
 
 
 {-| This operation is equivalent to Just when called on a wrapped value.
