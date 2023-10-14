@@ -6256,14 +6256,11 @@ taskOnErrorChecks =
 
 taskSequenceChecks : IntoFnCheck
 taskSequenceChecks =
-    { call =
-        firstThatConstructsJust
-            [ listOfWrapperSequenceChecks taskWithSucceedAsWrap
-            , sequenceOrFirstEmptyChecks ( listCollection, taskWithSucceedAsWrap )
-            ]
-    , composition =
-        afterWrapIsEquivalentToMapWrapCheck ( listCollection, taskWithSucceedAsWrap )
-    }
+    intoFnChecksFirstThatConstructsError
+        [ listOfWrapperSequenceChecks taskWithSucceedAsWrap
+        , intoFnCheckOnlyCall
+            (sequenceOrFirstEmptyChecks ( listCollection, taskWithSucceedAsWrap ))
+        ]
 
 
 
@@ -9189,16 +9186,18 @@ sequenceOnCollectionWithKnownEmptyElementCheck ( collection, elementEmptiable ) 
             Nothing
 
 
-listOfWrapperSequenceChecks : WrapperProperties (MappableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+listOfWrapperSequenceChecks : WrapperProperties (MappableProperties otherProperties) -> IntoFnCheck
 listOfWrapperSequenceChecks wrapper =
-    firstThatConstructsJust
-        [ callOnEmptyReturnsCheck
-            { resultAsString =
-                \res -> qualifiedToString (qualify wrapper.wrap.fn res) ++ " []"
-            }
-            listCollection
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (callOnEmptyReturnsCheck
+                { resultAsString =
+                    \res -> qualifiedToString (qualify wrapper.wrap.fn res) ++ " []"
+                }
+                listCollection
+            )
         , onWrappedIsEquivalentToMapWrapOnValueCheck ( listCollection, wrapper )
-        , sequenceOnCollectionWithAllElementsWrapped ( listCollection, wrapper )
+        , intoFnCheckOnlyCall (sequenceOnCollectionWithAllElementsWrapped ( listCollection, wrapper ))
         ]
 
 
@@ -10368,62 +10367,13 @@ onFnCallCanBeCombinedCheck config =
 
     operation (wrap a) --> map wrap a
 
+    operation << wrap --> map wrap
+
 So for example
 
     Task.sequence [ task ]
     --: Task x (List a)
     --> Task.map List.singleton task
-
-Note that some functions called "sequence" have equal element and result types, like
-
-    Bytes.Encode.sequence  [ encoder ]
-    --: Bytes.Encode.Encoder
-
-which means you can simplify it to `encoder` using `unnecessaryCallOnWrappedCheck`.
-
-Use together with `afterWrapIsEquivalentToMapWrapCheck`.
-
--}
-onWrappedIsEquivalentToMapWrapOnValueCheck :
-    ( WrapperProperties wrapperOtherProperties, WrapperProperties (MappableProperties elementOtherProperties) )
-    -> CheckInfo
-    -> Maybe (Error {})
-onWrappedIsEquivalentToMapWrapOnValueCheck ( wrapper, elementWrapper ) checkInfo =
-    case fullyAppliedLastArg checkInfo of
-        Just lastArg ->
-            case wrapper.wrap.getValue checkInfo.lookupTable lastArg of
-                Just wrappedValue ->
-                    let
-                        replacement : QualifyResources a -> String
-                        replacement qualifyResources =
-                            qualifiedToString (qualify elementWrapper.mapFn qualifyResources)
-                                ++ " "
-                                ++ qualifiedToString (qualify wrapper.wrap.fn qualifyResources)
-                    in
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
-                            , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ " on the value inside the singleton list." ]
-                            }
-                            checkInfo.fnRange
-                            (Fix.replaceRangeBy checkInfo.fnRange
-                                (replacement checkInfo)
-                                :: replaceBySubExpressionFix (Node.range lastArg) wrappedValue
-                            )
-                        )
-
-                Nothing ->
-                    Nothing
-
-        Nothing ->
-            Nothing
-
-
-{-| The composition check
-
-    operation << wrap --> map wrap
-
-So for example
 
     Task.sequence << List.singleton
     --: Task x a -> Task x (List a)
@@ -10431,37 +10381,70 @@ So for example
 
 Note that some functions called "sequence" have equal element and result types, like
 
+    Bytes.Encode.sequence  [ encoder ]
+    --: Bytes.Encode.Encoder
+
     Bytes.Encode.sequence << List.singleton
     --: Bytes.Encode.Encoder -> Bytes.Encode.Encoder
 
-which means you can simplify them to `identity` using `unnecessaryCompositionAfterWrapCheck`.
-
-Use together with `onWrappedIsEquivalentToMapWrapOnValueCheck`.
+which means you can simplify them to `encoder`/`identity` using `unnecessaryCallOnWrappedCheck`.
 
 -}
-afterWrapIsEquivalentToMapWrapCheck :
-    ( WrapperProperties wrapperOtherProperties, MappableProperties valueOtherProperties )
-    -> CompositionIntoCheckInfo
-    -> Maybe ErrorInfoAndFix
-afterWrapIsEquivalentToMapWrapCheck ( wrapper, valueMappable ) checkInfo =
-    if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
-        let
-            replacement : QualifyResources a -> String
-            replacement qualifyResources =
-                qualifiedToString (qualify valueMappable.mapFn qualifyResources)
-                    ++ " "
-                    ++ qualifiedToString (qualify wrapper.wrap.fn qualifyResources)
-        in
-        Just
-            { info =
-                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
-                , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
-                }
-            , fix = compositionReplaceByFix (replacement checkInfo) checkInfo
-            }
+onWrappedIsEquivalentToMapWrapOnValueCheck :
+    ( WrapperProperties wrapperOtherProperties, WrapperProperties (MappableProperties elementOtherProperties) )
+    -> IntoFnCheck
+onWrappedIsEquivalentToMapWrapOnValueCheck ( wrapper, valueMappable ) =
+    { call =
+        \checkInfo ->
+            case fullyAppliedLastArg checkInfo of
+                Just lastArg ->
+                    case wrapper.wrap.getValue checkInfo.lookupTable lastArg of
+                        Just wrappedValue ->
+                            let
+                                replacement : QualifyResources a -> String
+                                replacement qualifyResources =
+                                    qualifiedToString (qualify valueMappable.mapFn qualifyResources)
+                                        ++ " "
+                                        ++ qualifiedToString (qualify wrapper.wrap.fn qualifyResources)
+                            in
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
+                                    , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ " on the value inside the singleton list." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.replaceRangeBy checkInfo.fnRange
+                                        (replacement checkInfo)
+                                        :: replaceBySubExpressionFix (Node.range lastArg) wrappedValue
+                                    )
+                                )
 
-    else
-        Nothing
+                        Nothing ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+    , composition =
+        \checkInfo ->
+            if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
+                let
+                    replacement : QualifyResources a -> String
+                    replacement qualifyResources =
+                        qualifiedToString (qualify valueMappable.mapFn qualifyResources)
+                            ++ " "
+                            ++ qualifiedToString (qualify wrapper.wrap.fn qualifyResources)
+                in
+                Just
+                    { info =
+                        { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
+                        , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
+                        }
+                    , fix = compositionReplaceByFix (replacement checkInfo) checkInfo
+                    }
+
+            else
+                Nothing
+    }
 
 
 pipelineChecks :
