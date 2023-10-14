@@ -10864,8 +10864,6 @@ For example
 
     Cmd.batch << List.singleton --> identity
 
-Use together with `onWrapAlwaysReturnsIncomingCompositionCheck`
-
 -}
 callOnWrapReturnsItsValueCheck :
     { otherProperties
