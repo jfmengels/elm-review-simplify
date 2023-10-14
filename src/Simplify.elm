@@ -4696,14 +4696,10 @@ maybeMapNChecks =
 
 maybeAndThenChecks : IntoFnCheck
 maybeAndThenChecks =
-    { call =
-        firstThatConstructsJust
-            [ wrapperFlatMapChecks maybeWithJustAsWrap
-            , emptiableFlatMapChecks maybeWithJustAsWrap
-            ]
-    , composition =
-        wrapperFlatMapCompositionChecks maybeWithJustAsWrap
-    }
+    intoFnChecksFirstThatConstructsError
+        [ wrapperFlatMapChecks maybeWithJustAsWrap
+        , intoFnCheckOnlyCall (emptiableFlatMapChecks maybeWithJustAsWrap)
+        ]
 
 
 maybeWithDefaultChecks : IntoFnCheck
@@ -4758,17 +4754,10 @@ resultMapErrorChecks =
 
 resultAndThenChecks : IntoFnCheck
 resultAndThenChecks =
-    { call =
-        firstThatConstructsJust
-            [ unnecessaryCallOnEmptyCheck resultWithOkAsWrap
-            , wrapperFlatMapChecks resultWithOkAsWrap
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ unnecessaryCompositionAfterEmptyCheck resultWithOkAsWrap
-            , wrapperFlatMapCompositionChecks resultWithOkAsWrap
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ { call = unnecessaryCallOnEmptyCheck resultWithOkAsWrap, composition = unnecessaryCompositionAfterEmptyCheck resultWithOkAsWrap }
+        , wrapperFlatMapChecks resultWithOkAsWrap
+        ]
 
 
 resultWithDefaultChecks : IntoFnCheck
@@ -4883,14 +4872,11 @@ listConcatChecks =
 
 listConcatMapChecks : IntoFnCheck
 listConcatMapChecks =
-    { call =
-        firstThatConstructsJust
-            [ operationWithIdentityIsEquivalentToFnCheck Fn.List.concat
-            , emptiableFlatMapChecks listCollection
-            , wrapperFlatMapChecks listCollection
-            ]
-    , composition = wrapperFlatMapCompositionChecks listCollection
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (operationWithIdentityIsEquivalentToFnCheck Fn.List.concat)
+        , intoFnCheckOnlyCall (emptiableFlatMapChecks listCollection)
+        , wrapperFlatMapChecks listCollection
+        ]
 
 
 listIndexedMapChecks : IntoFnCheck
@@ -6183,17 +6169,10 @@ taskMapNChecks =
 
 taskAndThenChecks : IntoFnCheck
 taskAndThenChecks =
-    { call =
-        firstThatConstructsJust
-            [ unnecessaryCallOnEmptyCheck taskWithSucceedAsWrap
-            , wrapperFlatMapChecks taskWithSucceedAsWrap
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ unnecessaryCompositionAfterEmptyCheck taskWithSucceedAsWrap
-            , wrapperFlatMapCompositionChecks taskWithSucceedAsWrap
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ { call = unnecessaryCallOnEmptyCheck taskWithSucceedAsWrap, composition = unnecessaryCompositionAfterEmptyCheck taskWithSucceedAsWrap }
+        , wrapperFlatMapChecks taskWithSucceedAsWrap
+        ]
 
 
 taskMapErrorChecks : IntoFnCheck
@@ -6206,17 +6185,10 @@ taskMapErrorChecks =
 
 taskOnErrorChecks : IntoFnCheck
 taskOnErrorChecks =
-    { call =
-        firstThatConstructsJust
-            [ unnecessaryCallOnEmptyCheck taskWithFailAsWrap
-            , wrapperFlatMapChecks taskWithFailAsWrap
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ unnecessaryCompositionAfterEmptyCheck taskWithFailAsWrap
-            , wrapperFlatMapCompositionChecks taskWithFailAsWrap
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ { call = unnecessaryCallOnEmptyCheck taskWithFailAsWrap, composition = unnecessaryCompositionAfterEmptyCheck taskWithFailAsWrap }
+        , wrapperFlatMapChecks taskWithFailAsWrap
+        ]
 
 
 taskSequenceChecks : IntoFnCheck
@@ -6356,17 +6328,10 @@ jsonDecodeMapNChecks =
 
 jsonDecodeAndThenChecks : IntoFnCheck
 jsonDecodeAndThenChecks =
-    { call =
-        firstThatConstructsJust
-            [ unnecessaryCallOnEmptyCheck jsonDecoderWithSucceedAsWrap
-            , wrapperFlatMapChecks jsonDecoderWithSucceedAsWrap
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ unnecessaryCompositionAfterEmptyCheck jsonDecoderWithSucceedAsWrap
-            , wrapperFlatMapCompositionChecks jsonDecoderWithSucceedAsWrap
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ { call = unnecessaryCallOnEmptyCheck jsonDecoderWithSucceedAsWrap, composition = unnecessaryCompositionAfterEmptyCheck jsonDecoderWithSucceedAsWrap }
+        , wrapperFlatMapChecks jsonDecoderWithSucceedAsWrap
+        ]
 
 
 jsonDecodeOneOfChecks : IntoFnCheck
@@ -6404,14 +6369,10 @@ randomMapChecks =
 
 randomAndThenChecks : IntoFnCheck
 randomAndThenChecks =
-    { call =
-        firstThatConstructsJust
-            [ wrapperFlatMapChecks randomGeneratorWrapper
-            , nonEmptiableWrapperFlatMapAlwaysChecks randomGeneratorWrapper
-            ]
-    , composition =
-        wrapperFlatMapCompositionChecks randomGeneratorWrapper
-    }
+    intoFnChecksFirstThatConstructsError
+        [ wrapperFlatMapChecks randomGeneratorWrapper
+        , intoFnCheckOnlyCall (nonEmptiableWrapperFlatMapAlwaysChecks randomGeneratorWrapper)
+        ]
 
 
 
@@ -8042,6 +8003,8 @@ emptiableFlatMapChecks emptiable =
 
     flatMap f (wrap a) --> f a
 
+    flatMap f << wrap --> f
+
     flatMap wrap wrapper --> wrapper
 
     flatMap (\a -> wrap b) wrapper --> map (\a -> b) wrapper
@@ -8050,100 +8013,92 @@ So for example
 
     List.concatMap f [ a ] --> f a
 
-Use in together with `wrapperFlatMapCompositionChecks`.
+    List.concatMap f << List.singleton --> f
 
 -}
 wrapperFlatMapChecks :
     TypeProperties (WrapperProperties (MappableProperties otherProperties))
-    -> CheckInfo
-    -> Maybe (Error {})
+    -> IntoFnCheck
 wrapperFlatMapChecks wrapper =
-    firstThatConstructsJust
-        [ \checkInfo ->
-            case secondArg checkInfo of
-                Just maybeArg ->
-                    case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) maybeArg of
-                        Just wrapCalls ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionForDefinite "the" wrapper.wrap.description
-                                    , details = [ "You can replace this call by the function directly applied to the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
-                                        :: List.concatMap (\justCall -> replaceBySubExpressionFix justCall.nodeRange justCall.value) wrapCalls
-                                    )
-                                )
+    intoFnChecksFirstThatConstructsError
+        [ { call =
+                \checkInfo ->
+                    case secondArg checkInfo of
+                        Just maybeArg ->
+                            case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) maybeArg of
+                                Just wrapCalls ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionForDefinite "the" wrapper.wrap.description
+                                            , details = [ "You can replace this call by the function directly applied to the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                                            }
+                                            checkInfo.fnRange
+                                            (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
+                                                :: List.concatMap (\justCall -> replaceBySubExpressionFix justCall.nodeRange justCall.value) wrapCalls
+                                            )
+                                        )
+
+                                Nothing ->
+                                    Nothing
 
                         Nothing ->
                             Nothing
+          , composition =
+                \checkInfo ->
+                    case ( wrapper.wrap.fn == checkInfo.earlier.fn, checkInfo.later.args ) of
+                        ( True, (Node functionRange _) :: [] ) ->
+                            Just
+                                { info =
+                                    { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionForDefinite "the" wrapper.wrap.description
+                                    , details = [ "You can replace this composition by the function given to " ++ qualifiedToString checkInfo.later.fn ++ "." ]
+                                    }
+                                , fix =
+                                    Fix.removeRange checkInfo.earlier.removeRange
+                                        :: keepOnlyFix { parentRange = checkInfo.later.range, keep = functionRange }
+                                }
 
-                Nothing ->
-                    Nothing
-        , \checkInfo ->
-            case AstHelpers.getSpecificValueOrFn wrapper.wrap.fn checkInfo.lookupTable checkInfo.firstArg of
-                Just _ ->
-                    Just
-                        (alwaysReturnsLastArgError
-                            (qualifiedToString checkInfo.fn ++ " with a function equivalent to " ++ qualifiedToString (qualify wrapper.wrap.fn defaultQualifyResources))
-                            wrapper
-                            checkInfo
-                        )
-
-                Nothing ->
-                    Nothing
-        , \checkInfo ->
-            case
-                constructs
-                    (sameInAllBranches (\expr -> getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable) expr))
-                    checkInfo.lookupTable
-                    checkInfo.firstArg
-            of
-                Just wrapCalls ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside"
-                            , details = [ "You can replace this call by " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            (Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify wrapper.mapFn checkInfo))
-                                :: List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.value) wrapCalls
+                        _ ->
+                            Nothing
+          }
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case AstHelpers.getSpecificValueOrFn wrapper.wrap.fn checkInfo.lookupTable checkInfo.firstArg of
+                    Just _ ->
+                        Just
+                            (alwaysReturnsLastArgError
+                                (qualifiedToString checkInfo.fn ++ " with a function equivalent to " ++ qualifiedToString (qualify wrapper.wrap.fn defaultQualifyResources))
+                                wrapper
+                                checkInfo
                             )
-                        )
 
-                Nothing ->
-                    Nothing
+                    Nothing ->
+                        Nothing
+            )
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case
+                    constructs
+                        (sameInAllBranches (\expr -> getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable) expr))
+                        checkInfo.lookupTable
+                        checkInfo.firstArg
+                of
+                    Just wrapCalls ->
+                        Just
+                            (Rule.errorWithFix
+                                { message = qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside"
+                                , details = [ "You can replace this call by " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                (Fix.replaceRangeBy checkInfo.fnRange
+                                    (qualifiedToString (qualify wrapper.mapFn checkInfo))
+                                    :: List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.value) wrapCalls
+                                )
+                            )
+
+                    Nothing ->
+                        Nothing
+            )
         ]
-
-
-{-| `flatMap f` on a wrapped value is equivalent to `f`
-
-    flatMap f << wrap --> f
-
-So for example
-
-    List.concatMap f << List.singleton --> f
-
-Use in together with `wrapperFlatMapChecks`
-
--}
-wrapperFlatMapCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-wrapperFlatMapCompositionChecks wrapper checkInfo =
-    case ( wrapper.wrap.fn == checkInfo.earlier.fn, checkInfo.later.args ) of
-        ( True, (Node functionRange _) :: [] ) ->
-            Just
-                { info =
-                    { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionForDefinite "the" wrapper.wrap.description
-                    , details = [ "You can replace this composition by the function given to " ++ qualifiedToString checkInfo.later.fn ++ "." ]
-                    }
-                , fix =
-                    Fix.removeRange checkInfo.earlier.removeRange
-                        :: keepOnlyFix { parentRange = checkInfo.later.range, keep = functionRange }
-                }
-
-        _ ->
-            Nothing
 
 
 withDefaultChecks :
