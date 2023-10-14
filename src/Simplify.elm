@@ -2974,7 +2974,7 @@ intoFnChecks =
         , ( Fn.Result.andThen, ( 2, resultAndThenChecks ) )
         , ( Fn.Result.withDefault, ( 2, resultWithDefaultChecks ) )
         , ( Fn.Result.toMaybe, ( 1, resultToMaybeChecks ) )
-        , ( Fn.Result.fromMaybe, ( 2, resultFromMaybeChecks ) )
+        , ( Fn.Result.fromMaybe, ( 2, resultfromMaybeWithEmptyValueOnNothingCheck ) )
         , ( Fn.List.append, ( 2, listAppendChecks ) )
         , ( Fn.List.head, ( 1, listHeadChecks ) )
         , ( Fn.List.tail, ( 1, listTailChecks ) )
@@ -4763,9 +4763,9 @@ resultToMaybeChecks =
         ]
 
 
-resultFromMaybeChecks : IntoFnCheck
-resultFromMaybeChecks =
-    fromMaybeChecks resultWithOkAsWrap
+resultfromMaybeWithEmptyValueOnNothingCheck : IntoFnCheck
+resultfromMaybeWithEmptyValueOnNothingCheck =
+    fromMaybeWithEmptyValueOnNothingCheck resultWithOkAsWrap
 
 
 
@@ -8153,8 +8153,8 @@ unwrapToMaybeChecks emptiableWrapper =
         ]
 
 
-fromMaybeChecks : WrapperProperties (EmptiableProperties ConstructWithOneArgProperties otherProperties) -> IntoFnCheck
-fromMaybeChecks wrapper =
+fromMaybeWithEmptyValueOnNothingCheck : WrapperProperties (EmptiableProperties ConstructWithOneArgProperties otherProperties) -> IntoFnCheck
+fromMaybeWithEmptyValueOnNothingCheck wrapper =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall
             (\checkInfo ->
