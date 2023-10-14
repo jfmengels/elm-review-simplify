@@ -4966,8 +4966,8 @@ listMapChecks =
     intoFnChecksFirstThatConstructsError
         [ emptiableMapChecks listCollection
         , listMapOnSingletonCheck
-        , { call = dictToListMapChecks, composition = dictToListIntoListMapCompositionCheck }
-        ,  arrayToIndexedListToListMapChecks
+        , dictToListMapChecks
+        , arrayToIndexedListToListMapChecks
         ]
 
 
@@ -5079,39 +5079,68 @@ dictToListMapErrorInfo info =
     }
 
 
-dictToListMapChecks : CheckInfo -> Maybe (Error {})
-dictToListMapChecks listMapCheckInfo =
-    case secondArg listMapCheckInfo of
-        Just listArgument ->
-            case AstHelpers.getSpecificFnCall Fn.Dict.toList listMapCheckInfo.lookupTable listArgument of
-                Just dictToListCall ->
+dictToListMapChecks : IntoFnCheck
+dictToListMapChecks =
+    { call =
+        \listMapCheckInfo ->
+            case secondArg listMapCheckInfo of
+                Just listArgument ->
+                    case AstHelpers.getSpecificFnCall Fn.Dict.toList listMapCheckInfo.lookupTable listArgument of
+                        Just dictToListCall ->
+                            let
+                                error : { toEntryAspectList : String, tuplePart : String } -> Error {}
+                                error info =
+                                    Rule.errorWithFix
+                                        (dictToListMapErrorInfo info)
+                                        listMapCheckInfo.fnRange
+                                        (keepOnlyFix { parentRange = Node.range listArgument, keep = Node.range dictToListCall.firstArg }
+                                            ++ [ Fix.replaceRangeBy
+                                                    (Range.combine [ listMapCheckInfo.fnRange, Node.range listMapCheckInfo.firstArg ])
+                                                    (qualifiedToString (qualify ( [ "Dict" ], info.toEntryAspectList ) listMapCheckInfo))
+                                               ]
+                                        )
+                            in
+                            if AstHelpers.isTupleFirstAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
+                                Just (error { tuplePart = "first", toEntryAspectList = "keys" })
+
+                            else if AstHelpers.isTupleSecondAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
+                                Just (error { tuplePart = "second", toEntryAspectList = "values" })
+
+                            else
+                                Nothing
+
+                        Nothing ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+    , composition =
+        \checkInfo ->
+            case
+                ( ( checkInfo.earlier.fn, checkInfo.earlier.args )
+                , checkInfo.later.args
+                )
+            of
+                ( ( ( [ "Dict" ], "toList" ), [] ), elementMappingArg :: [] ) ->
                     let
-                        error : { toEntryAspectList : String, tuplePart : String } -> Error {}
+                        error : { toEntryAspectList : String, tuplePart : String } -> ErrorInfoAndFix
                         error info =
-                            Rule.errorWithFix
-                                (dictToListMapErrorInfo info)
-                                listMapCheckInfo.fnRange
-                                (keepOnlyFix { parentRange = Node.range listArgument, keep = Node.range dictToListCall.firstArg }
-                                    ++ [ Fix.replaceRangeBy
-                                            (Range.combine [ listMapCheckInfo.fnRange, Node.range listMapCheckInfo.firstArg ])
-                                            (qualifiedToString (qualify ( [ "Dict" ], info.toEntryAspectList ) listMapCheckInfo))
-                                       ]
-                                )
+                            { info = dictToListMapErrorInfo info
+                            , fix = compositionReplaceByFnFix ( [ "Dict" ], info.toEntryAspectList ) checkInfo
+                            }
                     in
-                    if AstHelpers.isTupleFirstAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
+                    if AstHelpers.isTupleFirstAccess checkInfo.lookupTable elementMappingArg then
                         Just (error { tuplePart = "first", toEntryAspectList = "keys" })
 
-                    else if AstHelpers.isTupleSecondAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
+                    else if AstHelpers.isTupleSecondAccess checkInfo.lookupTable elementMappingArg then
                         Just (error { tuplePart = "second", toEntryAspectList = "values" })
 
                     else
                         Nothing
 
-                Nothing ->
+                _ ->
                     Nothing
-
-        Nothing ->
-            Nothing
+    }
 
 
 arrayToIndexedListToListMapChecks : IntoFnCheck
@@ -5174,34 +5203,6 @@ arrayToIndexedListToListMapChecks =
                 _ ->
                     Nothing
     }
-
-
-dictToListIntoListMapCompositionCheck : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-dictToListIntoListMapCompositionCheck checkInfo =
-    case
-        ( ( checkInfo.earlier.fn, checkInfo.earlier.args )
-        , checkInfo.later.args
-        )
-    of
-        ( ( ( [ "Dict" ], "toList" ), [] ), elementMappingArg :: [] ) ->
-            let
-                error : { toEntryAspectList : String, tuplePart : String } -> ErrorInfoAndFix
-                error info =
-                    { info = dictToListMapErrorInfo info
-                    , fix = compositionReplaceByFnFix ( [ "Dict" ], info.toEntryAspectList ) checkInfo
-                    }
-            in
-            if AstHelpers.isTupleFirstAccess checkInfo.lookupTable elementMappingArg then
-                Just (error { tuplePart = "first", toEntryAspectList = "keys" })
-
-            else if AstHelpers.isTupleSecondAccess checkInfo.lookupTable elementMappingArg then
-                Just (error { tuplePart = "second", toEntryAspectList = "values" })
-
-            else
-                Nothing
-
-        _ ->
-            Nothing
 
 
 listMemberChecks : IntoFnCheck
