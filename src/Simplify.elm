@@ -4257,55 +4257,49 @@ tuplePairChecks =
 
 tupleFirstChecks : IntoFnCheck
 tupleFirstChecks =
-    { call =
-        firstThatConstructsJust
-            [ tuplePartChecks
-                { part = TupleFirst
-                , description = "first"
-                , mapUnrelatedFn = Fn.Tuple.mapSecond
-                , mapFn = Fn.Tuple.mapFirst
-                }
-            , callFromCanBeCombinedCheck
-                { fromFn = Fn.List.partition, combinedFn = Fn.List.filter }
-            , callFromCanBeCombinedCheck
-                { fromFn = Fn.Set.partition, combinedFn = Fn.Set.filter }
-            , callFromCanBeCombinedCheck
-                { fromFn = Fn.Dict.partition, combinedFn = Fn.Dict.filter }
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ tuplePartCompositionChecks
-                { part = TupleFirst
-                , description = "first"
-                , mapUnrelatedFn = Fn.Tuple.mapSecond
-                , mapFn = Fn.Tuple.mapFirst
-                }
-            , \checkInfo ->
-                case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-                    ( ( [ "Tuple" ], "pair" ), first :: [] ) ->
-                        Just
-                            { info =
-                                { message = qualifiedToString (qualify checkInfo.earlier.fn defaultQualifyResources) ++ " with a first part, then " ++ qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " will always result in that first part"
-                                , details = [ "You can replace this call by always with the first argument given to " ++ qualifiedToString (qualify checkInfo.earlier.fn defaultQualifyResources) ++ "." ]
-                                }
-                            , fix =
-                                replaceBySubExpressionFix checkInfo.earlier.range first
-                                    ++ [ Fix.insertAt checkInfo.earlier.range.start
-                                            (qualifiedToString (qualify Fn.Basics.always checkInfo) ++ " ")
-                                       , Fix.removeRange checkInfo.later.removeRange
-                                       ]
-                            }
+    intoFnChecksFirstThatConstructsError
+        [ { call =
+                tuplePartChecks
+                    { part = TupleFirst
+                    , description = "first"
+                    , mapUnrelatedFn = Fn.Tuple.mapSecond
+                    , mapFn = Fn.Tuple.mapFirst
+                    }
+          , composition =
+                firstThatConstructsJust
+                    [ tuplePartCompositionChecks
+                        { part = TupleFirst
+                        , description = "first"
+                        , mapUnrelatedFn = Fn.Tuple.mapSecond
+                        , mapFn = Fn.Tuple.mapFirst
+                        }
+                    , \checkInfo ->
+                        case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+                            ( ( [ "Tuple" ], "pair" ), first :: [] ) ->
+                                Just
+                                    { info =
+                                        { message = qualifiedToString (qualify checkInfo.earlier.fn defaultQualifyResources) ++ " with a first part, then " ++ qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " will always result in that first part"
+                                        , details = [ "You can replace this call by always with the first argument given to " ++ qualifiedToString (qualify checkInfo.earlier.fn defaultQualifyResources) ++ "." ]
+                                        }
+                                    , fix =
+                                        replaceBySubExpressionFix checkInfo.earlier.range first
+                                            ++ [ Fix.insertAt checkInfo.earlier.range.start
+                                                    (qualifiedToString (qualify Fn.Basics.always checkInfo) ++ " ")
+                                               , Fix.removeRange checkInfo.later.removeRange
+                                               ]
+                                    }
 
-                    _ ->
-                        Nothing
-            , compositionFromCanBeCombinedCheck
-                { fromFn = Fn.List.partition, combinedFn = Fn.List.filter }
-            , compositionFromCanBeCombinedCheck
-                { fromFn = Fn.Set.partition, combinedFn = Fn.Set.filter }
-            , compositionFromCanBeCombinedCheck
-                { fromFn = Fn.Dict.partition, combinedFn = Fn.Dict.filter }
-            ]
-    }
+                            _ ->
+                                Nothing
+                    ]
+          }
+        , callFromCanBeCombinedCheck
+            { fromFn = Fn.List.partition, combinedFn = Fn.List.filter }
+        , callFromCanBeCombinedCheck
+            { fromFn = Fn.Set.partition, combinedFn = Fn.Set.filter }
+        , callFromCanBeCombinedCheck
+            { fromFn = Fn.Dict.partition, combinedFn = Fn.Dict.filter }
+        ]
 
 
 tupleSecondChecks : IntoFnCheck
@@ -4626,18 +4620,12 @@ stringAppendChecks =
 
 stringConcatChecks : IntoFnCheck
 stringConcatChecks =
-    { call =
-        firstThatConstructsJust
-            [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection
-            , callFromCanBeCombinedCheck { fromFn = Fn.List.repeat, combinedFn = Fn.String.repeat }
-            , callFromCanBeCombinedCheck { fromFn = Fn.List.intersperse, combinedFn = Fn.String.join }
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ compositionFromCanBeCombinedCheck { fromFn = Fn.List.repeat, combinedFn = Fn.String.repeat }
-            , compositionFromCanBeCombinedCheck { fromFn = Fn.List.intersperse, combinedFn = Fn.String.join }
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection)
+        , callFromCanBeCombinedCheck { fromFn = Fn.List.repeat, combinedFn = Fn.String.repeat }
+        , callFromCanBeCombinedCheck { fromFn = Fn.List.intersperse, combinedFn = Fn.String.join }
+        ]
 
 
 stringJoinChecks : IntoFnCheck
@@ -4857,59 +4845,56 @@ listConcatChecks : IntoFnCheck
 listConcatChecks =
     intoFnChecksFirstThatConstructsError
         [ callOnWrapReturnsItsValueCheck listCollection
-        , { call =
-                firstThatConstructsJust
-                    [ unnecessaryCallOnEmptyCheck listCollection
-                    , \checkInfo ->
-                        callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
-                            ( listCollection, listCollection )
-                            checkInfo
-                    , \checkInfo ->
-                        case fromListGetLiteral listCollection checkInfo.lookupTable checkInfo.firstArg of
-                            Just listLiteral ->
-                                firstThatConstructsJust
-                                    [ \() ->
-                                        case traverse AstHelpers.getListLiteral listLiteral.elements of
-                                            Just _ ->
-                                                Just
-                                                    (Rule.errorWithFix
-                                                        { message = "Expression could be simplified to be a single List"
-                                                        , details = [ "Try moving all the elements into a single list." ]
-                                                        }
-                                                        checkInfo.fnRange
-                                                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
-                                                            ++ List.concatMap removeBoundariesFix listLiteral.elements
-                                                        )
-                                                    )
+        , callFromCanBeCombinedCheck
+            { fromFn = Fn.List.map, combinedFn = Fn.List.concatMap }
+        , intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck listCollection)
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
+                    ( listCollection, listCollection )
+                    checkInfo
+            )
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case fromListGetLiteral listCollection checkInfo.lookupTable checkInfo.firstArg of
+                    Just listLiteral ->
+                        firstThatConstructsJust
+                            [ \() ->
+                                case traverse AstHelpers.getListLiteral listLiteral.elements of
+                                    Just _ ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = "Expression could be simplified to be a single List"
+                                                , details = [ "Try moving all the elements into a single list." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                                                    ++ List.concatMap removeBoundariesFix listLiteral.elements
+                                                )
+                                            )
 
-                                            Nothing ->
-                                                Nothing
-                                    , \() ->
-                                        case mergeConsecutiveFromListLiteralsFix listCollection checkInfo listLiteral.elements of
-                                            firstFix :: fixesAfterFirst ->
-                                                Just
-                                                    (Rule.errorWithFix
-                                                        { message = "Consecutive literal lists can be merged"
-                                                        , details = [ "Try moving all the elements from consecutive list literals so that they form a single list." ]
-                                                        }
-                                                        checkInfo.fnRange
-                                                        (firstFix :: fixesAfterFirst)
-                                                    )
+                                    Nothing ->
+                                        Nothing
+                            , \() ->
+                                case mergeConsecutiveFromListLiteralsFix listCollection checkInfo listLiteral.elements of
+                                    firstFix :: fixesAfterFirst ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = "Consecutive literal lists can be merged"
+                                                , details = [ "Try moving all the elements from consecutive list literals so that they form a single list." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (firstFix :: fixesAfterFirst)
+                                            )
 
-                                            [] ->
-                                                Nothing
-                                    ]
-                                    ()
+                                    [] ->
+                                        Nothing
+                            ]
+                            ()
 
-                            Nothing ->
-                                Nothing
-                    , callFromCanBeCombinedCheck
-                        { fromFn = Fn.List.map, combinedFn = Fn.List.concatMap }
-                    ]
-          , composition =
-                compositionFromCanBeCombinedCheck
-                    { fromFn = Fn.List.map, combinedFn = Fn.List.concatMap }
-          }
+                    Nothing ->
+                        Nothing
+            )
         ]
 
 
@@ -5627,10 +5612,10 @@ listPartitionChecks =
 
 listFilterMapChecks : IntoFnCheck
 listFilterMapChecks =
-    { call =
-        firstThatConstructsJust
-            [ emptiableWrapperFilterMapChecks listCollection
-            , \checkInfo ->
+    intoFnChecksFirstThatConstructsError
+        [ emptiableWrapperFilterMapChecks listCollection
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
                 if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
                     firstThatConstructsJust
                         [ \() ->
@@ -5674,10 +5659,8 @@ listFilterMapChecks =
 
                 else
                     Nothing
-            ]
-    , composition =
-        mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks listCollection
-    }
+            )
+        ]
 
 
 listRangeChecks : IntoFnCheck
@@ -5855,20 +5838,18 @@ listUnzipChecks =
 
 arrayToListChecks : IntoFnCheck
 arrayToListChecks =
-    { call =
-        firstThatConstructsJust
-            [ callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } arrayCollection
-            , onCallToInverseReturnsItsArgumentCheck Fn.Array.fromList
-            , callFromCanBeCombinedCheck
-                { fromFn = Fn.Array.repeat, combinedFn = Fn.List.repeat }
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ inversesCompositionCheck Fn.Array.fromList
-            , compositionFromCanBeCombinedCheck
-                { fromFn = Fn.Array.repeat, combinedFn = Fn.List.repeat }
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ { call =
+                firstThatConstructsJust
+                    [ callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } arrayCollection
+                    , onCallToInverseReturnsItsArgumentCheck Fn.Array.fromList
+                    ]
+          , composition =
+                inversesCompositionCheck Fn.Array.fromList
+          }
+        , callFromCanBeCombinedCheck
+            { fromFn = Fn.Array.repeat, combinedFn = Fn.List.repeat }
+        ]
 
 
 arrayToIndexedListChecks : IntoFnCheck
@@ -10212,86 +10193,92 @@ mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
                             )
 
 
-emptiableWrapperFilterMapChecks : TypeProperties (WrapperProperties (EmptiableProperties ConstantProperties (MappableProperties otherProperties))) -> CheckInfo -> Maybe (Error {})
+emptiableWrapperFilterMapChecks : TypeProperties (WrapperProperties (EmptiableProperties ConstantProperties (MappableProperties otherProperties))) -> IntoFnCheck
 emptiableWrapperFilterMapChecks emptiableWrapper =
-    firstThatConstructsJust
-        [ \checkInfo ->
-            case constructs (sameInAllBranches (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
-                Just justCalls ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " with a function that will always return Just is the same as " ++ qualifiedToString emptiableWrapper.mapFn
-                            , details = [ "You can remove the `Just`s and replace the call by " ++ qualifiedToString emptiableWrapper.mapFn ++ "." ]
-                            }
-                            checkInfo.fnRange
-                            (Fix.replaceRangeBy checkInfo.fnRange
-                                (qualifiedToString (qualify emptiableWrapper.mapFn checkInfo))
-                                :: List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.firstArg) justCalls
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (\checkInfo ->
+                case constructs (sameInAllBranches (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
+                    Just justCalls ->
+                        Just
+                            (Rule.errorWithFix
+                                { message = qualifiedToString checkInfo.fn ++ " with a function that will always return Just is the same as " ++ qualifiedToString emptiableWrapper.mapFn
+                                , details = [ "You can remove the `Just`s and replace the call by " ++ qualifiedToString emptiableWrapper.mapFn ++ "." ]
+                                }
+                                checkInfo.fnRange
+                                (Fix.replaceRangeBy checkInfo.fnRange
+                                    (qualifiedToString (qualify emptiableWrapper.mapFn checkInfo))
+                                    :: List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.firstArg) justCalls
+                                )
                             )
-                        )
 
-                Nothing ->
-                    Nothing
-        , \checkInfo ->
-            case AstHelpers.getSpecificValueOrFn Fn.Maybe.justVariant checkInfo.lookupTable checkInfo.firstArg of
-                Just _ ->
-                    Just
-                        (alwaysReturnsLastArgError
-                            (qualifiedToString checkInfo.fn ++ " with a function that will always return Just")
-                            emptiableWrapper
-                            checkInfo
-                        )
+                    Nothing ->
+                        Nothing
+            )
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case AstHelpers.getSpecificValueOrFn Fn.Maybe.justVariant checkInfo.lookupTable checkInfo.firstArg of
+                    Just _ ->
+                        Just
+                            (alwaysReturnsLastArgError
+                                (qualifiedToString checkInfo.fn ++ " with a function that will always return Just")
+                                emptiableWrapper
+                                checkInfo
+                            )
 
-                Nothing ->
-                    Nothing
-        , \checkInfo ->
-            case constructs (sameInAllBranches (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothingVariant checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
-                Just _ ->
-                    Just
-                        (alwaysResultsInUnparenthesizedConstantError
-                            (qualifiedToString checkInfo.fn ++ " with a function that will always return Nothing")
-                            { replacement = emptiableWrapper.empty.asString }
-                            checkInfo
-                        )
+                    Nothing ->
+                        Nothing
+            )
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case constructs (sameInAllBranches (AstHelpers.getSpecificValueOrFn Fn.Maybe.nothingVariant checkInfo.lookupTable)) checkInfo.lookupTable checkInfo.firstArg of
+                    Just _ ->
+                        Just
+                            (alwaysResultsInUnparenthesizedConstantError
+                                (qualifiedToString checkInfo.fn ++ " with a function that will always return Nothing")
+                                { replacement = emptiableWrapper.empty.asString }
+                                checkInfo
+                            )
 
-                Nothing ->
-                    Nothing
+                    Nothing ->
+                        Nothing
+            )
         , mapToOperationWithIdentityCanBeCombinedToOperationChecks emptiableWrapper
-        , unnecessaryCallOnEmptyCheck emptiableWrapper
+        , intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck emptiableWrapper)
         ]
 
 
-mapToOperationWithIdentityCanBeCombinedToOperationChecks : MappableProperties otherProperties -> CheckInfo -> Maybe (Error {})
-mapToOperationWithIdentityCanBeCombinedToOperationChecks mappable checkInfo =
-    if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
-        onFnCallCanBeCombinedCheck
-            { laterOperationDescription = qualifiedToString checkInfo.fn ++ " with an identity function"
-            , earlierFn = mappable.mapFn
-            , combinedFn = checkInfo.fn
-            }
-            checkInfo
-
-    else
-        Nothing
-
-
-mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks : MappableProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-mapToOperationWithIdentityCanBeCombinedToOperationCompositionChecks mappable checkInfo =
-    case checkInfo.later.args of
-        elementToMaybeMappingArg :: [] ->
-            if AstHelpers.isIdentity checkInfo.lookupTable elementToMaybeMappingArg then
-                compositionAfterFnCanBeCombinedCheck
-                    { laterOperationDescription = qualifiedToString checkInfo.later.fn ++ " with an identity function"
-                    , earlierFn = mappable.mapFn
-                    , combinedFn = checkInfo.later.fn
-                    }
-                    checkInfo
+mapToOperationWithIdentityCanBeCombinedToOperationChecks : MappableProperties otherProperties -> IntoFnCheck
+mapToOperationWithIdentityCanBeCombinedToOperationChecks mappable =
+    let
+        checkWithCombinedFn : ( ModuleName, String ) -> IntoFnCheck
+        checkWithCombinedFn combinedFn =
+            onFnCallCanBeCombinedCheck
+                { laterOperationDescription = \fn -> qualifiedToString fn ++ " with an identity function"
+                , earlierFn = mappable.mapFn
+                , combinedFn = combinedFn
+                }
+    in
+    { call =
+        \checkInfo ->
+            if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
+                (checkWithCombinedFn checkInfo.fn).call checkInfo
 
             else
                 Nothing
+    , composition =
+        \checkInfo ->
+            case checkInfo.later.args of
+                elementToMaybeMappingArg :: [] ->
+                    if AstHelpers.isIdentity checkInfo.lookupTable elementToMaybeMappingArg then
+                        (checkWithCombinedFn checkInfo.later.fn).composition checkInfo
 
-        _ ->
-            Nothing
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
+    }
 
 
 {-| Simplify this operation after a given call to `fromFn` into a given `combinedFn`.
@@ -10300,6 +10287,7 @@ If the `fromFn` call isn't the first argument, use `onFnCallCanBeCombinedCheck`.
 Examples:
 
   - `List.concat (List.map f list) --> List.concatMap f list` (same for sequence+map to traverse etc)
+  - `List.concat << List.map f --> List.concatMap f`
   - `Parser/Decoder/Random/...sequence (List.repeat n x) --> Parser/Decoder/Random/...repeat n x`
   - `String.concat (List.repeat n x) --> String.repeat n x`
   - `Animation.loop (List.repeat n x) --> Animation.repeat n x` using [`mdgriffith/elm-style-animation`](https://package.elm-lang.org/packages/mdgriffith/elm-style-animation/4.0.0/)
@@ -10310,15 +10298,13 @@ Use in combination with `compositionFromCanBeCombinedCheck`
 -}
 callFromCanBeCombinedCheck :
     { fromFn : ( ModuleName, String ), combinedFn : ( ModuleName, String ) }
-    -> CheckInfo
-    -> Maybe (Error {})
-callFromCanBeCombinedCheck config checkInfo =
+    -> IntoFnCheck
+callFromCanBeCombinedCheck config =
     onFnCallCanBeCombinedCheck
-        { laterOperationDescription = qualifiedToString checkInfo.fn
+        { laterOperationDescription = \fn -> qualifiedToString fn
         , earlierFn = config.fromFn
         , combinedFn = config.combinedFn
         }
-        checkInfo
 
 
 {-| Simplify this operation after a given call to `earlierFn` into a given `combinedFn`.
@@ -10326,83 +10312,56 @@ callFromCanBeCombinedCheck config checkInfo =
 Examples:
 
   - `List.filterMap identity (List.map f list) --> List.filterMap f list`
+  - `List.filterMap identity << List.map f --> List.filterMap f`
   - `traverse identity (map f a) --> traverse f a`
   - those listed in `callFromCanBeCombinedCheck`
 
-Use together with `compositionAfterFnCanBeCombinedCheck`.
-
 -}
 onFnCallCanBeCombinedCheck :
-    { laterOperationDescription : String, earlierFn : ( ModuleName, String ), combinedFn : ( ModuleName, String ) }
-    -> CheckInfo
-    -> Maybe (Error {})
-onFnCallCanBeCombinedCheck config checkInfo =
-    case Maybe.andThen (AstHelpers.getSpecificFnCall config.earlierFn checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
-        Just fromFnCall ->
-            Just
-                (Rule.errorWithFix
-                    { message = qualifiedToString config.earlierFn ++ ", then " ++ config.laterOperationDescription ++ " can be combined into " ++ qualifiedToString config.combinedFn
-                    , details = [ "You can replace this call by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.earlierFn ++ " which is meant for this exact purpose." ]
+    { laterOperationDescription : ( ModuleName, String ) -> String
+    , earlierFn : ( ModuleName, String )
+    , combinedFn : ( ModuleName, String )
+    }
+    -> IntoFnCheck
+onFnCallCanBeCombinedCheck config =
+    { call =
+        \checkInfo ->
+            case Maybe.andThen (AstHelpers.getSpecificFnCall config.earlierFn checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
+                Just fromFnCall ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString config.earlierFn ++ ", then " ++ config.laterOperationDescription checkInfo.fn ++ " can be combined into " ++ qualifiedToString config.combinedFn
+                            , details = [ "You can replace this call by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.earlierFn ++ " which is meant for this exact purpose." ]
+                            }
+                            checkInfo.fnRange
+                            (Fix.replaceRangeBy
+                                fromFnCall.fnRange
+                                (qualifiedToString (qualify config.combinedFn checkInfo))
+                                :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = fromFnCall.nodeRange }
+                            )
+                        )
+
+                Nothing ->
+                    Nothing
+    , composition =
+        \checkInfo ->
+            if checkInfo.earlier.fn == config.earlierFn then
+                Just
+                    { info =
+                        { message = qualifiedToString config.earlierFn ++ ", then " ++ config.laterOperationDescription checkInfo.later.fn ++ " can be combined into " ++ qualifiedToString config.combinedFn
+                        , details = [ "You can replace this composition by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.earlierFn ++ " which is meant for this exact purpose." ]
+                        }
+                    , fix =
+                        [ Fix.replaceRangeBy
+                            checkInfo.earlier.fnRange
+                            (qualifiedToString (qualify config.combinedFn checkInfo))
+                        , Fix.removeRange checkInfo.later.removeRange
+                        ]
                     }
-                    checkInfo.fnRange
-                    (Fix.replaceRangeBy
-                        fromFnCall.fnRange
-                        (qualifiedToString (qualify config.combinedFn checkInfo))
-                        :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = fromFnCall.nodeRange }
-                    )
-                )
 
-        Nothing ->
-            Nothing
-
-
-{-| Simplify this operation after a given call to `fromFn` into a given `combinedFn`,
-like `List.concat << List.map f --> List.concatMap f`.
-If the `fromFn` call isn't the first argument, use `compositionAfterFnCanBeCombinedCheck`.
-
-Use in combination with `callFromCanBeCombinedCheck` (where you will also find more examples).
-
--}
-compositionFromCanBeCombinedCheck :
-    { fromFn : ( ModuleName, String ), combinedFn : ( ModuleName, String ) }
-    -> CompositionIntoCheckInfo
-    -> Maybe ErrorInfoAndFix
-compositionFromCanBeCombinedCheck config checkInfo =
-    compositionAfterFnCanBeCombinedCheck
-        { laterOperationDescription = qualifiedToString checkInfo.later.fn
-        , earlierFn = config.fromFn
-        , combinedFn = config.combinedFn
-        }
-        checkInfo
-
-
-{-| Simplify this operation after a specific `earlierFn` operation into `combinedFn` with the arguments of the `earlierFn` operation,
-like `List.filterMap identity << List.map f --> List.filterMap f`.
-
-Use together with with `onFnCallCanBeCombinedCheck` (where you will also find more examples).
-
--}
-compositionAfterFnCanBeCombinedCheck :
-    { laterOperationDescription : String, earlierFn : ( ModuleName, String ), combinedFn : ( ModuleName, String ) }
-    -> CompositionIntoCheckInfo
-    -> Maybe ErrorInfoAndFix
-compositionAfterFnCanBeCombinedCheck config checkInfo =
-    if checkInfo.earlier.fn == config.earlierFn then
-        Just
-            { info =
-                { message = qualifiedToString config.earlierFn ++ ", then " ++ config.laterOperationDescription ++ " can be combined into " ++ qualifiedToString config.combinedFn
-                , details = [ "You can replace this composition by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.earlierFn ++ " which is meant for this exact purpose." ]
-                }
-            , fix =
-                [ Fix.replaceRangeBy
-                    checkInfo.earlier.fnRange
-                    (qualifiedToString (qualify config.combinedFn checkInfo))
-                , Fix.removeRange checkInfo.later.removeRange
-                ]
-            }
-
-    else
-        Nothing
+            else
+                Nothing
+    }
 
 
 {-| The check
