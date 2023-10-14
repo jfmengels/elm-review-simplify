@@ -10168,8 +10168,6 @@ Examples:
   - `Animation.loop (List.repeat n x) --> Animation.repeat n x` using [`mdgriffith/elm-style-animation`](https://package.elm-lang.org/packages/mdgriffith/elm-style-animation/4.0.0/)
   - `FormattedText.concat (List.intersperse s list) --> FormattedText.join s list` using [`NoRedInk/elm-formatted-text-19`](https://package.elm-lang.org/packages/NoRedInk/elm-formatted-text-19/1.0.0/)
 
-Use in combination with `compositionFromCanBeCombinedCheck`
-
 -}
 callFromCanBeCombinedCheck :
     { fromFn : ( ModuleName, String ), combinedFn : ( ModuleName, String ) }
