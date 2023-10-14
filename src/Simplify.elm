@@ -3585,14 +3585,14 @@ plusplusChecks =
 
 appendEmptyCheck :
     { side | node : Node Expression, otherNode : Node Expression, otherDescription : String }
-    -> TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
+    -> TypeProperties (EmptiableProperties empty otherProperties)
     -> OperatorCheckInfo
     -> Maybe (Error {})
 appendEmptyCheck side collection checkInfo =
-    if collection.empty.is (extractInferResources checkInfo) side.node then
+    if isInTypeSubset collection.empty checkInfo side.node then
         Just
             (Rule.errorWithFix
-                { message = "Unnecessary appending " ++ descriptionForIndefinite collection.empty.description
+                { message = "Unnecessary appending " ++ typeSubsetDescriptionIndefinite collection.empty
                 , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " " ++ collection.represents ++ "." ]
                 }
                 checkInfo.operatorRange
@@ -4057,10 +4057,10 @@ andChecks =
 
 unnecessaryOperationWithEmptySideChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
 unnecessaryOperationWithEmptySideChecks forOperationProperties side checkInfo =
-    if forOperationProperties.empty.is (extractInferResources checkInfo) side.node then
+    if isInTypeSubset forOperationProperties.empty checkInfo side.node then
         Just
             (Rule.errorWithFix
-                { message = "Unnecessary " ++ checkInfo.operator ++ " " ++ descriptionForIndefinite forOperationProperties.empty.description
+                { message = "Unnecessary " ++ checkInfo.operator ++ " " ++ typeSubsetDescriptionIndefinite forOperationProperties.empty
                 , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " " ++ forOperationProperties.represents ++ "." ]
                 }
                 (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
@@ -4076,7 +4076,7 @@ operationWithAbsorbingSideChecks forOperationProperties side checkInfo =
     if forOperationProperties.absorbing.is (extractInferResources checkInfo) side.node then
         Just
             (Rule.errorWithFix
-                { message = "(" ++ checkInfo.operator ++ ") with any side being " ++ descriptionForIndefinite forOperationProperties.absorbing.description ++ " will result in " ++ descriptionForIndefinite forOperationProperties.absorbing.description
+                { message = "(" ++ checkInfo.operator ++ ") with any side being " ++ forOperationProperties.absorbing.description ++ " will result in " ++ forOperationProperties.absorbing.description
                 , details =
                     [ "You can replace this operation by " ++ forOperationProperties.absorbing.asString defaultQualifyResources ++ "."
                     , "Maybe you have hardcoded a value or mistyped a condition?"
@@ -4484,7 +4484,7 @@ stringFromListChecks : IntoFnCheck
 stringFromListChecks =
     { call =
         firstThatConstructsJust
-            [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection
+            [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.specific.asString } listCollection
             , wrapperFromListSingletonChecks stringCollection
             , onCallToInverseReturnsItsArgumentCheck Fn.String.toList
             ]
@@ -4537,7 +4537,7 @@ stringLeftChecks =
                         callWithNonPositiveIntCanBeReplacedByCheck
                             { int = length
                             , intDescription = "length"
-                            , replacement = stringCollection.empty.asString
+                            , replacement = stringCollection.empty.specific.asString
                             }
                             checkInfo
 
@@ -4558,7 +4558,7 @@ stringRightChecks =
                         callWithNonPositiveIntCanBeReplacedByCheck
                             { int = length
                             , intDescription = "length"
-                            , replacement = stringCollection.empty.asString
+                            , replacement = stringCollection.empty.specific.asString
                             }
                             checkInfo
 
@@ -4629,7 +4629,7 @@ stringConcatChecks : IntoFnCheck
 stringConcatChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall
-            (callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection)
+            (callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.specific.asString } listCollection)
         , callFromCanBeCombinedCheck { fromFn = Fn.List.repeat, combinedFn = Fn.String.repeat }
         , callFromCanBeCombinedCheck { fromFn = Fn.List.intersperse, combinedFn = Fn.String.join }
         ]
@@ -4639,7 +4639,7 @@ stringJoinChecks : IntoFnCheck
 stringJoinChecks =
     intoFnCheckOnlyCall
         (firstThatConstructsJust
-            [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.asString } listCollection
+            [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.specific.asString } listCollection
             , flatIntersperseWithEmptySeparatorIsEquivalentToFnCheck stringCollection Fn.String.concat
             ]
         )
@@ -4653,13 +4653,13 @@ stringRepeatChecks =
 stringWordsChecks : IntoFnCheck
 stringWordsChecks =
     intoFnCheckOnlyCall
-        (callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } stringCollection)
+        (callOnEmptyReturnsCheck { resultAsString = listCollection.empty.specific.asString } stringCollection)
 
 
 stringLinesChecks : IntoFnCheck
 stringLinesChecks =
     intoFnCheckOnlyCall
-        (callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } stringCollection)
+        (callOnEmptyReturnsCheck { resultAsString = listCollection.empty.specific.asString } stringCollection)
 
 
 stringToListChecks : IntoFnCheck
@@ -4746,8 +4746,8 @@ mapWrapErrorInfo mapFn wrapper =
         wrapFnInErrorInfo =
             qualifiedToString (qualify wrapper.wrap.fn defaultQualifyResources)
     in
-    { message = qualifiedToString mapFn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnInErrorInfo ++ " with the function applied to the value inside"
-    , details = [ "You can replace this call by " ++ wrapFnInErrorInfo ++ " with the function directly applied to the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ " itself." ]
+    { message = qualifiedToString mapFn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnInErrorInfo ++ " with the function applied to the value inside"
+    , details = [ "You can replace this call by " ++ wrapFnInErrorInfo ++ " with the function directly applied to the value inside " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description ++ " itself." ]
     }
 
 
@@ -4910,7 +4910,7 @@ listHeadChecks : IntoFnCheck
 listHeadChecks =
     intoFnCheckOnlyCall
         (firstThatConstructsJust
-            [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection
+            [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } listCollection
             , \checkInfo ->
                 Maybe.map
                     (\listArgHead ->
@@ -4966,7 +4966,7 @@ listTailChecks : IntoFnCheck
 listTailChecks =
     intoFnCheckOnlyCall
         (firstThatConstructsJust
-            [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection
+            [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } listCollection
             , \checkInfo ->
                 case Node.value (AstHelpers.removeParens checkInfo.firstArg) of
                     Expression.ListExpr ((Node headRange _) :: (Node tailFirstRange _) :: _) ->
@@ -5316,7 +5316,7 @@ listMinimumChecks : IntoFnCheck
 listMinimumChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall
-            (callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection)
+            (callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } listCollection)
         , callOnWrapReturnsJustItsValue listCollection
         ]
 
@@ -5325,7 +5325,7 @@ listMaximumChecks : IntoFnCheck
 listMaximumChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall
-            (callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } listCollection)
+            (callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } listCollection)
         , callOnWrapReturnsJustItsValue listCollection
         ]
 
@@ -5755,7 +5755,7 @@ listTakeChecks =
                         callWithNonPositiveIntCanBeReplacedByCheck
                             { int = length
                             , intDescription = "length"
-                            , replacement = listCollection.empty.asString
+                            , replacement = listCollection.empty.specific.asString
                             }
                             checkInfo
 
@@ -5808,7 +5808,7 @@ arrayToListChecks =
     intoFnChecksFirstThatConstructsError
         [ { call =
                 firstThatConstructsJust
-                    [ callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } arrayCollection
+                    [ callOnEmptyReturnsCheck { resultAsString = listCollection.empty.specific.asString } arrayCollection
                     , onCallToInverseReturnsItsArgumentCheck Fn.Array.fromList
                     ]
           , composition =
@@ -5822,7 +5822,7 @@ arrayToListChecks =
 arrayToIndexedListChecks : IntoFnCheck
 arrayToIndexedListChecks =
     intoFnCheckOnlyCall
-        (callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } arrayCollection)
+        (callOnEmptyReturnsCheck { resultAsString = listCollection.empty.specific.asString } arrayCollection)
 
 
 arrayFromListChecks : IntoFnCheck
@@ -6407,9 +6407,9 @@ type alias TypeProperties properties =
 
 {-| Properties of a type that either holds some data or is "empty" with the given properties.
 -}
-type alias EmptiableProperties empty otherProperties =
+type alias EmptiableProperties emptySpecificProperties otherProperties =
     { otherProperties
-        | empty : empty
+        | empty : TypeSubsetProperties emptySpecificProperties
     }
 
 
@@ -6422,7 +6422,7 @@ it is impossible to have one type that has both `EmptiableProperties` and `NonEm
 
 -}
 type alias NonEmptiableProperties otherProperties =
-    EmptiableProperties { invalid : () } otherProperties
+    { otherProperties | empty : { invalid : () } }
 
 
 {-| Properties of a type that has a construction function that takes one value.
@@ -6562,30 +6562,87 @@ The first 2 are examples of a subset with `ConstructWithOneArgProperties`,
 the last one is an example of a subset with `ConstantProperties`
 
 -}
-type alias TypeSubsetProperties otherProperties =
-    { otherProperties
-        | description : Description
-        , is : Infer.Resources {} -> Node Expression -> Bool
+type alias TypeSubsetProperties specificProperties =
+    { specific : specificProperties
+    , kind : specificProperties -> TypeSubsetKindProperties
+    }
+
+
+{-| Properties of a set of values.
+
+  - Only one value is possible, like Cmd.none or [] → Constant
+  - Multiple values are possible, like `Ok anyValue` or `[ onlyElementAnyValue ]`? → `A`/`An` depending on the indefinite article in front of the description
+
+-}
+type TypeSubsetKindProperties
+    = ConstructWithOneArg ConstructWithOneArgProperties
+    | Constant ConstantProperties
+
+
+type alias ConstantProperties =
+    { description : String
+    , asString : QualifyResources {} -> String
+    , is : Infer.Resources {} -> Node Expression -> Bool
     }
 
 
 type alias ConstructWithOneArgProperties =
-    TypeSubsetProperties
-        { fn : ( ModuleName, String )
-        , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-        }
+    { description : ConstructWithOneArgDescription
+    , fn : ( ModuleName, String )
+    , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+    }
 
 
-type alias ConstantProperties =
-    TypeSubsetProperties
-        { asString : QualifyResources {} -> String }
+type ConstructWithOneArgDescription
+    = A String
+    | An String
+
+
+isInTypeSubset : TypeSubsetProperties specificProperties -> Infer.Resources res -> Node Expression -> Bool
+isInTypeSubset typeSubsetProperties resources expressionNode =
+    case typeSubsetProperties.kind typeSubsetProperties.specific of
+        Constant constantProperties ->
+            constantProperties.is (extractInferResources resources) expressionNode
+
+        ConstructWithOneArg constructWithOneArg ->
+            isJust (constructWithOneArg.getValue resources.lookupTable expressionNode)
+
+
+typeSubsetDescriptionIndefinite : TypeSubsetProperties specificProperties -> String
+typeSubsetDescriptionIndefinite typeSubsetProperties =
+    case typeSubsetProperties.kind typeSubsetProperties.specific of
+        Constant constantProperties ->
+            constantProperties.description
+
+        ConstructWithOneArg constructWithOneArg ->
+            constructWithOneArgDescriptionIndefinite constructWithOneArg.description
+
+
+typeSubsetDescriptionDefinite : String -> TypeSubsetProperties specificProperties -> String
+typeSubsetDescriptionDefinite definiteArticle typeSubsetProperties =
+    case typeSubsetProperties.kind typeSubsetProperties.specific of
+        Constant constantProperties ->
+            constantProperties.description
+
+        ConstructWithOneArg constructWithOneArg ->
+            constructWithOneArgDescriptionDefinite definiteArticle constructWithOneArg.description
+
+
+typeSubsetDescriptionWithoutArticle : TypeSubsetProperties specificProperties -> String
+typeSubsetDescriptionWithoutArticle typeSubsetProperties =
+    case typeSubsetProperties.kind typeSubsetProperties.specific of
+        Constant constantProperties ->
+            constantProperties.description
+
+        ConstructWithOneArg constructWithOneArg ->
+            constructWithOneArgDescriptionWithoutArticle constructWithOneArg.description
 
 
 {-| Create `ConstantProperties` for a value with a given fully qualified name.
 -}
 constantFnProperties : ( ModuleName, String ) -> ConstantProperties
 constantFnProperties fullyQualified =
-    { description = Constant (qualifiedToString (qualify fullyQualified defaultQualifyResources))
+    { description = qualifiedToString (qualify fullyQualified defaultQualifyResources)
     , is =
         \res expr ->
             isJust (AstHelpers.getSpecificValueOrFn fullyQualified res.lookupTable expr)
@@ -6594,28 +6651,25 @@ constantFnProperties fullyQualified =
     }
 
 
-{-| Create `ConstructWithOneArgProperties` for a function call with a given fully qualified name with a given `Description`.
+{-| Create `ConstructWithOneArgProperties` for a function call with a given fully qualified name with a given `ConstructWithOneArgDescription`.
 -}
-fnCallConstructWithOneArgProperties : Description -> ( ModuleName, String ) -> ConstructWithOneArgProperties
+fnCallConstructWithOneArgProperties : ConstructWithOneArgDescription -> ( ModuleName, String ) -> ConstructWithOneArgProperties
 fnCallConstructWithOneArgProperties description fullyQualified =
     { description = description
     , fn = fullyQualified
     , getValue =
         \lookupTable expr ->
             Maybe.map .firstArg (AstHelpers.getSpecificFnCall fullyQualified lookupTable expr)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getSpecificFnCall fullyQualified res.lookupTable expr)
     }
 
 
 getEmptyExpressionNode :
     Infer.Resources a
-    -> EmptiableProperties (TypeSubsetProperties empty) otherProperties
+    -> EmptiableProperties empty otherProperties
     -> Node Expression
     -> Maybe (Node Expression)
 getEmptyExpressionNode resources emptiable expressionNode =
-    if emptiable.empty.is (extractInferResources resources) expressionNode then
+    if isInTypeSubset emptiable.empty resources expressionNode then
         Just expressionNode
 
     else
@@ -6665,20 +6719,8 @@ fromListGetLiteral constructibleFromList lookupTable expressionNode =
                     Nothing
 
 
-{-| Description of a set of values.
-
-  - Only one value is possible, like Cmd.none or [] → Constant
-  - Multiple values are possible, like `Ok anyValue` or `[ onlyElementAnyValue ]`? → `A`/`An` depending on the indefinite article in front of the description
-
--}
-type Description
-    = A String
-    | An String
-    | Constant String
-
-
-descriptionForIndefinite : Description -> String
-descriptionForIndefinite incomingArgDescription =
+constructWithOneArgDescriptionIndefinite : ConstructWithOneArgDescription -> String
+constructWithOneArgDescriptionIndefinite incomingArgDescription =
     case incomingArgDescription of
         A description ->
             "a " ++ description
@@ -6686,12 +6728,9 @@ descriptionForIndefinite incomingArgDescription =
         An description ->
             "an " ++ description
 
-        Constant description ->
-            description
 
-
-descriptionForDefinite : String -> Description -> String
-descriptionForDefinite startWithDefiniteArticle referenceArgDescription =
+constructWithOneArgDescriptionDefinite : String -> ConstructWithOneArgDescription -> String
+constructWithOneArgDescriptionDefinite startWithDefiniteArticle referenceArgDescription =
     case referenceArgDescription of
         A description ->
             startWithDefiniteArticle ++ " " ++ description
@@ -6699,20 +6738,14 @@ descriptionForDefinite startWithDefiniteArticle referenceArgDescription =
         An description ->
             startWithDefiniteArticle ++ " " ++ description
 
-        Constant description ->
-            description
 
-
-descriptionWithoutArticle : Description -> String
-descriptionWithoutArticle referenceArgDescription =
+constructWithOneArgDescriptionWithoutArticle : ConstructWithOneArgDescription -> String
+constructWithOneArgDescriptionWithoutArticle referenceArgDescription =
     case referenceArgDescription of
         A description ->
             description
 
         An description ->
-            description
-
-        Constant description ->
             description
 
 
@@ -6733,13 +6766,13 @@ extractInferResources resources =
 
 emptyAsString : QualifyResources a -> EmptiableProperties ConstantProperties otherProperties -> String
 emptyAsString qualifyResources emptiable =
-    emptiable.empty.asString (extractQualifyResources qualifyResources)
+    emptiable.empty.specific.asString (extractQualifyResources qualifyResources)
 
 
 boolForAndProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
 boolForAndProperties =
     { represents = "bool"
-    , empty = boolTrueConstant
+    , empty = { specific = boolTrueConstant, kind = Constant }
     , absorbing = boolFalseConstant
     }
 
@@ -6747,14 +6780,14 @@ boolForAndProperties =
 boolForOrProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
 boolForOrProperties =
     { represents = "bool"
-    , empty = boolFalseConstant
+    , empty = { specific = boolFalseConstant, kind = Constant }
     , absorbing = boolTrueConstant
     }
 
 
 boolTrueConstant : ConstantProperties
 boolTrueConstant =
-    { description = Constant "True"
+    { description = qualifiedToString (qualify Fn.Basics.trueVariant defaultQualifyResources)
     , is = \res expr -> Evaluate.getBoolean res expr == Determined True
     , asString = \res -> qualifiedToString (qualify Fn.Basics.trueVariant res)
     }
@@ -6762,7 +6795,7 @@ boolTrueConstant =
 
 boolFalseConstant : ConstantProperties
 boolFalseConstant =
-    { description = Constant "False"
+    { description = qualifiedToString (qualify Fn.Basics.falseVariant defaultQualifyResources)
     , is = \res expr -> Evaluate.getBoolean res expr == Determined False
     , asString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res)
     }
@@ -6771,8 +6804,8 @@ boolFalseConstant =
 numberForAddProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
 numberForAddProperties =
     { represents = "number"
-    , empty = number0Constant
-    , absorbing = numberNaNConstant
+    , empty = { specific = number0ConstantSpecific, kind = Constant }
+    , absorbing = numberNaNConstantSpecific
     }
 
 
@@ -6788,8 +6821,8 @@ If `expectingNaN` is not enabled, use `numberNotExpectingNaNForMultiplyPropertie
 numberForMultiplyProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
 numberForMultiplyProperties =
     { represents = "number"
-    , empty = number1Constant
-    , absorbing = numberNaNConstant
+    , empty = { specific = number1ConstantSpecific, kind = Constant }
+    , absorbing = numberNaNConstantSpecific
     }
 
 
@@ -6811,30 +6844,30 @@ Not having `expectingNaN` enabled however, 0 _is_ absorbing, so we can now simpl
 numberNotExpectingNaNForMultiplyProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
 numberNotExpectingNaNForMultiplyProperties =
     { represents = "number"
-    , empty = number1Constant
-    , absorbing = number0Constant
+    , empty = { specific = number1ConstantSpecific, kind = Constant }
+    , absorbing = number0ConstantSpecific
     }
 
 
-number0Constant : ConstantProperties
-number0Constant =
-    { description = Constant "0"
+number0ConstantSpecific : ConstantProperties
+number0ConstantSpecific =
+    { description = "0"
     , is = \res expr -> Evaluate.getNumber res expr == Just 0
     , asString = \_ -> "0"
     }
 
 
-number1Constant : ConstantProperties
-number1Constant =
-    { description = Constant "1"
+number1ConstantSpecific : ConstantProperties
+number1ConstantSpecific =
+    { description = "1"
     , is = \res expr -> Evaluate.getNumber res expr == Just 1
     , asString = \_ -> "1"
     }
 
 
-numberNaNConstant : ConstantProperties
-numberNaNConstant =
-    { description = Constant "NaN"
+numberNaNConstantSpecific : ConstantProperties
+numberNaNConstantSpecific =
+    { description = "NaN"
     , is =
         \res expr ->
             case AstHelpers.removeParens expr of
@@ -6865,14 +6898,14 @@ randomGeneratorConstantConstruct =
 maybeWithJustAsWrap : TypeProperties (EmptiableProperties ConstantProperties (WrapperProperties (MappableProperties {})))
 maybeWithJustAsWrap =
     { represents = "maybe"
-    , empty = constantFnProperties Fn.Maybe.nothingVariant
-    , wrap = maybeJustConstructProperties
+    , empty = { specific = constantFnProperties Fn.Maybe.nothingVariant, kind = Constant }
+    , wrap = maybeJustConstruct
     , mapFn = Fn.Maybe.map
     }
 
 
-maybeJustConstructProperties : ConstructWithOneArgProperties
-maybeJustConstructProperties =
+maybeJustConstruct : ConstructWithOneArgProperties
+maybeJustConstruct =
     fnCallConstructWithOneArgProperties (A "just maybe") Fn.Maybe.justVariant
 
 
@@ -6880,7 +6913,7 @@ resultWithOkAsWrap : TypeProperties (WrapperProperties (EmptiableProperties Cons
 resultWithOkAsWrap =
     { represents = "result"
     , wrap = resultOkayConstruct
-    , empty = resultErrorConstruct
+    , empty = { specific = resultErrorConstruct, kind = ConstructWithOneArg }
     , mapFn = Fn.Result.map
     }
 
@@ -6899,7 +6932,7 @@ resultWithErrAsWrap : TypeProperties (WrapperProperties (EmptiableProperties Con
 resultWithErrAsWrap =
     { represents = "result"
     , wrap = resultErrorConstruct
-    , empty = resultOkayConstruct
+    , empty = { specific = resultOkayConstruct, kind = ConstructWithOneArg }
     , mapFn = Fn.Result.mapError
     }
 
@@ -6908,7 +6941,7 @@ taskWithSucceedAsWrap : TypeProperties (WrapperProperties (EmptiableProperties C
 taskWithSucceedAsWrap =
     { represents = "task"
     , wrap = taskSucceedingConstruct
-    , empty = taskFailingConstruct
+    , empty = { specific = taskFailingConstruct, kind = ConstructWithOneArg }
     , mapFn = Fn.Task.map
     }
 
@@ -6927,7 +6960,7 @@ taskWithFailAsWrap : TypeProperties (WrapperProperties (EmptiableProperties Cons
 taskWithFailAsWrap =
     { represents = "task"
     , wrap = taskFailingConstruct
-    , empty = taskSucceedingConstruct
+    , empty = { specific = taskSucceedingConstruct, kind = ConstructWithOneArg }
     , mapFn = Fn.Task.mapError
     }
 
@@ -6936,7 +6969,7 @@ jsonDecoderWithSucceedAsWrap : TypeProperties (WrapperProperties (EmptiablePrope
 jsonDecoderWithSucceedAsWrap =
     { represents = "json decoder"
     , wrap = jsonDecoderSucceedingConstruct
-    , empty = jsonDecoderFailingConstruct
+    , empty = { specific = jsonDecoderFailingConstruct, kind = ConstructWithOneArg }
     , mapFn = Fn.Json.Decode.map
     }
 
@@ -6954,7 +6987,7 @@ jsonDecoderFailingConstruct =
 listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties (MappableProperties {})))))
 listCollection =
     { represents = "list"
-    , empty = listEmptyConstant
+    , empty = { specific = listEmptyConstantSpecific, kind = Constant }
     , elements =
         { get = listGetElements
         , countDescription = "length"
@@ -6966,9 +6999,9 @@ listCollection =
     }
 
 
-listEmptyConstant : ConstantProperties
-listEmptyConstant =
-    { description = Constant "[]"
+listEmptyConstantSpecific : ConstantProperties
+listEmptyConstantSpecific =
+    { description = "[]"
     , is = \_ expr -> AstHelpers.getListLiteral expr == Just []
     , asString = \_ -> "[]"
     }
@@ -6981,9 +7014,6 @@ listSingletonConstruct =
     , getValue =
         \lookupTable expr ->
             Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
-    , is =
-        \res expr ->
-            isJust (AstHelpers.getListSingleton res.lookupTable expr)
     }
 
 
@@ -7057,7 +7087,7 @@ listDetermineLength resources =
 stringCollection : TypeProperties (CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties {}))))
 stringCollection =
     { represents = "string"
-    , empty = stringEmptyConstant
+    , empty = { specific = stringEmptyConstantSpecific, kind = Constant }
     , elements =
         { countDescription = "length"
         , determineCount = stringDetermineLength
@@ -7068,9 +7098,9 @@ stringCollection =
     }
 
 
-stringEmptyConstant : ConstantProperties
-stringEmptyConstant =
-    { description = Constant emptyStringAsString
+stringEmptyConstantSpecific : ConstantProperties
+stringEmptyConstantSpecific =
+    { description = emptyStringAsString
     , asString = \_ -> emptyStringAsString
     , is = \_ (Node _ expr) -> expr == Expression.Literal ""
     }
@@ -7140,7 +7170,7 @@ stringGetElements resources =
 arrayCollection : TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties ConstantProperties {})))
 arrayCollection =
     { represents = "array"
-    , empty = constantFnProperties Fn.Array.empty
+    , empty = { specific = constantFnProperties Fn.Array.empty, kind = Constant }
     , elements =
         { countDescription = "length"
         , determineCount = arrayDetermineLength
@@ -7217,7 +7247,7 @@ arrayDetermineLength resources =
 setCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties {}))))
 setCollection =
     { represents = "set"
-    , empty = constantFnProperties Fn.Set.empty
+    , empty = { specific = constantFnProperties Fn.Set.empty, kind = Constant }
     , elements =
         { countDescription = "size"
         , determineCount = setDetermineSize
@@ -7330,7 +7360,7 @@ setDetermineSize resources =
 dictCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties {})))
 dictCollection =
     { represents = "dict"
-    , empty = constantFnProperties Fn.Dict.empty
+    , empty = { specific = constantFnProperties Fn.Dict.empty, kind = Constant }
     , elements =
         { countDescription = "size"
         , determineCount = dictDetermineSize
@@ -7463,14 +7493,14 @@ getTupleWithComparableFirst lookupTable expressionNode =
 cmdCollection : TypeProperties (EmptiableProperties ConstantProperties {})
 cmdCollection =
     { represents = "command"
-    , empty = constantFnProperties Fn.Platform.Cmd.none
+    , empty = { specific = constantFnProperties Fn.Platform.Cmd.none, kind = Constant }
     }
 
 
 subCollection : TypeProperties (EmptiableProperties ConstantProperties {})
 subCollection =
     { represents = "subscription"
-    , empty = constantFnProperties Fn.Platform.Sub.none
+    , empty = { specific = constantFnProperties Fn.Platform.Sub.none, kind = Constant }
     }
 
 
@@ -7577,7 +7607,7 @@ oneOfConstantsWithOneAndRestListChecks : WrapperProperties otherProperties -> Ch
 oneOfConstantsWithOneAndRestListChecks wrapper checkInfo =
     case secondArg checkInfo of
         Just otherOptionsArg ->
-            if listCollection.empty.is (extractInferResources checkInfo) otherOptionsArg then
+            if listCollection.empty.specific.is (extractInferResources checkInfo) otherOptionsArg then
                 Just
                     (Rule.errorWithFix
                         { message = qualifiedToString checkInfo.fn ++ " with one possible value will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with that value"
@@ -7617,7 +7647,7 @@ oneOfWeightedConstantsWithOneAndRestChecks : WrapperProperties otherProperties -
 oneOfWeightedConstantsWithOneAndRestChecks wrapper checkInfo =
     case secondArg checkInfo of
         Just otherOptionsArg ->
-            if listCollection.empty.is (extractInferResources checkInfo) otherOptionsArg then
+            if listCollection.empty.specific.is (extractInferResources checkInfo) otherOptionsArg then
                 Just
                     (Rule.errorWithFix
                         { message = qualifiedToString checkInfo.fn ++ " with one possible value will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with that value"
@@ -7671,7 +7701,7 @@ If your mapping function also takes extra information like the key or index as a
 
 -}
 emptiableMapChecks :
-    TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
+    TypeProperties (EmptiableProperties empty otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
 emptiableMapChecks emptiable =
@@ -7708,7 +7738,7 @@ If your mapping function only takes one value as an argument, use `emptiableMapC
 
 -}
 emptiableMapWithExtraArgChecks :
-    TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
+    TypeProperties (EmptiableProperties empty otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
 emptiableMapWithExtraArgChecks emptiable =
@@ -7991,8 +8021,8 @@ emptiableFlatMapChecks emptiable =
                 Just _ ->
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
-                            (qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ emptiable.empty.asString defaultQualifyResources)
-                            { replacement = emptiable.empty.asString }
+                            (qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ emptiable.empty.specific.description)
+                            { replacement = emptiable.empty.specific.asString }
                             checkInfo
                         )
 
@@ -8031,8 +8061,8 @@ wrapperFlatMapChecks wrapper =
                                 Just wrapCalls ->
                                     Just
                                         (Rule.errorWithFix
-                                            { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionForDefinite "the" wrapper.wrap.description
-                                            , details = [ "You can replace this call by the function directly applied to the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                                            { message = qualifiedToString checkInfo.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description
+                                            , details = [ "You can replace this call by the function directly applied to the value inside " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description ++ "." ]
                                             }
                                             checkInfo.fnRange
                                             (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
@@ -8051,7 +8081,7 @@ wrapperFlatMapChecks wrapper =
                         ( True, (Node functionRange _) :: [] ) ->
                             Just
                                 { info =
-                                    { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ descriptionForDefinite "the" wrapper.wrap.description
+                                    { message = qualifiedToString checkInfo.later.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description
                                     , details = [ "You can replace this composition by the function given to " ++ qualifiedToString checkInfo.later.fn ++ "." ]
                                     }
                                 , fix =
@@ -8087,8 +8117,8 @@ wrapperFlatMapChecks wrapper =
                     Just wrapCalls ->
                         Just
                             (Rule.errorWithFix
-                                { message = qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside"
-                                , details = [ "You can replace this call by " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                                { message = qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " is the same as " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside"
+                                , details = [ "You can replace this call by " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 (Fix.replaceRangeBy checkInfo.fnRange
@@ -8104,7 +8134,7 @@ wrapperFlatMapChecks wrapper =
 
 
 withDefaultChecks :
-    WrapperProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
+    WrapperProperties (EmptiableProperties empty otherProperties)
     -> IntoFnCheck
 withDefaultChecks emptiable =
     intoFnChecksFirstThatConstructsError
@@ -8159,7 +8189,7 @@ nonEmptiableWrapperFlatMapAlwaysChecks wrapper checkInfo =
 
 {-| The "withDefault" checks
 
-    withDefault default empty --> empty
+    withDefault default empty --> default
 
 so for example
 
@@ -8168,7 +8198,7 @@ so for example
 
 -}
 emptiableWithDefaultChecks :
-    EmptiableProperties (TypeSubsetProperties empty) otherProperties
+    EmptiableProperties empty otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 emptiableWithDefaultChecks emptiable checkInfo =
@@ -8178,7 +8208,7 @@ emptiableWithDefaultChecks emptiable checkInfo =
                 Just _ ->
                     Just
                         (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite emptiable.empty.description ++ " will result in the default value"
+                            { message = qualifiedToString checkInfo.fn ++ " on " ++ typeSubsetDescriptionIndefinite emptiable.empty ++ " will result in the default value"
                             , details = [ "You can replace this call by the default value." ]
                             }
                             checkInfo.fnRange
@@ -8193,7 +8223,7 @@ emptiableWithDefaultChecks emptiable checkInfo =
 
 
 unwrapToMaybeChecks :
-    WrapperProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
+    WrapperProperties (EmptiableProperties empty otherProperties)
     -> IntoFnCheck
 unwrapToMaybeChecks emptiableWrapper =
     intoFnChecksFirstThatConstructsError
@@ -8305,7 +8335,7 @@ emptiableWrapperFlatFromListChecks : EmptiableProperties ConstantProperties othe
 emptiableWrapperFlatFromListChecks batchable =
     intoFnChecksFirstThatConstructsError
         [ callOnWrapReturnsItsValueCheck listCollection
-        , intoFnCheckOnlyCall (callOnEmptyReturnsCheck { resultAsString = batchable.empty.asString } listCollection)
+        , intoFnCheckOnlyCall (callOnEmptyReturnsCheck { resultAsString = batchable.empty.specific.asString } listCollection)
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 callOnFromListWithIrrelevantEmptyElement (qualifiedToString (qualify checkInfo.fn defaultQualifyResources))
@@ -8319,7 +8349,7 @@ callOnFromListWithIrrelevantEmptyElement :
     String
     ->
         ( TypeProperties (ConstructibleFromListProperties otherProperties)
-        , EmptiableProperties (TypeSubsetProperties empty) elementOtherProperties
+        , EmptiableProperties empty elementOtherProperties
         )
     -> CheckInfo
     -> Maybe (Error {})
@@ -8332,8 +8362,8 @@ callOnFromListWithIrrelevantEmptyElement situation ( constructibleFromList, empt
                         Just emptyLiteralAndNeighbors ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = situation ++ " on a " ++ constructibleFromList.represents ++ " containing an irrelevant " ++ descriptionWithoutArticle emptiableElement.empty.description
-                                    , details = [ "Including " ++ descriptionForDefinite "the" emptiableElement.empty.description ++ " in the " ++ constructibleFromList.represents ++ " does not change the result of this call. You can remove the " ++ descriptionWithoutArticle emptiableElement.empty.description ++ " element." ]
+                                    { message = situation ++ " on a " ++ constructibleFromList.represents ++ " containing an irrelevant " ++ typeSubsetDescriptionWithoutArticle emptiableElement.empty
+                                    , details = [ "Including " ++ typeSubsetDescriptionDefinite "the" emptiableElement.empty ++ " in the " ++ constructibleFromList.represents ++ " does not change the result of this call. You can remove the " ++ typeSubsetDescriptionWithoutArticle emptiableElement.empty ++ " element." ]
                                     }
                                     (Node.range emptyLiteralAndNeighbors.found)
                                     (listLiteralRemoveElementFix emptyLiteralAndNeighbors)
@@ -8432,7 +8462,7 @@ emptiableRangeChecks emptiable checkInfo =
                         Just
                             (resultsInConstantError
                                 (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
-                                emptiable.empty.asString
+                                emptiable.empty.specific.asString
                                 checkInfo
                             )
 
@@ -8494,13 +8524,13 @@ Note that this really only applies to "flat-intersperse-like" functions, not for
 for that specific example, there is `operationWithIdentityIsEquivalentToFnCheck`
 
 -}
-flatIntersperseWithEmptySeparatorIsEquivalentToFnCheck : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
+flatIntersperseWithEmptySeparatorIsEquivalentToFnCheck : EmptiableProperties empty otherProperties -> ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
 flatIntersperseWithEmptySeparatorIsEquivalentToFnCheck elementProperties replacementFn checkInfo =
-    if elementProperties.empty.is (extractInferResources checkInfo) checkInfo.firstArg then
+    if isInTypeSubset elementProperties.empty checkInfo checkInfo.firstArg then
         Just
             (operationWithFirstArgIsEquivalentToFnError
                 { replacementFn = replacementFn
-                , firstArgDescription = "separator " ++ descriptionWithoutArticle elementProperties.empty.description
+                , firstArgDescription = "separator " ++ typeSubsetDescriptionWithoutArticle elementProperties.empty
                 }
                 checkInfo
             )
@@ -8595,8 +8625,8 @@ wrapperMemberChecks wrapper checkInfo =
                     in
                     Just
                         (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as directly checking for equality"
-                            , details = [ "You can replace this call by checking whether the member to find and the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ " are equal." ]
+                            { message = qualifiedToString checkInfo.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " is the same as directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the value inside " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description ++ " are equal." ]
                             }
                             checkInfo.fnRange
                             (List.concat
@@ -8693,7 +8723,7 @@ callOnCollectionWithAbsorbingElementChecks situation ( collection, elementAbsorb
                 Just absorbingElement ->
                     Just
                         (Rule.errorWithFix
-                            { message = situation ++ " on a " ++ collection.represents ++ " with " ++ descriptionForIndefinite elementAbsorbable.absorbing.description ++ " will result in " ++ descriptionForIndefinite elementAbsorbable.absorbing.description
+                            { message = situation ++ " on a " ++ collection.represents ++ " with " ++ elementAbsorbable.absorbing.description ++ " will result in " ++ elementAbsorbable.absorbing.description
                             , details =
                                 [ "You can replace this call by " ++ elementAbsorbable.absorbing.asString defaultQualifyResources ++ "." ]
                             }
@@ -8708,7 +8738,7 @@ callOnCollectionWithAbsorbingElementChecks situation ( collection, elementAbsorb
             Nothing
 
 
-emptiableAllChecks : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableAllChecks : EmptiableProperties empty otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableAllChecks emptiable =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
@@ -8777,7 +8807,7 @@ collectionAllChecks collection =
                                         Nothing
                                 , \() ->
                                     callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with `not`")
-                                        ( collection, { empty = boolFalseConstant } )
+                                        ( collection, { empty = { specific = boolFalseConstant, kind = Constant } } )
                                         checkInfo
                                 ]
                                 ()
@@ -8790,7 +8820,7 @@ collectionAllChecks collection =
         ]
 
 
-emptiableAnyChecks : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableAnyChecks : EmptiableProperties empty otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableAnyChecks emptiable =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
@@ -8859,7 +8889,7 @@ collectionAnyChecks collection =
                                         Nothing
                                 , \() ->
                                     callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with `not`")
-                                        ( collection, { empty = boolTrueConstant } )
+                                        ( collection, { empty = { specific = boolTrueConstant, kind = Constant } } )
                                         checkInfo
                                 ]
                                 ()
@@ -8959,7 +8989,7 @@ expressionContainsVariable variableToFind expressionNode =
 -}
 sequenceOrFirstEmptyChecks :
     ( TypeProperties (CollectionProperties (ConstructibleFromListProperties collectionOtherProperties))
-    , EmptiableProperties (TypeSubsetProperties empty) (WrapperProperties elementOtherProperties)
+    , EmptiableProperties empty (WrapperProperties elementOtherProperties)
     )
     -> CheckInfo
     -> Maybe (Error {})
@@ -8982,7 +9012,7 @@ So for example
 
 -}
 sequenceOnFromListWithEmptyIgnoresLaterElementsCheck :
-    ( TypeProperties (ConstructibleFromListProperties constructibleFromListOtherProperties), EmptiableProperties (TypeSubsetProperties empty) elementOtherProperties )
+    ( TypeProperties (ConstructibleFromListProperties constructibleFromListOtherProperties), EmptiableProperties empty elementOtherProperties )
     -> CheckInfo
     -> Maybe (Error {})
 sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( constructibleFromList, elementEmptiable ) checkInfo =
@@ -8994,8 +9024,8 @@ sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( constructibleFromList, el
                         Just _ ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " on a " ++ constructibleFromList.represents ++ " containing " ++ descriptionForIndefinite elementEmptiable.empty.description ++ " early will ignore later elements"
-                                    , details = [ "You can remove all " ++ constructibleFromList.represents ++ " elements after " ++ descriptionForDefinite "the first" elementEmptiable.empty.description ++ "." ]
+                                    { message = qualifiedToString checkInfo.fn ++ " on a " ++ constructibleFromList.represents ++ " containing " ++ typeSubsetDescriptionIndefinite elementEmptiable.empty ++ " early will ignore later elements"
+                                    , details = [ "You can remove all " ++ constructibleFromList.represents ++ " elements after " ++ typeSubsetDescriptionDefinite "the first" elementEmptiable.empty ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     [ Fix.removeRange
@@ -9027,7 +9057,7 @@ So for example
 
 -}
 sequenceOnCollectionWithKnownEmptyElementCheck :
-    ( TypeProperties (CollectionProperties collectionOtherProperties), EmptiableProperties (TypeSubsetProperties empty) (WrapperProperties elementOtherProperties) )
+    ( TypeProperties (CollectionProperties collectionOtherProperties), EmptiableProperties empty (WrapperProperties elementOtherProperties) )
     -> CheckInfo
     -> Maybe (Error {})
 sequenceOnCollectionWithKnownEmptyElementCheck ( collection, elementEmptiable ) checkInfo =
@@ -9035,11 +9065,11 @@ sequenceOnCollectionWithKnownEmptyElementCheck ( collection, elementEmptiable ) 
         Just elements ->
             case List.filter (\el -> isNothing (elementEmptiable.wrap.getValue checkInfo.lookupTable el)) elements.known of
                 firstNonWrappedElement :: _ ->
-                    if elementEmptiable.empty.is (extractInferResources checkInfo) firstNonWrappedElement then
+                    if isInTypeSubset elementEmptiable.empty (extractInferResources checkInfo) firstNonWrappedElement then
                         Just
                             (Rule.errorWithFix
-                                { message = qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " containing " ++ descriptionForIndefinite elementEmptiable.empty.description ++ " will result in " ++ descriptionForDefinite "the first" elementEmptiable.empty.description
-                                , details = [ "You can replace this call by " ++ descriptionForDefinite "the first" elementEmptiable.empty.description ++ " in the " ++ collection.represents ++ "." ]
+                                { message = qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " containing " ++ typeSubsetDescriptionIndefinite elementEmptiable.empty ++ " will result in " ++ typeSubsetDescriptionDefinite "the first" elementEmptiable.empty
+                                , details = [ "You can replace this call by " ++ typeSubsetDescriptionDefinite "the first" elementEmptiable.empty ++ " in the " ++ collection.represents ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 (replaceBySubExpressionFix checkInfo.parentRange firstNonWrappedElement)
@@ -9093,8 +9123,8 @@ sequenceOnCollectionWithAllElementsWrapped ( collection, elementWrapper ) checkI
                     Just wrappeds ->
                         Just
                             (Rule.errorWithFix
-                                { message = qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " where each element is " ++ descriptionForIndefinite elementWrapper.wrap.description ++ " will result in " ++ qualifiedToString elementWrapper.wrap.fn ++ " on the values inside"
-                                , details = [ "You can replace this call by " ++ qualifiedToString elementWrapper.wrap.fn ++ " on a list where each element is replaced by its value inside " ++ descriptionForDefinite "the" elementWrapper.wrap.description ++ "." ]
+                                { message = qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " where each element is " ++ constructWithOneArgDescriptionIndefinite elementWrapper.wrap.description ++ " will result in " ++ qualifiedToString elementWrapper.wrap.fn ++ " on the values inside"
+                                , details = [ "You can replace this call by " ++ qualifiedToString elementWrapper.wrap.fn ++ " on a list where each element is replaced by its value inside " ++ constructWithOneArgDescriptionDefinite "the" elementWrapper.wrap.description ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 (Fix.replaceRangeBy
@@ -9184,8 +9214,8 @@ sequenceRepeatChecks wrapper =
                         Just wrapCall ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the value in " ++ descriptionForDefinite "that" wrapper.wrap.description
-                                    , details = [ "You can replace the call by " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the same length and the value inside " ++ descriptionForDefinite "the given" wrapper.wrap.description ++ "." ]
+                                    { message = qualifiedToString checkInfo.fn ++ " with " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the value in " ++ constructWithOneArgDescriptionDefinite "that" wrapper.wrap.description
+                                    , details = [ "You can replace the call by " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the same length and the value inside " ++ constructWithOneArgDescriptionDefinite "the given" wrapper.wrap.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (replaceBySubExpressionFix wrapCall.nodeRange wrapCall.firstArg
@@ -9229,11 +9259,11 @@ emptiableFlatRepeatChecks emptiable =
         [ \checkInfo ->
             case secondArg checkInfo of
                 Just emptiableArg ->
-                    if emptiable.empty.is (extractInferResources checkInfo) emptiableArg then
+                    if emptiable.empty.specific.is (extractInferResources checkInfo) emptiableArg then
                         Just
                             (Rule.errorWithFix
-                                { message = qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite emptiable.empty.description ++ " will result in " ++ descriptionForDefinite "the given" emptiable.empty.description
-                                , details = [ "You can replace this call by " ++ descriptionForDefinite "the given" emptiable.empty.description ++ "." ]
+                                { message = qualifiedToString checkInfo.fn ++ " with " ++ emptiable.empty.specific.description ++ " will result in " ++ emptiable.empty.specific.description
+                                , details = [ "You can replace this call by " ++ emptiable.empty.specific.description ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 (keepOnlyFix
@@ -9267,7 +9297,7 @@ emptiableFlatRepeatChecks emptiable =
                             callWithNonPositiveIntCanBeReplacedByCheck
                                 { int = intValue
                                 , intDescription = "length"
-                                , replacement = emptiable.empty.asString
+                                , replacement = emptiable.empty.specific.asString
                                 }
                                 checkInfo
                         ]
@@ -9311,7 +9341,7 @@ If your fold function takes two arguments, use `emptiableFoldWithExtraArgChecks`
 
 -}
 emptiableFoldChecks :
-    TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
+    TypeProperties (EmptiableProperties empty otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
 emptiableFoldChecks emptiable =
@@ -9321,14 +9351,14 @@ emptiableFoldChecks emptiable =
         ]
 
 
-foldOnEmptyChecks : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> CheckInfo -> Maybe (Error {})
+foldOnEmptyChecks : EmptiableProperties empty otherProperties -> CheckInfo -> Maybe (Error {})
 foldOnEmptyChecks emptiable checkInfo =
     case checkInfo.argsAfterFirst of
         initialArg :: emptiableArg :: [] ->
-            if emptiable.empty.is (extractInferResources checkInfo) emptiableArg then
+            if isInTypeSubset emptiable.empty checkInfo emptiableArg then
                 Just
                     (returnsArgError
-                        (qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite emptiable.empty.description)
+                        (qualifiedToString checkInfo.fn ++ " on " ++ typeSubsetDescriptionIndefinite emptiable.empty)
                         { argRepresents = "initial accumulator"
                         , arg = initialArg
                         }
@@ -9408,7 +9438,7 @@ If your fold function does not have an extra arg, use `emptiableFoldChecks`.
 
 -}
 emptiableFoldWithExtraArgChecks :
-    TypeProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
+    TypeProperties (EmptiableProperties empty otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
 emptiableFoldWithExtraArgChecks emptiable =
@@ -9483,7 +9513,7 @@ emptiableRepeatChecks collection checkInfo =
             callWithNonPositiveIntCanBeReplacedByCheck
                 { int = intValue
                 , intDescription = collection.elements.countDescription
-                , replacement = collection.empty.asString
+                , replacement = collection.empty.specific.asString
                 }
                 checkInfo
 
@@ -9514,10 +9544,10 @@ wrapperRepeatChecks wrapper checkInfo =
             Nothing
 
 
-getChecks : TypeProperties (CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)) -> CheckInfo -> Maybe (Error {})
+getChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> CheckInfo -> Maybe (Error {})
 getChecks collection =
     firstThatConstructsJust
-        [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.asString } collection
+        [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } collection
         , \checkInfo ->
             Evaluate.getInt checkInfo checkInfo.firstArg
                 |> Maybe.andThen (indexAccessChecks collection checkInfo)
@@ -9529,7 +9559,7 @@ indexAccessChecks collection checkInfo n =
     if n < 0 then
         Just
             (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with negative index")
-                { replacement = maybeWithJustAsWrap.empty.asString }
+                { replacement = maybeWithJustAsWrap.empty.specific.asString }
                 checkInfo
             )
 
@@ -9652,7 +9682,7 @@ indexAccessChecks collection checkInfo n =
                 Nothing
 
 
-setChecks : TypeProperties (CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)) -> CheckInfo -> Maybe (Error {})
+setChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> CheckInfo -> Maybe (Error {})
 setChecks collection =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck collection
@@ -9725,7 +9755,7 @@ setOnKnownElementChecks collection checkInfo n replacementArgRange =
             Nothing
 
 
-emptiableReverseChecks : EmptiableProperties (TypeSubsetProperties empty) otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableReverseChecks : EmptiableProperties empty otherProperties -> CheckInfo -> Maybe (Error {})
 emptiableReverseChecks emptiable =
     firstThatConstructsJust
         [ unnecessaryCallOnEmptyCheck emptiable
@@ -9752,7 +9782,7 @@ dropOnSmallerCollectionCheck config collection checkInfo =
                         Just
                             (alwaysResultsInUnparenthesizedConstantError
                                 (qualifiedToString checkInfo.fn ++ " with a count greater than or equal to the given " ++ collection.represents ++ "'s length")
-                                { replacement = collection.empty.asString }
+                                { replacement = collection.empty.specific.asString }
                                 checkInfo
                             )
 
@@ -9812,11 +9842,11 @@ dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck config const
 
 emptiableMapNChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 emptiableMapNChecks emptiable checkInfo =
-    if List.any (emptiable.empty.is (extractInferResources checkInfo)) checkInfo.argsAfterFirst then
+    if List.any (isInTypeSubset emptiable.empty checkInfo) checkInfo.argsAfterFirst then
         Just
             (alwaysResultsInUnparenthesizedConstantError
-                (qualifiedToString checkInfo.fn ++ " with any " ++ emptiable.represents ++ " being " ++ emptiable.empty.asString defaultQualifyResources)
-                { replacement = emptiable.empty.asString }
+                (qualifiedToString checkInfo.fn ++ " with any " ++ emptiable.represents ++ " being " ++ emptiable.empty.specific.description)
+                { replacement = emptiable.empty.specific.asString }
                 checkInfo
             )
 
@@ -9851,8 +9881,8 @@ wrapperMapNChecks wrapper checkInfo =
                 in
                 Just
                     (Rule.errorWithFix
-                        { message = qualifiedToString checkInfo.fn ++ " where each " ++ wrapper.represents ++ " is " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnDescription ++ " on the values inside"
-                        , details = [ "You can replace this call by " ++ wrapFnDescription ++ " with the function applied to the values inside each " ++ descriptionWithoutArticle wrapper.wrap.description ++ "." ]
+                        { message = qualifiedToString checkInfo.fn ++ " where each " ++ wrapper.represents ++ " is " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnDescription ++ " on the values inside"
+                        , details = [ "You can replace this call by " ++ wrapFnDescription ++ " with the function applied to the values inside each " ++ constructWithOneArgDescriptionWithoutArticle wrapper.wrap.description ++ "." ]
                         }
                         checkInfo.fnRange
                         (keepOnlyFix
@@ -9915,7 +9945,7 @@ This is pretty similar to `listSequenceOrFirstEmptyChecks` where we look at argu
 
 -}
 mapNOrFirstEmptyConstructionChecks :
-    WrapperProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)
+    WrapperProperties (EmptiableProperties empty otherProperties)
     -> CheckInfo
     -> Maybe (Error {})
 mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
@@ -9934,14 +9964,14 @@ mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
                             case checkInfo.argCount - (1 + List.length checkInfo.argsAfterFirst) of
                                 -- fully applied
                                 0 ->
-                                    { description = descriptionForDefinite "the first" emptiable.empty.description
+                                    { description = typeSubsetDescriptionDefinite "the first" emptiable.empty
                                     , fix = replaceBySubExpressionFix checkInfo.parentRange emptyAndBefore.found
                                     }
 
                                 -- one arg curried
                                 1 ->
                                     { description =
-                                        "always with " ++ descriptionForDefinite "the first" emptiable.empty.description
+                                        "always with " ++ typeSubsetDescriptionDefinite "the first" emptiable.empty
                                     , fix =
                                         replaceBySubExpressionFix checkInfo.parentRange emptyAndBefore.found
                                             ++ [ Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify Fn.Basics.always checkInfo) ++ " ") ]
@@ -9955,7 +9985,7 @@ mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
                                             "\\" ++ String.repeat atLeast2 "_ " ++ "-> "
                                     in
                                     { description =
-                                        lambdaStart ++ "with " ++ descriptionForDefinite "the first" emptiable.empty.description
+                                        lambdaStart ++ "with " ++ typeSubsetDescriptionDefinite "the first" emptiable.empty
                                     , fix =
                                         replaceBySubExpressionFix checkInfo.parentRange emptyAndBefore.found
                                             ++ [ Fix.insertAt checkInfo.parentRange.start ("(" ++ lambdaStart)
@@ -9965,7 +9995,7 @@ mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
                     in
                     Just
                         (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " where we know " ++ descriptionForDefinite "the first" emptiable.empty.description ++ " will result in " ++ descriptionForDefinite "that" emptiable.empty.description
+                            { message = qualifiedToString checkInfo.fn ++ " where we know " ++ typeSubsetDescriptionDefinite "the first" emptiable.empty ++ " will result in " ++ typeSubsetDescriptionDefinite "that" emptiable.empty
                             , details = [ "You can replace this call by " ++ replacement.description ++ "." ]
                             }
                             checkInfo.fnRange
@@ -10011,7 +10041,7 @@ mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
                                                 { start = checkInfo.parentRange.start, end = keptRange.start }
                                             ]
                                         , description =
-                                            qualifiedToString replacementMap ++ " with the same arguments until " ++ descriptionForDefinite "the first" emptiable.empty.description
+                                            qualifiedToString replacementMap ++ " with the same arguments until " ++ typeSubsetDescriptionDefinite "the first" emptiable.empty
                                         }
 
                                     -- one arg curried
@@ -10028,7 +10058,7 @@ mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
                                                 (qualifiedToString (qualify Fn.Basics.always checkInfo) ++ " (")
                                             ]
                                         , description =
-                                            "always with " ++ qualifiedToString replacementMap ++ " with the same arguments until " ++ descriptionForDefinite "the first" emptiable.empty.description
+                                            "always with " ++ qualifiedToString replacementMap ++ " with the same arguments until " ++ typeSubsetDescriptionDefinite "the first" emptiable.empty
                                         }
 
                                     -- multiple args curried
@@ -10048,12 +10078,12 @@ mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
                                                 ("(" ++ lambdaStart)
                                             ]
                                         , description =
-                                            lambdaStart ++ "with " ++ qualifiedToString replacementMap ++ " with the same arguments until " ++ descriptionForDefinite "the first" emptiable.empty.description
+                                            lambdaStart ++ "with " ++ qualifiedToString replacementMap ++ " with the same arguments until " ++ typeSubsetDescriptionDefinite "the first" emptiable.empty
                                         }
                         in
                         Just
                             (Rule.errorWithFix
-                                { message = qualifiedToString checkInfo.fn ++ " with " ++ descriptionForIndefinite emptiable.empty.description ++ " early will ignore later arguments"
+                                { message = qualifiedToString checkInfo.fn ++ " with " ++ typeSubsetDescriptionIndefinite emptiable.empty ++ " early will ignore later arguments"
                                 , details = [ "You can replace this call by " ++ replacement.description ++ "." ]
                                 }
                                 checkInfo.fnRange
@@ -10104,7 +10134,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
                         Just
                             (alwaysResultsInUnparenthesizedConstantError
                                 (qualifiedToString checkInfo.fn ++ " with a function that will always return Nothing")
-                                { replacement = emptiableWrapper.empty.asString }
+                                { replacement = emptiableWrapper.empty.specific.asString }
                                 checkInfo
                             )
 
@@ -10276,7 +10306,7 @@ onWrappedIsEquivalentToMapWrapOnValueCheck ( wrapper, valueMappable ) =
                             in
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
+                                    { message = qualifiedToString checkInfo.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
                                     , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ " on the value inside the singleton list." ]
                                     }
                                     checkInfo.fnRange
@@ -10303,7 +10333,7 @@ onWrappedIsEquivalentToMapWrapOnValueCheck ( wrapper, valueMappable ) =
                 in
                 Just
                     { info =
-                        { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
+                        { message = qualifiedToString checkInfo.later.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
                         , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
                         }
                     , fix = compositionReplaceByFix (replacement checkInfo) checkInfo
@@ -10663,7 +10693,7 @@ unnecessaryCompositionAfterWrapCheck wrapper =
 
 unnecessaryCallOnWrappedCheck : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
 unnecessaryCallOnWrappedCheck wrapper =
-    unnecessaryCallOnCheck wrapper.wrap
+    unnecessaryCallOnCheck { specific = wrapper.wrap, kind = ConstructWithOneArg }
 
 
 unnecessaryCallOnCheck : TypeSubsetProperties otherProperties -> CheckInfo -> Maybe (Error {})
@@ -10673,7 +10703,7 @@ unnecessaryCallOnCheck constructable checkInfo =
             let
                 getConstructable : Node Expression -> Maybe ()
                 getConstructable expressionNode =
-                    if constructable.is (extractInferResources checkInfo) expressionNode then
+                    if isInTypeSubset constructable checkInfo expressionNode then
                         Just ()
 
                     else
@@ -10683,7 +10713,7 @@ unnecessaryCallOnCheck constructable checkInfo =
                 Just _ ->
                     Just
                         (Rule.errorWithFix
-                            (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = constructable.description })
+                            (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = constructable })
                             checkInfo.fnRange
                             (keepOnlyFix
                                 { parentRange = checkInfo.parentRange
@@ -10700,7 +10730,7 @@ unnecessaryCallOnCheck constructable checkInfo =
 
 
 unnecessaryCallOnEmptyCheck :
-    EmptiableProperties (TypeSubsetProperties empty) otherProperties
+    EmptiableProperties empty otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 unnecessaryCallOnEmptyCheck emptiable =
@@ -10709,13 +10739,13 @@ unnecessaryCallOnEmptyCheck emptiable =
 
 callOnEmptyReturnsCheck :
     { resultAsString : QualifyResources {} -> String }
-    -> EmptiableProperties (TypeSubsetProperties empty) otherProperties
+    -> EmptiableProperties empty otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 callOnEmptyReturnsCheck config collection checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just lastArg ->
-            if collection.empty.is (extractInferResources checkInfo) lastArg then
+            if isInTypeSubset collection.empty (extractInferResources checkInfo) lastArg then
                 let
                     resultDescription : String
                     resultDescription =
@@ -10723,7 +10753,7 @@ callOnEmptyReturnsCheck config collection checkInfo =
                 in
                 Just
                     (Rule.errorWithFix
-                        { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite collection.empty.description ++ " will result in " ++ resultDescription
+                        { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ typeSubsetDescriptionIndefinite collection.empty ++ " will result in " ++ resultDescription
                         , details = [ "You can replace this call by " ++ resultDescription ++ "." ]
                         }
                         checkInfo.fnRange
@@ -10759,21 +10789,18 @@ unnecessaryCompositionAfterEmptyCheck :
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 unnecessaryCompositionAfterEmptyCheck emptiable =
-    unnecessaryCompositionAfterCheck emptiable.empty
+    unnecessaryCompositionAfterCheck emptiable.empty.specific
 
 
 unnecessaryCompositionAfterCheck :
-    { construct
-        | description : Description
-        , fn : ( ModuleName, String )
-    }
+    ConstructWithOneArgProperties
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 unnecessaryCompositionAfterCheck construct checkInfo =
     if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == construct.fn) then
         Just
             { info =
-                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite construct.description ++ " will result in " ++ descriptionForDefinite "the unchanged" construct.description
+                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite construct.description ++ " will result in " ++ constructWithOneArgDescriptionDefinite "the unchanged" construct.description
                 , details = [ "You can replace this composition by " ++ qualifiedToString (qualify construct.fn checkInfo) ++ "." ]
                 }
             , fix =
@@ -10875,8 +10902,8 @@ callOnWrapReturnsItsValueCheck wrapper =
                         Just wraps ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in the value inside"
-                                    , details = [ "You can replace this call by the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                                    { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " will result in the value inside"
+                                    , details = [ "You can replace this call by the value inside " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range wrapperArg }
@@ -10891,7 +10918,7 @@ callOnWrapReturnsItsValueCheck wrapper =
             if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
                 Just
                     (compositionAlwaysReturnsIncomingError
-                        (qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in the value inside")
+                        (qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " will always result in the value inside")
                         checkInfo
                     )
 
@@ -10927,8 +10954,8 @@ callOnWrapReturnsJustItsValue wrapper =
                         Just wraps ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will result in Just the value inside"
-                                    , details = [ "You can replace this call by Just the value inside " ++ descriptionForDefinite "the" wrapper.wrap.description ++ "." ]
+                                    { message = qualifiedToString checkInfo.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " will result in Just the value inside"
+                                    , details = [ "You can replace this call by Just the value inside " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (Fix.removeRange { start = (Node.range withWrapArg).end, end = checkInfo.parentRange.end }
@@ -10949,7 +10976,7 @@ callOnWrapReturnsJustItsValue wrapper =
             if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
                 Just
                     { info =
-                        { message = qualifiedToString checkInfo.later.fn ++ " on " ++ descriptionForIndefinite wrapper.wrap.description ++ " will always result in Just the value inside"
+                        { message = qualifiedToString checkInfo.later.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " will always result in Just the value inside"
                         , details = [ "You can replace this call by Just." ]
                         }
                     , fix = compositionReplaceByFnFix Fn.Maybe.justVariant checkInfo
@@ -11000,7 +11027,7 @@ keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkI
             Just
                 (alwaysResultsInUnparenthesizedConstantError
                     (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
-                    { replacement = emptiable.empty.asString }
+                    { replacement = emptiable.empty.specific.asString }
                     checkInfo
                 )
 
@@ -11040,7 +11067,7 @@ emptiableKeepWhenWithExtraArgChecks emptiable =
         ]
 
 
-collectionRemoveChecks : CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionRemoveChecks : CollectionProperties (EmptiableProperties empty otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionRemoveChecks collection =
     unnecessaryCallOnEmptyCheck collection
 
@@ -11057,7 +11084,7 @@ collectionSliceChecks collection =
                             if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ endArg ] then
                                 Just
                                     (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with equal start and end index")
-                                        { replacement = collection.empty.asString }
+                                        { replacement = collection.empty.specific.asString }
                                         checkInfo
                                     )
 
@@ -11072,7 +11099,7 @@ collectionSliceChecks collection =
                                                 0 ->
                                                     Just
                                                         (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with end index 0")
-                                                            { replacement = collection.empty.asString }
+                                                            { replacement = collection.empty.specific.asString }
                                                             checkInfo
                                                         )
 
@@ -11085,14 +11112,14 @@ collectionSliceChecks collection =
                                                         if startInt >= 0 && endInt >= 0 then
                                                             Just
                                                                 (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
-                                                                    { replacement = collection.empty.asString }
+                                                                    { replacement = collection.empty.specific.asString }
                                                                     checkInfo
                                                                 )
 
                                                         else if startInt <= -1 && endInt <= -1 then
                                                             Just
                                                                 (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with a negative start index closer to the right than the negative end index")
-                                                                    { replacement = collection.empty.asString }
+                                                                    { replacement = collection.empty.specific.asString }
                                                                     checkInfo
                                                                 )
 
@@ -11121,11 +11148,11 @@ collectionIntersectChecks : CollectionProperties (EmptiableProperties ConstantPr
 collectionIntersectChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
-            if collection.empty.is (extractInferResources checkInfo) checkInfo.firstArg then
+            if collection.empty.specific.is (extractInferResources checkInfo) checkInfo.firstArg then
                 Just
                     (alwaysResultsInUnparenthesizedConstantError
-                        (qualifiedToString checkInfo.fn ++ " on " ++ collection.empty.asString defaultQualifyResources)
-                        { replacement = collection.empty.asString }
+                        (qualifiedToString checkInfo.fn ++ " on " ++ collection.empty.specific.description)
+                        { replacement = collection.empty.specific.asString }
                         checkInfo
                     )
 
@@ -11139,11 +11166,11 @@ collectionDiffChecks : TypeProperties (CollectionProperties (EmptiableProperties
 collectionDiffChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
-            if collection.empty.is (extractInferResources checkInfo) checkInfo.firstArg then
+            if collection.empty.specific.is (extractInferResources checkInfo) checkInfo.firstArg then
                 Just
                     (alwaysResultsInUnparenthesizedConstantError
                         (qualifiedToString checkInfo.fn ++ " " ++ emptyAsString checkInfo collection)
-                        { replacement = collection.empty.asString }
+                        { replacement = collection.empty.specific.asString }
                         checkInfo
                     )
 
@@ -11152,7 +11179,7 @@ collectionDiffChecks collection =
         , \checkInfo ->
             case secondArg checkInfo of
                 Just collectionArg ->
-                    if collection.empty.is (extractInferResources checkInfo) collectionArg then
+                    if isInTypeSubset collection.empty (extractInferResources checkInfo) collectionArg then
                         Just
                             (Rule.errorWithFix
                                 { message = "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " with " ++ emptyAsString checkInfo collection
@@ -11170,14 +11197,14 @@ collectionDiffChecks collection =
         ]
 
 
-collectionUnionChecks : { leftElementsStayOnTheLeft : Bool } -> TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties))) -> CheckInfo -> Maybe (Error {})
+collectionUnionChecks : { leftElementsStayOnTheLeft : Bool } -> TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties empty otherProperties))) -> CheckInfo -> Maybe (Error {})
 collectionUnionChecks config collection =
     firstThatConstructsJust
         [ \checkInfo ->
-            if collection.empty.is (extractInferResources checkInfo) checkInfo.firstArg then
+            if isInTypeSubset collection.empty checkInfo checkInfo.firstArg then
                 Just
                     (alwaysReturnsLastArgError
-                        (qualifiedToString checkInfo.fn ++ " " ++ descriptionForIndefinite collection.empty.description)
+                        (qualifiedToString checkInfo.fn ++ " " ++ typeSubsetDescriptionWithoutArticle collection.empty)
                         collection
                         checkInfo
                     )
@@ -11187,10 +11214,10 @@ collectionUnionChecks config collection =
         , \checkInfo ->
             case secondArg checkInfo of
                 Just secondArg_ ->
-                    if collection.empty.is (extractInferResources checkInfo) secondArg_ then
+                    if isInTypeSubset collection.empty checkInfo secondArg_ then
                         Just
                             (Rule.errorWithFix
-                                { message = "Unnecessary " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " with " ++ descriptionForIndefinite collection.empty.description
+                                { message = "Unnecessary " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " with " ++ typeSubsetDescriptionIndefinite collection.empty
                                 , details = [ "You can replace this call by the given first " ++ collection.represents ++ "." ]
                                 }
                                 checkInfo.fnRange
@@ -11277,14 +11304,14 @@ collectionUnionWithLiteralsChecks config operationInfo collection checkInfo =
             Nothing
 
 
-collectionInsertChecks : CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) (WrapperProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionInsertChecks : CollectionProperties (EmptiableProperties empty (WrapperProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
 collectionInsertChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
-            if collection.empty.is (extractInferResources checkInfo) collectionArg then
+            if isInTypeSubset collection.empty checkInfo collectionArg then
                 Just
                     (Rule.errorWithFix
-                        { message = "Use " ++ qualifiedToString collection.wrap.fn ++ " instead of inserting in " ++ descriptionForIndefinite collection.empty.description
+                        { message = "Use " ++ qualifiedToString collection.wrap.fn ++ " instead of inserting in " ++ typeSubsetDescriptionIndefinite collection.empty
                         , details = [ "You can replace this call by " ++ qualifiedToString collection.wrap.fn ++ "." ]
                         }
                         checkInfo.fnRange
@@ -11302,20 +11329,20 @@ collectionInsertChecks collection checkInfo =
             Nothing
 
 
-collectionMemberChecks : CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionMemberChecks : CollectionProperties (EmptiableProperties empty otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionMemberChecks collection =
     callOnEmptyReturnsCheck
         { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
         collection
 
 
-collectionIsEmptyChecks : TypeProperties (CollectionProperties (EmptiableProperties (TypeSubsetProperties empty) otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionIsEmptyChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> CheckInfo -> Maybe (Error {})
 collectionIsEmptyChecks collection checkInfo =
     case collection.elements.determineCount (extractInferResources checkInfo) checkInfo.firstArg of
         Just (Exactly 0) ->
             Just
                 (resultsInConstantError
-                    (qualifiedToString checkInfo.fn ++ " on " ++ descriptionForIndefinite collection.empty.description)
+                    (qualifiedToString checkInfo.fn ++ " on " ++ typeSubsetDescriptionIndefinite collection.empty)
                     (\res -> qualifiedToString (qualify Fn.Basics.trueVariant res))
                     checkInfo
                 )
@@ -11351,7 +11378,7 @@ collectionSizeChecks collection checkInfo =
 
 collectionFromListChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 collectionFromListChecks collection =
-    callOnEmptyReturnsCheck { resultAsString = collection.empty.asString } listCollection
+    callOnEmptyReturnsCheck { resultAsString = collection.empty.specific.asString } listCollection
 
 
 wrapperFromListSingletonChecks : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
@@ -11391,11 +11418,11 @@ wrapperFromListSingletonCompositionChecks wrapper checkInfo =
 
 
 emptiableToListChecks :
-    EmptiableProperties (TypeSubsetProperties empty) otherProperties
+    EmptiableProperties empty otherProperties
     -> CheckInfo
     -> Maybe (Error {})
 emptiableToListChecks collection =
-    callOnEmptyReturnsCheck { resultAsString = listCollection.empty.asString } collection
+    callOnEmptyReturnsCheck { resultAsString = listCollection.empty.specific.asString } collection
 
 
 {-| The partition checks
@@ -11426,7 +11453,7 @@ collectionPartitionChecks collection =
 partitionOnEmptyChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
 partitionOnEmptyChecks emptiable =
     callOnEmptyReturnsCheck
-        { resultAsString = \res -> "( " ++ emptiable.empty.asString res ++ ", " ++ emptiable.empty.asString res ++ " )" }
+        { resultAsString = \res -> "( " ++ emptiable.empty.specific.asString res ++ ", " ++ emptiable.empty.specific.asString res ++ " )" }
         emptiable
 
 
@@ -11439,7 +11466,7 @@ partitionWithConstantFunctionResult constantFunctionResult collection checkInfo 
                     Just
                         (Rule.errorWithFix
                             { message = "All elements will go to the first " ++ collection.represents
-                            , details = [ "Since the predicate function always returns True, the second " ++ collection.represents ++ " will always be " ++ collection.empty.asString defaultQualifyResources ++ "." ]
+                            , details = [ "Since the predicate function always returns True, the second " ++ collection.represents ++ " will always be " ++ collection.empty.specific.description ++ "." ]
                             }
                             checkInfo.fnRange
                             [ Fix.replaceRangeBy { start = checkInfo.fnRange.start, end = listArgRange.start } "( "
@@ -11454,7 +11481,7 @@ partitionWithConstantFunctionResult constantFunctionResult collection checkInfo 
             Just
                 (Rule.errorWithFix
                     { message = "All elements will go to the second " ++ collection.represents
-                    , details = [ "Since the predicate function always returns False, the first " ++ collection.represents ++ " will always be " ++ collection.empty.asString defaultQualifyResources ++ "." ]
+                    , details = [ "Since the predicate function always returns False, the first " ++ collection.represents ++ " will always be " ++ collection.empty.specific.description ++ "." ]
                     }
                     checkInfo.fnRange
                     (case secondArg checkInfo of
@@ -12663,14 +12690,14 @@ compositionReplaceByFnFix replacementFn checkInfo =
     compositionReplaceByFix (qualifiedToString (qualify replacementFn checkInfo)) checkInfo
 
 
-operationDoesNotChangeSpecificLastArgErrorInfo : { fn : ( ModuleName, String ), specific : Description } -> { message : String, details : List String }
+operationDoesNotChangeSpecificLastArgErrorInfo : { fn : ( ModuleName, String ), specific : TypeSubsetProperties otherTypeSubsetProperties } -> { message : String, details : List String }
 operationDoesNotChangeSpecificLastArgErrorInfo config =
     let
         specificLastArgReference : String
         specificLastArgReference =
-            descriptionForDefinite "the given" config.specific
+            typeSubsetDescriptionDefinite "the given" config.specific
     in
-    { message = qualifiedToString config.fn ++ " on " ++ descriptionForIndefinite config.specific ++ " will result in " ++ specificLastArgReference
+    { message = qualifiedToString config.fn ++ " on " ++ typeSubsetDescriptionIndefinite config.specific ++ " will result in " ++ specificLastArgReference
     , details = [ "You can replace this call by " ++ specificLastArgReference ++ "." ]
     }
 
