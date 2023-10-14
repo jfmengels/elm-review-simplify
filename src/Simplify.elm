@@ -7784,8 +7784,6 @@ So for example
     Random.map f << Random.constant
     --> Random.constant << f
 
-Use together with `mapAfterWrapCompositionChecks`.
-
 -}
 mapOnWrappedChecks : WrapperProperties otherProperties -> IntoFnCheck
 mapOnWrappedChecks wrapper =
