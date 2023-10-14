@@ -4678,13 +4678,10 @@ stringFoldrChecks =
 
 maybeMapChecks : IntoFnCheck
 maybeMapChecks =
-    { call =
-        firstThatConstructsJust
-            [ emptiableMapChecks maybeWithJustAsWrap
-            , mapOnWrappedChecks maybeWithJustAsWrap
-            ]
-    , composition = mapAfterWrapCompositionChecks maybeWithJustAsWrap
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (emptiableMapChecks maybeWithJustAsWrap)
+        , mapOnWrappedChecks maybeWithJustAsWrap
+        ]
 
 
 maybeMapNChecks : IntoFnCheck
@@ -4720,17 +4717,10 @@ maybeWithDefaultChecks =
 
 resultMapChecks : IntoFnCheck
 resultMapChecks =
-    { call =
-        firstThatConstructsJust
-            [ emptiableMapChecks resultWithOkAsWrap
-            , mapOnWrappedChecks resultWithOkAsWrap
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ mapAfterWrapCompositionChecks resultWithOkAsWrap
-            , unnecessaryCompositionAfterEmptyCheck resultWithOkAsWrap
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ { call = emptiableMapChecks resultWithOkAsWrap, composition = unnecessaryCompositionAfterEmptyCheck resultWithOkAsWrap }
+        , mapOnWrappedChecks resultWithOkAsWrap
+        ]
 
 
 resultMapNChecks : IntoFnCheck
@@ -4760,17 +4750,10 @@ mapWrapErrorInfo mapFn wrapper =
 
 resultMapErrorChecks : IntoFnCheck
 resultMapErrorChecks =
-    { call =
-        firstThatConstructsJust
-            [ emptiableMapChecks resultWithErrAsWrap
-            , mapOnWrappedChecks resultWithErrAsWrap
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ mapAfterWrapCompositionChecks resultWithErrAsWrap
-            , unnecessaryCompositionAfterEmptyCheck resultWithErrAsWrap
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ { call = emptiableMapChecks resultWithErrAsWrap, composition = unnecessaryCompositionAfterEmptyCheck resultWithErrAsWrap }
+        , mapOnWrappedChecks resultWithErrAsWrap
+        ]
 
 
 resultAndThenChecks : IntoFnCheck
@@ -5034,20 +5017,12 @@ listTailChecks =
 
 listMapChecks : IntoFnCheck
 listMapChecks =
-    { call =
-        firstThatConstructsJust
-            [ emptiableMapChecks listCollection
-            , listMapOnSingletonCheck
-            , dictToListMapChecks
-            , arrayToIndexedListToListMapChecks
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ mapAfterWrapCompositionChecks listCollection
-            , dictToListIntoListMapCompositionCheck
-            , arrayToIndexedListMapCompositionCheck
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (emptiableMapChecks listCollection)
+        , listMapOnSingletonCheck
+        , { call = dictToListMapChecks, composition = dictToListIntoListMapCompositionCheck }
+        , { call = arrayToIndexedListToListMapChecks, composition = arrayToIndexedListMapCompositionCheck }
+        ]
 
 
 listMapNChecks : IntoFnCheck
@@ -5055,91 +5030,95 @@ listMapNChecks =
     intoFnCheckOnlyCall (emptiableMapNChecks listCollection)
 
 
-listMapOnSingletonCheck : CheckInfo -> Maybe (Error {})
-listMapOnSingletonCheck checkInfo =
-    -- we do not re-use mapOnWrappedChecks because that would fix e.g.
-    -- map f (if c then List.singleton a else [ b ]) --> map f (List.singleton (if c then a else b))
-    -- while we instead fix it to the more compact form
-    -- map f [ if c then a else b ]
-    case secondArg checkInfo of
-        Just listArg ->
-            firstThatConstructsJust
-                [ \() ->
-                    case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
-                        Just wrapped ->
-                            let
-                                mappedValueRange : Range
-                                mappedValueRange =
-                                    Node.range wrapped.element
+listMapOnSingletonCheck : IntoFnCheck
+listMapOnSingletonCheck =
+    { call =
+        \checkInfo ->
+            -- we do not re-use mapOnWrappedChecks because that would fix e.g.
+            -- map f (if c then List.singleton a else [ b ]) --> map f (List.singleton (if c then a else b))
+            -- while we instead fix it to the more compact form
+            -- map f [ if c then a else b ]
+            case secondArg checkInfo of
+                Just listArg ->
+                    firstThatConstructsJust
+                        [ \() ->
+                            case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
+                                Just wrapped ->
+                                    let
+                                        mappedValueRange : Range
+                                        mappedValueRange =
+                                            Node.range wrapped.element
 
-                                mappingArgRange : Range
-                                mappingArgRange =
-                                    Node.range checkInfo.firstArg
-                            in
-                            Just
-                                (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " on a singleton list will result in a singleton list with the function applied to the value inside"
-                                    , details = [ "You can replace this call by a singleton list with the function directly applied to the value inside the given singleton list." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range listArg }
-                                        ++ parenthesizeIfNeededFix wrapped.element
-                                        ++ (case checkInfo.callStyle of
-                                                Pipe LeftToRight ->
-                                                    [ Fix.insertAt mappedValueRange.start "("
-                                                    , Fix.insertAt mappedValueRange.end
-                                                        (" |> " ++ checkInfo.extractSourceCode mappingArgRange ++ ")")
-                                                    ]
+                                        mappingArgRange : Range
+                                        mappingArgRange =
+                                            Node.range checkInfo.firstArg
+                                    in
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = qualifiedToString checkInfo.fn ++ " on a singleton list will result in a singleton list with the function applied to the value inside"
+                                            , details = [ "You can replace this call by a singleton list with the function directly applied to the value inside the given singleton list." ]
+                                            }
+                                            checkInfo.fnRange
+                                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range listArg }
+                                                ++ parenthesizeIfNeededFix wrapped.element
+                                                ++ (case checkInfo.callStyle of
+                                                        Pipe LeftToRight ->
+                                                            [ Fix.insertAt mappedValueRange.start "("
+                                                            , Fix.insertAt mappedValueRange.end
+                                                                (" |> " ++ checkInfo.extractSourceCode mappingArgRange ++ ")")
+                                                            ]
 
-                                                Pipe RightToLeft ->
-                                                    [ Fix.insertAt mappedValueRange.start ("(" ++ checkInfo.extractSourceCode mappingArgRange ++ " <| ")
-                                                    , Fix.insertAt mappedValueRange.end ")"
-                                                    ]
+                                                        Pipe RightToLeft ->
+                                                            [ Fix.insertAt mappedValueRange.start ("(" ++ checkInfo.extractSourceCode mappingArgRange ++ " <| ")
+                                                            , Fix.insertAt mappedValueRange.end ")"
+                                                            ]
 
-                                                Application ->
-                                                    [ Fix.insertAt mappedValueRange.start ("(" ++ checkInfo.extractSourceCode mappingArgRange ++ " ")
-                                                    , Fix.insertAt mappedValueRange.end ")"
-                                                    ]
-                                           )
-                                    )
-                                )
+                                                        Application ->
+                                                            [ Fix.insertAt mappedValueRange.start ("(" ++ checkInfo.extractSourceCode mappingArgRange ++ " ")
+                                                            , Fix.insertAt mappedValueRange.end ")"
+                                                            ]
+                                                   )
+                                            )
+                                        )
 
-                        Nothing ->
-                            Nothing
-                , \() ->
-                    case sameInAllBranches (getValueWithNodeRange (listCollection.wrap.getValue checkInfo.lookupTable)) listArg of
-                        Just wraps ->
-                            let
-                                mappingArgRange : Range
-                                mappingArgRange =
-                                    Node.range checkInfo.firstArg
-                            in
-                            Just
-                                (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " on a singleton list will result in a singleton list with the function applied to the value inside"
-                                    , details = [ "You can replace this call by a singleton list with the function directly applied to the value inside the given singleton list." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (keepOnlyFix
-                                        { parentRange = Range.combine [ checkInfo.fnRange, mappingArgRange ]
-                                        , keep = mappingArgRange
-                                        }
-                                        ++ List.concatMap
-                                            (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value)
-                                            wraps
-                                        ++ [ Fix.insertAt checkInfo.parentRange.start "[ "
-                                           , Fix.insertAt checkInfo.parentRange.end " ]"
-                                           ]
-                                    )
-                                )
+                                Nothing ->
+                                    Nothing
+                        , \() ->
+                            case sameInAllBranches (getValueWithNodeRange (listCollection.wrap.getValue checkInfo.lookupTable)) listArg of
+                                Just wraps ->
+                                    let
+                                        mappingArgRange : Range
+                                        mappingArgRange =
+                                            Node.range checkInfo.firstArg
+                                    in
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = qualifiedToString checkInfo.fn ++ " on a singleton list will result in a singleton list with the function applied to the value inside"
+                                            , details = [ "You can replace this call by a singleton list with the function directly applied to the value inside the given singleton list." ]
+                                            }
+                                            checkInfo.fnRange
+                                            (keepOnlyFix
+                                                { parentRange = Range.combine [ checkInfo.fnRange, mappingArgRange ]
+                                                , keep = mappingArgRange
+                                                }
+                                                ++ List.concatMap
+                                                    (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value)
+                                                    wraps
+                                                ++ [ Fix.insertAt checkInfo.parentRange.start "[ "
+                                                   , Fix.insertAt checkInfo.parentRange.end " ]"
+                                                   ]
+                                            )
+                                        )
 
-                        Nothing ->
-                            Nothing
-                ]
-                ()
+                                Nothing ->
+                                    Nothing
+                        ]
+                        ()
 
-        Nothing ->
-            Nothing
+                Nothing ->
+                    Nothing
+    , composition = (mapOnWrappedChecks listCollection).composition
+    }
 
 
 dictToListMapErrorInfo : { toEntryAspectList : String, tuplePart : String } -> { message : String, details : List String }
@@ -6186,17 +6165,10 @@ platformSubChecks =
 
 taskMapChecks : IntoFnCheck
 taskMapChecks =
-    { call =
-        firstThatConstructsJust
-            [ emptiableMapChecks taskWithSucceedAsWrap
-            , mapOnWrappedChecks taskWithSucceedAsWrap
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ mapAfterWrapCompositionChecks taskWithSucceedAsWrap
-            , unnecessaryCompositionAfterEmptyCheck taskWithSucceedAsWrap
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ { call = emptiableMapChecks taskWithSucceedAsWrap, composition = unnecessaryCompositionAfterEmptyCheck taskWithSucceedAsWrap }
+        , mapOnWrappedChecks taskWithSucceedAsWrap
+        ]
 
 
 taskMapNChecks : IntoFnCheck
@@ -6226,17 +6198,10 @@ taskAndThenChecks =
 
 taskMapErrorChecks : IntoFnCheck
 taskMapErrorChecks =
-    { call =
-        firstThatConstructsJust
-            [ emptiableMapChecks taskWithFailAsWrap
-            , mapOnWrappedChecks taskWithFailAsWrap
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ mapAfterWrapCompositionChecks taskWithFailAsWrap
-            , unnecessaryCompositionAfterEmptyCheck taskWithFailAsWrap
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ { call = emptiableMapChecks taskWithFailAsWrap, composition = unnecessaryCompositionAfterEmptyCheck taskWithFailAsWrap }
+        , mapOnWrappedChecks taskWithFailAsWrap
+        ]
 
 
 taskOnErrorChecks : IntoFnCheck
@@ -6373,17 +6338,10 @@ htmlAttributesClassListChecks =
 
 jsonDecodeMapChecks : IntoFnCheck
 jsonDecodeMapChecks =
-    { call =
-        firstThatConstructsJust
-            [ emptiableMapChecks jsonDecoderWithSucceedAsWrap
-            , mapOnWrappedChecks jsonDecoderWithSucceedAsWrap
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ mapAfterWrapCompositionChecks jsonDecoderWithSucceedAsWrap
-            , unnecessaryCompositionAfterEmptyCheck jsonDecoderWithSucceedAsWrap
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ { call = emptiableMapChecks jsonDecoderWithSucceedAsWrap, composition = unnecessaryCompositionAfterEmptyCheck jsonDecoderWithSucceedAsWrap }
+        , mapOnWrappedChecks jsonDecoderWithSucceedAsWrap
+        ]
 
 
 jsonDecodeMapNChecks : IntoFnCheck
@@ -6437,18 +6395,11 @@ randomListChecks =
 
 randomMapChecks : IntoFnCheck
 randomMapChecks =
-    { call =
-        firstThatConstructsJust
-            [ mapIdentityChecks randomGeneratorWrapper
-            , mapOnWrappedChecks randomGeneratorWrapper
-            , nonEmptiableWrapperMapAlwaysChecks randomGeneratorWrapper
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ mapAfterWrapCompositionChecks randomGeneratorWrapper
-            , nonEmptiableWrapperMapAlwaysCompositionChecks randomGeneratorWrapper
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (mapIdentityChecks randomGeneratorWrapper)
+        , mapOnWrappedChecks randomGeneratorWrapper
+        , { call = nonEmptiableWrapperMapAlwaysChecks randomGeneratorWrapper, composition = nonEmptiableWrapperMapAlwaysCompositionChecks randomGeneratorWrapper }
+        ]
 
 
 randomAndThenChecks : IntoFnCheck
@@ -7823,149 +7774,137 @@ emptiableMapWithExtraArgChecks emptiable =
 
     map f (wrap a) --> wrap (f a)
 
+    map f << wrap --> wrap << f
+
 So for example
 
     Random.map f (Random.constant a)
     --> Random.constant (f a)
 
-Use together with `mapAfterWrapCompositionChecks`.
-
--}
-mapOnWrappedChecks :
-    WrapperProperties otherProperties
-    -> CheckInfo
-    -> Maybe (Error {})
-mapOnWrappedChecks wrapper checkInfo =
-    case secondArg checkInfo of
-        Just wrapperArg ->
-            firstThatConstructsJust
-                [ \() ->
-                    case wrapper.wrap.getValue checkInfo.lookupTable wrapperArg of
-                        Just wrappedValue ->
-                            let
-                                mappedValueRange : Range
-                                mappedValueRange =
-                                    Node.range wrappedValue
-
-                                mappingArgRange : Range
-                                mappingArgRange =
-                                    Node.range checkInfo.firstArg
-                            in
-                            Just
-                                (Rule.errorWithFix
-                                    (mapWrapErrorInfo checkInfo.fn wrapper)
-                                    checkInfo.fnRange
-                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range wrapperArg }
-                                        ++ parenthesizeIfNeededFix wrappedValue
-                                        ++ (case checkInfo.callStyle of
-                                                Pipe LeftToRight ->
-                                                    [ Fix.insertAt mappedValueRange.start "("
-                                                    , Fix.insertAt mappedValueRange.end
-                                                        (" |> " ++ checkInfo.extractSourceCode mappingArgRange ++ ")")
-                                                    ]
-
-                                                Pipe RightToLeft ->
-                                                    [ Fix.insertAt mappedValueRange.start ("(" ++ checkInfo.extractSourceCode mappingArgRange ++ " <| ")
-                                                    , Fix.insertAt mappedValueRange.end ")"
-                                                    ]
-
-                                                Application ->
-                                                    [ Fix.insertAt mappedValueRange.start ("(" ++ checkInfo.extractSourceCode mappingArgRange ++ " ")
-                                                    , Fix.insertAt mappedValueRange.end ")"
-                                                    ]
-                                           )
-                                    )
-                                )
-
-                        Nothing ->
-                            Nothing
-                , \() ->
-                    case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) wrapperArg of
-                        Just wraps ->
-                            let
-                                mappingArgRange : Range
-                                mappingArgRange =
-                                    Node.range checkInfo.firstArg
-
-                                removeWrapCalls : List Fix
-                                removeWrapCalls =
-                                    List.concatMap
-                                        (\wrap ->
-                                            keepOnlyFix
-                                                { parentRange = wrap.nodeRange
-                                                , keep = Node.range wrap.value
-                                                }
-                                        )
-                                        wraps
-                            in
-                            Just
-                                (Rule.errorWithFix
-                                    (mapWrapErrorInfo checkInfo.fn wrapper)
-                                    checkInfo.fnRange
-                                    (case checkInfo.callStyle of
-                                        Pipe LeftToRight ->
-                                            [ Fix.removeRange { start = checkInfo.fnRange.start, end = mappingArgRange.start }
-                                            , Fix.insertAt mappingArgRange.end
-                                                (" |> " ++ qualifiedToString (qualify wrapper.wrap.fn checkInfo))
-                                            ]
-                                                ++ removeWrapCalls
-
-                                        Pipe RightToLeft ->
-                                            Fix.replaceRangeBy
-                                                { start = checkInfo.parentRange.start, end = mappingArgRange.start }
-                                                (qualifiedToString (qualify wrapper.wrap.fn checkInfo) ++ " <| ")
-                                                :: removeWrapCalls
-
-                                        Application ->
-                                            [ Fix.replaceRangeBy
-                                                { start = checkInfo.parentRange.start, end = mappingArgRange.start }
-                                                (qualifiedToString (qualify wrapper.wrap.fn checkInfo) ++ " (")
-                                            , Fix.insertAt checkInfo.parentRange.end ")"
-                                            ]
-                                                ++ removeWrapCalls
-                                    )
-                                )
-
-                        Nothing ->
-                            Nothing
-                ]
-                ()
-
-        Nothing ->
-            Nothing
-
-
-{-| The map composition check
-
-    map f << wrap --> wrap << f
-
-So for example
-
     Random.map f << Random.constant
     --> Random.constant << f
 
-Use together with `mapOnWrappedChecks`.
+Use together with `mapAfterWrapCompositionChecks`.
 
 -}
-mapAfterWrapCompositionChecks :
-    WrapperProperties otherProperties
-    -> CompositionIntoCheckInfo
-    -> Maybe ErrorInfoAndFix
-mapAfterWrapCompositionChecks wrapper checkInfo =
-    case ( checkInfo.earlier.fn == wrapper.wrap.fn, checkInfo.later.args ) of
-        ( True, (Node mapperFunctionRange _) :: _ ) ->
-            Just
-                { info = mapWrapErrorInfo checkInfo.later.fn wrapper
-                , fix =
-                    [ Fix.replaceRangeBy checkInfo.later.range
-                        (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
-                    , Fix.replaceRangeBy checkInfo.earlier.range
-                        (checkInfo.extractSourceCode mapperFunctionRange)
-                    ]
-                }
+mapOnWrappedChecks : WrapperProperties otherProperties -> IntoFnCheck
+mapOnWrappedChecks wrapper =
+    { call =
+        \checkInfo ->
+            case secondArg checkInfo of
+                Just wrapperArg ->
+                    firstThatConstructsJust
+                        [ \() ->
+                            case wrapper.wrap.getValue checkInfo.lookupTable wrapperArg of
+                                Just wrappedValue ->
+                                    let
+                                        mappedValueRange : Range
+                                        mappedValueRange =
+                                            Node.range wrappedValue
 
-        _ ->
-            Nothing
+                                        mappingArgRange : Range
+                                        mappingArgRange =
+                                            Node.range checkInfo.firstArg
+                                    in
+                                    Just
+                                        (Rule.errorWithFix
+                                            (mapWrapErrorInfo checkInfo.fn wrapper)
+                                            checkInfo.fnRange
+                                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range wrapperArg }
+                                                ++ parenthesizeIfNeededFix wrappedValue
+                                                ++ (case checkInfo.callStyle of
+                                                        Pipe LeftToRight ->
+                                                            [ Fix.insertAt mappedValueRange.start "("
+                                                            , Fix.insertAt mappedValueRange.end
+                                                                (" |> " ++ checkInfo.extractSourceCode mappingArgRange ++ ")")
+                                                            ]
+
+                                                        Pipe RightToLeft ->
+                                                            [ Fix.insertAt mappedValueRange.start ("(" ++ checkInfo.extractSourceCode mappingArgRange ++ " <| ")
+                                                            , Fix.insertAt mappedValueRange.end ")"
+                                                            ]
+
+                                                        Application ->
+                                                            [ Fix.insertAt mappedValueRange.start ("(" ++ checkInfo.extractSourceCode mappingArgRange ++ " ")
+                                                            , Fix.insertAt mappedValueRange.end ")"
+                                                            ]
+                                                   )
+                                            )
+                                        )
+
+                                Nothing ->
+                                    Nothing
+                        , \() ->
+                            case sameInAllBranches (getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable)) wrapperArg of
+                                Just wraps ->
+                                    let
+                                        mappingArgRange : Range
+                                        mappingArgRange =
+                                            Node.range checkInfo.firstArg
+
+                                        removeWrapCalls : List Fix
+                                        removeWrapCalls =
+                                            List.concatMap
+                                                (\wrap ->
+                                                    keepOnlyFix
+                                                        { parentRange = wrap.nodeRange
+                                                        , keep = Node.range wrap.value
+                                                        }
+                                                )
+                                                wraps
+                                    in
+                                    Just
+                                        (Rule.errorWithFix
+                                            (mapWrapErrorInfo checkInfo.fn wrapper)
+                                            checkInfo.fnRange
+                                            (case checkInfo.callStyle of
+                                                Pipe LeftToRight ->
+                                                    [ Fix.removeRange { start = checkInfo.fnRange.start, end = mappingArgRange.start }
+                                                    , Fix.insertAt mappingArgRange.end
+                                                        (" |> " ++ qualifiedToString (qualify wrapper.wrap.fn checkInfo))
+                                                    ]
+                                                        ++ removeWrapCalls
+
+                                                Pipe RightToLeft ->
+                                                    Fix.replaceRangeBy
+                                                        { start = checkInfo.parentRange.start, end = mappingArgRange.start }
+                                                        (qualifiedToString (qualify wrapper.wrap.fn checkInfo) ++ " <| ")
+                                                        :: removeWrapCalls
+
+                                                Application ->
+                                                    [ Fix.replaceRangeBy
+                                                        { start = checkInfo.parentRange.start, end = mappingArgRange.start }
+                                                        (qualifiedToString (qualify wrapper.wrap.fn checkInfo) ++ " (")
+                                                    , Fix.insertAt checkInfo.parentRange.end ")"
+                                                    ]
+                                                        ++ removeWrapCalls
+                                            )
+                                        )
+
+                                Nothing ->
+                                    Nothing
+                        ]
+                        ()
+
+                Nothing ->
+                    Nothing
+    , composition =
+        \checkInfo ->
+            case ( checkInfo.earlier.fn == wrapper.wrap.fn, checkInfo.later.args ) of
+                ( True, (Node mapperFunctionRange _) :: _ ) ->
+                    Just
+                        { info = mapWrapErrorInfo checkInfo.later.fn wrapper
+                        , fix =
+                            [ Fix.replaceRangeBy checkInfo.later.range
+                                (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
+                            , Fix.replaceRangeBy checkInfo.earlier.range
+                                (checkInfo.extractSourceCode mapperFunctionRange)
+                            ]
+                        }
+
+                _ ->
+                    Nothing
+    }
 
 
 {-| The map check
