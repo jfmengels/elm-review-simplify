@@ -2919,6 +2919,19 @@ intoFnCheckOnlyCall callFnCheck =
     { call = callFnCheck, composition = \_ -> Nothing }
 
 
+{-| Try the given `IntoFnCheck`s in order and report the first found error.
+-}
+intoFnChecksFirstThatConstructsError : List IntoFnCheck -> IntoFnCheck
+intoFnChecksFirstThatConstructsError intoFnCheckList =
+    { call =
+        \checkInfo ->
+            findMap (\fnCheck -> fnCheck.call checkInfo) intoFnCheckList
+    , composition =
+        \checkInfo ->
+            findMap (\fnCheck -> fnCheck.composition checkInfo) intoFnCheckList
+    }
+
+
 intoFnChecks : Dict ( ModuleName, String ) ( Int, IntoFnCheck )
 intoFnChecks =
     -- The number of arguments is used to determine how many arguments to pass to the check function.
