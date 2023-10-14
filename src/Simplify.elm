@@ -4498,7 +4498,7 @@ stringLengthChecks =
 
 stringSliceChecks : IntoFnCheck
 stringSliceChecks =
-    intoFnCheckOnlyCall (collectionSliceChecks stringCollection)
+    collectionSliceChecks stringCollection
 
 
 stringReverseChecks : IntoFnCheck
@@ -4511,10 +4511,10 @@ stringReverseChecks =
 
 stringLeftChecks : IntoFnCheck
 stringLeftChecks =
-    intoFnCheckOnlyCall
-        (firstThatConstructsJust
-            [ unnecessaryCallOnEmptyCheck stringCollection
-            , \checkInfo ->
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryCallOnEmptyCheck stringCollection
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
                 case Evaluate.getInt checkInfo checkInfo.firstArg of
                     Just length ->
                         callWithNonPositiveIntCanBeReplacedByCheck
@@ -4526,16 +4526,16 @@ stringLeftChecks =
 
                     Nothing ->
                         Nothing
-            ]
-        )
+            )
+        ]
 
 
 stringRightChecks : IntoFnCheck
 stringRightChecks =
-    intoFnCheckOnlyCall
-        (firstThatConstructsJust
-            [ unnecessaryCallOnEmptyCheck stringCollection
-            , \checkInfo ->
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryCallOnEmptyCheck stringCollection
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
                 case Evaluate.getInt checkInfo checkInfo.firstArg of
                     Just length ->
                         callWithNonPositiveIntCanBeReplacedByCheck
@@ -4547,16 +4547,16 @@ stringRightChecks =
 
                     Nothing ->
                         Nothing
-            ]
-        )
+            )
+        ]
 
 
 stringReplaceChecks : IntoFnCheck
 stringReplaceChecks =
-    intoFnCheckOnlyCall
-        (firstThatConstructsJust
-            [ unnecessaryCallOnEmptyCheck stringCollection
-            , \checkInfo ->
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryCallOnEmptyCheck stringCollection
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
                 case secondArg checkInfo of
                     Just replacementArg ->
                         firstThatConstructsJust
@@ -4599,8 +4599,8 @@ stringReplaceChecks =
 
                     Nothing ->
                         Nothing
-            ]
-        )
+            )
+        ]
 
 
 stringAppendChecks : IntoFnCheck
@@ -4667,7 +4667,7 @@ stringFoldrChecks =
 maybeMapChecks : IntoFnCheck
 maybeMapChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall (emptiableMapChecks maybeWithJustAsWrap)
+        [ emptiableMapChecks maybeWithJustAsWrap
         , mapOnWrappedChecks maybeWithJustAsWrap
         ]
 
@@ -4686,7 +4686,7 @@ maybeAndThenChecks : IntoFnCheck
 maybeAndThenChecks =
     intoFnChecksFirstThatConstructsError
         [ wrapperFlatMapChecks maybeWithJustAsWrap
-        , intoFnCheckOnlyCall (emptiableFlatMapChecks maybeWithJustAsWrap)
+        , emptiableFlatMapChecks maybeWithJustAsWrap
         ]
 
 
@@ -4702,7 +4702,7 @@ maybeWithDefaultChecks =
 resultMapChecks : IntoFnCheck
 resultMapChecks =
     intoFnChecksFirstThatConstructsError
-        [ { call = emptiableMapChecks resultWithOkAsWrap, composition = unnecessaryCompositionAfterEmptyCheck resultWithOkAsWrap }
+        [ emptiableMapChecks resultWithOkAsWrap
         , mapOnWrappedChecks resultWithOkAsWrap
         ]
 
@@ -4735,7 +4735,7 @@ mapWrapErrorInfo mapFn wrapper =
 resultMapErrorChecks : IntoFnCheck
 resultMapErrorChecks =
     intoFnChecksFirstThatConstructsError
-        [ { call = emptiableMapChecks resultWithErrAsWrap, composition = unnecessaryCompositionAfterEmptyCheck resultWithErrAsWrap }
+        [ emptiableMapChecks resultWithErrAsWrap
         , mapOnWrappedChecks resultWithErrAsWrap
         ]
 
@@ -4743,7 +4743,7 @@ resultMapErrorChecks =
 resultAndThenChecks : IntoFnCheck
 resultAndThenChecks =
     intoFnChecksFirstThatConstructsError
-        [ { call = unnecessaryCallOnEmptyCheck resultWithOkAsWrap, composition = unnecessaryCompositionAfterEmptyCheck resultWithOkAsWrap }
+        [ unnecessaryCallOnEmptyCheck resultWithOkAsWrap
         , wrapperFlatMapChecks resultWithOkAsWrap
         ]
 
@@ -4806,7 +4806,7 @@ listConcatChecks =
         [ callOnWrapReturnsItsValueCheck listCollection
         , callFromCanBeCombinedCheck
             { fromFn = Fn.List.map, combinedFn = Fn.List.concatMap }
-        , intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck listCollection)
+        , unnecessaryCallOnEmptyCheck listCollection
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
@@ -4861,25 +4861,23 @@ listConcatMapChecks : IntoFnCheck
 listConcatMapChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (operationWithIdentityIsEquivalentToFnCheck Fn.List.concat)
-        , intoFnCheckOnlyCall (emptiableFlatMapChecks listCollection)
+        , emptiableFlatMapChecks listCollection
         , wrapperFlatMapChecks listCollection
         ]
 
 
 listIndexedMapChecks : IntoFnCheck
 listIndexedMapChecks =
-    intoFnCheckOnlyCall
-        (firstThatConstructsJust
-            [ unnecessaryCallOnEmptyCheck listCollection
-            , operationWithExtraArgChecks { operationWithoutExtraArg = Fn.List.map }
-            ]
-        )
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryCallOnEmptyCheck listCollection
+        , intoFnCheckOnlyCall (operationWithExtraArgChecks { operationWithoutExtraArg = Fn.List.map })
+        ]
 
 
 listIntersperseChecks : IntoFnCheck
 listIntersperseChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck listCollection)
+        [ unnecessaryCallOnEmptyCheck listCollection
         , unnecessaryCallOnWrappedCheck listCollection
         ]
 
@@ -4988,7 +4986,7 @@ listTailChecks =
 listMapChecks : IntoFnCheck
 listMapChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall (emptiableMapChecks listCollection)
+        [ emptiableMapChecks listCollection
         , listMapOnSingletonCheck
         , { call = dictToListMapChecks, composition = dictToListIntoListMapCompositionCheck }
         , { call = arrayToIndexedListToListMapChecks, composition = arrayToIndexedListMapCompositionCheck }
@@ -5547,7 +5545,7 @@ listAnyChecks =
 
 listFilterChecks : IntoFnCheck
 listFilterChecks =
-    intoFnCheckOnlyCall (emptiableKeepWhenChecks listCollection)
+    emptiableKeepWhenChecks listCollection
 
 
 listPartitionChecks : IntoFnCheck
@@ -5634,7 +5632,7 @@ listReverseChecks =
 listSortChecks : IntoFnCheck
 listSortChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck listCollection)
+        [ unnecessaryCallOnEmptyCheck listCollection
         , unnecessaryCallOnWrappedCheck listCollection
         , operationDoesNotChangeResultOfOperationCheck
         ]
@@ -5643,7 +5641,7 @@ listSortChecks =
 listSortByChecks : IntoFnCheck
 listSortByChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck listCollection)
+        [ unnecessaryCallOnEmptyCheck listCollection
         , unnecessaryCallOnWrappedCheck listCollection
         , intoFnCheckOnlyCall
             (\checkInfo ->
@@ -5667,7 +5665,7 @@ listSortByChecks =
 listSortWithChecks : IntoFnCheck
 listSortWithChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck listCollection)
+        [ unnecessaryCallOnEmptyCheck listCollection
         , unnecessaryCallOnWrappedCheck listCollection
         , intoFnCheckOnlyCall
             (\checkInfo ->
@@ -5712,9 +5710,10 @@ listSortWithChecks =
 
 listTakeChecks : IntoFnCheck
 listTakeChecks =
-    intoFnCheckOnlyCall
-        (firstThatConstructsJust
-            [ \checkInfo ->
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryCallOnEmptyCheck listCollection
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
                 case Evaluate.getInt checkInfo checkInfo.firstArg of
                     Just length ->
                         callWithNonPositiveIntCanBeReplacedByCheck
@@ -5726,16 +5725,16 @@ listTakeChecks =
 
                     Nothing ->
                         Nothing
-            , unnecessaryCallOnEmptyCheck listCollection
-            ]
-        )
+            )
+        ]
 
 
 listDropChecks : IntoFnCheck
 listDropChecks =
-    intoFnCheckOnlyCall
-        (firstThatConstructsJust
-            [ \checkInfo ->
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryCallOnEmptyCheck listCollection
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
                 Evaluate.getInt checkInfo checkInfo.firstArg
                     |> Maybe.andThen
                         (\count ->
@@ -5753,9 +5752,8 @@ listDropChecks =
                                 ]
                                 ()
                         )
-            , unnecessaryCallOnEmptyCheck listCollection
-            ]
-        )
+            )
+        ]
 
 
 listUnzipChecks : IntoFnCheck
@@ -5805,17 +5803,15 @@ arrayInitializeChecks =
 
 arrayMapChecks : IntoFnCheck
 arrayMapChecks =
-    intoFnCheckOnlyCall (emptiableMapChecks arrayCollection)
+    emptiableMapChecks arrayCollection
 
 
 arrayIndexedMapChecks : IntoFnCheck
 arrayIndexedMapChecks =
-    intoFnCheckOnlyCall
-        (firstThatConstructsJust
-            [ unnecessaryCallOnEmptyCheck arrayCollection
-            , operationWithExtraArgChecks { operationWithoutExtraArg = Fn.Array.map }
-            ]
-        )
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryCallOnEmptyCheck arrayCollection
+        , intoFnCheckOnlyCall (operationWithExtraArgChecks { operationWithoutExtraArg = Fn.Array.map })
+        ]
 
 
 arrayIsEmptyChecks : IntoFnCheck
@@ -5877,17 +5873,17 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
 
 arraySetChecks : IntoFnCheck
 arraySetChecks =
-    intoFnCheckOnlyCall (setChecks arrayCollection)
+    setChecks arrayCollection
 
 
 arraySliceChecks : IntoFnCheck
 arraySliceChecks =
-    intoFnCheckOnlyCall (collectionSliceChecks arrayCollection)
+    collectionSliceChecks arrayCollection
 
 
 arrayFilterChecks : IntoFnCheck
 arrayFilterChecks =
-    intoFnCheckOnlyCall (emptiableKeepWhenChecks arrayCollection)
+    emptiableKeepWhenChecks arrayCollection
 
 
 arrayAppendChecks : IntoFnCheck
@@ -5940,12 +5936,12 @@ setInsertChecks =
 
 setRemoveChecks : IntoFnCheck
 setRemoveChecks =
-    intoFnCheckOnlyCall (collectionRemoveChecks setCollection)
+    collectionRemoveChecks setCollection
 
 
 setFilterChecks : IntoFnCheck
 setFilterChecks =
-    intoFnCheckOnlyCall (emptiableKeepWhenChecks setCollection)
+    emptiableKeepWhenChecks setCollection
 
 
 setPartitionChecks : IntoFnCheck
@@ -5955,7 +5951,7 @@ setPartitionChecks =
 
 setIntersectChecks : IntoFnCheck
 setIntersectChecks =
-    intoFnCheckOnlyCall (collectionIntersectChecks setCollection)
+    collectionIntersectChecks setCollection
 
 
 setDiffChecks : IntoFnCheck
@@ -5970,7 +5966,7 @@ setUnionChecks =
 
 setMapChecks : IntoFnCheck
 setMapChecks =
-    intoFnCheckOnlyCall (emptiableMapChecks setCollection)
+    emptiableMapChecks setCollection
 
 
 setToListChecks : IntoFnCheck
@@ -6017,12 +6013,12 @@ dictMemberChecks =
 
 dictRemoveChecks : IntoFnCheck
 dictRemoveChecks =
-    intoFnCheckOnlyCall (collectionRemoveChecks dictCollection)
+    collectionRemoveChecks dictCollection
 
 
 dictFilterChecks : IntoFnCheck
 dictFilterChecks =
-    intoFnCheckOnlyCall (emptiableKeepWhenWithExtraArgChecks dictCollection)
+    emptiableKeepWhenWithExtraArgChecks dictCollection
 
 
 dictPartitionChecks : IntoFnCheck
@@ -6032,12 +6028,12 @@ dictPartitionChecks =
 
 dictMapChecks : IntoFnCheck
 dictMapChecks =
-    intoFnCheckOnlyCall (emptiableMapWithExtraArgChecks dictCollection)
+    emptiableMapWithExtraArgChecks dictCollection
 
 
 dictIntersectChecks : IntoFnCheck
 dictIntersectChecks =
-    intoFnCheckOnlyCall (collectionIntersectChecks dictCollection)
+    collectionIntersectChecks dictCollection
 
 
 dictDiffChecks : IntoFnCheck
@@ -6076,7 +6072,7 @@ platformCmdBatchChecks =
 
 platformCmdMapChecks : IntoFnCheck
 platformCmdMapChecks =
-    intoFnCheckOnlyCall (emptiableMapChecks cmdCollection)
+    emptiableMapChecks cmdCollection
 
 
 
@@ -6090,7 +6086,7 @@ platformSubBatchChecks =
 
 platformSubChecks : IntoFnCheck
 platformSubChecks =
-    intoFnCheckOnlyCall (emptiableMapChecks subCollection)
+    emptiableMapChecks subCollection
 
 
 
@@ -6100,7 +6096,7 @@ platformSubChecks =
 taskMapChecks : IntoFnCheck
 taskMapChecks =
     intoFnChecksFirstThatConstructsError
-        [ { call = emptiableMapChecks taskWithSucceedAsWrap, composition = unnecessaryCompositionAfterEmptyCheck taskWithSucceedAsWrap }
+        [ emptiableMapChecks taskWithSucceedAsWrap
         , mapOnWrappedChecks taskWithSucceedAsWrap
         ]
 
@@ -6118,7 +6114,7 @@ taskMapNChecks =
 taskAndThenChecks : IntoFnCheck
 taskAndThenChecks =
     intoFnChecksFirstThatConstructsError
-        [ { call = unnecessaryCallOnEmptyCheck taskWithSucceedAsWrap, composition = unnecessaryCompositionAfterEmptyCheck taskWithSucceedAsWrap }
+        [ unnecessaryCallOnEmptyCheck taskWithSucceedAsWrap
         , wrapperFlatMapChecks taskWithSucceedAsWrap
         ]
 
@@ -6126,7 +6122,7 @@ taskAndThenChecks =
 taskMapErrorChecks : IntoFnCheck
 taskMapErrorChecks =
     intoFnChecksFirstThatConstructsError
-        [ { call = emptiableMapChecks taskWithFailAsWrap, composition = unnecessaryCompositionAfterEmptyCheck taskWithFailAsWrap }
+        [ emptiableMapChecks taskWithFailAsWrap
         , mapOnWrappedChecks taskWithFailAsWrap
         ]
 
@@ -6134,7 +6130,7 @@ taskMapErrorChecks =
 taskOnErrorChecks : IntoFnCheck
 taskOnErrorChecks =
     intoFnChecksFirstThatConstructsError
-        [ { call = unnecessaryCallOnEmptyCheck taskWithFailAsWrap, composition = unnecessaryCompositionAfterEmptyCheck taskWithFailAsWrap }
+        [ unnecessaryCallOnEmptyCheck taskWithFailAsWrap
         , wrapperFlatMapChecks taskWithFailAsWrap
         ]
 
@@ -6259,7 +6255,7 @@ htmlAttributesClassListChecks =
 jsonDecodeMapChecks : IntoFnCheck
 jsonDecodeMapChecks =
     intoFnChecksFirstThatConstructsError
-        [ { call = emptiableMapChecks jsonDecoderWithSucceedAsWrap, composition = unnecessaryCompositionAfterEmptyCheck jsonDecoderWithSucceedAsWrap }
+        [ emptiableMapChecks jsonDecoderWithSucceedAsWrap
         , mapOnWrappedChecks jsonDecoderWithSucceedAsWrap
         ]
 
@@ -6277,7 +6273,7 @@ jsonDecodeMapNChecks =
 jsonDecodeAndThenChecks : IntoFnCheck
 jsonDecodeAndThenChecks =
     intoFnChecksFirstThatConstructsError
-        [ { call = unnecessaryCallOnEmptyCheck jsonDecoderWithSucceedAsWrap, composition = unnecessaryCompositionAfterEmptyCheck jsonDecoderWithSucceedAsWrap }
+        [ unnecessaryCallOnEmptyCheck jsonDecoderWithSucceedAsWrap
         , wrapperFlatMapChecks jsonDecoderWithSucceedAsWrap
         ]
 
@@ -7648,11 +7644,10 @@ If your mapping function also takes extra information like the key or index as a
 -}
 emptiableMapChecks :
     TypeProperties (EmptiableProperties empty otherProperties)
-    -> CheckInfo
-    -> Maybe (Error {})
+    -> IntoFnCheck
 emptiableMapChecks emptiable =
-    firstThatConstructsJust
-        [ mapIdentityChecks emptiable
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (mapIdentityChecks emptiable)
         , unnecessaryCallOnEmptyCheck emptiable
         ]
 
@@ -7683,29 +7678,28 @@ mapIdentityChecks mappable checkInfo =
 If your mapping function only takes one value as an argument, use `emptiableMapChecks`.
 
 -}
-emptiableMapWithExtraArgChecks :
-    TypeProperties (EmptiableProperties empty otherProperties)
-    -> CheckInfo
-    -> Maybe (Error {})
+emptiableMapWithExtraArgChecks : TypeProperties (EmptiableProperties empty otherProperties) -> IntoFnCheck
 emptiableMapWithExtraArgChecks emptiable =
-    firstThatConstructsJust
+    intoFnChecksFirstThatConstructsError
         [ unnecessaryCallOnEmptyCheck emptiable
-        , \checkInfo ->
-            case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
-                Just alwaysResult ->
-                    if AstHelpers.isIdentity checkInfo.lookupTable alwaysResult then
-                        Just
-                            (alwaysReturnsLastArgError
-                                (qualifiedToString checkInfo.fn ++ " with a function that maps to the unchanged value")
-                                emptiable
-                                checkInfo
-                            )
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+                    Just alwaysResult ->
+                        if AstHelpers.isIdentity checkInfo.lookupTable alwaysResult then
+                            Just
+                                (alwaysReturnsLastArgError
+                                    (qualifiedToString checkInfo.fn ++ " with a function that maps to the unchanged value")
+                                    emptiable
+                                    checkInfo
+                                )
 
-                    else
+                        else
+                            Nothing
+
+                    Nothing ->
                         Nothing
-
-                Nothing ->
-                    Nothing
+            )
         ]
 
 
@@ -7955,25 +7949,24 @@ So for example
     List.concatMap f [] --> []
 
 -}
-emptiableFlatMapChecks :
-    EmptiableProperties ConstantProperties otherProperties
-    -> CheckInfo
-    -> Maybe (Error {})
+emptiableFlatMapChecks : EmptiableProperties ConstantProperties otherProperties -> IntoFnCheck
 emptiableFlatMapChecks emptiable =
-    firstThatConstructsJust
+    intoFnChecksFirstThatConstructsError
         [ unnecessaryCallOnEmptyCheck emptiable
-        , \checkInfo ->
-            case constructs (sameInAllBranches (getEmptyExpressionNode checkInfo emptiable)) checkInfo.lookupTable checkInfo.firstArg of
-                Just _ ->
-                    Just
-                        (alwaysResultsInUnparenthesizedConstantError
-                            (qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ emptiable.empty.specific.description)
-                            { replacement = emptiable.empty.specific.asString }
-                            checkInfo
-                        )
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case constructs (sameInAllBranches (getEmptyExpressionNode checkInfo emptiable)) checkInfo.lookupTable checkInfo.firstArg of
+                    Just _ ->
+                        Just
+                            (alwaysResultsInUnparenthesizedConstantError
+                                (qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ emptiable.empty.specific.description)
+                                { replacement = emptiable.empty.specific.asString }
+                                checkInfo
+                            )
 
-                Nothing ->
-                    Nothing
+                    Nothing ->
+                        Nothing
+            )
         ]
 
 
@@ -9628,31 +9621,33 @@ indexAccessChecks collection checkInfo n =
                 Nothing
 
 
-setChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> CheckInfo -> Maybe (Error {})
+setChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> IntoFnCheck
 setChecks collection =
-    firstThatConstructsJust
+    intoFnChecksFirstThatConstructsError
         [ unnecessaryCallOnEmptyCheck collection
-        , \checkInfo ->
-            case Evaluate.getInt checkInfo checkInfo.firstArg of
-                Just n ->
-                    if n < 0 then
-                        Just
-                            (alwaysReturnsLastArgError
-                                (qualifiedToString checkInfo.fn ++ " with negative index")
-                                collection
-                                checkInfo
-                            )
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case Evaluate.getInt checkInfo checkInfo.firstArg of
+                    Just n ->
+                        if n < 0 then
+                            Just
+                                (alwaysReturnsLastArgError
+                                    (qualifiedToString checkInfo.fn ++ " with negative index")
+                                    collection
+                                    checkInfo
+                                )
 
-                    else
-                        case secondArg checkInfo of
-                            Just replacementArg ->
-                                setOnKnownElementChecks collection checkInfo n (Node.range replacementArg)
+                        else
+                            case secondArg checkInfo of
+                                Just replacementArg ->
+                                    setOnKnownElementChecks collection checkInfo n (Node.range replacementArg)
 
-                            Nothing ->
-                                Nothing
+                                Nothing ->
+                                    Nothing
 
-                Nothing ->
-                    Nothing
+                    Nothing ->
+                        Nothing
+            )
         ]
 
 
@@ -9704,7 +9699,7 @@ setOnKnownElementChecks collection checkInfo n replacementArgRange =
 emptiableReverseChecks : EmptiableProperties empty otherProperties -> IntoFnCheck
 emptiableReverseChecks emptiable =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck emptiable)
+        [ unnecessaryCallOnEmptyCheck emptiable
         , toggleFnChecks
         ]
 
@@ -10088,7 +10083,7 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
                         Nothing
             )
         , mapToOperationWithIdentityCanBeCombinedToOperationChecks emptiableWrapper
-        , intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck emptiableWrapper)
+        , unnecessaryCallOnEmptyCheck emptiableWrapper
         ]
 
 
@@ -10661,12 +10656,41 @@ unnecessaryCallOnCheck constructable checkInfo =
             Nothing
 
 
-unnecessaryCallOnEmptyCheck :
-    EmptiableProperties empty otherProperties
-    -> CheckInfo
-    -> Maybe (Error {})
+{-| The operation is equivalent to identity when applied on an empty value:
+
+    fn .. empty --> empty
+
+    -- only when a constructor fn exists
+    fn .. << emptyConstructor --> emptyConstructor
+
+Examples
+
+    Json.Decode.map f (Json.Decode.fail x)
+    --> Json.Decode.fail x
+
+    Json.Decode.map f << Json.Decode.fail
+    --> Json.Decode.fail
+
+    Task.mapError f (Task.succeed a)
+    --> Task.succeed a
+
+    Task.mapError f << Task.succeed
+    --> Task.succeed
+
+Use together with `unnecessaryCallOnEmptyCheck`
+
+-}
+unnecessaryCallOnEmptyCheck : EmptiableProperties empty otherProperties -> IntoFnCheck
 unnecessaryCallOnEmptyCheck emptiable =
-    unnecessaryCallOnCheck emptiable.empty
+    { call = unnecessaryCallOnCheck emptiable.empty
+    , composition =
+        case emptiable.empty.kind emptiable.empty.specific of
+            Constant _ ->
+                \_ -> Nothing
+
+            ConstructWithOneArg constructWithOneArg ->
+                \checkInfo -> unnecessaryCompositionAfterCheck constructWithOneArg checkInfo
+    }
 
 
 callOnEmptyReturnsCheck :
@@ -10699,29 +10723,6 @@ callOnEmptyReturnsCheck config collection checkInfo =
 
         Nothing ->
             Nothing
-
-
-{-| The operation is equivalent to identity when applied on an empty value:
-
-    operation << empty --> empty
-
-Examples
-
-    Json.Decode.map f << Json.Decode.fail
-    --> Json.Decode.fail
-
-    Task.mapError << Task.succeed
-    --> Task.succeed
-
-Use together with `unnecessaryCallOnEmptyCheck`
-
--}
-unnecessaryCompositionAfterEmptyCheck :
-    EmptiableProperties ConstructWithOneArgProperties otherProperties
-    -> CompositionIntoCheckInfo
-    -> Maybe ErrorInfoAndFix
-unnecessaryCompositionAfterEmptyCheck emptiable =
-    unnecessaryCompositionAfterCheck emptiable.empty.specific
 
 
 unnecessaryCompositionAfterCheck :
@@ -10930,17 +10931,19 @@ callOnWrapReturnsJustItsValue wrapper =
 If your function only takes two arguments like `Dict.filter`, use `emptiableKeepWhenWithExtraArgChecks`
 
 -}
-emptiableKeepWhenChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiableKeepWhenChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> IntoFnCheck
 emptiableKeepWhenChecks emptiable =
-    firstThatConstructsJust
+    intoFnChecksFirstThatConstructsError
         [ unnecessaryCallOnEmptyCheck emptiable
-        , \checkInfo ->
-            case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
-                Just constantFunctionResult ->
-                    keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
+                    Just constantFunctionResult ->
+                        keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo
 
-                Nothing ->
-                    Nothing
+                    Nothing ->
+                        Nothing
+            )
         ]
 
 
@@ -10978,119 +10981,125 @@ keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkI
 If your function only takes one argument like `List.filter`, use `emptiableKeepWhenChecks`
 
 -}
-emptiableKeepWhenWithExtraArgChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiableKeepWhenWithExtraArgChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> IntoFnCheck
 emptiableKeepWhenWithExtraArgChecks emptiable =
-    firstThatConstructsJust
+    intoFnChecksFirstThatConstructsError
         [ unnecessaryCallOnEmptyCheck emptiable
-        , \checkInfo ->
-            let
-                maybeFilterFunctionResult : Maybe (Node Expression)
-                maybeFilterFunctionResult =
-                    checkInfo.firstArg
-                        |> AstHelpers.getAlwaysResult checkInfo.lookupTable
-                        |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
-            in
-            case maybeFilterFunctionResult of
-                Just constantFunctionResult ->
-                    keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                let
+                    maybeFilterFunctionResult : Maybe (Node Expression)
+                    maybeFilterFunctionResult =
+                        checkInfo.firstArg
+                            |> AstHelpers.getAlwaysResult checkInfo.lookupTable
+                            |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo.lookupTable)
+                in
+                case maybeFilterFunctionResult of
+                    Just constantFunctionResult ->
+                        keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo
 
-                Nothing ->
-                    Nothing
+                    Nothing ->
+                        Nothing
+            )
         ]
 
 
-collectionRemoveChecks : CollectionProperties (EmptiableProperties empty otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionRemoveChecks : CollectionProperties (EmptiableProperties empty otherProperties) -> IntoFnCheck
 collectionRemoveChecks collection =
     unnecessaryCallOnEmptyCheck collection
 
 
-collectionSliceChecks : EmptiableProperties ConstantProperties otherProperties -> CheckInfo -> Maybe (Error {})
+collectionSliceChecks : EmptiableProperties ConstantProperties otherProperties -> IntoFnCheck
 collectionSliceChecks collection =
-    firstThatConstructsJust
+    intoFnChecksFirstThatConstructsError
         [ unnecessaryCallOnEmptyCheck collection
-        , \checkInfo ->
-            case secondArg checkInfo of
-                Just endArg ->
-                    firstThatConstructsJust
-                        [ \() ->
-                            if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ endArg ] then
-                                Just
-                                    (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with equal start and end index")
-                                        { replacement = collection.empty.specific.asString }
-                                        checkInfo
-                                    )
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case secondArg checkInfo of
+                    Just endArg ->
+                        firstThatConstructsJust
+                            [ \() ->
+                                if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ endArg ] then
+                                    Just
+                                        (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with equal start and end index")
+                                            { replacement = collection.empty.specific.asString }
+                                            checkInfo
+                                        )
 
-                            else
-                                Nothing
-                        , \() ->
-                            case Evaluate.getInt checkInfo endArg of
-                                Just endInt ->
-                                    firstThatConstructsJust
-                                        [ \() ->
-                                            case endInt of
-                                                0 ->
-                                                    Just
-                                                        (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with end index 0")
-                                                            { replacement = collection.empty.specific.asString }
-                                                            checkInfo
-                                                        )
+                                else
+                                    Nothing
+                            , \() ->
+                                case Evaluate.getInt checkInfo endArg of
+                                    Just endInt ->
+                                        firstThatConstructsJust
+                                            [ \() ->
+                                                case endInt of
+                                                    0 ->
+                                                        Just
+                                                            (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with end index 0")
+                                                                { replacement = collection.empty.specific.asString }
+                                                                checkInfo
+                                                            )
 
-                                                _ ->
-                                                    Nothing
-                                        , \() ->
-                                            case Evaluate.getInt checkInfo checkInfo.firstArg of
-                                                Just startInt ->
-                                                    if startInt > endInt then
-                                                        if startInt >= 0 && endInt >= 0 then
-                                                            Just
-                                                                (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
-                                                                    { replacement = collection.empty.specific.asString }
-                                                                    checkInfo
-                                                                )
+                                                    _ ->
+                                                        Nothing
+                                            , \() ->
+                                                case Evaluate.getInt checkInfo checkInfo.firstArg of
+                                                    Just startInt ->
+                                                        if startInt > endInt then
+                                                            if startInt >= 0 && endInt >= 0 then
+                                                                Just
+                                                                    (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
+                                                                        { replacement = collection.empty.specific.asString }
+                                                                        checkInfo
+                                                                    )
 
-                                                        else if startInt <= -1 && endInt <= -1 then
-                                                            Just
-                                                                (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with a negative start index closer to the right than the negative end index")
-                                                                    { replacement = collection.empty.specific.asString }
-                                                                    checkInfo
-                                                                )
+                                                            else if startInt <= -1 && endInt <= -1 then
+                                                                Just
+                                                                    (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with a negative start index closer to the right than the negative end index")
+                                                                        { replacement = collection.empty.specific.asString }
+                                                                        checkInfo
+                                                                    )
+
+                                                            else
+                                                                Nothing
 
                                                         else
                                                             Nothing
 
-                                                    else
+                                                    Nothing ->
                                                         Nothing
+                                            ]
+                                            ()
 
-                                                Nothing ->
-                                                    Nothing
-                                        ]
-                                        ()
+                                    Nothing ->
+                                        Nothing
+                            ]
+                            ()
 
-                                Nothing ->
-                                    Nothing
-                        ]
-                        ()
-
-                Nothing ->
-                    Nothing
+                    Nothing ->
+                        Nothing
+            )
         ]
 
 
-collectionIntersectChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionIntersectChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> IntoFnCheck
 collectionIntersectChecks collection =
-    firstThatConstructsJust
-        [ \checkInfo ->
-            if collection.empty.specific.is (extractInferResources checkInfo) checkInfo.firstArg then
-                Just
-                    (alwaysResultsInUnparenthesizedConstantError
-                        (qualifiedToString checkInfo.fn ++ " on " ++ collection.empty.specific.description)
-                        { replacement = collection.empty.specific.asString }
-                        checkInfo
-                    )
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryCallOnEmptyCheck collection
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                if collection.empty.specific.is (extractInferResources checkInfo) checkInfo.firstArg then
+                    Just
+                        (alwaysResultsInUnparenthesizedConstantError
+                            (qualifiedToString checkInfo.fn ++ " on " ++ collection.empty.specific.description)
+                            { replacement = collection.empty.specific.asString }
+                            checkInfo
+                        )
 
-            else
-                Nothing
-        , unnecessaryCallOnEmptyCheck collection
+                else
+                    Nothing
+            )
         ]
 
 
