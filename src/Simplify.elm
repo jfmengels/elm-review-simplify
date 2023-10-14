@@ -5768,7 +5768,7 @@ arrayToIndexedListChecks =
 arrayFromListChecks : IntoFnCheck
 arrayFromListChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall (collectionFromListChecks arrayCollection)
+        [ intoFnCheckOnlyCall (emptiableFromListChecks arrayCollection)
         , onCallToInverseReturnsItsArgumentCheck Fn.Array.toList
         ]
 
@@ -5890,7 +5890,7 @@ arrayFoldrChecks =
 setFromListChecks : IntoFnCheck
 setFromListChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall (collectionFromListChecks setCollection)
+        [ intoFnCheckOnlyCall (emptiableFromListChecks setCollection)
         , wrapperFromListSingletonChecks setCollection
         , onCallToInverseReturnsItsArgumentCheck Fn.Set.toList
         ]
@@ -5973,7 +5973,7 @@ setFoldrChecks =
 dictFromListChecks : IntoFnCheck
 dictFromListChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall (collectionFromListChecks dictCollection)
+        [ intoFnCheckOnlyCall (emptiableFromListChecks dictCollection)
         , onCallToInverseReturnsItsArgumentCheck Fn.Dict.toList
         ]
 
@@ -11299,8 +11299,8 @@ collectionSizeChecks collection checkInfo =
             Nothing
 
 
-collectionFromListChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
-collectionFromListChecks collection =
+emptiableFromListChecks : EmptiableProperties ConstantProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableFromListChecks collection =
     callOnEmptyReturnsCheck { resultAsString = collection.empty.specific.asString } listCollection
 
 
