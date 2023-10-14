@@ -4505,7 +4505,7 @@ stringReverseChecks : IntoFnCheck
 stringReverseChecks =
     intoFnChecksFirstThatConstructsError
         [ emptiableReverseChecks stringCollection
-        , { call = unnecessaryCallOnWrappedCheck stringCollection, composition = unnecessaryCompositionAfterWrapCheck stringCollection }
+        , unnecessaryCallOnWrappedCheck stringCollection
         ]
 
 
@@ -4878,13 +4878,10 @@ listIndexedMapChecks =
 
 listIntersperseChecks : IntoFnCheck
 listIntersperseChecks =
-    { call =
-        firstThatConstructsJust
-            [ unnecessaryCallOnEmptyCheck listCollection
-            , unnecessaryCallOnWrappedCheck listCollection
-            ]
-    , composition = unnecessaryCompositionAfterWrapCheck listCollection
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck listCollection)
+        , unnecessaryCallOnWrappedCheck listCollection
+        ]
 
 
 listHeadChecks : IntoFnCheck
@@ -5630,30 +5627,28 @@ listReverseChecks : IntoFnCheck
 listReverseChecks =
     intoFnChecksFirstThatConstructsError
         [ emptiableReverseChecks listCollection
-        , { call = unnecessaryCallOnWrappedCheck listCollection, composition = unnecessaryCompositionAfterWrapCheck listCollection }
+        , unnecessaryCallOnWrappedCheck listCollection
         ]
 
 
 listSortChecks : IntoFnCheck
 listSortChecks =
-    { call =
-        firstThatConstructsJust
-            [ unnecessaryCallOnEmptyCheck listCollection
-            , unnecessaryCallOnWrappedCheck listCollection
-            , operationDoesNotChangeResultOfOperationCheck
-            ]
-    , composition =
-        operationDoesNotChangeResultOfOperationCompositionCheck
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck listCollection)
+        , unnecessaryCallOnWrappedCheck listCollection
+        , { call = operationDoesNotChangeResultOfOperationCheck
+          , composition = operationDoesNotChangeResultOfOperationCompositionCheck
+          }
+        ]
 
 
 listSortByChecks : IntoFnCheck
 listSortByChecks =
-    { call =
-        firstThatConstructsJust
-            [ unnecessaryCallOnEmptyCheck listCollection
-            , unnecessaryCallOnWrappedCheck listCollection
-            , \checkInfo ->
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck listCollection)
+        , unnecessaryCallOnWrappedCheck listCollection
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
                 case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
                     Just _ ->
                         Just
@@ -5665,21 +5660,21 @@ listSortByChecks =
 
                     Nothing ->
                         Nothing
-            , operationWithIdentityIsEquivalentToFnCheck Fn.List.sort
-            , operationDoesNotChangeResultOfOperationCheck
-            ]
-    , composition =
-        operationDoesNotChangeResultOfOperationCompositionCheck
-    }
+            )
+        , intoFnCheckOnlyCall (operationWithIdentityIsEquivalentToFnCheck Fn.List.sort)
+        , { call = operationDoesNotChangeResultOfOperationCheck
+          , composition = operationDoesNotChangeResultOfOperationCompositionCheck
+          }
+        ]
 
 
 listSortWithChecks : IntoFnCheck
 listSortWithChecks =
-    intoFnCheckOnlyCall
-        (firstThatConstructsJust
-            [ unnecessaryCallOnEmptyCheck listCollection
-            , unnecessaryCallOnWrappedCheck listCollection
-            , \checkInfo ->
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck listCollection)
+        , unnecessaryCallOnWrappedCheck listCollection
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
                 let
                     alwaysAlwaysOrder : Maybe Order
                     alwaysAlwaysOrder =
@@ -5715,8 +5710,8 @@ listSortWithChecks =
 
                     Nothing ->
                         Nothing
-            ]
-        )
+            )
+        ]
 
 
 listTakeChecks : IntoFnCheck
@@ -10617,14 +10612,23 @@ onCallToInverseReturnsItsArgumentCheck inverseFn =
     }
 
 
-unnecessaryCompositionAfterWrapCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-unnecessaryCompositionAfterWrapCheck wrapper =
-    unnecessaryCompositionAfterCheck wrapper.wrap
+{-| The wrapper check
 
+    fn .. (wrap a) --> wrap a
+    fn .. << wrap --> wrap
 
-unnecessaryCallOnWrappedCheck : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
+So for example
+
+    List.reverse [ a ] --> [ a ]
+
+    List.reverse << List.singleton --> List.singleton
+
+-}
+unnecessaryCallOnWrappedCheck : WrapperProperties otherProperties -> IntoFnCheck
 unnecessaryCallOnWrappedCheck wrapper =
-    unnecessaryCallOnCheck { specific = wrapper.wrap, kind = ConstructWithOneArg }
+    { call = unnecessaryCallOnCheck { specific = wrapper.wrap, kind = ConstructWithOneArg }
+    , composition = unnecessaryCompositionAfterCheck wrapper.wrap
+    }
 
 
 unnecessaryCallOnCheck : TypeSubsetProperties otherProperties -> CheckInfo -> Maybe (Error {})
