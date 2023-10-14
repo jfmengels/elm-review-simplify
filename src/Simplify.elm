@@ -3884,19 +3884,16 @@ basicsAlwaysChecks =
 
 basicsNegateChecks : IntoFnCheck
 basicsNegateChecks =
-    { call = toggleCallChecks, composition = toggleCompositionChecks }
+    toggleFnChecks
 
 
 basicsNotChecks : IntoFnCheck
 basicsNotChecks =
-    { call =
-        firstThatConstructsJust
-            [ notOnKnownBoolCheck
-            , toggleCallChecks
-            , isNotOnBooleanOperatorCheck
-            ]
-    , composition = toggleCompositionChecks
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall notOnKnownBoolCheck
+        , toggleFnChecks
+        , intoFnCheckOnlyCall isNotOnBooleanOperatorCheck
+        ]
 
 
 notOnKnownBoolCheck : CheckInfo -> Maybe (Error {})
@@ -4008,13 +4005,10 @@ basicsToFloatChecks =
 
 intToIntChecks : IntoFnCheck
 intToIntChecks =
-    { call =
-        firstThatConstructsJust
-            [ unnecessaryConversionToIntOnIntCheck
-            , onCallToInverseReturnsItsArgumentCheck Fn.Basics.toFloat
-            ]
-    , composition = inversesCompositionCheck Fn.Basics.toFloat
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall unnecessaryConversionToIntOnIntCheck
+        , onCallToInverseReturnsItsArgumentCheck Fn.Basics.toFloat
+        ]
 
 
 unnecessaryConversionToIntOnIntCheck : CheckInfo -> Maybe (Error {})
@@ -4482,18 +4476,14 @@ tuplePartCompositionChecks partConfig =
 
 stringFromListChecks : IntoFnCheck
 stringFromListChecks =
-    { call =
-        firstThatConstructsJust
-            [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.specific.asString } listCollection
-            , wrapperFromListSingletonChecks stringCollection
-            , onCallToInverseReturnsItsArgumentCheck Fn.String.toList
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ wrapperFromListSingletonCompositionChecks stringCollection
-            , inversesCompositionCheck Fn.String.toList
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.specific.asString } listCollection)
+        , { call = wrapperFromListSingletonChecks stringCollection
+          , composition = wrapperFromListSingletonCompositionChecks stringCollection
+          }
+        , onCallToInverseReturnsItsArgumentCheck Fn.String.toList
+        ]
 
 
 stringIsEmptyChecks : IntoFnCheck
@@ -4513,17 +4503,10 @@ stringSliceChecks =
 
 stringReverseChecks : IntoFnCheck
 stringReverseChecks =
-    { call =
-        firstThatConstructsJust
-            [ emptiableReverseChecks stringCollection
-            , unnecessaryCallOnWrappedCheck stringCollection
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ unnecessaryCompositionAfterWrapCheck stringCollection
-            , toggleCompositionChecks
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ emptiableReverseChecks stringCollection
+        , { call = unnecessaryCallOnWrappedCheck stringCollection, composition = unnecessaryCompositionAfterWrapCheck stringCollection }
+        ]
 
 
 stringLeftChecks : IntoFnCheck
@@ -4664,9 +4647,7 @@ stringLinesChecks =
 
 stringToListChecks : IntoFnCheck
 stringToListChecks =
-    { call = onCallToInverseReturnsItsArgumentCheck Fn.String.fromList
-    , composition = inversesCompositionCheck Fn.String.fromList
-    }
+    onCallToInverseReturnsItsArgumentCheck Fn.String.fromList
 
 
 stringFoldlChecks : IntoFnCheck
@@ -5647,17 +5628,10 @@ listRepeatChecks =
 
 listReverseChecks : IntoFnCheck
 listReverseChecks =
-    { call =
-        firstThatConstructsJust
-            [ emptiableReverseChecks listCollection
-            , unnecessaryCallOnWrappedCheck listCollection
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ unnecessaryCompositionAfterWrapCheck listCollection
-            , toggleCompositionChecks
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ emptiableReverseChecks listCollection
+        , { call = unnecessaryCallOnWrappedCheck listCollection, composition = unnecessaryCompositionAfterWrapCheck listCollection }
+        ]
 
 
 listSortChecks : IntoFnCheck
@@ -5806,14 +5780,9 @@ listUnzipChecks =
 arrayToListChecks : IntoFnCheck
 arrayToListChecks =
     intoFnChecksFirstThatConstructsError
-        [ { call =
-                firstThatConstructsJust
-                    [ callOnEmptyReturnsCheck { resultAsString = listCollection.empty.specific.asString } arrayCollection
-                    , onCallToInverseReturnsItsArgumentCheck Fn.Array.fromList
-                    ]
-          , composition =
-                inversesCompositionCheck Fn.Array.fromList
-          }
+        [ intoFnCheckOnlyCall
+            (callOnEmptyReturnsCheck { resultAsString = listCollection.empty.specific.asString } arrayCollection)
+        , onCallToInverseReturnsItsArgumentCheck Fn.Array.fromList
         , callFromCanBeCombinedCheck
             { fromFn = Fn.Array.repeat, combinedFn = Fn.List.repeat }
         ]
@@ -5827,13 +5796,10 @@ arrayToIndexedListChecks =
 
 arrayFromListChecks : IntoFnCheck
 arrayFromListChecks =
-    { call =
-        firstThatConstructsJust
-            [ collectionFromListChecks arrayCollection
-            , onCallToInverseReturnsItsArgumentCheck Fn.Array.toList
-            ]
-    , composition = inversesCompositionCheck Fn.Array.toList
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (collectionFromListChecks arrayCollection)
+        , onCallToInverseReturnsItsArgumentCheck Fn.Array.toList
+        ]
 
 
 arrayRepeatChecks : IntoFnCheck
@@ -5954,18 +5920,11 @@ arrayFoldrChecks =
 
 setFromListChecks : IntoFnCheck
 setFromListChecks =
-    { call =
-        firstThatConstructsJust
-            [ collectionFromListChecks setCollection
-            , wrapperFromListSingletonChecks setCollection
-            , onCallToInverseReturnsItsArgumentCheck Fn.Set.toList
-            ]
-    , composition =
-        firstThatConstructsJust
-            [ wrapperFromListSingletonCompositionChecks setCollection
-            , inversesCompositionCheck Fn.Set.toList
-            ]
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (collectionFromListChecks setCollection)
+        , { call = wrapperFromListSingletonChecks setCollection, composition = wrapperFromListSingletonCompositionChecks setCollection }
+        , onCallToInverseReturnsItsArgumentCheck Fn.Set.toList
+        ]
 
 
 setIsEmptyChecks : IntoFnCheck
@@ -6044,14 +6003,10 @@ setFoldrChecks =
 
 dictFromListChecks : IntoFnCheck
 dictFromListChecks =
-    { call =
-        firstThatConstructsJust
-            [ collectionFromListChecks dictCollection
-            , onCallToInverseReturnsItsArgumentCheck Fn.Dict.toList
-            ]
-    , composition =
-        inversesCompositionCheck Fn.Dict.toList
-    }
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (collectionFromListChecks dictCollection)
+        , onCallToInverseReturnsItsArgumentCheck Fn.Dict.toList
+        ]
 
 
 dictIsEmptyChecks : IntoFnCheck
@@ -9755,11 +9710,11 @@ setOnKnownElementChecks collection checkInfo n replacementArgRange =
             Nothing
 
 
-emptiableReverseChecks : EmptiableProperties empty otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableReverseChecks : EmptiableProperties empty otherProperties -> IntoFnCheck
 emptiableReverseChecks emptiable =
-    firstThatConstructsJust
-        [ unnecessaryCallOnEmptyCheck emptiable
-        , toggleCallChecks
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (unnecessaryCallOnEmptyCheck emptiable)
+        , toggleFnChecks
         ]
 
 
@@ -10590,14 +10545,11 @@ operationDoesNotChangeResultOfOperationCompositionCheck checkInfo =
         Nothing
 
 
-toggleCallChecks : CheckInfo -> Maybe (Error {})
-toggleCallChecks checkInfo =
-    onCallToInverseReturnsItsArgumentCheck checkInfo.fn checkInfo
-
-
-toggleCompositionChecks : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-toggleCompositionChecks checkInfo =
-    inversesCompositionCheck checkInfo.later.fn checkInfo
+toggleFnChecks : IntoFnCheck
+toggleFnChecks =
+    { call = \checkInfo -> (onCallToInverseReturnsItsArgumentCheck checkInfo.fn).call checkInfo
+    , composition = \checkInfo -> (onCallToInverseReturnsItsArgumentCheck checkInfo.later.fn).composition checkInfo
+    }
 
 
 {-| Chaining two operations that are inverses of each other and therefore cancel each other out.
@@ -10606,84 +10558,63 @@ For example
     Array.fromList (Array.toList array)
     --> array
 
+    Array.fromList << Array.toList
+    --> identity
+
     Array.toList (Array.fromList list)
     --> list
 
-Tip: Add `inversesCompositionCheck` for the same thing as a composition check.
+    Array.toList << Array.fromList
+    --> identity
 
 These usually exist in pairs, like above so make sure to add this check for both functions.
 But there are exceptions!
 
-    Set.fromList (Set.toList set)
-    --> set
-
-This will always work because `Set.toList` will never produce a list with duplicate elements. However
-
-    Set.toList (Set.fromList list)
-    --> list
-
-would be an incorrect fix. See for example
-
-    Set.toList (Set.fromList [ 0, 0 ])
-    --> not [ 0, 0 ] bit actually [ 0 ]
-
--}
-onCallToInverseReturnsItsArgumentCheck : ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
-onCallToInverseReturnsItsArgumentCheck inverseFn checkInfo =
-    case AstHelpers.getSpecificFnCall inverseFn checkInfo.lookupTable checkInfo.firstArg of
-        Just call ->
-            Just
-                (Rule.errorWithFix
-                    { message = qualifiedToString inverseFn ++ ", then " ++ qualifiedToString checkInfo.fn ++ " cancels each other out"
-                    , details = [ "You can replace this call by the argument given to " ++ qualifiedToString inverseFn ++ "." ]
-                    }
-                    checkInfo.fnRange
-                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range call.firstArg })
-                )
-
-        Nothing ->
-            Nothing
-
-
-{-| Composing two operations that are inverses of each other and therefore cancel each other out.
-For example
-
-    -- inversesCompositionCheck { later = ( [ "Array" ], "fromList" ), earlier = ( [ "Array" ], "toList" ) }
-    Array.toList >> Array.fromList
-    --> identity
-
-    -- inversesCompositionCheck { later = ( [ "Array" ], "toList" ) , earlier = ( [ "Array" ], "fromList" ) }
-    Array.fromList >> Array.toList
-    --> identity
-
-Tip: Add `onCallToInverseReturnsItsArgumentCheck` for the same thing as a function call check.
-
-These usually exist in pairs, like above so make sure to add this check for both functions.
-But there are exceptions!
+    Set.fromList (Set.toList set) --> set
 
     Set.fromList << Set.toList --> identity
 
-This will always work because `Set.toList` will never produce a list with duplicate elements. However
+This will always work because `Set.toList` will never produce a list with duplicate elements. However!
+
+    Set.toList (Set.fromList list) --> list
 
     Set.toList << Set.fromList --> identity
 
 would be an incorrect fix. See for example
 
     Set.toList (Set.fromList [ 0, 0 ])
-    --> not [ 0, 0 ] bit actually [ 0 ]
+    --> not [ 0, 0 ] but actually [ 0 ]
 
 -}
-inversesCompositionCheck : ( ModuleName, String ) -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-inversesCompositionCheck earlierInverseFn checkInfo =
-    if checkInfo.earlier.fn == earlierInverseFn then
-        Just
-            (compositionAlwaysReturnsIncomingError
-                (qualifiedToString checkInfo.earlier.fn ++ ", then " ++ qualifiedToString checkInfo.later.fn ++ " cancels each other out")
-                checkInfo
-            )
+onCallToInverseReturnsItsArgumentCheck : ( ModuleName, String ) -> IntoFnCheck
+onCallToInverseReturnsItsArgumentCheck inverseFn =
+    { call =
+        \checkInfo ->
+            case AstHelpers.getSpecificFnCall inverseFn checkInfo.lookupTable checkInfo.firstArg of
+                Just call ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString inverseFn ++ ", then " ++ qualifiedToString checkInfo.fn ++ " cancels each other out"
+                            , details = [ "You can replace this call by the argument given to " ++ qualifiedToString inverseFn ++ "." ]
+                            }
+                            checkInfo.fnRange
+                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range call.firstArg })
+                        )
 
-    else
-        Nothing
+                Nothing ->
+                    Nothing
+    , composition =
+        \checkInfo ->
+            if checkInfo.earlier.fn == inverseFn then
+                Just
+                    (compositionAlwaysReturnsIncomingError
+                        (qualifiedToString checkInfo.earlier.fn ++ ", then " ++ qualifiedToString checkInfo.later.fn ++ " cancels each other out")
+                        checkInfo
+                    )
+
+            else
+                Nothing
+    }
 
 
 unnecessaryCompositionAfterWrapCheck : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
