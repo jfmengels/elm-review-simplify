@@ -4259,41 +4259,32 @@ tuplePairChecks =
 tupleFirstChecks : IntoFnCheck
 tupleFirstChecks =
     intoFnChecksFirstThatConstructsError
-        [ { call =
-                tuplePartChecks
-                    { part = TupleFirst
-                    , description = "first"
-                    , mapUnrelatedFn = Fn.Tuple.mapSecond
-                    , mapFn = Fn.Tuple.mapFirst
-                    }
-          , composition =
-                firstThatConstructsJust
-                    [ tuplePartCompositionChecks
-                        { part = TupleFirst
-                        , description = "first"
-                        , mapUnrelatedFn = Fn.Tuple.mapSecond
-                        , mapFn = Fn.Tuple.mapFirst
-                        }
-                    , \checkInfo ->
-                        case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-                            ( ( [ "Tuple" ], "pair" ), first :: [] ) ->
-                                Just
-                                    { info =
-                                        { message = qualifiedToString (qualify checkInfo.earlier.fn defaultQualifyResources) ++ " with a first part, then " ++ qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " will always result in that first part"
-                                        , details = [ "You can replace this call by always with the first argument given to " ++ qualifiedToString (qualify checkInfo.earlier.fn defaultQualifyResources) ++ "." ]
-                                        }
-                                    , fix =
-                                        replaceBySubExpressionFix checkInfo.earlier.range first
-                                            ++ [ Fix.insertAt checkInfo.earlier.range.start
-                                                    (qualifiedToString (qualify Fn.Basics.always checkInfo) ++ " ")
-                                               , Fix.removeRange checkInfo.later.removeRange
-                                               ]
-                                    }
+        [ tuplePartChecks
+            { part = TupleFirst
+            , description = "first"
+            , mapUnrelatedFn = Fn.Tuple.mapSecond
+            , mapFn = Fn.Tuple.mapFirst
+            }
+        , intoFnCheckOnlyComposition
+            (\checkInfo ->
+                case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+                    ( ( [ "Tuple" ], "pair" ), first :: [] ) ->
+                        Just
+                            { info =
+                                { message = qualifiedToString (qualify checkInfo.earlier.fn defaultQualifyResources) ++ " with a first part, then " ++ qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " will always result in that first part"
+                                , details = [ "You can replace this call by always with the first argument given to " ++ qualifiedToString (qualify checkInfo.earlier.fn defaultQualifyResources) ++ "." ]
+                                }
+                            , fix =
+                                replaceBySubExpressionFix checkInfo.earlier.range first
+                                    ++ [ Fix.insertAt checkInfo.earlier.range.start
+                                            (qualifiedToString (qualify Fn.Basics.always checkInfo) ++ " ")
+                                       , Fix.removeRange checkInfo.later.removeRange
+                                       ]
+                            }
 
-                            _ ->
-                                Nothing
-                    ]
-          }
+                    _ ->
+                        Nothing
+            )
         , callFromCanBeCombinedCheck
             { fromFn = Fn.List.partition, combinedFn = Fn.List.filter }
         , callFromCanBeCombinedCheck
@@ -4305,22 +4296,15 @@ tupleFirstChecks =
 
 tupleSecondChecks : IntoFnCheck
 tupleSecondChecks =
-    { call =
-        tuplePartChecks
+    intoFnChecksFirstThatConstructsError
+        [ tuplePartChecks
             { part = TupleSecond
             , description = "second"
             , mapFn = Fn.Tuple.mapSecond
             , mapUnrelatedFn = Fn.Tuple.mapFirst
             }
-    , composition =
-        firstThatConstructsJust
-            [ tuplePartCompositionChecks
-                { part = TupleSecond
-                , description = "second"
-                , mapFn = Fn.Tuple.mapSecond
-                , mapUnrelatedFn = Fn.Tuple.mapFirst
-                }
-            , \checkInfo ->
+        , intoFnCheckOnlyComposition
+            (\checkInfo ->
                 case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
                     ( ( [ "Tuple" ], "pair" ), _ :: [] ) ->
                         Just
@@ -4331,8 +4315,8 @@ tupleSecondChecks =
 
                     _ ->
                         Nothing
-            ]
-    }
+            )
+        ]
 
 
 type TuplePart
@@ -4346,127 +4330,127 @@ tuplePartChecks :
     , mapFn : ( ModuleName, String )
     , mapUnrelatedFn : ( ModuleName, String )
     }
-    -> CheckInfo
-    -> Maybe (Error {})
+    -> IntoFnCheck
 tuplePartChecks partConfig =
-    firstThatConstructsJust
-        [ \checkInfo ->
-            Maybe.map
-                (\tuple ->
-                    Rule.errorWithFix
-                        { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on a known tuple will result in the tuple's " ++ partConfig.description ++ " part"
-                        , details = [ "You can replace this call by the tuple's " ++ partConfig.description ++ " part." ]
-                        }
-                        checkInfo.fnRange
-                        (replaceBySubExpressionFix checkInfo.parentRange
-                            (case partConfig.part of
-                                TupleFirst ->
-                                    tuple.first
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (\checkInfo ->
+                Maybe.map
+                    (\tuple ->
+                        Rule.errorWithFix
+                            { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on a known tuple will result in the tuple's " ++ partConfig.description ++ " part"
+                            , details = [ "You can replace this call by the tuple's " ++ partConfig.description ++ " part." ]
+                            }
+                            checkInfo.fnRange
+                            (replaceBySubExpressionFix checkInfo.parentRange
+                                (case partConfig.part of
+                                    TupleFirst ->
+                                        tuple.first
 
-                                TupleSecond ->
-                                    tuple.second
+                                    TupleSecond ->
+                                        tuple.second
+                                )
                             )
-                        )
-                )
-                (AstHelpers.getTuple2 checkInfo.lookupTable checkInfo.firstArg)
-        , \checkInfo ->
-            case AstHelpers.getSpecificFnCall partConfig.mapUnrelatedFn checkInfo.lookupTable checkInfo.firstArg of
-                Just mapSecondCall ->
-                    case mapSecondCall.argsAfterFirst of
-                        unmappedTuple :: [] ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Unnecessary " ++ qualifiedToString partConfig.mapUnrelatedFn ++ " before " ++ qualifiedToString checkInfo.fn
-                                    , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the " ++ qualifiedToString partConfig.mapUnrelatedFn ++ " call by the unchanged tuple." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (keepOnlyFix { parentRange = mapSecondCall.nodeRange, keep = Node.range unmappedTuple })
-                                )
-
-                        _ ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
-        , \checkInfo ->
-            case AstHelpers.getSpecificFnCall Fn.Tuple.mapBoth checkInfo.lookupTable checkInfo.firstArg of
-                Just tupleMapBothCall ->
-                    case tupleMapBothCall.argsAfterFirst of
-                        secondMapperArg :: _ :: [] ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = qualifiedToString Fn.Tuple.mapBoth ++ " before " ++ qualifiedToString checkInfo.fn ++ " is the same as " ++ qualifiedToString partConfig.mapFn
-                                    , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the " ++ qualifiedToString Fn.Tuple.mapBoth ++ " call by " ++ qualifiedToString partConfig.mapFn ++ " with the same " ++ partConfig.description ++ " mapping and tuple." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (case partConfig.part of
-                                        TupleFirst ->
-                                            Fix.replaceRangeBy tupleMapBothCall.fnRange
-                                                (qualifiedToString (qualify partConfig.mapFn checkInfo))
-                                                :: keepOnlyFix
-                                                    { parentRange = Range.combine [ tupleMapBothCall.fnRange, Node.range tupleMapBothCall.firstArg, Node.range secondMapperArg ]
-                                                    , keep = Range.combine [ tupleMapBothCall.fnRange, Node.range tupleMapBothCall.firstArg ]
-                                                    }
-
-                                        TupleSecond ->
-                                            [ Fix.replaceRangeBy (Range.combine [ tupleMapBothCall.fnRange, Node.range tupleMapBothCall.firstArg ])
-                                                (qualifiedToString (qualify partConfig.mapFn checkInfo))
-                                            ]
+                    )
+                    (AstHelpers.getTuple2 checkInfo.lookupTable checkInfo.firstArg)
+            )
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case AstHelpers.getSpecificFnCall partConfig.mapUnrelatedFn checkInfo.lookupTable checkInfo.firstArg of
+                    Just mapSecondCall ->
+                        case mapSecondCall.argsAfterFirst of
+                            unmappedTuple :: [] ->
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = "Unnecessary " ++ qualifiedToString partConfig.mapUnrelatedFn ++ " before " ++ qualifiedToString checkInfo.fn
+                                        , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the " ++ qualifiedToString partConfig.mapUnrelatedFn ++ " call by the unchanged tuple." ]
+                                        }
+                                        checkInfo.fnRange
+                                        (keepOnlyFix { parentRange = mapSecondCall.nodeRange, keep = Node.range unmappedTuple })
                                     )
-                                )
 
-                        _ ->
-                            Nothing
+                            _ ->
+                                Nothing
 
-                Nothing ->
-                    Nothing
-        ]
+                    Nothing ->
+                        Nothing
+            )
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case AstHelpers.getSpecificFnCall Fn.Tuple.mapBoth checkInfo.lookupTable checkInfo.firstArg of
+                    Just tupleMapBothCall ->
+                        case tupleMapBothCall.argsAfterFirst of
+                            secondMapperArg :: _ :: [] ->
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = qualifiedToString Fn.Tuple.mapBoth ++ " before " ++ qualifiedToString checkInfo.fn ++ " is the same as " ++ qualifiedToString partConfig.mapFn
+                                        , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the " ++ qualifiedToString Fn.Tuple.mapBoth ++ " call by " ++ qualifiedToString partConfig.mapFn ++ " with the same " ++ partConfig.description ++ " mapping and tuple." ]
+                                        }
+                                        checkInfo.fnRange
+                                        (case partConfig.part of
+                                            TupleFirst ->
+                                                Fix.replaceRangeBy tupleMapBothCall.fnRange
+                                                    (qualifiedToString (qualify partConfig.mapFn checkInfo))
+                                                    :: keepOnlyFix
+                                                        { parentRange = Range.combine [ tupleMapBothCall.fnRange, Node.range tupleMapBothCall.firstArg, Node.range secondMapperArg ]
+                                                        , keep = Range.combine [ tupleMapBothCall.fnRange, Node.range tupleMapBothCall.firstArg ]
+                                                        }
 
+                                            TupleSecond ->
+                                                [ Fix.replaceRangeBy (Range.combine [ tupleMapBothCall.fnRange, Node.range tupleMapBothCall.firstArg ])
+                                                    (qualifiedToString (qualify partConfig.mapFn checkInfo))
+                                                ]
+                                        )
+                                    )
 
-tuplePartCompositionChecks :
-    { part : TuplePart, description : String, mapFn : ( ModuleName, String ), mapUnrelatedFn : ( ModuleName, String ) }
-    -> CompositionIntoCheckInfo
-    -> Maybe ErrorInfoAndFix
-tuplePartCompositionChecks partConfig =
-    firstThatConstructsJust
-        [ \checkInfo ->
-            if checkInfo.earlier.fn == partConfig.mapUnrelatedFn then
-                Just
-                    { info =
-                        { message = "Unnecessary " ++ qualifiedToString partConfig.mapUnrelatedFn ++ " before " ++ qualifiedToString checkInfo.later.fn
-                        , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can remove the " ++ qualifiedToString partConfig.mapUnrelatedFn ++ " call." ]
-                        }
-                    , fix = [ Fix.removeRange checkInfo.earlier.removeRange ]
-                    }
+                            _ ->
+                                Nothing
 
-            else
-                Nothing
-        , \checkInfo ->
-            case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-                ( ( [ "Tuple" ], "mapBoth" ), firstMapperArg :: _ :: [] ) ->
+                    Nothing ->
+                        Nothing
+            )
+        , intoFnCheckOnlyComposition
+            (\checkInfo ->
+                if checkInfo.earlier.fn == partConfig.mapUnrelatedFn then
                     Just
                         { info =
-                            { message = qualifiedToString Fn.Tuple.mapBoth ++ " before " ++ qualifiedToString checkInfo.later.fn ++ " is the same as " ++ qualifiedToString partConfig.mapFn
-                            , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the " ++ qualifiedToString Fn.Tuple.mapBoth ++ " call by " ++ qualifiedToString partConfig.mapFn ++ " with the same " ++ partConfig.description ++ " mapping." ]
+                            { message = "Unnecessary " ++ qualifiedToString partConfig.mapUnrelatedFn ++ " before " ++ qualifiedToString checkInfo.later.fn
+                            , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can remove the " ++ qualifiedToString partConfig.mapUnrelatedFn ++ " call." ]
                             }
-                        , fix =
-                            case partConfig.part of
-                                TupleFirst ->
-                                    Fix.replaceRangeBy checkInfo.earlier.fnRange
-                                        (qualifiedToString (qualify partConfig.mapFn checkInfo))
-                                        :: keepOnlyFix
-                                            { parentRange = checkInfo.earlier.range
-                                            , keep = Range.combine [ checkInfo.earlier.fnRange, Node.range firstMapperArg ]
-                                            }
-
-                                TupleSecond ->
-                                    [ Fix.replaceRangeBy (Range.combine [ checkInfo.earlier.fnRange, Node.range firstMapperArg ])
-                                        (qualifiedToString (qualify partConfig.mapFn checkInfo))
-                                    ]
+                        , fix = [ Fix.removeRange checkInfo.earlier.removeRange ]
                         }
 
-                _ ->
+                else
                     Nothing
+            )
+        , intoFnCheckOnlyComposition
+            (\checkInfo ->
+                case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
+                    ( ( [ "Tuple" ], "mapBoth" ), firstMapperArg :: _ :: [] ) ->
+                        Just
+                            { info =
+                                { message = qualifiedToString Fn.Tuple.mapBoth ++ " before " ++ qualifiedToString checkInfo.later.fn ++ " is the same as " ++ qualifiedToString partConfig.mapFn
+                                , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the " ++ qualifiedToString Fn.Tuple.mapBoth ++ " call by " ++ qualifiedToString partConfig.mapFn ++ " with the same " ++ partConfig.description ++ " mapping." ]
+                                }
+                            , fix =
+                                case partConfig.part of
+                                    TupleFirst ->
+                                        Fix.replaceRangeBy checkInfo.earlier.fnRange
+                                            (qualifiedToString (qualify partConfig.mapFn checkInfo))
+                                            :: keepOnlyFix
+                                                { parentRange = checkInfo.earlier.range
+                                                , keep = Range.combine [ checkInfo.earlier.fnRange, Node.range firstMapperArg ]
+                                                }
+
+                                    TupleSecond ->
+                                        [ Fix.replaceRangeBy (Range.combine [ checkInfo.earlier.fnRange, Node.range firstMapperArg ])
+                                            (qualifiedToString (qualify partConfig.mapFn checkInfo))
+                                        ]
+                            }
+
+                    _ ->
+                        Nothing
+            )
         ]
 
 
