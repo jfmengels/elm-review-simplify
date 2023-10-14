@@ -4463,9 +4463,7 @@ stringFromListChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall
             (callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.specific.asString } listCollection)
-        , { call = wrapperFromListSingletonChecks stringCollection
-          , composition = wrapperFromListSingletonCompositionChecks stringCollection
-          }
+        , wrapperFromListSingletonChecks stringCollection
         , onCallToInverseReturnsItsArgumentCheck Fn.String.toList
         ]
 
@@ -5893,7 +5891,7 @@ setFromListChecks : IntoFnCheck
 setFromListChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (collectionFromListChecks setCollection)
-        , { call = wrapperFromListSingletonChecks setCollection, composition = wrapperFromListSingletonCompositionChecks setCollection }
+        , wrapperFromListSingletonChecks setCollection
         , onCallToInverseReturnsItsArgumentCheck Fn.Set.toList
         ]
 
@@ -11306,40 +11304,40 @@ collectionFromListChecks collection =
     callOnEmptyReturnsCheck { resultAsString = collection.empty.specific.asString } listCollection
 
 
-wrapperFromListSingletonChecks : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
-wrapperFromListSingletonChecks wrapper checkInfo =
-    case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
-        Nothing ->
-            Nothing
+wrapperFromListSingletonChecks : WrapperProperties otherProperties -> IntoFnCheck
+wrapperFromListSingletonChecks wrapper =
+    { call =
+        \checkInfo ->
+            case listCollection.wrap.getValue checkInfo.lookupTable checkInfo.firstArg of
+                Nothing ->
+                    Nothing
 
-        Just listSingleton ->
-            Just
-                (Rule.errorWithFix
-                    { message = qualifiedToString checkInfo.fn ++ " on a singleton list will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with the value inside"
-                    , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ " with the value inside the singleton list." ]
+                Just listSingletonValue ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " on a singleton list will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with the value inside"
+                            , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ " with the value inside the singleton list." ]
+                            }
+                            checkInfo.fnRange
+                            (replaceBySubExpressionFix (Node.range checkInfo.firstArg) listSingletonValue
+                                ++ [ Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify wrapper.wrap.fn checkInfo)) ]
+                            )
+                        )
+    , composition =
+        \checkInfo ->
+            if checkInfo.earlier.fn == listCollection.wrap.fn then
+                Just
+                    { info =
+                        { message = qualifiedToString checkInfo.later.fn ++ " on a singleton list will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with the value inside"
+                        , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ "." ]
+                        }
+                    , fix =
+                        compositionReplaceByFnFix wrapper.wrap.fn checkInfo
                     }
-                    checkInfo.fnRange
-                    (replaceBySubExpressionFix (Node.range checkInfo.firstArg) listSingleton.element
-                        ++ [ Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify wrapper.wrap.fn checkInfo)) ]
-                    )
-                )
 
-
-wrapperFromListSingletonCompositionChecks : WrapperProperties otherProperties -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
-wrapperFromListSingletonCompositionChecks wrapper checkInfo =
-    case checkInfo.earlier.fn of
-        ( [ "List" ], "singleton" ) ->
-            Just
-                { info =
-                    { message = qualifiedToString checkInfo.later.fn ++ " on a singleton list will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with the value inside"
-                    , details = [ "You can replace this call by " ++ qualifiedToString wrapper.wrap.fn ++ "." ]
-                    }
-                , fix =
-                    compositionReplaceByFnFix wrapper.wrap.fn checkInfo
-                }
-
-        _ ->
-            Nothing
+            else
+                Nothing
+    }
 
 
 emptiableToListChecks :
