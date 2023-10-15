@@ -4487,7 +4487,7 @@ stringReverseChecks : IntoFnCheck
 stringReverseChecks =
     intoFnChecksFirstThatConstructsError
         [ emptiableReverseChecks stringCollection
-        , unnecessaryCallOnWrappedCheck stringCollection
+        , unnecessaryOnWrappedCheck stringCollection
         ]
 
 
@@ -4856,7 +4856,7 @@ listIntersperseChecks : IntoFnCheck
 listIntersperseChecks =
     intoFnChecksFirstThatConstructsError
         [ unnecessaryCallOnEmptyCheck listCollection
-        , unnecessaryCallOnWrappedCheck listCollection
+        , unnecessaryOnWrappedCheck listCollection
         ]
 
 
@@ -5603,7 +5603,7 @@ listReverseChecks : IntoFnCheck
 listReverseChecks =
     intoFnChecksFirstThatConstructsError
         [ emptiableReverseChecks listCollection
-        , unnecessaryCallOnWrappedCheck listCollection
+        , unnecessaryOnWrappedCheck listCollection
         ]
 
 
@@ -5611,7 +5611,7 @@ listSortChecks : IntoFnCheck
 listSortChecks =
     intoFnChecksFirstThatConstructsError
         [ unnecessaryCallOnEmptyCheck listCollection
-        , unnecessaryCallOnWrappedCheck listCollection
+        , unnecessaryOnWrappedCheck listCollection
         , operationDoesNotChangeResultOfOperationCheck
         ]
 
@@ -5620,7 +5620,7 @@ listSortByChecks : IntoFnCheck
 listSortByChecks =
     intoFnChecksFirstThatConstructsError
         [ unnecessaryCallOnEmptyCheck listCollection
-        , unnecessaryCallOnWrappedCheck listCollection
+        , unnecessaryOnWrappedCheck listCollection
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
@@ -5644,7 +5644,7 @@ listSortWithChecks : IntoFnCheck
 listSortWithChecks =
     intoFnChecksFirstThatConstructsError
         [ unnecessaryCallOnEmptyCheck listCollection
-        , unnecessaryCallOnWrappedCheck listCollection
+        , unnecessaryOnWrappedCheck listCollection
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 let
@@ -10209,7 +10209,7 @@ Note that some functions called "sequence" have equal element and result types, 
     Bytes.Encode.sequence << List.singleton
     --: Bytes.Encode.Encoder -> Bytes.Encode.Encoder
 
-which means you can simplify them to `encoder`/`identity` using `unnecessaryCallOnWrappedCheck`.
+which means you can simplify them to `encoder`/`identity` using `unnecessaryOnWrappedCheck`.
 
 -}
 onWrappedIsEquivalentToMapWrapOnValueCheck :
@@ -10600,8 +10600,8 @@ So for example
     List.reverse << List.singleton --> List.singleton
 
 -}
-unnecessaryCallOnWrappedCheck : WrapperProperties otherProperties -> IntoFnCheck
-unnecessaryCallOnWrappedCheck wrapper =
+unnecessaryOnWrappedCheck : WrapperProperties otherProperties -> IntoFnCheck
+unnecessaryOnWrappedCheck wrapper =
     { call = unnecessaryCallOnCheck { specific = wrapper.wrap, kind = ConstructWithOneArg }
     , composition = unnecessaryCompositionAfterCheck wrapper.wrap
     }
