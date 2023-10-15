@@ -4781,7 +4781,7 @@ listAppendChecks =
 listConcatChecks : IntoFnCheck
 listConcatChecks =
     intoFnChecksFirstThatConstructsError
-        [ callOnWrapReturnsItsValueCheck listCollection
+        [ onWrappedReturnsItsValueCheck listCollection
         , callFromCanBeCombinedCheck
             { fromFn = Fn.List.map, combinedFn = Fn.List.concatMap }
         , unnecessaryOnEmptyCheck listCollection
@@ -5221,7 +5221,7 @@ listMemberChecks =
 listSumChecks : IntoFnCheck
 listSumChecks =
     intoFnChecksFirstThatConstructsError
-        [ callOnWrapReturnsItsValueCheck listCollection
+        [ onWrappedReturnsItsValueCheck listCollection
         , intoFnCheckOnlyCall
             (firstThatConstructsJust
                 [ callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection
@@ -5245,7 +5245,7 @@ listSumChecks =
 listProductChecks : IntoFnCheck
 listProductChecks =
     intoFnChecksFirstThatConstructsError
-        [ callOnWrapReturnsItsValueCheck listCollection
+        [ onWrappedReturnsItsValueCheck listCollection
         , intoFnCheckOnlyCall
             (firstThatConstructsJust
                 [ callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection
@@ -7492,7 +7492,7 @@ subCollection =
 
 oneOfChecks : IntoFnCheck
 oneOfChecks =
-    callOnWrapReturnsItsValueCheck listCollection
+    onWrappedReturnsItsValueCheck listCollection
 
 
 {-| Checks for a "oneOfConstants" operation:
@@ -8055,7 +8055,7 @@ withDefaultChecks :
     -> IntoFnCheck
 withDefaultChecks emptiable =
     intoFnChecksFirstThatConstructsError
-        [ callOnWrapReturnsItsValueCheck emptiable
+        [ onWrappedReturnsItsValueCheck emptiable
         , intoFnCheckOnlyCall (emptiableWithDefaultChecks emptiable)
         ]
 
@@ -8257,7 +8257,7 @@ So for example with `emptiableWrapperFlatFromListChecks stringCollection`
 emptiableWrapperFlatFromListChecks : EmptiableProperties ConstantProperties otherProperties -> IntoFnCheck
 emptiableWrapperFlatFromListChecks batchable =
     intoFnChecksFirstThatConstructsError
-        [ callOnWrapReturnsItsValueCheck listCollection
+        [ onWrappedReturnsItsValueCheck listCollection
         , intoFnCheckOnlyCall (callOnEmptyReturnsCheck { resultAsString = batchable.empty.specific.asString } listCollection)
         , intoFnCheckOnlyCall
             (\checkInfo ->
@@ -10803,12 +10803,8 @@ For example
     Cmd.batch << List.singleton --> identity
 
 -}
-callOnWrapReturnsItsValueCheck :
-    { otherProperties
-        | wrap : ConstructWithOneArgProperties
-    }
-    -> IntoFnCheck
-callOnWrapReturnsItsValueCheck wrapper =
+onWrappedReturnsItsValueCheck : WrapperProperties otherProperties -> IntoFnCheck
+onWrappedReturnsItsValueCheck wrapper =
     { call =
         \checkInfo ->
             case fullyAppliedLastArg checkInfo of
