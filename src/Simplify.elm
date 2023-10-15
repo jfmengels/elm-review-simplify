@@ -1089,6 +1089,9 @@ Destructuring using case expressions
     Dict.union dict Dict.empty
     --> dict
 
+    Dict.union dict dict
+    --> dict
+
     Dict.union (Dict.fromList [ a, b ]) (Dict.fromList [ c, d ])
     --> Dict.fromList [ c, d, a, b ]
 
@@ -5897,7 +5900,10 @@ dictDiffChecks =
 
 dictUnionChecks : IntoFnCheck
 dictUnionChecks =
-    intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = False } dictCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = False } dictCollection)
+        , whenArgumentsAreEqualReturnLastCheck
+        ]
 
 
 dictToListChecks : IntoFnCheck
@@ -10423,6 +10429,43 @@ operationDoesNotChangeResultOfOperationCheck =
             else
                 Nothing
     }
+
+
+{-| When a function is given two equal arguments it will return the last argument.
+
+    f a a
+    --> a
+
+Examples:
+
+    Dict.union dict dict
+    --> dict
+
+    Set.union set set
+    --> set
+
+-}
+whenArgumentsAreEqualReturnLastCheck : IntoFnCheck
+whenArgumentsAreEqualReturnLastCheck =
+    intoFnCheckOnlyCall
+        (\checkInfo ->
+            case secondArg checkInfo of
+                Just secondArg_ ->
+                    case Normalize.compare checkInfo checkInfo.firstArg secondArg_ of
+                        Normalize.ConfirmedEquality ->
+                            Just
+                                (returnsArgError
+                                    (qualifiedToString checkInfo.fn ++ " where the first and second argument are equal")
+                                    { arg = secondArg_, argRepresents = "last argument" }
+                                    checkInfo
+                                )
+
+                        _ ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+        )
 
 
 toggleFnChecks : IntoFnCheck

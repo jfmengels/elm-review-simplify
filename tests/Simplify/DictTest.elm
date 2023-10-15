@@ -1402,6 +1402,42 @@ import Dict
 a = (Dict.fromList [b,c,d,e])
 """
                         ]
+        , test "should replace Dict.union dict dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.union dict dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union where the first and second argument are equal will always return the same given last argument"
+                            , details = [ "You can replace this call by the last argument itself." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace value.field |> Dict.union (.field value) by value.field" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = value.field |> Dict.union (.field value)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union where the first and second argument are equal will always return the same given last argument"
+                            , details = [ "You can replace this call by the last argument itself." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = value.field
+"""
+                        ]
         ]
 
 
