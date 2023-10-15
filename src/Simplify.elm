@@ -7834,6 +7834,8 @@ emptiableFlatMapChecks emptiable =
 
     flatMap (\a -> wrap b) wrapper --> map (\a -> b) wrapper
 
+    flatMap (wrap << f) wrapper --> map f wrapper
+
 So for example
 
     List.concatMap f [ a ] --> f a
@@ -7901,13 +7903,8 @@ wrapperFlatMapChecks wrapper =
             )
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                case
-                    constructs
-                        (sameInAllBranches (\expr -> getValueWithNodeRange (wrapper.wrap.getValue checkInfo.lookupTable) expr))
-                        checkInfo.lookupTable
-                        checkInfo.firstArg
-                of
-                    Just wrapCalls ->
+                case constructsOrComposesInto wrapper.wrap checkInfo.lookupTable checkInfo.firstArg of
+                    Just withoutWrap ->
                         Just
                             (Rule.errorWithFix
                                 { message = qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " is the same as " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside"
@@ -7916,7 +7913,7 @@ wrapperFlatMapChecks wrapper =
                                 checkInfo.fnRange
                                 (Fix.replaceRangeBy checkInfo.fnRange
                                     (qualifiedToString (qualify wrapper.mapFn checkInfo))
-                                    :: List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.value) wrapCalls
+                                    :: withoutWrap
                                 )
                             )
 
@@ -12688,6 +12685,54 @@ collapsedConsRemoveElementFix config =
                 , end = (Node.range config.toRemove.found).end
                 }
             ]
+
+
+{-| Detect and provide removing fixes for a function that will return a specific construct
+
+    \a -> construct b
+    --> \a -> b
+
+    \a -> if cond then construct b else construct c -- and other branching
+    --> \a -> if cond then b else c
+
+    f << construct -- nd other compositions where construct is last
+    --> f
+
+-}
+constructsOrComposesInto :
+    { constructWithOneValue
+        | fn : ( ModuleName, String )
+        , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+    }
+    -> ModuleNameLookupTable
+    -> Node Expression
+    -> Maybe (List Fix)
+constructsOrComposesInto constructWithOneValue lookupTable expressionNode =
+    findMap (\f -> f ())
+        [ \() ->
+            expressionNode
+                |> constructs
+                    (sameInAllBranches (\expr -> getValueWithNodeRange (constructWithOneValue.getValue lookupTable) expr))
+                    lookupTable
+                |> Maybe.map
+                    (\wrapCalls ->
+                        List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.value) wrapCalls
+                    )
+        , \() ->
+            expressionNode
+                |> getCompositionToLast
+                |> Maybe.andThen
+                    (\compositionToLast ->
+                        compositionToLast.last
+                            |> AstHelpers.getSpecificValueOrFn constructWithOneValue.fn lookupTable
+                            |> Maybe.map
+                                (\constructor ->
+                                    [ Fix.removeRange
+                                        (andBetweenRange { included = Node.range compositionToLast.last, excluded = Node.range compositionToLast.earlier })
+                                    ]
+                                )
+                    )
+        ]
 
 
 
