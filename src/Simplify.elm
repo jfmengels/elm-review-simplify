@@ -5829,7 +5829,7 @@ setUnionChecks : IntoFnCheck
 setUnionChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = True } setCollection)
-        , whenArgumentsAreEqualReturnLastCheck
+        , withTwoEqualArgumentsReturnsLastCheck
         ]
 
 
@@ -5914,7 +5914,7 @@ dictUnionChecks : IntoFnCheck
 dictUnionChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = False } dictCollection)
-        , whenArgumentsAreEqualReturnLastCheck
+        , withTwoEqualArgumentsReturnsLastCheck
         ]
 
 
@@ -10443,7 +10443,7 @@ operationDoesNotChangeResultOfOperationCheck =
     }
 
 
-{-| When a function is given two equal arguments it will return the last argument.
+{-| When a function's first 2 arguments are equal it will return the last argument.
 
     f a a
     --> a
@@ -10453,12 +10453,12 @@ Examples:
     Dict.union dict dict
     --> dict
 
-    Set.union set set
+    Set.intersect set set
     --> set
 
 -}
-whenArgumentsAreEqualReturnLastCheck : IntoFnCheck
-whenArgumentsAreEqualReturnLastCheck =
+withTwoEqualArgumentsReturnsLastCheck : IntoFnCheck
+withTwoEqualArgumentsReturnsLastCheck =
     intoFnCheckOnlyCall
         (\checkInfo ->
             case secondArg checkInfo of
@@ -11045,7 +11045,7 @@ collectionIntersectChecks collection =
                 else
                     Nothing
             )
-        , whenArgumentsAreEqualReturnLastCheck
+        , withTwoEqualArgumentsReturnsLastCheck
         ]
 
 
