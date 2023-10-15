@@ -4709,8 +4709,8 @@ mapWrapErrorInfo mapFn wrapper =
         wrapFnInErrorInfo =
             qualifiedToString (qualify wrapper.wrap.fn defaultQualifyResources)
     in
-    { message = qualifiedToString mapFn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnInErrorInfo ++ " with the function applied to the value inside"
-    , details = [ "You can replace this call by " ++ wrapFnInErrorInfo ++ " with the function directly applied to the value inside " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description ++ " itself." ]
+    { message = qualifiedToString mapFn ++ " on " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnInErrorInfo ++ " with the function applied to the value inside"
+    , details = [ "You can replace this call by " ++ wrapFnInErrorInfo ++ " with the function directly applied to the value inside " ++ constructWithOneValueDescriptionDefinite "the" wrapper.wrap.description ++ " itself." ]
     }
 
 
@@ -6228,7 +6228,7 @@ Note that for example `Cmd.batch [ a ]` is not a "wrap" because it keeps the typ
 -}
 type alias WrapperProperties otherProperties =
     { otherProperties
-        | wrap : ConstructWithOneArgProperties
+        | wrap : ConstructWithOneValueProperties
     }
 
 
@@ -6353,7 +6353,7 @@ Examples:
   - a non-empty list with exactly one element
   - an empty string
 
-The first 2 are examples of a subset with `ConstructWithOneArgProperties`,
+The first 2 are examples of a subset with `ConstructWithOneValueProperties`,
 the last one is an example of a subset with `ConstantProperties`
 
 -}
@@ -6370,7 +6370,7 @@ type alias TypeSubsetProperties specificProperties =
 
 -}
 type TypeSubsetKindProperties
-    = ConstructWithOneValue ConstructWithOneArgProperties
+    = ConstructWithOneValue ConstructWithOneValueProperties
     | Constant ConstantProperties
 
 
@@ -6381,14 +6381,14 @@ type alias ConstantProperties =
     }
 
 
-type alias ConstructWithOneArgProperties =
-    { description : ConstructWithOneArgDescription
+type alias ConstructWithOneValueProperties =
+    { description : ConstructWithOneValueDescription
     , fn : ( ModuleName, String )
     , getValue : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
     }
 
 
-type ConstructWithOneArgDescription
+type ConstructWithOneValueDescription
     = A String
     | An String
 
@@ -6410,7 +6410,7 @@ typeSubsetDescriptionIndefinite typeSubsetProperties =
             constantProperties.description
 
         ConstructWithOneValue constructWithOneValue ->
-            constructWithOneArgDescriptionIndefinite constructWithOneValue.description
+            constructWithOneValueDescriptionIndefinite constructWithOneValue.description
 
 
 typeSubsetDescriptionDefinite : String -> TypeSubsetProperties specificProperties -> String
@@ -6420,7 +6420,7 @@ typeSubsetDescriptionDefinite definiteArticle typeSubsetProperties =
             constantProperties.description
 
         ConstructWithOneValue constructWithOneValue ->
-            constructWithOneArgDescriptionDefinite definiteArticle constructWithOneValue.description
+            constructWithOneValueDescriptionDefinite definiteArticle constructWithOneValue.description
 
 
 typeSubsetDescriptionWithoutArticle : TypeSubsetProperties specificProperties -> String
@@ -6430,7 +6430,7 @@ typeSubsetDescriptionWithoutArticle typeSubsetProperties =
             constantProperties.description
 
         ConstructWithOneValue constructWithOneValue ->
-            constructWithOneArgDescriptionWithoutArticle constructWithOneValue.description
+            constructWithOneValueDescriptionWithoutArticle constructWithOneValue.description
 
 
 {-| Create `ConstantProperties` for a value with a given fully qualified name.
@@ -6446,10 +6446,10 @@ constantFnProperties fullyQualified =
     }
 
 
-{-| Create `ConstructWithOneArgProperties` for a function call with a given fully qualified name with a given `ConstructWithOneArgDescription`.
+{-| Create `ConstructWithOneValueProperties` for a function call with a given fully qualified name with a given `ConstructWithOneValueDescription`.
 -}
-fnCallConstructWithOneArgProperties : ConstructWithOneArgDescription -> ( ModuleName, String ) -> ConstructWithOneArgProperties
-fnCallConstructWithOneArgProperties description fullyQualified =
+fnCallConstructWithOneValueProperties : ConstructWithOneValueDescription -> ( ModuleName, String ) -> ConstructWithOneValueProperties
+fnCallConstructWithOneValueProperties description fullyQualified =
     { description = description
     , fn = fullyQualified
     , getValue =
@@ -6514,8 +6514,8 @@ fromListGetLiteral constructibleFromList lookupTable expressionNode =
                     Nothing
 
 
-constructWithOneArgDescriptionIndefinite : ConstructWithOneArgDescription -> String
-constructWithOneArgDescriptionIndefinite incomingArgDescription =
+constructWithOneValueDescriptionIndefinite : ConstructWithOneValueDescription -> String
+constructWithOneValueDescriptionIndefinite incomingArgDescription =
     case incomingArgDescription of
         A description ->
             "a " ++ description
@@ -6524,8 +6524,8 @@ constructWithOneArgDescriptionIndefinite incomingArgDescription =
             "an " ++ description
 
 
-constructWithOneArgDescriptionDefinite : String -> ConstructWithOneArgDescription -> String
-constructWithOneArgDescriptionDefinite startWithDefiniteArticle referenceArgDescription =
+constructWithOneValueDescriptionDefinite : String -> ConstructWithOneValueDescription -> String
+constructWithOneValueDescriptionDefinite startWithDefiniteArticle referenceArgDescription =
     case referenceArgDescription of
         A description ->
             startWithDefiniteArticle ++ " " ++ description
@@ -6534,8 +6534,8 @@ constructWithOneArgDescriptionDefinite startWithDefiniteArticle referenceArgDesc
             startWithDefiniteArticle ++ " " ++ description
 
 
-constructWithOneArgDescriptionWithoutArticle : ConstructWithOneArgDescription -> String
-constructWithOneArgDescriptionWithoutArticle referenceArgDescription =
+constructWithOneValueDescriptionWithoutArticle : ConstructWithOneValueDescription -> String
+constructWithOneValueDescriptionWithoutArticle referenceArgDescription =
     case referenceArgDescription of
         A description ->
             description
@@ -6685,9 +6685,9 @@ randomGeneratorWrapper =
     }
 
 
-randomGeneratorConstantConstruct : ConstructWithOneArgProperties
+randomGeneratorConstantConstruct : ConstructWithOneValueProperties
 randomGeneratorConstantConstruct =
-    fnCallConstructWithOneArgProperties (A "constant generator") Fn.Random.constant
+    fnCallConstructWithOneValueProperties (A "constant generator") Fn.Random.constant
 
 
 maybeWithJustAsWrap : TypeProperties (EmptiableProperties ConstantProperties (WrapperProperties (MappableProperties {})))
@@ -6699,12 +6699,12 @@ maybeWithJustAsWrap =
     }
 
 
-maybeJustConstruct : ConstructWithOneArgProperties
+maybeJustConstruct : ConstructWithOneValueProperties
 maybeJustConstruct =
-    fnCallConstructWithOneArgProperties (A "just maybe") Fn.Maybe.justVariant
+    fnCallConstructWithOneValueProperties (A "just maybe") Fn.Maybe.justVariant
 
 
-resultWithOkAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneArgProperties (MappableProperties {})))
+resultWithOkAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneValueProperties (MappableProperties {})))
 resultWithOkAsWrap =
     { represents = "result"
     , wrap = resultOkayConstruct
@@ -6713,17 +6713,17 @@ resultWithOkAsWrap =
     }
 
 
-resultOkayConstruct : ConstructWithOneArgProperties
+resultOkayConstruct : ConstructWithOneValueProperties
 resultOkayConstruct =
-    fnCallConstructWithOneArgProperties (An "okay result") Fn.Result.okVariant
+    fnCallConstructWithOneValueProperties (An "okay result") Fn.Result.okVariant
 
 
-resultErrorConstruct : ConstructWithOneArgProperties
+resultErrorConstruct : ConstructWithOneValueProperties
 resultErrorConstruct =
-    fnCallConstructWithOneArgProperties (An "error") Fn.Result.errVariant
+    fnCallConstructWithOneValueProperties (An "error") Fn.Result.errVariant
 
 
-resultWithErrAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneArgProperties (MappableProperties {})))
+resultWithErrAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneValueProperties (MappableProperties {})))
 resultWithErrAsWrap =
     { represents = "result"
     , wrap = resultErrorConstruct
@@ -6732,7 +6732,7 @@ resultWithErrAsWrap =
     }
 
 
-taskWithSucceedAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneArgProperties (MappableProperties {})))
+taskWithSucceedAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneValueProperties (MappableProperties {})))
 taskWithSucceedAsWrap =
     { represents = "task"
     , wrap = taskSucceedingConstruct
@@ -6741,17 +6741,17 @@ taskWithSucceedAsWrap =
     }
 
 
-taskSucceedingConstruct : ConstructWithOneArgProperties
+taskSucceedingConstruct : ConstructWithOneValueProperties
 taskSucceedingConstruct =
-    fnCallConstructWithOneArgProperties (A "succeeding task") Fn.Task.succeed
+    fnCallConstructWithOneValueProperties (A "succeeding task") Fn.Task.succeed
 
 
-taskFailingConstruct : ConstructWithOneArgProperties
+taskFailingConstruct : ConstructWithOneValueProperties
 taskFailingConstruct =
-    fnCallConstructWithOneArgProperties (A "failing task") Fn.Task.fail
+    fnCallConstructWithOneValueProperties (A "failing task") Fn.Task.fail
 
 
-taskWithFailAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneArgProperties (MappableProperties {})))
+taskWithFailAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneValueProperties (MappableProperties {})))
 taskWithFailAsWrap =
     { represents = "task"
     , wrap = taskFailingConstruct
@@ -6760,7 +6760,7 @@ taskWithFailAsWrap =
     }
 
 
-jsonDecoderWithSucceedAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneArgProperties (MappableProperties {})))
+jsonDecoderWithSucceedAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneValueProperties (MappableProperties {})))
 jsonDecoderWithSucceedAsWrap =
     { represents = "json decoder"
     , wrap = jsonDecoderSucceedingConstruct
@@ -6769,14 +6769,14 @@ jsonDecoderWithSucceedAsWrap =
     }
 
 
-jsonDecoderSucceedingConstruct : ConstructWithOneArgProperties
+jsonDecoderSucceedingConstruct : ConstructWithOneValueProperties
 jsonDecoderSucceedingConstruct =
-    fnCallConstructWithOneArgProperties (A "succeeding decoder") Fn.Json.Decode.succeed
+    fnCallConstructWithOneValueProperties (A "succeeding decoder") Fn.Json.Decode.succeed
 
 
-jsonDecoderFailingConstruct : ConstructWithOneArgProperties
+jsonDecoderFailingConstruct : ConstructWithOneValueProperties
 jsonDecoderFailingConstruct =
-    fnCallConstructWithOneArgProperties (A "failing decoder") Fn.Json.Decode.fail
+    fnCallConstructWithOneValueProperties (A "failing decoder") Fn.Json.Decode.fail
 
 
 listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties (MappableProperties {})))))
@@ -6802,7 +6802,7 @@ listEmptyConstantSpecific =
     }
 
 
-listSingletonConstruct : ConstructWithOneArgProperties
+listSingletonConstruct : ConstructWithOneValueProperties
 listSingletonConstruct =
     { description = A "singleton list"
     , fn = Fn.List.singleton
@@ -6901,9 +6901,9 @@ stringEmptyConstantSpecific =
     }
 
 
-singleCharConstruct : ConstructWithOneArgProperties
+singleCharConstruct : ConstructWithOneValueProperties
 singleCharConstruct =
-    fnCallConstructWithOneArgProperties (A "single-char string") Fn.String.fromChar
+    fnCallConstructWithOneValueProperties (A "single-char string") Fn.String.fromChar
 
 
 stringDetermineLength : Infer.Resources res -> Node Expression -> Maybe CollectionSize
@@ -7053,9 +7053,9 @@ setCollection =
     }
 
 
-setSingletonConstruct : ConstructWithOneArgProperties
+setSingletonConstruct : ConstructWithOneValueProperties
 setSingletonConstruct =
-    fnCallConstructWithOneArgProperties (A "singleton set") Fn.Set.singleton
+    fnCallConstructWithOneValueProperties (A "singleton set") Fn.Set.singleton
 
 
 setGetElements : Infer.Resources a -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
@@ -7853,8 +7853,8 @@ wrapperFlatMapChecks wrapper =
                                 Just wrapCalls ->
                                     Just
                                         (Rule.errorWithFix
-                                            { message = qualifiedToString checkInfo.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description
-                                            , details = [ "You can replace this call by the function directly applied to the value inside " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description ++ "." ]
+                                            { message = qualifiedToString checkInfo.fn ++ " on " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ constructWithOneValueDescriptionDefinite "the" wrapper.wrap.description
+                                            , details = [ "You can replace this call by the function directly applied to the value inside " ++ constructWithOneValueDescriptionDefinite "the" wrapper.wrap.description ++ "." ]
                                             }
                                             checkInfo.fnRange
                                             (Fix.removeRange { start = checkInfo.fnRange.start, end = (Node.range checkInfo.firstArg).start }
@@ -7873,7 +7873,7 @@ wrapperFlatMapChecks wrapper =
                         ( True, (Node functionRange _) :: [] ) ->
                             Just
                                 { info =
-                                    { message = qualifiedToString checkInfo.later.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description
+                                    { message = qualifiedToString checkInfo.later.fn ++ " on " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ constructWithOneValueDescriptionDefinite "the" wrapper.wrap.description
                                     , details = [ "You can replace this composition by the function given to " ++ qualifiedToString checkInfo.later.fn ++ "." ]
                                     }
                                 , fix =
@@ -7909,8 +7909,8 @@ wrapperFlatMapChecks wrapper =
                     Just wrapCalls ->
                         Just
                             (Rule.errorWithFix
-                                { message = qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " is the same as " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside"
-                                , details = [ "You can replace this call by " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description ++ "." ]
+                                { message = qualifiedToString checkInfo.fn ++ " with a function that always returns " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " is the same as " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside"
+                                , details = [ "You can replace this call by " ++ qualifiedToString wrapper.mapFn ++ " with the function returning the value inside " ++ constructWithOneValueDescriptionDefinite "the" wrapper.wrap.description ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 (Fix.replaceRangeBy checkInfo.fnRange
@@ -8028,7 +8028,7 @@ unwrapToMaybeChecks emptiableWrapper =
         ]
 
 
-fromMaybeWithEmptyValueOnNothingCheck : WrapperProperties (EmptiableProperties ConstructWithOneArgProperties otherProperties) -> IntoFnCheck
+fromMaybeWithEmptyValueOnNothingCheck : WrapperProperties (EmptiableProperties ConstructWithOneValueProperties otherProperties) -> IntoFnCheck
 fromMaybeWithEmptyValueOnNothingCheck wrapper =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall
@@ -8423,8 +8423,8 @@ wrapperMemberChecks wrapper checkInfo =
                     in
                     Just
                         (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " is the same as directly checking for equality"
-                            , details = [ "You can replace this call by checking whether the member to find and the value inside " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description ++ " are equal." ]
+                            { message = qualifiedToString checkInfo.fn ++ " on " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " is the same as directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the value inside " ++ constructWithOneValueDescriptionDefinite "the" wrapper.wrap.description ++ " are equal." ]
                             }
                             checkInfo.fnRange
                             (List.concat
@@ -8921,8 +8921,8 @@ sequenceOnCollectionWithAllElementsWrapped ( collection, elementWrapper ) checkI
                     Just wrappeds ->
                         Just
                             (Rule.errorWithFix
-                                { message = qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " where each element is " ++ constructWithOneArgDescriptionIndefinite elementWrapper.wrap.description ++ " will result in " ++ qualifiedToString elementWrapper.wrap.fn ++ " on the values inside"
-                                , details = [ "You can replace this call by " ++ qualifiedToString elementWrapper.wrap.fn ++ " on a list where each element is replaced by its value inside " ++ constructWithOneArgDescriptionDefinite "the" elementWrapper.wrap.description ++ "." ]
+                                { message = qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " where each element is " ++ constructWithOneValueDescriptionIndefinite elementWrapper.wrap.description ++ " will result in " ++ qualifiedToString elementWrapper.wrap.fn ++ " on the values inside"
+                                , details = [ "You can replace this call by " ++ qualifiedToString elementWrapper.wrap.fn ++ " on a list where each element is replaced by its value inside " ++ constructWithOneValueDescriptionDefinite "the" elementWrapper.wrap.description ++ "." ]
                                 }
                                 checkInfo.fnRange
                                 (Fix.replaceRangeBy
@@ -9012,8 +9012,8 @@ sequenceRepeatChecks wrapper =
                         Just wrapCall ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " with " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the value in " ++ constructWithOneArgDescriptionDefinite "that" wrapper.wrap.description
-                                    , details = [ "You can replace the call by " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the same length and the value inside " ++ constructWithOneArgDescriptionDefinite "the given" wrapper.wrap.description ++ "." ]
+                                    { message = qualifiedToString checkInfo.fn ++ " with " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the value in " ++ constructWithOneValueDescriptionDefinite "that" wrapper.wrap.description
+                                    , details = [ "You can replace the call by " ++ qualifiedToString wrapper.wrap.fn ++ " with " ++ qualifiedToString Fn.List.repeat ++ " with the same length and the value inside " ++ constructWithOneValueDescriptionDefinite "the given" wrapper.wrap.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (replaceBySubExpressionFix wrapCall.nodeRange wrapCall.firstArg
@@ -9681,8 +9681,8 @@ wrapperMapNChecks wrapper checkInfo =
                 in
                 Just
                     (Rule.errorWithFix
-                        { message = qualifiedToString checkInfo.fn ++ " where each " ++ wrapper.represents ++ " is " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnDescription ++ " on the values inside"
-                        , details = [ "You can replace this call by " ++ wrapFnDescription ++ " with the function applied to the values inside each " ++ constructWithOneArgDescriptionWithoutArticle wrapper.wrap.description ++ "." ]
+                        { message = qualifiedToString checkInfo.fn ++ " where each " ++ wrapper.represents ++ " is " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " will result in " ++ wrapFnDescription ++ " on the values inside"
+                        , details = [ "You can replace this call by " ++ wrapFnDescription ++ " with the function applied to the values inside each " ++ constructWithOneValueDescriptionWithoutArticle wrapper.wrap.description ++ "." ]
                         }
                         checkInfo.fnRange
                         (keepOnlyFix
@@ -10142,7 +10142,7 @@ onWrappedIsEquivalentToMapWrapOnValueCheck ( wrapper, valueMappable ) =
                             in
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
+                                    { message = qualifiedToString checkInfo.fn ++ " on " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
                                     , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ " on the value inside the singleton list." ]
                                     }
                                     checkInfo.fnRange
@@ -10169,7 +10169,7 @@ onWrappedIsEquivalentToMapWrapOnValueCheck ( wrapper, valueMappable ) =
                 in
                 Just
                     { info =
-                        { message = qualifiedToString checkInfo.later.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
+                        { message = qualifiedToString checkInfo.later.fn ++ " on " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " is the same as " ++ replacement defaultQualifyResources ++ " on the value inside"
                         , details = [ "You can replace this call by " ++ replacement defaultQualifyResources ++ "." ]
                         }
                     , fix = compositionReplaceByFix (replacement checkInfo) checkInfo
@@ -10622,14 +10622,14 @@ callOnEmptyReturnsCheck config collection checkInfo =
 
 
 unnecessaryCompositionAfterCheck :
-    ConstructWithOneArgProperties
+    ConstructWithOneValueProperties
     -> CompositionIntoCheckInfo
     -> Maybe ErrorInfoAndFix
 unnecessaryCompositionAfterCheck construct checkInfo =
     if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == construct.fn) then
         Just
             { info =
-                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite construct.description ++ " will result in " ++ constructWithOneArgDescriptionDefinite "the unchanged" construct.description
+                { message = qualifiedToString checkInfo.later.fn ++ " on " ++ constructWithOneValueDescriptionIndefinite construct.description ++ " will result in " ++ constructWithOneValueDescriptionDefinite "the unchanged" construct.description
                 , details = [ "You can replace this composition by " ++ qualifiedToString (qualify construct.fn checkInfo) ++ "." ]
                 }
             , fix =
@@ -10727,8 +10727,8 @@ onWrappedReturnsItsValueCheck wrapper =
                         Just wraps ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " will result in the value inside"
-                                    , details = [ "You can replace this call by the value inside " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description ++ "." ]
+                                    { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " will result in the value inside"
+                                    , details = [ "You can replace this call by the value inside " ++ constructWithOneValueDescriptionDefinite "the" wrapper.wrap.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range wrapperArg }
@@ -10743,7 +10743,7 @@ onWrappedReturnsItsValueCheck wrapper =
             if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
                 Just
                     (compositionAlwaysReturnsIncomingError
-                        (qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " will always result in the value inside")
+                        (qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " on " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " will always result in the value inside")
                         checkInfo
                     )
 
@@ -10779,8 +10779,8 @@ onWrappedReturnsJustItsValueCheck wrapper =
                         Just wraps ->
                             Just
                                 (Rule.errorWithFix
-                                    { message = qualifiedToString checkInfo.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " will result in Just the value inside"
-                                    , details = [ "You can replace this call by Just the value inside " ++ constructWithOneArgDescriptionDefinite "the" wrapper.wrap.description ++ "." ]
+                                    { message = qualifiedToString checkInfo.fn ++ " on " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " will result in Just the value inside"
+                                    , details = [ "You can replace this call by Just the value inside " ++ constructWithOneValueDescriptionDefinite "the" wrapper.wrap.description ++ "." ]
                                     }
                                     checkInfo.fnRange
                                     (Fix.removeRange { start = (Node.range withWrapArg).end, end = checkInfo.parentRange.end }
@@ -10801,7 +10801,7 @@ onWrappedReturnsJustItsValueCheck wrapper =
             if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == wrapper.wrap.fn) then
                 Just
                     { info =
-                        { message = qualifiedToString checkInfo.later.fn ++ " on " ++ constructWithOneArgDescriptionIndefinite wrapper.wrap.description ++ " will always result in Just the value inside"
+                        { message = qualifiedToString checkInfo.later.fn ++ " on " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " will always result in Just the value inside"
                         , details = [ "You can replace this call by Just." ]
                         }
                     , fix = compositionReplaceByFnFix Fn.Maybe.justVariant checkInfo
