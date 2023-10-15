@@ -10661,8 +10661,6 @@ Examples
     Task.mapError f << Task.succeed
     --> Task.succeed
 
-Use together with `unnecessaryOnEmptyCheck`
-
 -}
 unnecessaryOnEmptyCheck : EmptiableProperties empty otherProperties -> IntoFnCheck
 unnecessaryOnEmptyCheck emptiable =
