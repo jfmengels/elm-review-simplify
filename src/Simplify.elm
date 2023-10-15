@@ -10467,7 +10467,7 @@ withTwoEqualArgumentsReturnsLastCheck =
                         Normalize.ConfirmedEquality ->
                             Just
                                 (returnsArgError
-                                    (qualifiedToString checkInfo.fn ++ " where the first and second argument are equal")
+                                    (qualifiedToString checkInfo.fn ++ " with equal first and second arguments")
                                     { arg = secondArg_, argRepresents = "last argument" }
                                     checkInfo
                                 )

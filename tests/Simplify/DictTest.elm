@@ -1061,7 +1061,7 @@ a = Dict.intersect dict dict
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.intersect where the first and second argument are equal will always return the same given last argument"
+                            { message = "Dict.intersect with equal first and second arguments will always return the same given last argument"
                             , details = [ "You can replace this call by the last argument itself." ]
                             , under = "Dict.intersect"
                             }
@@ -1079,7 +1079,7 @@ a = value.field |> Dict.intersect (.field value)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.intersect where the first and second argument are equal will always return the same given last argument"
+                            { message = "Dict.intersect with equal first and second arguments will always return the same given last argument"
                             , details = [ "You can replace this call by the last argument itself." ]
                             , under = "Dict.intersect"
                             }
@@ -1447,7 +1447,7 @@ a = Dict.union dict dict
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union where the first and second argument are equal will always return the same given last argument"
+                            { message = "Dict.union with equal first and second arguments will always return the same given last argument"
                             , details = [ "You can replace this call by the last argument itself." ]
                             , under = "Dict.union"
                             }
@@ -1465,7 +1465,7 @@ a = value.field |> Dict.union (.field value)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union where the first and second argument are equal will always return the same given last argument"
+                            { message = "Dict.union with equal first and second arguments will always return the same given last argument"
                             , details = [ "You can replace this call by the last argument itself." ]
                             , under = "Dict.union"
                             }

@@ -1518,7 +1518,7 @@ a = Set.intersect set set
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.intersect where the first and second argument are equal will always return the same given last argument"
+                            { message = "Set.intersect with equal first and second arguments will always return the same given last argument"
                             , details = [ "You can replace this call by the last argument itself." ]
                             , under = "Set.intersect"
                             }
@@ -1536,7 +1536,7 @@ a = value.field |> Set.intersect (.field value)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.intersect where the first and second argument are equal will always return the same given last argument"
+                            { message = "Set.intersect with equal first and second arguments will always return the same given last argument"
                             , details = [ "You can replace this call by the last argument itself." ]
                             , under = "Set.intersect"
                             }
@@ -1870,7 +1870,7 @@ a = Set.union set set
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.union where the first and second argument are equal will always return the same given last argument"
+                            { message = "Set.union with equal first and second arguments will always return the same given last argument"
                             , details = [ "You can replace this call by the last argument itself." ]
                             , under = "Set.union"
                             }
@@ -1888,7 +1888,7 @@ a = value.field |> Set.union (.field value)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.union where the first and second argument are equal will always return the same given last argument"
+                            { message = "Set.union with equal first and second arguments will always return the same given last argument"
                             , details = [ "You can replace this call by the last argument itself." ]
                             , under = "Set.union"
                             }
