@@ -2776,7 +2776,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             onlyMaybeError Nothing
 
 
-type alias OperatorCheckInfo =
+type alias OperatorApplicationCheckInfo =
     { lookupTable : ModuleNameLookupTable
     , extractSourceCode : Range -> String
     , expectNaN : Bool
@@ -2795,7 +2795,7 @@ type alias OperatorCheckInfo =
     }
 
 
-operatorApplicationChecks : Dict String (OperatorCheckInfo -> Maybe (Error {}))
+operatorApplicationChecks : Dict String (OperatorApplicationCheckInfo -> Maybe (Error {}))
 operatorApplicationChecks =
     Dict.fromList
         [ ( "+", plusChecks )
@@ -3275,7 +3275,7 @@ offsetInStringToLocation config =
             }
 
 
-plusChecks : OperatorCheckInfo -> Maybe (Error {})
+plusChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 plusChecks =
     firstThatConstructsJust
         [ addingZeroCheck
@@ -3283,7 +3283,7 @@ plusChecks =
         ]
 
 
-addingZeroCheck : OperatorCheckInfo -> Maybe (Error {})
+addingZeroCheck : OperatorApplicationCheckInfo -> Maybe (Error {})
 addingZeroCheck checkInfo =
     findMap
         (\side ->
@@ -3303,7 +3303,7 @@ addingZeroCheck checkInfo =
         (operationSides checkInfo)
 
 
-addingOppositesCheck : OperatorCheckInfo -> Maybe (Error {})
+addingOppositesCheck : OperatorApplicationCheckInfo -> Maybe (Error {})
 addingOppositesCheck checkInfo =
     if checkInfo.expectNaN then
         Nothing
@@ -3327,7 +3327,7 @@ addingOppositesCheck checkInfo =
                 Nothing
 
 
-minusChecks : OperatorCheckInfo -> Maybe (Error {})
+minusChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 minusChecks checkInfo =
     if AstHelpers.getUncomputedNumberValue checkInfo.right == Just 0 then
         Just
@@ -3355,7 +3355,7 @@ minusChecks checkInfo =
         checkIfMinusResultsInZero checkInfo
 
 
-checkIfMinusResultsInZero : OperatorCheckInfo -> Maybe (Error {})
+checkIfMinusResultsInZero : OperatorApplicationCheckInfo -> Maybe (Error {})
 checkIfMinusResultsInZero checkInfo =
     if checkInfo.expectNaN then
         Nothing
@@ -3379,7 +3379,7 @@ checkIfMinusResultsInZero checkInfo =
                 Nothing
 
 
-multiplyChecks : OperatorCheckInfo -> Maybe (Error {})
+multiplyChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 multiplyChecks =
     firstThatConstructsJust
         [ \checkInfo -> findMap (\side -> unnecessaryOperationWithEmptySideChecks numberForMultiplyProperties side checkInfo) (operationSides checkInfo)
@@ -3415,14 +3415,14 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
         ]
 
 
-operationSides : OperatorCheckInfo -> List { node : Node Expression, otherNode : Node Expression, otherDescription : String }
+operationSides : OperatorApplicationCheckInfo -> List { node : Node Expression, otherNode : Node Expression, otherDescription : String }
 operationSides checkInfo =
     [ { node = checkInfo.left, otherNode = checkInfo.right, otherDescription = "right" }
     , { node = checkInfo.right, otherNode = checkInfo.left, otherDescription = "left" }
     ]
 
 
-divisionChecks : OperatorCheckInfo -> Maybe (Error {})
+divisionChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 divisionChecks checkInfo =
     let
         maybeDivisorNumber : Maybe Float
@@ -3471,7 +3471,7 @@ divisionChecks checkInfo =
         Nothing
 
 
-intDivideChecks : OperatorCheckInfo -> Maybe (Error {})
+intDivideChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 intDivideChecks =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -3524,7 +3524,7 @@ intDivideChecks =
         ]
 
 
-plusplusChecks : OperatorCheckInfo -> Maybe (Error {})
+plusplusChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 plusplusChecks =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -3587,7 +3587,7 @@ plusplusChecks =
 appendEmptyCheck :
     { side | node : Node Expression, otherNode : Node Expression, otherDescription : String }
     -> TypeProperties (EmptiableProperties empty otherProperties)
-    -> OperatorCheckInfo
+    -> OperatorApplicationCheckInfo
     -> Maybe (Error {})
 appendEmptyCheck side collection checkInfo =
     if isInTypeSubset collection.empty checkInfo side.node then
@@ -3608,7 +3608,7 @@ appendEmptyCheck side collection checkInfo =
         Nothing
 
 
-consChecks : OperatorCheckInfo -> Maybe (Error {})
+consChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 consChecks =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -3676,7 +3676,7 @@ consChecks =
 -- EQUALITY
 
 
-equalityChecks : Bool -> OperatorCheckInfo -> Maybe (Error {})
+equalityChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
 equalityChecks isEqual =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -3764,7 +3764,7 @@ equalityChecks isEqual =
 -- COMPARISONS
 
 
-numberComparisonChecks : (Float -> Float -> Bool) -> OperatorCheckInfo -> Maybe (Error {})
+numberComparisonChecks : (Float -> Float -> Bool) -> OperatorApplicationCheckInfo -> Maybe (Error {})
 numberComparisonChecks operatorFunction operatorCheckInfo =
     case
         Maybe.map2 operatorFunction
@@ -4032,7 +4032,7 @@ unnecessaryConversionToIntOnIntCheck checkInfo =
             Nothing
 
 
-orChecks : OperatorCheckInfo -> Maybe (Error {})
+orChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 orChecks =
     firstThatConstructsJust
         [ \checkInfo -> findMap (\side -> unnecessaryOperationWithEmptySideChecks boolForOrProperties side checkInfo) (operationSides checkInfo)
@@ -4041,7 +4041,7 @@ orChecks =
         ]
 
 
-andChecks : OperatorCheckInfo -> Maybe (Error {})
+andChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 andChecks =
     firstThatConstructsJust
         [ \checkInfo -> findMap (\side -> unnecessaryOperationWithEmptySideChecks boolForAndProperties side checkInfo) (operationSides checkInfo)
@@ -4050,7 +4050,7 @@ andChecks =
         ]
 
 
-unnecessaryOperationWithEmptySideChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
+unnecessaryOperationWithEmptySideChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorApplicationCheckInfo -> Maybe (Error {})
 unnecessaryOperationWithEmptySideChecks forOperationProperties side checkInfo =
     if isInTypeSubset forOperationProperties.empty checkInfo side.node then
         Just
@@ -4066,7 +4066,7 @@ unnecessaryOperationWithEmptySideChecks forOperationProperties side checkInfo =
         Nothing
 
 
-operationWithAbsorbingSideChecks : TypeProperties (AbsorbableProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorCheckInfo -> Maybe (Error {})
+operationWithAbsorbingSideChecks : TypeProperties (AbsorbableProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorApplicationCheckInfo -> Maybe (Error {})
 operationWithAbsorbingSideChecks forOperationProperties side checkInfo =
     if forOperationProperties.absorbing.is (extractInferResources checkInfo) side.node then
         Just
@@ -4090,7 +4090,7 @@ type RedundantConditionResolution
     | ReplaceByNoop Bool
 
 
-findSimilarConditionsError : OperatorCheckInfo -> Maybe (Error {})
+findSimilarConditionsError : OperatorApplicationCheckInfo -> Maybe (Error {})
 findSimilarConditionsError operatorCheckInfo =
     let
         conditionsOnTheRight : List ( RedundantConditionResolution, Node Expression )
