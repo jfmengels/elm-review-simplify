@@ -10013,11 +10013,17 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
         ]
 
 
-basicsIdentityConstant : ConstantProperties
-basicsIdentityConstant =
+identityFunctionProperties :
+    { description : String
+    , is : Infer.Resources {} -> Node Expression -> Bool
+    , asString : QualifyResources {} -> String
+    , fn : ( ModuleName, String )
+    }
+identityFunctionProperties =
     { description = "an identity function"
     , is = \res expr -> AstHelpers.isIdentity res.lookupTable expr
     , asString = \res -> qualifiedToString (qualify Fn.Basics.identity res)
+    , fn = Fn.Basics.identity
     }
 
 
@@ -10041,7 +10047,7 @@ mapToOperationWithIdentityCanBeCombinedToOperationChecks mappable =
         checkIntoFn : ( ModuleName, String ) -> IntoFnCheck
         checkIntoFn combinedFn =
             onSpecificFnCallCanBeCombinedCheck
-                { args = [ basicsIdentityConstant ]
+                { args = [ identityFunctionProperties ]
                 , earlierFn = mappable.mapFn
                 , combinedFn = combinedFn
                 }
