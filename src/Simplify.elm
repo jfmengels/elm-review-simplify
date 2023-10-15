@@ -10649,6 +10649,9 @@ unnecessaryCallOnCheck constructable checkInfo =
 
 Examples
 
+    List.sort []
+    --> []
+
     Json.Decode.map f (Json.Decode.fail x)
     --> Json.Decode.fail x
 
