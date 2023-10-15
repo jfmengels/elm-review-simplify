@@ -1825,6 +1825,42 @@ import Set
 a = [ b, c , d, e ] |> Set.fromList
 """
                         ]
+        , test "should replace Set.union set set by set" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.union set set
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union where the first and second argument are equal will always return the same given last argument"
+                            , details = [ "You can replace this call by the last argument itself." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = set
+"""
+                        ]
+        , test "should replace value.field |> Set.union (.field value) by value.field" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = value.field |> Set.union (.field value)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union where the first and second argument are equal will always return the same given last argument"
+                            , details = [ "You can replace this call by the last argument itself." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = value.field
+"""
+                        ]
         ]
 
 
