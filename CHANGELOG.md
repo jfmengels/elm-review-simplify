@@ -10,6 +10,7 @@
 - `Set.foldl/r f initial Set.empty` to `initial`
 - `Set.foldl/r (\_ soFar -> soFar) initial set` to `initial`
 - `Set.union set set` to `set`
+- `Set.intersect set set` to `set`
 - `String.foldl/r f initial ""` to `initial`
 - `String.foldl/r (\_ soFar -> soFar) initial string` to `initial`
 - `Result.fromMaybe x (Just a)` to `Ok a`
