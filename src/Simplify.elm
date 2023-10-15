@@ -5273,7 +5273,7 @@ listMinimumChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall
             (callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } listCollection)
-        , callOnWrapReturnsJustItsValue listCollection
+        , onWrappedReturnsJustItsValueCheck listCollection
         ]
 
 
@@ -5282,7 +5282,7 @@ listMaximumChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall
             (callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } listCollection)
-        , callOnWrapReturnsJustItsValue listCollection
+        , onWrappedReturnsJustItsValueCheck listCollection
         ]
 
 
@@ -8144,7 +8144,7 @@ unwrapToMaybeChecks :
     -> IntoFnCheck
 unwrapToMaybeChecks emptiableWrapper =
     intoFnChecksFirstThatConstructsError
-        [ callOnWrapReturnsJustItsValue emptiableWrapper
+        [ onWrappedReturnsJustItsValueCheck emptiableWrapper
         , intoFnCheckOnlyCall
             (callOnEmptyReturnsCheck
                 { resultAsString = \res -> qualifiedToString (qualify Fn.Maybe.nothingVariant res) }
@@ -10861,8 +10861,8 @@ For example
     Result.toMaybe << Ok --> Just
 
 -}
-callOnWrapReturnsJustItsValue : WrapperProperties otherProperties -> IntoFnCheck
-callOnWrapReturnsJustItsValue wrapper =
+onWrappedReturnsJustItsValueCheck : WrapperProperties otherProperties -> IntoFnCheck
+onWrappedReturnsJustItsValueCheck wrapper =
     { call =
         \checkInfo ->
             case fullyAppliedLastArg checkInfo of
