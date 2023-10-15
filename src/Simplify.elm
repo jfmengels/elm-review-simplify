@@ -2974,7 +2974,7 @@ intoFnChecks =
         , ( Fn.Result.andThen, ( 2, resultAndThenChecks ) )
         , ( Fn.Result.withDefault, ( 2, resultWithDefaultChecks ) )
         , ( Fn.Result.toMaybe, ( 1, resultToMaybeChecks ) )
-        , ( Fn.Result.fromMaybe, ( 2, resultfromMaybeWithEmptyValueOnNothingCheck ) )
+        , ( Fn.Result.fromMaybe, ( 2, resultFromMaybeWithEmptyValueOnNothingCheck ) )
         , ( Fn.List.append, ( 2, listAppendChecks ) )
         , ( Fn.List.head, ( 1, listHeadChecks ) )
         , ( Fn.List.tail, ( 1, listTailChecks ) )
@@ -4763,8 +4763,8 @@ resultToMaybeChecks =
         ]
 
 
-resultfromMaybeWithEmptyValueOnNothingCheck : IntoFnCheck
-resultfromMaybeWithEmptyValueOnNothingCheck =
+resultFromMaybeWithEmptyValueOnNothingCheck : IntoFnCheck
+resultFromMaybeWithEmptyValueOnNothingCheck =
     fromMaybeWithEmptyValueOnNothingCheck resultWithOkAsWrap
 
 
