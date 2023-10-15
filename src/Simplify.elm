@@ -4007,7 +4007,7 @@ intToIntChecks : IntoFnCheck
 intToIntChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall unnecessaryConversionToIntOnIntCheck
-        , onCallToInverseReturnsItsArgumentCheck Fn.Basics.toFloat
+        , onSpecificFnCallReturnsItsLastArgCheck Fn.Basics.toFloat
         ]
 
 
@@ -4464,7 +4464,7 @@ stringFromListChecks =
         [ intoFnCheckOnlyCall
             (callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.specific.asString } listCollection)
         , wrapperFromListSingletonChecks stringCollection
-        , onCallToInverseReturnsItsArgumentCheck Fn.String.toList
+        , onSpecificFnCallReturnsItsLastArgCheck Fn.String.toList
         ]
 
 
@@ -4629,7 +4629,7 @@ stringLinesChecks =
 
 stringToListChecks : IntoFnCheck
 stringToListChecks =
-    onCallToInverseReturnsItsArgumentCheck Fn.String.fromList
+    onSpecificFnCallReturnsItsLastArgCheck Fn.String.fromList
 
 
 stringFoldlChecks : IntoFnCheck
@@ -5749,7 +5749,7 @@ arrayToListChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall
             (callOnEmptyReturnsCheck { resultAsString = listCollection.empty.specific.asString } arrayCollection)
-        , onCallToInverseReturnsItsArgumentCheck Fn.Array.fromList
+        , onSpecificFnCallReturnsItsLastArgCheck Fn.Array.fromList
         , callFromCanBeCombinedCheck
             { fromFn = Fn.Array.repeat, combinedFn = Fn.List.repeat }
         ]
@@ -5765,7 +5765,7 @@ arrayFromListChecks : IntoFnCheck
 arrayFromListChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (emptiableFromListChecks arrayCollection)
-        , onCallToInverseReturnsItsArgumentCheck Fn.Array.toList
+        , onSpecificFnCallReturnsItsLastArgCheck Fn.Array.toList
         ]
 
 
@@ -5888,7 +5888,7 @@ setFromListChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (emptiableFromListChecks setCollection)
         , wrapperFromListSingletonChecks setCollection
-        , onCallToInverseReturnsItsArgumentCheck Fn.Set.toList
+        , onSpecificFnCallReturnsItsLastArgCheck Fn.Set.toList
         ]
 
 
@@ -5970,7 +5970,7 @@ dictFromListChecks : IntoFnCheck
 dictFromListChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (emptiableFromListChecks dictCollection)
-        , onCallToInverseReturnsItsArgumentCheck Fn.Dict.toList
+        , onSpecificFnCallReturnsItsLastArgCheck Fn.Dict.toList
         ]
 
 
@@ -10518,8 +10518,8 @@ operationDoesNotChangeResultOfOperationCheck =
 
 toggleFnChecks : IntoFnCheck
 toggleFnChecks =
-    { call = \checkInfo -> (onCallToInverseReturnsItsArgumentCheck checkInfo.fn).call checkInfo
-    , composition = \checkInfo -> (onCallToInverseReturnsItsArgumentCheck checkInfo.later.fn).composition checkInfo
+    { call = \checkInfo -> (onSpecificFnCallReturnsItsLastArgCheck checkInfo.fn).call checkInfo
+    , composition = \checkInfo -> (onSpecificFnCallReturnsItsLastArgCheck checkInfo.later.fn).composition checkInfo
     }
 
 
@@ -10557,8 +10557,8 @@ would be an incorrect fix. See for example
     --> not [ 0, 0 ] but actually [ 0 ]
 
 -}
-onCallToInverseReturnsItsArgumentCheck : ( ModuleName, String ) -> IntoFnCheck
-onCallToInverseReturnsItsArgumentCheck inverseFn =
+onSpecificFnCallReturnsItsLastArgCheck : ( ModuleName, String ) -> IntoFnCheck
+onSpecificFnCallReturnsItsLastArgCheck inverseFn =
     { call =
         \checkInfo ->
             case AstHelpers.getSpecificFnCall inverseFn checkInfo.lookupTable checkInfo.firstArg of
