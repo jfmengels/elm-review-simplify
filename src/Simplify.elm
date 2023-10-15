@@ -6370,7 +6370,7 @@ type alias TypeSubsetProperties specificProperties =
 
 -}
 type TypeSubsetKindProperties
-    = ConstructWithOneArg ConstructWithOneArgProperties
+    = ConstructWithOneValue ConstructWithOneArgProperties
     | Constant ConstantProperties
 
 
@@ -6399,8 +6399,8 @@ isInTypeSubset typeSubsetProperties resources expressionNode =
         Constant constantProperties ->
             constantProperties.is (extractInferResources resources) expressionNode
 
-        ConstructWithOneArg constructWithOneArg ->
-            isJust (constructWithOneArg.getValue resources.lookupTable expressionNode)
+        ConstructWithOneValue constructWithOneValue ->
+            isJust (constructWithOneValue.getValue resources.lookupTable expressionNode)
 
 
 typeSubsetDescriptionIndefinite : TypeSubsetProperties specificProperties -> String
@@ -6409,8 +6409,8 @@ typeSubsetDescriptionIndefinite typeSubsetProperties =
         Constant constantProperties ->
             constantProperties.description
 
-        ConstructWithOneArg constructWithOneArg ->
-            constructWithOneArgDescriptionIndefinite constructWithOneArg.description
+        ConstructWithOneValue constructWithOneValue ->
+            constructWithOneArgDescriptionIndefinite constructWithOneValue.description
 
 
 typeSubsetDescriptionDefinite : String -> TypeSubsetProperties specificProperties -> String
@@ -6419,8 +6419,8 @@ typeSubsetDescriptionDefinite definiteArticle typeSubsetProperties =
         Constant constantProperties ->
             constantProperties.description
 
-        ConstructWithOneArg constructWithOneArg ->
-            constructWithOneArgDescriptionDefinite definiteArticle constructWithOneArg.description
+        ConstructWithOneValue constructWithOneValue ->
+            constructWithOneArgDescriptionDefinite definiteArticle constructWithOneValue.description
 
 
 typeSubsetDescriptionWithoutArticle : TypeSubsetProperties specificProperties -> String
@@ -6429,8 +6429,8 @@ typeSubsetDescriptionWithoutArticle typeSubsetProperties =
         Constant constantProperties ->
             constantProperties.description
 
-        ConstructWithOneArg constructWithOneArg ->
-            constructWithOneArgDescriptionWithoutArticle constructWithOneArg.description
+        ConstructWithOneValue constructWithOneValue ->
+            constructWithOneArgDescriptionWithoutArticle constructWithOneValue.description
 
 
 {-| Create `ConstantProperties` for a value with a given fully qualified name.
@@ -6708,7 +6708,7 @@ resultWithOkAsWrap : TypeProperties (WrapperProperties (EmptiableProperties Cons
 resultWithOkAsWrap =
     { represents = "result"
     , wrap = resultOkayConstruct
-    , empty = { specific = resultErrorConstruct, kind = ConstructWithOneArg }
+    , empty = { specific = resultErrorConstruct, kind = ConstructWithOneValue }
     , mapFn = Fn.Result.map
     }
 
@@ -6727,7 +6727,7 @@ resultWithErrAsWrap : TypeProperties (WrapperProperties (EmptiableProperties Con
 resultWithErrAsWrap =
     { represents = "result"
     , wrap = resultErrorConstruct
-    , empty = { specific = resultOkayConstruct, kind = ConstructWithOneArg }
+    , empty = { specific = resultOkayConstruct, kind = ConstructWithOneValue }
     , mapFn = Fn.Result.mapError
     }
 
@@ -6736,7 +6736,7 @@ taskWithSucceedAsWrap : TypeProperties (WrapperProperties (EmptiableProperties C
 taskWithSucceedAsWrap =
     { represents = "task"
     , wrap = taskSucceedingConstruct
-    , empty = { specific = taskFailingConstruct, kind = ConstructWithOneArg }
+    , empty = { specific = taskFailingConstruct, kind = ConstructWithOneValue }
     , mapFn = Fn.Task.map
     }
 
@@ -6755,7 +6755,7 @@ taskWithFailAsWrap : TypeProperties (WrapperProperties (EmptiableProperties Cons
 taskWithFailAsWrap =
     { represents = "task"
     , wrap = taskFailingConstruct
-    , empty = { specific = taskSucceedingConstruct, kind = ConstructWithOneArg }
+    , empty = { specific = taskSucceedingConstruct, kind = ConstructWithOneValue }
     , mapFn = Fn.Task.mapError
     }
 
@@ -6764,7 +6764,7 @@ jsonDecoderWithSucceedAsWrap : TypeProperties (WrapperProperties (EmptiablePrope
 jsonDecoderWithSucceedAsWrap =
     { represents = "json decoder"
     , wrap = jsonDecoderSucceedingConstruct
-    , empty = { specific = jsonDecoderFailingConstruct, kind = ConstructWithOneArg }
+    , empty = { specific = jsonDecoderFailingConstruct, kind = ConstructWithOneValue }
     , mapFn = Fn.Json.Decode.map
     }
 
@@ -10513,7 +10513,7 @@ So for example
 -}
 unnecessaryOnWrappedCheck : WrapperProperties otherProperties -> IntoFnCheck
 unnecessaryOnWrappedCheck wrapper =
-    { call = unnecessaryCallOnCheck { specific = wrapper.wrap, kind = ConstructWithOneArg }
+    { call = unnecessaryCallOnCheck { specific = wrapper.wrap, kind = ConstructWithOneValue }
     , composition = unnecessaryCompositionAfterCheck wrapper.wrap
     }
 
@@ -10584,8 +10584,8 @@ unnecessaryOnEmptyCheck emptiable =
             Constant _ ->
                 \_ -> Nothing
 
-            ConstructWithOneArg constructWithOneArg ->
-                \checkInfo -> unnecessaryCompositionAfterCheck constructWithOneArg checkInfo
+            ConstructWithOneValue constructWithOneValue ->
+                \checkInfo -> unnecessaryCompositionAfterCheck constructWithOneValue checkInfo
     }
 
 
