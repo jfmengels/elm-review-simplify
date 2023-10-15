@@ -4966,11 +4966,20 @@ listMapChecks =
     intoFnChecksFirstThatConstructsError
         [ emptiableMapChecks listCollection
         , listMapOnSingletonCheck
-        , dictToListMapChecks
         , onSpecificFnCallCanBeCombinedCheck
             { args = [ tupleSecondAccessFunctionProperties ]
             , earlierFn = Fn.Array.toIndexedList
             , combinedFn = Fn.Array.toList
+            }
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = [ tupleFirstAccessFunctionProperties ]
+            , earlierFn = Fn.Dict.toList
+            , combinedFn = Fn.Dict.keys
+            }
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = [ tupleSecondAccessFunctionProperties ]
+            , earlierFn = Fn.Dict.toList
+            , combinedFn = Fn.Dict.values
             }
         ]
 
@@ -5068,82 +5077,6 @@ listMapOnSingletonCheck =
                 Nothing ->
                     Nothing
     , composition = (mapOnWrappedChecks listCollection).composition
-    }
-
-
-dictToListMapErrorInfo : { toEntryAspectList : String, tuplePart : String } -> { message : String, details : List String }
-dictToListMapErrorInfo info =
-    let
-        toEntryAspectListAsQualifiedString : String
-        toEntryAspectListAsQualifiedString =
-            qualifiedToString ( [ "Dict" ], info.toEntryAspectList )
-    in
-    { message = qualifiedToString Fn.Dict.toList ++ ", then " ++ qualifiedToString Fn.List.map ++ " " ++ qualifiedToString ( [ "Tuple" ], info.tuplePart ) ++ " is the same as " ++ toEntryAspectListAsQualifiedString
-    , details = [ "Using " ++ toEntryAspectListAsQualifiedString ++ " directly is meant for this exact purpose and will also be faster." ]
-    }
-
-
-dictToListMapChecks : IntoFnCheck
-dictToListMapChecks =
-    { call =
-        \listMapCheckInfo ->
-            case secondArg listMapCheckInfo of
-                Just listArgument ->
-                    case AstHelpers.getSpecificFnCall Fn.Dict.toList listMapCheckInfo.lookupTable listArgument of
-                        Just dictToListCall ->
-                            let
-                                error : { toEntryAspectList : String, tuplePart : String } -> Error {}
-                                error info =
-                                    Rule.errorWithFix
-                                        (dictToListMapErrorInfo info)
-                                        listMapCheckInfo.fnRange
-                                        (keepOnlyFix { parentRange = Node.range listArgument, keep = Node.range dictToListCall.firstArg }
-                                            ++ [ Fix.replaceRangeBy
-                                                    (Range.combine [ listMapCheckInfo.fnRange, Node.range listMapCheckInfo.firstArg ])
-                                                    (qualifiedToString (qualify ( [ "Dict" ], info.toEntryAspectList ) listMapCheckInfo))
-                                               ]
-                                        )
-                            in
-                            if AstHelpers.isTupleFirstAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
-                                Just (error { tuplePart = "first", toEntryAspectList = "keys" })
-
-                            else if AstHelpers.isTupleSecondAccess listMapCheckInfo.lookupTable listMapCheckInfo.firstArg then
-                                Just (error { tuplePart = "second", toEntryAspectList = "values" })
-
-                            else
-                                Nothing
-
-                        Nothing ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
-    , composition =
-        \checkInfo ->
-            case
-                ( ( checkInfo.earlier.fn, checkInfo.earlier.args )
-                , checkInfo.later.args
-                )
-            of
-                ( ( ( [ "Dict" ], "toList" ), [] ), elementMappingArg :: [] ) ->
-                    let
-                        error : { toEntryAspectList : String, tuplePart : String } -> ErrorInfoAndFix
-                        error info =
-                            { info = dictToListMapErrorInfo info
-                            , fix = compositionReplaceByFnFix ( [ "Dict" ], info.toEntryAspectList ) checkInfo
-                            }
-                    in
-                    if AstHelpers.isTupleFirstAccess checkInfo.lookupTable elementMappingArg then
-                        Just (error { tuplePart = "first", toEntryAspectList = "keys" })
-
-                    else if AstHelpers.isTupleSecondAccess checkInfo.lookupTable elementMappingArg then
-                        Just (error { tuplePart = "second", toEntryAspectList = "values" })
-
-                    else
-                        Nothing
-
-                _ ->
-                    Nothing
     }
 
 
@@ -10024,6 +9957,20 @@ identityFunctionProperties =
     , is = \res expr -> AstHelpers.isIdentity res.lookupTable expr
     , asString = \res -> qualifiedToString (qualify Fn.Basics.identity res)
     , fn = Fn.Basics.identity
+    }
+
+
+tupleFirstAccessFunctionProperties :
+    { description : String
+    , is : Infer.Resources {} -> Node Expression -> Bool
+    , asString : QualifyResources {} -> String
+    , fn : ( ModuleName, String )
+    }
+tupleFirstAccessFunctionProperties =
+    { description = "Tuple.first"
+    , fn = Fn.Tuple.first
+    , is = \res expr -> AstHelpers.isTupleFirstAccess res.lookupTable expr
+    , asString = \res -> qualifiedToString (qualify Fn.Tuple.first res)
     }
 
 
