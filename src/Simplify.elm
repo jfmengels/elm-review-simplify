@@ -2272,7 +2272,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             , argsAfterFirst : List (Node Expression)
             , callStyle : FunctionCallStyle
             }
-            -> CheckInfo
+            -> CallCheckInfo
         toCheckInfo checkInfo =
             let
                 ( parentRange, callStyle ) =
@@ -2816,7 +2816,7 @@ operatorApplicationChecks =
         ]
 
 
-type alias CheckInfo =
+type alias CallCheckInfo =
     { lookupTable : ModuleNameLookupTable
     , expectNaN : Bool
     , importLookup : ImportLookup
@@ -2858,12 +2858,12 @@ type LeftOrRightDirection
     | LeftToRight
 
 
-secondArg : CheckInfo -> Maybe (Node Expression)
+secondArg : CallCheckInfo -> Maybe (Node Expression)
 secondArg checkInfo =
     checkInfo.secondArg
 
 
-thirdArg : CheckInfo -> Maybe (Node Expression)
+thirdArg : CallCheckInfo -> Maybe (Node Expression)
 thirdArg checkInfo =
     checkInfo.thirdArg
 
@@ -2908,14 +2908,14 @@ Provide multiple checks using `intoFnChecksFirstThatConstructsError`.
 
 -}
 type alias IntoFnCheck =
-    { call : CheckInfo -> Maybe (Error {})
+    { call : CallCheckInfo -> Maybe (Error {})
     , composition : CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
     }
 
 
 {-| There is no equivalent composition check.
 -}
-intoFnCheckOnlyCall : (CheckInfo -> Maybe (Error {})) -> IntoFnCheck
+intoFnCheckOnlyCall : (CallCheckInfo -> Maybe (Error {})) -> IntoFnCheck
 intoFnCheckOnlyCall callFnCheck =
     { call = callFnCheck, composition = \_ -> Nothing }
 
@@ -3107,7 +3107,7 @@ intoFnChecks =
         ]
 
 
-functionCallChecks : Dict ( ModuleName, String ) ( Int, CheckInfo -> Maybe (Error {}) )
+functionCallChecks : Dict ( ModuleName, String ) ( Int, CallCheckInfo -> Maybe (Error {}) )
 functionCallChecks =
     Dict.map (\_ ( argCount, checks ) -> ( argCount, checks.call )) intoFnChecks
 
@@ -3897,7 +3897,7 @@ basicsNotChecks =
         ]
 
 
-notOnKnownBoolCheck : CheckInfo -> Maybe (Error {})
+notOnKnownBoolCheck : CallCheckInfo -> Maybe (Error {})
 notOnKnownBoolCheck checkInfo =
     case Evaluate.getBoolean checkInfo checkInfo.firstArg of
         Determined bool ->
@@ -3921,7 +3921,7 @@ notOnKnownBoolCheck checkInfo =
             Nothing
 
 
-isNotOnBooleanOperatorCheck : CheckInfo -> Maybe (Error {})
+isNotOnBooleanOperatorCheck : CallCheckInfo -> Maybe (Error {})
 isNotOnBooleanOperatorCheck checkInfo =
     case Node.value checkInfo.firstArg of
         Expression.ParenthesizedExpression (Node _ (Expression.OperatorApplication operator _ (Node leftRange _) (Node rightRange _))) ->
@@ -4012,7 +4012,7 @@ intToIntChecks =
         ]
 
 
-unnecessaryConversionToIntOnIntCheck : CheckInfo -> Maybe (Error {})
+unnecessaryConversionToIntOnIntCheck : CallCheckInfo -> Maybe (Error {})
 unnecessaryConversionToIntOnIntCheck checkInfo =
     case Evaluate.getInt checkInfo checkInfo.firstArg of
         Just _ ->
@@ -4903,7 +4903,7 @@ getListHead lookupTable expressionNode =
                     Nothing
 
 
-listTailExistsError : List Fix -> CheckInfo -> Error {}
+listTailExistsError : List Fix -> CallCheckInfo -> Error {}
 listTailExistsError replaceListArgByTailFix checkInfo =
     Rule.errorWithFix
         { message = qualifiedToString checkInfo.fn ++ " on a list with some elements will result in Just the elements after the first"
@@ -5688,7 +5688,7 @@ arrayGetChecks =
     intoFnCheckOnlyCall (getChecks arrayCollection)
 
 
-arrayLengthOnArrayRepeatOrInitializeChecks : CheckInfo -> Maybe (Error {})
+arrayLengthOnArrayRepeatOrInitializeChecks : CallCheckInfo -> Maybe (Error {})
 arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
     let
         maybeCall : Maybe ( String, { nodeRange : Range, fnRange : Range, firstArg : Node Expression, argsAfterFirst : List (Node Expression) } )
@@ -6010,7 +6010,7 @@ getTupleWithSpecificSecondBoolExpressionNode specificBool lookupTable expression
         |> Maybe.map (\_ -> expressionNode)
 
 
-htmlAttributesClassListFalseElementError : CheckInfo -> { message : String, details : List String }
+htmlAttributesClassListFalseElementError : CallCheckInfo -> { message : String, details : List String }
 htmlAttributesClassListFalseElementError checkInfo =
     { message = "In a " ++ qualifiedToString checkInfo.fn ++ ", a tuple paired with False can be removed"
     , details = [ "You can remove the tuple list element where the second part is False." ]
@@ -7399,7 +7399,7 @@ where the simplification would be
     Code.oneOf codec [] --> codec
 
 -}
-oneOfConstantsWithOneAndRestListChecks : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
+oneOfConstantsWithOneAndRestListChecks : WrapperProperties otherProperties -> CallCheckInfo -> Maybe (Error {})
 oneOfConstantsWithOneAndRestListChecks wrapper checkInfo =
     case secondArg checkInfo of
         Just otherOptionsArg ->
@@ -7439,7 +7439,7 @@ Examples of such functions:
     SucceedingFuzzer.frequencyValues : ( Float, a ) -> List ( Float, a ) -> SucceedingFuzzer a
 
 -}
-oneOfWeightedConstantsWithOneAndRestChecks : WrapperProperties otherProperties -> CheckInfo -> Maybe (Error {})
+oneOfWeightedConstantsWithOneAndRestChecks : WrapperProperties otherProperties -> CallCheckInfo -> Maybe (Error {})
 oneOfWeightedConstantsWithOneAndRestChecks wrapper checkInfo =
     case secondArg checkInfo of
         Just otherOptionsArg ->
@@ -7508,7 +7508,7 @@ emptiableMapChecks emptiable =
 
 mapIdentityChecks :
     TypeProperties properties
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 mapIdentityChecks mappable checkInfo =
     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
@@ -7948,7 +7948,7 @@ So for example
 -}
 nonEmptiableWrapperFlatMapAlwaysChecks :
     TypeProperties (NonEmptiableProperties (WrapperProperties otherProperties))
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 nonEmptiableWrapperFlatMapAlwaysChecks wrapper checkInfo =
     case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
@@ -7992,7 +7992,7 @@ so for example
 -}
 emptiableWithDefaultChecks :
     EmptiableProperties empty otherProperties
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 emptiableWithDefaultChecks emptiable checkInfo =
     case secondArg checkInfo of
@@ -8150,7 +8150,7 @@ callOnFromListWithIrrelevantEmptyElement :
         ( TypeProperties (ConstructibleFromListProperties otherProperties)
         , EmptiableProperties empty elementOtherProperties
         )
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 callOnFromListWithIrrelevantEmptyElement situation ( constructibleFromList, emptiableElement ) checkInfo =
     case fullyAppliedLastArg checkInfo of
@@ -8251,7 +8251,7 @@ So for example
     List.range 5 4 --> []
 
 -}
-emptiableRangeChecks : EmptiableProperties ConstantProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableRangeChecks : EmptiableProperties ConstantProperties otherProperties -> CallCheckInfo -> Maybe (Error {})
 emptiableRangeChecks emptiable checkInfo =
     case secondArg checkInfo of
         Just rangeEndArg ->
@@ -8287,7 +8287,7 @@ Can be used to for example
   - turn `List.Extra.minimumBy identity` into `List.minimum`
 
 -}
-operationWithIdentityIsEquivalentToFnCheck : ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
+operationWithIdentityIsEquivalentToFnCheck : ( ModuleName, String ) -> CallCheckInfo -> Maybe (Error {})
 operationWithIdentityIsEquivalentToFnCheck replacementFn checkInfo =
     if AstHelpers.isIdentity checkInfo.lookupTable checkInfo.firstArg then
         Just
@@ -8323,7 +8323,7 @@ Note that this really only applies to "flat-intersperse-like" functions, not for
 for that specific example, there is `operationWithIdentityIsEquivalentToFnCheck`
 
 -}
-flatIntersperseWithEmptySeparatorIsEquivalentToFnCheck : EmptiableProperties empty otherProperties -> ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
+flatIntersperseWithEmptySeparatorIsEquivalentToFnCheck : EmptiableProperties empty otherProperties -> ( ModuleName, String ) -> CallCheckInfo -> Maybe (Error {})
 flatIntersperseWithEmptySeparatorIsEquivalentToFnCheck elementProperties replacementFn checkInfo =
     if isInTypeSubset elementProperties.empty checkInfo checkInfo.firstArg then
         Just
@@ -8338,7 +8338,7 @@ flatIntersperseWithEmptySeparatorIsEquivalentToFnCheck elementProperties replace
         Nothing
 
 
-operationWithFirstArgIsEquivalentToFnError : { firstArgDescription : String, replacementFn : ( ModuleName, String ) } -> CheckInfo -> Error {}
+operationWithFirstArgIsEquivalentToFnError : { firstArgDescription : String, replacementFn : ( ModuleName, String ) } -> CallCheckInfo -> Error {}
 operationWithFirstArgIsEquivalentToFnError config checkInfo =
     Rule.errorWithFix
         { message = qualifiedToString checkInfo.fn ++ " with " ++ config.firstArgDescription ++ " is the same as " ++ qualifiedToString config.replacementFn
@@ -8359,7 +8359,7 @@ Another example would be [`List.Extra.indexedFoldl`](https://package.elm-lang.or
 Not using the path would be identical to `List.foldl`.
 
 -}
-operationWithExtraArgChecks : { operationWithoutExtraArg : ( ModuleName, String ) } -> CheckInfo -> Maybe (Error {})
+operationWithExtraArgChecks : { operationWithoutExtraArg : ( ModuleName, String ) } -> CallCheckInfo -> Maybe (Error {})
 operationWithExtraArgChecks config checkInfo =
     case getReplaceAlwaysByItsResultFix checkInfo.lookupTable checkInfo.firstArg of
         Just replaceAlwaysByFunctionResult ->
@@ -8411,7 +8411,7 @@ getReplaceAlwaysByItsResultFix lookupTable expressionNode =
                     Nothing
 
 
-wrapperMemberChecks : TypeProperties (WrapperProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+wrapperMemberChecks : TypeProperties (WrapperProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 wrapperMemberChecks wrapper checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just wrapperArg ->
@@ -8449,7 +8449,7 @@ wrapperMemberChecks wrapper checkInfo =
             Nothing
 
 
-knownMemberChecks : TypeProperties (CollectionProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+knownMemberChecks : TypeProperties (CollectionProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 knownMemberChecks collection checkInfo =
     if checkInfo.expectNaN then
         Nothing
@@ -8513,7 +8513,7 @@ with `( listCollection, numberNotExpectingNaNForMultiplyProperties )` and a chec
 callOnCollectionWithAbsorbingElementChecks :
     String
     -> ( TypeProperties (CollectionProperties otherProperties), AbsorbableProperties elementOtherProperties )
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 callOnCollectionWithAbsorbingElementChecks situation ( collection, elementAbsorbable ) checkInfo =
     case Maybe.andThen (collection.elements.get (extractInferResources checkInfo)) (fullyAppliedLastArg checkInfo) of
@@ -8537,7 +8537,7 @@ callOnCollectionWithAbsorbingElementChecks situation ( collection, elementAbsorb
             Nothing
 
 
-emptiableAllChecks : EmptiableProperties empty otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableAllChecks : EmptiableProperties empty otherProperties -> CallCheckInfo -> Maybe (Error {})
 emptiableAllChecks emptiable =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
@@ -8563,7 +8563,7 @@ emptiableAllChecks emptiable =
         ]
 
 
-collectionAllChecks : TypeProperties (CollectionProperties (ConstructibleFromListProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionAllChecks : TypeProperties (CollectionProperties (ConstructibleFromListProperties otherProperties)) -> CallCheckInfo -> Maybe (Error {})
 collectionAllChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -8619,7 +8619,7 @@ collectionAllChecks collection =
         ]
 
 
-emptiableAnyChecks : EmptiableProperties empty otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableAnyChecks : EmptiableProperties empty otherProperties -> CallCheckInfo -> Maybe (Error {})
 emptiableAnyChecks emptiable =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck
@@ -8645,7 +8645,7 @@ emptiableAnyChecks emptiable =
         ]
 
 
-collectionAnyChecks : TypeProperties (CollectionProperties (ConstructibleFromListProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionAnyChecks : TypeProperties (CollectionProperties (ConstructibleFromListProperties otherProperties)) -> CallCheckInfo -> Maybe (Error {})
 collectionAnyChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -8719,7 +8719,7 @@ So for example
     --> Set.remove constant
 
 -}
-operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck : ( ModuleName, String ) -> CheckInfo -> Maybe (Error {})
+operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck : ( ModuleName, String ) -> CallCheckInfo -> Maybe (Error {})
 operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck replacementFn checkInfo =
     case isEqualToConstantFunction checkInfo.firstArg of
         Nothing ->
@@ -8790,7 +8790,7 @@ sequenceOrFirstEmptyChecks :
     ( TypeProperties (CollectionProperties (ConstructibleFromListProperties collectionOtherProperties))
     , EmptiableProperties empty (WrapperProperties elementOtherProperties)
     )
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 sequenceOrFirstEmptyChecks ( collection, elementEmptiable ) =
     firstThatConstructsJust
@@ -8812,7 +8812,7 @@ So for example
 -}
 sequenceOnFromListWithEmptyIgnoresLaterElementsCheck :
     ( TypeProperties (ConstructibleFromListProperties constructibleFromListOtherProperties), EmptiableProperties empty elementOtherProperties )
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( constructibleFromList, elementEmptiable ) checkInfo =
     case fromListGetLiteral constructibleFromList checkInfo.lookupTable checkInfo.firstArg of
@@ -8857,7 +8857,7 @@ So for example
 -}
 sequenceOnCollectionWithKnownEmptyElementCheck :
     ( TypeProperties (CollectionProperties collectionOtherProperties), EmptiableProperties empty (WrapperProperties elementOtherProperties) )
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 sequenceOnCollectionWithKnownEmptyElementCheck ( collection, elementEmptiable ) checkInfo =
     case collection.elements.get (extractInferResources checkInfo) checkInfo.firstArg of
@@ -8912,7 +8912,7 @@ so for example
 -}
 sequenceOnCollectionWithAllElementsWrapped :
     ( TypeProperties (CollectionProperties otherCollectionProperties), WrapperProperties elementOtherProperties )
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 sequenceOnCollectionWithAllElementsWrapped ( collection, elementWrapper ) checkInfo =
     case collection.elements.get (extractInferResources checkInfo) checkInfo.firstArg of
@@ -8959,7 +8959,7 @@ Examples of such functions:
     Parser.repeat : Int -> Parser a -> Parser (List a) -- by dasch
 
 -}
-sequenceRepeatChecks : WrapperProperties (MappableProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+sequenceRepeatChecks : WrapperProperties (MappableProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 sequenceRepeatChecks wrapper =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -9052,7 +9052,7 @@ Examples of such functions:
     applyTimes : Int -> (a -> a) -> a -> a
 
 -}
-emptiableFlatRepeatChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiableFlatRepeatChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 emptiableFlatRepeatChecks emptiable =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -9141,7 +9141,7 @@ If your fold function takes two arguments, use `emptiableFoldWithExtraArgChecks`
 -}
 emptiableFoldChecks :
     TypeProperties (EmptiableProperties empty otherProperties)
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 emptiableFoldChecks emptiable =
     firstThatConstructsJust
@@ -9150,7 +9150,7 @@ emptiableFoldChecks emptiable =
         ]
 
 
-foldOnEmptyChecks : EmptiableProperties empty otherProperties -> CheckInfo -> Maybe (Error {})
+foldOnEmptyChecks : EmptiableProperties empty otherProperties -> CallCheckInfo -> Maybe (Error {})
 foldOnEmptyChecks emptiable checkInfo =
     case checkInfo.argsAfterFirst of
         initialArg :: emptiableArg :: [] ->
@@ -9171,7 +9171,7 @@ foldOnEmptyChecks emptiable checkInfo =
             Nothing
 
 
-foldToUnchangedAccumulatorCheck : TypeProperties otherProperties -> CheckInfo -> Maybe (Error {})
+foldToUnchangedAccumulatorCheck : TypeProperties otherProperties -> CallCheckInfo -> Maybe (Error {})
 foldToUnchangedAccumulatorCheck typeProperties checkInfo =
     case AstHelpers.getAlwaysResult checkInfo.lookupTable checkInfo.firstArg of
         Just reduceAlwaysResult ->
@@ -9238,7 +9238,7 @@ If your fold function does not have an extra arg, use `emptiableFoldChecks`.
 -}
 emptiableFoldWithExtraArgChecks :
     TypeProperties (EmptiableProperties empty otherProperties)
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 emptiableFoldWithExtraArgChecks emptiable =
     firstThatConstructsJust
@@ -9247,7 +9247,7 @@ emptiableFoldWithExtraArgChecks emptiable =
         ]
 
 
-foldToUnchangedAccumulatorWithExtraArgCheck : TypeProperties otherProperties -> CheckInfo -> Maybe (Error {})
+foldToUnchangedAccumulatorWithExtraArgCheck : TypeProperties otherProperties -> CallCheckInfo -> Maybe (Error {})
 foldToUnchangedAccumulatorWithExtraArgCheck typeProperties checkInfo =
     let
         maybeReduceFunctionResult : Maybe (Node Expression)
@@ -9305,7 +9305,7 @@ foldToUnchangedAccumulatorWithExtraArgCheck typeProperties checkInfo =
             Nothing
 
 
-emptiableRepeatChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiableRepeatChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 emptiableRepeatChecks collection checkInfo =
     case Evaluate.getInt checkInfo checkInfo.firstArg of
         Just intValue ->
@@ -9320,7 +9320,7 @@ emptiableRepeatChecks collection checkInfo =
             Nothing
 
 
-wrapperRepeatChecks : CollectionProperties (WrapperProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+wrapperRepeatChecks : CollectionProperties (WrapperProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 wrapperRepeatChecks wrapper checkInfo =
     case Evaluate.getInt checkInfo checkInfo.firstArg of
         Just 1 ->
@@ -9343,7 +9343,7 @@ wrapperRepeatChecks wrapper checkInfo =
             Nothing
 
 
-getChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> CheckInfo -> Maybe (Error {})
+getChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> CallCheckInfo -> Maybe (Error {})
 getChecks collection =
     firstThatConstructsJust
         [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } collection
@@ -9353,7 +9353,7 @@ getChecks collection =
         ]
 
 
-indexAccessChecks : TypeProperties (CollectionProperties otherProperties) -> CheckInfo -> Int -> Maybe (Error {})
+indexAccessChecks : TypeProperties (CollectionProperties otherProperties) -> CallCheckInfo -> Int -> Maybe (Error {})
 indexAccessChecks collection checkInfo n =
     if n < 0 then
         Just
@@ -9513,7 +9513,7 @@ setChecks collection =
 
 setOnKnownElementChecks :
     TypeProperties (CollectionProperties otherProperties)
-    -> CheckInfo
+    -> CallCheckInfo
     -> Int
     -> Range
     -> Maybe (Error {})
@@ -9573,7 +9573,7 @@ So for example
     List.drop 3 [ a, b ] --> []
 
 -}
-dropOnSmallerCollectionCheck : { dropCount : Int } -> TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
+dropOnSmallerCollectionCheck : { dropCount : Int } -> TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties otherProperties)) -> CallCheckInfo -> Maybe (Error {})
 dropOnSmallerCollectionCheck config collection checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just listArg ->
@@ -9608,7 +9608,7 @@ So for example
     --> Array.fromList [ c ]
 
 -}
-dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck : { dropCount : Int } -> TypeProperties (ConstructibleFromListProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck : { dropCount : Int } -> TypeProperties (ConstructibleFromListProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck config constructibleFromList checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just lastArg ->
@@ -9641,7 +9641,7 @@ dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck config const
             Nothing
 
 
-emptiableMapNChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiableMapNChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 emptiableMapNChecks emptiable checkInfo =
     if List.any (isInTypeSubset emptiable.empty checkInfo) checkInfo.argsAfterFirst then
         Just
@@ -9669,7 +9669,7 @@ For example given `resultWithOkAsWrap`:
 This is pretty similar to `listOfWrapperSequenceChecks` where we look at arguments instead of list elements.
 
 -}
-wrapperMapNChecks : TypeProperties (WrapperProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+wrapperMapNChecks : TypeProperties (WrapperProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 wrapperMapNChecks wrapper checkInfo =
     if List.length checkInfo.argsAfterFirst == (checkInfo.argCount - 1) then
         -- fully applied
@@ -9747,7 +9747,7 @@ This is pretty similar to `listSequenceOrFirstEmptyChecks` where we look at argu
 -}
 mapNOrFirstEmptyConstructionChecks :
     WrapperProperties (EmptiableProperties empty otherProperties)
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
     case findMapAndAllBefore (getEmptyExpressionNode checkInfo emptiable) checkInfo.argsAfterFirst of
@@ -10519,7 +10519,7 @@ unnecessaryOnWrappedCheck wrapper =
     }
 
 
-unnecessaryCallOnCheck : TypeSubsetProperties otherProperties -> CheckInfo -> Maybe (Error {})
+unnecessaryCallOnCheck : TypeSubsetProperties otherProperties -> CallCheckInfo -> Maybe (Error {})
 unnecessaryCallOnCheck constructable checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just constructableArg ->
@@ -10593,7 +10593,7 @@ unnecessaryOnEmptyCheck emptiable =
 callOnEmptyReturnsCheck :
     { resultAsString : QualifyResources {} -> String }
     -> EmptiableProperties empty otherProperties
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 callOnEmptyReturnsCheck config collection checkInfo =
     case fullyAppliedLastArg checkInfo of
@@ -10646,7 +10646,7 @@ callWithNonPositiveIntCanBeReplacedByCheck :
     , intDescription : String
     , replacement : QualifyResources {} -> String
     }
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 callWithNonPositiveIntCanBeReplacedByCheck config checkInfo =
     callWithNonPositiveIntCheckErrorSituation { fn = checkInfo.fn, int = config.int, intDescription = config.intDescription }
@@ -10840,7 +10840,7 @@ emptiableKeepWhenChecks emptiable =
         ]
 
 
-keepWhenWithConstantFunctionResultChecks : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+keepWhenWithConstantFunctionResultChecks : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo =
     case Evaluate.getBoolean checkInfo constantFunctionResult of
         Determined True ->
@@ -10996,7 +10996,7 @@ collectionIntersectChecks collection =
         ]
 
 
-collectionDiffChecks : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionDiffChecks : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties otherProperties)) -> CallCheckInfo -> Maybe (Error {})
 collectionDiffChecks collection =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -11031,7 +11031,7 @@ collectionDiffChecks collection =
         ]
 
 
-collectionUnionChecks : { leftElementsStayOnTheLeft : Bool } -> TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties empty otherProperties))) -> CheckInfo -> Maybe (Error {})
+collectionUnionChecks : { leftElementsStayOnTheLeft : Bool } -> TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties empty otherProperties))) -> CallCheckInfo -> Maybe (Error {})
 collectionUnionChecks config collection =
     firstThatConstructsJust
         [ \checkInfo ->
@@ -11138,7 +11138,7 @@ collectionUnionWithLiteralsChecks config operationInfo collection checkInfo =
             Nothing
 
 
-collectionInsertChecks : CollectionProperties (EmptiableProperties empty (WrapperProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionInsertChecks : CollectionProperties (EmptiableProperties empty (WrapperProperties otherProperties)) -> CallCheckInfo -> Maybe (Error {})
 collectionInsertChecks collection checkInfo =
     case secondArg checkInfo of
         Just collectionArg ->
@@ -11163,14 +11163,14 @@ collectionInsertChecks collection checkInfo =
             Nothing
 
 
-collectionMemberChecks : CollectionProperties (EmptiableProperties empty otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionMemberChecks : CollectionProperties (EmptiableProperties empty otherProperties) -> CallCheckInfo -> Maybe (Error {})
 collectionMemberChecks collection =
     callOnEmptyReturnsCheck
         { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
         collection
 
 
-collectionIsEmptyChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionIsEmptyChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> CallCheckInfo -> Maybe (Error {})
 collectionIsEmptyChecks collection checkInfo =
     case collection.elements.determineCount (extractInferResources checkInfo) checkInfo.firstArg of
         Just (Exactly 0) ->
@@ -11193,7 +11193,7 @@ collectionIsEmptyChecks collection checkInfo =
             Nothing
 
 
-collectionSizeChecks : TypeProperties (CollectionProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+collectionSizeChecks : TypeProperties (CollectionProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 collectionSizeChecks collection checkInfo =
     case collection.elements.determineCount (extractInferResources checkInfo) checkInfo.firstArg of
         Just (Exactly size) ->
@@ -11210,7 +11210,7 @@ collectionSizeChecks collection checkInfo =
             Nothing
 
 
-emptiableFromListChecks : EmptiableProperties ConstantProperties otherProperties -> CheckInfo -> Maybe (Error {})
+emptiableFromListChecks : EmptiableProperties ConstantProperties otherProperties -> CallCheckInfo -> Maybe (Error {})
 emptiableFromListChecks collection =
     callOnEmptyReturnsCheck { resultAsString = collection.empty.specific.asString } listCollection
 
@@ -11253,7 +11253,7 @@ wrapperFromListSingletonChecks wrapper =
 
 emptiableToListChecks :
     EmptiableProperties empty otherProperties
-    -> CheckInfo
+    -> CallCheckInfo
     -> Maybe (Error {})
 emptiableToListChecks collection =
     callOnEmptyReturnsCheck { resultAsString = listCollection.empty.specific.asString } collection
@@ -11270,7 +11270,7 @@ emptiableToListChecks collection =
 If your function takes two arguments like `Dict.partition`, use `emptiablePartitionWithExtraArgChecks`.
 
 -}
-collectionPartitionChecks : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties otherProperties)) -> CheckInfo -> Maybe (Error {})
+collectionPartitionChecks : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties otherProperties)) -> CallCheckInfo -> Maybe (Error {})
 collectionPartitionChecks collection =
     firstThatConstructsJust
         [ partitionOnEmptyChecks collection
@@ -11284,14 +11284,14 @@ collectionPartitionChecks collection =
         ]
 
 
-partitionOnEmptyChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+partitionOnEmptyChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 partitionOnEmptyChecks emptiable =
     callOnEmptyReturnsCheck
         { resultAsString = \res -> "( " ++ emptiable.empty.specific.asString res ++ ", " ++ emptiable.empty.specific.asString res ++ " )" }
         emptiable
 
 
-partitionWithConstantFunctionResult : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+partitionWithConstantFunctionResult : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 partitionWithConstantFunctionResult constantFunctionResult collection checkInfo =
     case Evaluate.getBoolean checkInfo constantFunctionResult of
         Determined True ->
@@ -11351,7 +11351,7 @@ partitionWithConstantFunctionResult constantFunctionResult collection checkInfo 
 If your function only takes one argument like `List.partition`, use `collectionPartitionChecks`
 
 -}
-emptiablePartitionWithExtraArgChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CheckInfo -> Maybe (Error {})
+emptiablePartitionWithExtraArgChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 emptiablePartitionWithExtraArgChecks emptiable =
     firstThatConstructsJust
         [ partitionOnEmptyChecks emptiable
@@ -12428,7 +12428,7 @@ use `alwaysResultsInConstantError` with `replacementNeedsParens = True`.
 alwaysResultsInUnparenthesizedConstantError :
     String
     -> { replacement : QualifyResources {} -> String }
-    -> CheckInfo
+    -> CallCheckInfo
     -> Error {}
 alwaysResultsInUnparenthesizedConstantError usingSituation config =
     alwaysResultsInConstantError usingSituation
@@ -12451,7 +12451,7 @@ alwaysResultsInConstantError :
         { replacement : QualifyResources {} -> String
         , replacementNeedsParens : Bool
         }
-    -> CheckInfo
+    -> CallCheckInfo
     -> Error {}
 alwaysResultsInConstantError usingSituation config checkInfo =
     let
@@ -12496,7 +12496,7 @@ If your function also always returns a constant but has an irrelevant next argum
 like `List.repeat 0`, use `alwaysResultsInConstantError`
 
 -}
-resultsInConstantError : String -> (QualifyResources {} -> String) -> CheckInfo -> Error {}
+resultsInConstantError : String -> (QualifyResources {} -> String) -> CallCheckInfo -> Error {}
 resultsInConstantError usingSituation replacement checkInfo =
     Rule.errorWithFix
         { message = usingSituation ++ " will result in " ++ replacement defaultQualifyResources
