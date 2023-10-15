@@ -12710,7 +12710,7 @@ E.g. for `(i << h) << (g << f)`
     getInnerComposition { earlier = (g << f), later = (i << h) }
     --> { earlier = g, later = h }
 
-which works for nested parens ans any combination of `>>` and `<<`.
+which works for nested parens and any combination of `>>` and `<<`.
 
 The returned `removeEarlier/LaterRange` can be used together with `Fix.removeRange` to only remove one side of the composition.
 The returned `isEmbeddedInComposition` is true if there are other functions composed before `earlier` or after `later`.
