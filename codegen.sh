@@ -11,16 +11,18 @@ ELM_HOME="${ELM_HOME:-$HOME/.elm}"
 echo $ELM_HOME
 
 codegen() {
-  # $1 : package name
-  # $2 : package version
-  docsJsonFile="$ELM_HOME/0.19.1/packages/elm/$1/$2/docs.json"
+  # $1 : package author
+  # $2 : package name
+  # $3 : package version
+  docsJsonFile="$ELM_HOME/0.19.1/packages/$1/$2/$3/docs.json"
   elm-codegen run codegen/Generate.elm --flags-from=$docsJsonFile --output=src
 }
 
-codegen "core" "1.0.5"
-codegen "html" "1.0.0"
-codegen "json" "1.1.3"
-codegen "parser" "1.1.0"
-codegen "random" "1.0.0"
+codegen "elm" "core" "1.0.5"
+codegen "elm" "html" "1.0.0"
+codegen "elm" "json" "1.1.3"
+codegen "elm" "parser" "1.1.0"
+codegen "elm" "random" "1.0.0"
+codegen "elm-explorations" "test" "2.1.1"
 
 elm-format --yes src/Fn/
