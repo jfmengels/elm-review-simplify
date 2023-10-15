@@ -1865,8 +1865,8 @@ a = Dict.toList >> List.map Tuple.first
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
-                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
+                            , details = [ "You can replace this composition by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1883,8 +1883,8 @@ a = Dict.toList >> List.map (\\( part0, _ ) -> part0)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
-                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
+                            , details = [ "You can replace this composition by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1901,8 +1901,8 @@ a = List.map Tuple.first << Dict.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
-                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
+                            , details = [ "You can replace this composition by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1919,8 +1919,8 @@ a = Dict.toList >> List.map Tuple.second
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.toList, then List.map Tuple.second is the same as Dict.values"
-                            , details = [ "Using Dict.values directly is meant for this exact purpose and will also be faster." ]
+                            { message = "Dict.toList, then List.map with Tuple.second can be combined into Dict.values"
+                            , details = [ "You can replace this composition by Dict.values with the same arguments given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1937,8 +1937,8 @@ a = Dict.toList >> List.map (\\( _, part1 ) -> part1)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.toList, then List.map Tuple.second is the same as Dict.values"
-                            , details = [ "Using Dict.values directly is meant for this exact purpose and will also be faster." ]
+                            { message = "Dict.toList, then List.map with Tuple.second can be combined into Dict.values"
+                            , details = [ "You can replace this composition by Dict.values with the same arguments given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1955,8 +1955,8 @@ a = List.map Tuple.second << Dict.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.toList, then List.map Tuple.second is the same as Dict.values"
-                            , details = [ "Using Dict.values directly is meant for this exact purpose and will also be faster." ]
+                            { message = "Dict.toList, then List.map with Tuple.second can be combined into Dict.values"
+                            , details = [ "You can replace this composition by Dict.values with the same arguments given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1964,7 +1964,7 @@ import Dict
 a = Dict.values
 """
                         ]
-        , test "should replace List.map Tuple.first (Dict.toList dict) by Dict.keys dict" <|
+        , test "should replace List.map Tuple.first (Dict.toList dict) by (Dict.keys dict)" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -1973,16 +1973,16 @@ a = List.map Tuple.first (Dict.toList dict)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
-                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
+                            , details = [ "You can replace this call by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = Dict.keys dict
+a = (Dict.keys dict)
 """
                         ]
-        , test "should replace List.map Tuple.first (Dict.toList <| dict) by Dict.keys dict" <|
+        , test "should replace List.map Tuple.first (Dict.toList <| dict) by (Dict.keys <| dict)" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -1991,16 +1991,16 @@ a = List.map Tuple.first (Dict.toList <| dict)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
-                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
+                            , details = [ "You can replace this call by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = Dict.keys dict
+a = (Dict.keys <| dict)
 """
                         ]
-        , test "should replace List.map Tuple.first (dict |> Dict.toList) by Dict.keys dict" <|
+        , test "should replace List.map Tuple.first (dict |> Dict.toList) by (dict |> Dict.keys)" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -2009,16 +2009,16 @@ a = List.map Tuple.first (dict |> Dict.toList)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
-                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
+                            , details = [ "You can replace this call by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = Dict.keys dict
+a = (dict |> Dict.keys)
 """
                         ]
-        , test "should replace List.map Tuple.first <| Dict.toList dict by Dict.keys <| dict" <|
+        , test "should replace List.map Tuple.first <| Dict.toList dict by Dict.keys dict" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -2027,16 +2027,16 @@ a = List.map Tuple.first <| Dict.toList dict
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
-                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
+                            , details = [ "You can replace this call by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = Dict.keys <| dict
+a = Dict.keys dict
 """
                         ]
-        , test "should replace List.map Tuple.first <| (Dict.toList <| dict) by Dict.keys <| dict" <|
+        , test "should replace List.map Tuple.first <| (Dict.toList <| dict) by (Dict.keys <| dict)" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -2045,16 +2045,16 @@ a = List.map Tuple.first <| (Dict.toList <| dict)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
-                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
+                            , details = [ "You can replace this call by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = Dict.keys <| dict
+a = (Dict.keys <| dict)
 """
                         ]
-        , test "should replace List.map Tuple.first <| (dict |> Dict.toList) by Dict.keys <| dict" <|
+        , test "should replace List.map Tuple.first <| (dict |> Dict.toList) by (dict |> Dict.keys)" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -2063,16 +2063,16 @@ a = List.map Tuple.first <| (dict |> Dict.toList)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
-                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
+                            , details = [ "You can replace this call by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = Dict.keys <| dict
+a = (dict |> Dict.keys)
 """
                         ]
-        , test "should replace Dict.toList dict |> List.map Tuple.first by dict |> Dict.keys" <|
+        , test "should replace Dict.toList dict |> List.map Tuple.first by Dict.keys dict" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -2081,13 +2081,13 @@ a = Dict.toList dict |> List.map Tuple.first
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.toList, then List.map Tuple.first is the same as Dict.keys"
-                            , details = [ "Using Dict.keys directly is meant for this exact purpose and will also be faster." ]
+                            { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
+                            , details = [ "You can replace this call by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = dict |> Dict.keys
+a = Dict.keys dict
 """
                         ]
         , test "should replace array |> Array.toIndexedList |> List.map Tuple.second by array |> Array.toList" <|
