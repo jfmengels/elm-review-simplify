@@ -12726,7 +12726,7 @@ constructsOrComposesInto constructWithOneValue lookupTable expressionNode =
                         compositionToLast.last
                             |> AstHelpers.getSpecificValueOrFn constructWithOneValue.fn lookupTable
                             |> Maybe.map
-                                (\constructor ->
+                                (\_ ->
                                     [ Fix.removeRange
                                         (andBetweenRange { included = Node.range compositionToLast.last, excluded = Node.range compositionToLast.earlier })
                                     ]
