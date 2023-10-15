@@ -4808,43 +4808,26 @@ listConcatChecks =
             (\checkInfo ->
                 case fromListGetLiteral listCollection checkInfo.lookupTable checkInfo.firstArg of
                     Just listLiteral ->
-                        firstThatConstructsJust
-                            [ \() ->
-                                case traverse AstHelpers.getListLiteral listLiteral.elements of
-                                    Just _ ->
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message = "Expression could be simplified to be a single List"
-                                                , details = [ "Try moving all the elements into a single list." ]
-                                                }
-                                                checkInfo.fnRange
-                                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
-                                                    ++ List.concatMap removeBoundariesFix listLiteral.elements
-                                                )
-                                            )
+                        case traverse AstHelpers.getListLiteral listLiteral.elements of
+                            Just _ ->
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = "Expression could be simplified to be a single List"
+                                        , details = [ "Try moving all the elements into a single list." ]
+                                        }
+                                        checkInfo.fnRange
+                                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                                            ++ List.concatMap removeBoundariesFix listLiteral.elements
+                                        )
+                                    )
 
-                                    Nothing ->
-                                        Nothing
-                            , \() ->
-                                case mergeConsecutiveFromListLiteralsFix listCollection checkInfo listLiteral.elements of
-                                    firstFix :: fixesAfterFirst ->
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message = "Consecutive literal lists can be merged"
-                                                , details = [ "Try moving all the elements from consecutive list literals so that they form a single list." ]
-                                                }
-                                                checkInfo.fnRange
-                                                (firstFix :: fixesAfterFirst)
-                                            )
-
-                                    [] ->
-                                        Nothing
-                            ]
-                            ()
+                            Nothing ->
+                                Nothing
 
                     Nothing ->
                         Nothing
             )
+        , intoFnCheckOnlyCall (mergeConsecutiveFromListLiteralsCheck listCollection)
         ]
 
 
@@ -8193,25 +8176,46 @@ callOnFromListWithIrrelevantEmptyElement situation ( constructibleFromList, empt
             Nothing
 
 
-{-| Unify neighboring constructions from a literal list in a literal list
+{-| The check to unify neighboring constructions from a literal list in a literal list
 
-    [ a
-    , fromList construction with [ b, c ]
-    , fromList construction with [ d, e ]
-    , fromList construction with [ f, g ]
-    , h
-    ]
+    fromList construction
+        with
+        [ a
+        , fromList construction with [ b, c ]
+        , fromList construction with [ d, e ]
+        , fromList construction with [ f, g ]
+        , h
+        ]
 
     -->
-    [ a
-    , fromList construction with [ b, c, d, e, f, g ]
-    , h
-    ]
+    fromList construction
+        with
+        [ a
+        , fromList construction with [ b, c, d, e, f, g ]
+        , h
+        ]
 
 -}
-mergeConsecutiveFromListLiteralsFix : ConstructibleFromListProperties otherProperties -> { resources | lookupTable : ModuleNameLookupTable, extractSourceCode : Range -> String } -> List (Node Expression) -> List Fix
-mergeConsecutiveFromListLiteralsFix constructibleFromList resources listElements =
-    mergeConsecutiveFromListLiteralsFixWithBeforeEndingIn Nothing [] constructibleFromList resources listElements
+mergeConsecutiveFromListLiteralsCheck : ConstructibleFromListProperties otherProperties -> CallCheckInfo -> Maybe (Error {})
+mergeConsecutiveFromListLiteralsCheck constructibleFromList checkInfo =
+    case Maybe.andThen (fromListGetLiteral constructibleFromList checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
+        Just listLiteral ->
+            case mergeConsecutiveFromListLiteralsFixWithBeforeEndingIn Nothing [] constructibleFromList checkInfo listLiteral.elements of
+                firstFix :: fixesAfterFirst ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Consecutive " ++ constructionFromListOnLiteralDescription constructibleFromList.fromList ++ "s can be merged"
+                            , details = [ "Try moving all the elements from consecutive " ++ constructionFromListOnLiteralDescription constructibleFromList.fromList ++ "s so that they form a single list." ]
+                            }
+                            checkInfo.fnRange
+                            (firstFix :: fixesAfterFirst)
+                        )
+
+                [] ->
+                    Nothing
+
+        Nothing ->
+            Nothing
 
 
 mergeConsecutiveFromListLiteralsFixWithBeforeEndingIn : Maybe { literalInsertLocation : Location, elementEndLocation : Location } -> List Fix -> ConstructibleFromListProperties otherProperties -> { resources | lookupTable : ModuleNameLookupTable, extractSourceCode : Range -> String } -> List (Node Expression) -> List Fix
