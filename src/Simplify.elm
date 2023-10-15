@@ -1006,6 +1006,9 @@ Destructuring using case expressions
     Set.union set Set.empty
     --> set
 
+    Set.union set set
+    --> set
+
     Set.union (Set.fromList [ a, b ]) (Set.fromList [ c, d ])
     --> Set.fromList [ a, b, c, d]
 
@@ -5818,7 +5821,10 @@ setDiffChecks =
 
 setUnionChecks : IntoFnCheck
 setUnionChecks =
-    intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = True } setCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = True } setCollection)
+        , whenArgumentsAreEqualReturnLastCheck
+        ]
 
 
 setMapChecks : IntoFnCheck
