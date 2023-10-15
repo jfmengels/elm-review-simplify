@@ -666,6 +666,45 @@ a = Maybe.andThen (
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not report Maybe.andThen (f << Just) maybe" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen (f << Just) maybe
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Maybe.andThen (Just << f) maybe by Maybe.map (f) maybe" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen (Just << f) maybe
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Maybe.andThen with a function that always returns a just maybe is the same as Maybe.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just maybe." ]
+                            , under = "Maybe.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Maybe.map (f) maybe
+"""
+                        ]
+        , test "should replace Maybe.andThen (Just << f) by Maybe.map (f)" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.andThen (Just << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Maybe.andThen with a function that always returns a just maybe is the same as Maybe.map with the function returning the value inside"
+                            , details = [ "You can replace this call by Maybe.map with the function returning the value inside the just maybe." ]
+                            , under = "Maybe.andThen"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Maybe.map (f)
+"""
+                        ]
         , test "should replace Maybe.andThen f (Just x) by f x" <|
             \() ->
                 """module A exposing (..)
