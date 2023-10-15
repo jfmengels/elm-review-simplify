@@ -71,6 +71,7 @@
 - `Dict.foldl f initial Dict.empty` to `initial` (same for `Dict.foldr`)
 - `Dict.foldl (\_ soFar -> soFar) initial dict` to `initial` (same for `Dict.foldr`)
 - `Dict.union dict dict` to `dict`
+- `Dict.intersect dict dict` to `dict`
 - `Tuple.first (List.partition f list)` to `List.filter f list` (same for `Set.partition` and `Dict.partition`)
 - `List.sum [ a, 0, b ]` to `List.sum [ a, b ]`
 - `List.product [ a, 1, b ]` to `List.product [ a, b ]`

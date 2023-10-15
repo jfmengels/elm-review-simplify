@@ -1052,6 +1052,42 @@ import Dict
 a = Dict.empty
 """
                         ]
+        , test "should replace Dict.intersect dict dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.intersect dict dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.intersect where the first and second argument are equal will always return the same given last argument"
+                            , details = [ "You can replace this call by the last argument itself." ]
+                            , under = "Dict.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace value.field |> Dict.intersect (.field value) by value.field" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = value.field |> Dict.intersect (.field value)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.intersect where the first and second argument are equal will always return the same given last argument"
+                            , details = [ "You can replace this call by the last argument itself." ]
+                            , under = "Dict.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = value.field
+"""
+                        ]
         ]
 
 
