@@ -1509,6 +1509,42 @@ import Set
 a = Set.empty
 """
                         ]
+        , test "should replace Set.intersect set set by set" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.intersect set set
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.intersect where the first and second argument are equal will always return the same given last argument"
+                            , details = [ "You can replace this call by the last argument itself." ]
+                            , under = "Set.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = set
+"""
+                        ]
+        , test "should replace value.field |> Set.intersect (.field value) by value.field" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = value.field |> Set.intersect (.field value)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.intersect where the first and second argument are equal will always return the same given last argument"
+                            , details = [ "You can replace this call by the last argument itself." ]
+                            , under = "Set.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = value.field
+"""
+                        ]
         ]
 
 

@@ -997,6 +997,9 @@ Destructuring using case expressions
     Set.intersect Set.empty set
     --> Set.empty
 
+    Set.intersect set set
+    --> set
+
     Set.diff Set.empty set
     --> Set.empty
 
@@ -5814,7 +5817,10 @@ setPartitionChecks =
 
 setIntersectChecks : IntoFnCheck
 setIntersectChecks =
-    collectionIntersectChecks setCollection
+    intoFnChecksFirstThatConstructsError
+        [ collectionIntersectChecks setCollection
+        , whenArgumentsAreEqualReturnLastCheck
+        ]
 
 
 setDiffChecks : IntoFnCheck
