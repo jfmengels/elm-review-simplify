@@ -1083,6 +1083,9 @@ Destructuring using case expressions
     Dict.intersect Dict.empty dict
     --> Dict.empty
 
+    Dict.intersect dict dict
+    --> dict
+
     Dict.diff Dict.empty dict
     --> Dict.empty
 
@@ -5896,7 +5899,10 @@ dictMapChecks =
 
 dictIntersectChecks : IntoFnCheck
 dictIntersectChecks =
-    collectionIntersectChecks dictCollection
+    intoFnChecksFirstThatConstructsError
+        [ collectionIntersectChecks dictCollection
+        , whenArgumentsAreEqualReturnLastCheck
+        ]
 
 
 dictDiffChecks : IntoFnCheck
