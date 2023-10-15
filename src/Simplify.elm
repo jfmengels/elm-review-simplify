@@ -2904,6 +2904,7 @@ type alias ErrorInfoAndFix =
 {-| Checking both the function call of and composition into a specific fn.
 
 Construct the record directly or use `intoFnCheckOnlyCall`/`intoFnCheckOnlyComposition`.
+Provide multiple checks using `intoFnChecksFirstThatConstructsError`.
 
 -}
 type alias IntoFnCheck =
