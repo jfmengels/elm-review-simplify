@@ -5817,10 +5817,7 @@ setPartitionChecks =
 
 setIntersectChecks : IntoFnCheck
 setIntersectChecks =
-    intoFnChecksFirstThatConstructsError
-        [ collectionIntersectChecks setCollection
-        , whenArgumentsAreEqualReturnLastCheck
-        ]
+    collectionIntersectChecks setCollection
 
 
 setDiffChecks : IntoFnCheck
@@ -5905,10 +5902,7 @@ dictMapChecks =
 
 dictIntersectChecks : IntoFnCheck
 dictIntersectChecks =
-    intoFnChecksFirstThatConstructsError
-        [ collectionIntersectChecks dictCollection
-        , whenArgumentsAreEqualReturnLastCheck
-        ]
+    collectionIntersectChecks dictCollection
 
 
 dictDiffChecks : IntoFnCheck
@@ -11051,6 +11045,7 @@ collectionIntersectChecks collection =
                 else
                     Nothing
             )
+        , whenArgumentsAreEqualReturnLastCheck
         ]
 
 
