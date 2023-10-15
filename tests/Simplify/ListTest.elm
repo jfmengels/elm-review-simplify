@@ -2099,8 +2099,8 @@ a = array |> Array.toIndexedList |> List.map Tuple.second
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.toIndexedList, then List.map Tuple.second is the same as Array.toList"
-                            , details = [ "You can replace this call by Array.toList on the array given to Array.toIndexedList which is meant for this exact purpose and will also be faster." ]
+                            { message = "Array.toIndexedList, then List.map with Tuple.second can be combined into Array.toList"
+                            , details = [ "You can replace this call by Array.toList with the same arguments given to Array.toIndexedList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2117,8 +2117,8 @@ a = array |> Array.toIndexedList |> List.map (\\( _, part1 ) -> part1)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.toIndexedList, then List.map Tuple.second is the same as Array.toList"
-                            , details = [ "You can replace this call by Array.toList on the array given to Array.toIndexedList which is meant for this exact purpose and will also be faster." ]
+                            { message = "Array.toIndexedList, then List.map with Tuple.second can be combined into Array.toList"
+                            , details = [ "You can replace this call by Array.toList with the same arguments given to Array.toIndexedList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2135,8 +2135,8 @@ a = Array.toIndexedList >> List.map Tuple.second
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.toIndexedList, then List.map Tuple.second is the same as Array.toList"
-                            , details = [ "You can replace this composition by Array.toList which is meant for this exact purpose and will also be faster." ]
+                            { message = "Array.toIndexedList, then List.map with Tuple.second can be combined into Array.toList"
+                            , details = [ "You can replace this composition by Array.toList with the same arguments given to Array.toIndexedList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2153,8 +2153,8 @@ a = Array.toIndexedList >> List.map (\\( _, part1 ) -> part1)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Array.toIndexedList, then List.map Tuple.second is the same as Array.toList"
-                            , details = [ "You can replace this composition by Array.toList which is meant for this exact purpose and will also be faster." ]
+                            { message = "Array.toIndexedList, then List.map with Tuple.second can be combined into Array.toList"
+                            , details = [ "You can replace this composition by Array.toList with the same arguments given to Array.toIndexedList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
