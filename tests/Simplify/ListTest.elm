@@ -1318,7 +1318,7 @@ d = List.member g (List.filter f list)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should replace List.member a [] by Nothing" <|
+        , test "should replace List.member a [] by False" <|
             \() ->
                 """module A exposing (..)
 a = List.member a []
