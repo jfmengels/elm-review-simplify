@@ -984,6 +984,23 @@ a = List.concatMap f << List.singleton
 a = f
 """
                         ]
+        , test "should replace List.concat [ list0, List.concat [ list1, list2 ], list3, List.concat [ list4, list5 ] ] by List.concat [ list0, list1, list2, list3, list4, list5 ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.concat [ list0, List.concat [ list1, list2 ], list3, List.concat [ list4, list5 ] ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Nested List.concat calls can be spread"
+                            , details = [ "You can move the elements from the inner List.concat calls to inside this outer List.concat call." ]
+                            , under = "List.concat"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concat [ list0,  list1, list2 , list3,  list4, list5  ]
+"""
+                        ]
         , test "should replace List.map f >> List.concat by List.concatMap f" <|
             \() ->
                 """module A exposing (..)

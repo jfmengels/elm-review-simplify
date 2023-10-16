@@ -8133,6 +8133,9 @@ fromMaybeWithEmptyValueOnNothingCheck wrapper =
     flatFromList [ aEmptiable, empty, bEmptiable ]
     --> flatFromList [ aEmptiable, bEmptiable ]
 
+    flatFromList [ a, flatFromList [ b, c ], d ]
+    --> flatFromList [ a, b, c, d ]
+
 So for example with `emptiableFlatFromListChecks stringCollection`
 
     String.concat []
@@ -8143,6 +8146,9 @@ So for example with `emptiableFlatFromListChecks stringCollection`
 
     String.concat [ "hello", "", "world" ]
     --> String.concat [ "hello", "world" ]
+
+    String.concat [ "a", String.concat [ b, c ], d ]
+    --> String.concat [ "a", b, c, d ]
 
 -}
 emptiableFlatFromListChecks : EmptiableProperties ConstantProperties otherProperties -> IntoFnCheck
@@ -8156,6 +8162,7 @@ emptiableFlatFromListChecks emptiable =
                     ( listCollection, emptiable )
                     checkInfo
             )
+        , intoFnCheckOnlyCall flatFromListsSpreadFlatFromListElementsCheck
         ]
 
 
@@ -8191,13 +8198,14 @@ flatFromListsSpreadFlatFromListElementsCheck checkInfo =
             case List.filterMap getFlatFromListOnLiteralCheck listLiteralElements of
                 nestedFromListLiteral0 :: nestedFromListLiteral1Up ->
                     let
-                        fromListOnLiteralDescription =
-                            qualifiedToString checkInfo.fn ++ " call"
+                        flatFromListOnLiteralDescription : String
+                        flatFromListOnLiteralDescription =
+                            qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " call"
                     in
                     Just
                         (Rule.errorWithFix
-                            { message = "Nested " ++ fromListOnLiteralDescription ++ "s can be spread"
-                            , details = [ "You can move the elements from the inner " ++ fromListOnLiteralDescription ++ "s to inside this outer " ++ fromListOnLiteralDescription ++ "." ]
+                            { message = "Nested " ++ flatFromListOnLiteralDescription ++ "s can be spread"
+                            , details = [ "You can move the elements from the inner " ++ flatFromListOnLiteralDescription ++ "s to inside this outer " ++ flatFromListOnLiteralDescription ++ "." ]
                             }
                             checkInfo.fnRange
                             (List.concatMap

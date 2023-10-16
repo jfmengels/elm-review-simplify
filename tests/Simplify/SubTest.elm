@@ -249,4 +249,21 @@ import Dict
 a = (Dict.fromList <| [ d, e , b, c ])
 """
                         ]
+        , test "should replace Sub.batch [ subscription0, Sub.batch [ subscription1, subscription2 ], subscription3, Sub.batch [ subscription4, subscription5 ] ] by Sub.batch [ subscription0, subscription1, subscription2, subscription3, subscription4, subscription5 ]" <|
+            \() ->
+                """module A exposing (..)
+a = Sub.batch [ subscription0, Sub.batch [ subscription1, subscription2 ], subscription3, Sub.batch [ subscription4, subscription5 ] ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Nested Sub.batch calls can be spread"
+                            , details = [ "You can move the elements from the inner Sub.batch calls to inside this outer Sub.batch call." ]
+                            , under = "Sub.batch"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Sub.batch [ subscription0,  subscription1, subscription2 , subscription3,  subscription4, subscription5  ]
+"""
+                        ]
         ]

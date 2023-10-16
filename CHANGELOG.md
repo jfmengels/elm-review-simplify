@@ -104,6 +104,9 @@
 - `Maybe.andThen (f << Just) maybe` to `Maybe.map f maybe` (same for `Result.andThen`, `List.concatMap`, `Task.andThen`, `Task.onError`, `Json.Decode.andThen`, `Random.andThen`)
 - `Test.concat [ test ]` to `test`
 - `Test.concat [ test0, Test.concat [ test1, test2 ], test3 ]` to `Test.concat [ test0, test1, test2, test3 ]`
+- `List.concat [ a, List.concat [ b, c ], d ]` to `List.concat [ a, b, c, d ]`
+- `Platform.Cmd.batch [ a, Platform.Cmd.batch [ b, c ], d ]` to `Platform.Cmd.batch [ a, b, c, d ]`
+- `Platform.Sub.batch [ a, Platform.Sub.batch [ b, c ], d ]` to `Platform.Sub.batch [ a, b, c, d ]`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`
