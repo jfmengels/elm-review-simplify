@@ -6836,23 +6836,24 @@ listGetElements resources =
 
                 _ ->
                     Nothing
-         , \expressionNode ->
-                case AstHelpers.removeParens expressionNode of
-                    Node _ (Expression.OperatorApplication "++" _ leftList rightList) ->
-                        case (listGetElements resources leftList, listGetElements resources rightList) of
-                            (Just leftElements, Just rightElements) ->
-                                Just {allKnown = leftElements.allKnown && rightElements.allKnown, known = leftElements.known ++ rightElements.known}
+        , \expressionNode ->
+            case AstHelpers.removeParens expressionNode of
+                Node _ (Expression.OperatorApplication "++" _ leftList rightList) ->
+                    case ( listGetElements resources leftList, listGetElements resources rightList ) of
+                        ( Just leftElements, Just rightElements ) ->
+                            Just { allKnown = leftElements.allKnown && rightElements.allKnown, known = leftElements.known ++ rightElements.known }
 
-                            (Just leftElements, Nothing) ->
-                                 Just {known = leftElements.known, allKnown = False}
+                        ( Just leftElements, Nothing ) ->
+                            Just { known = leftElements.known, allKnown = False }
 
-                            (Nothing, Just rightElements) ->
-                                 Just {known = rightElements.known, allKnown = False}
+                        ( Nothing, Just rightElements ) ->
+                            Just { known = rightElements.known, allKnown = False }
 
-                            _ -> Nothing
+                        _ ->
+                            Nothing
 
-                    _ ->
-                        Nothing
+                _ ->
+                    Nothing
         ]
 
 
