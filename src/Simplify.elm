@@ -1342,6 +1342,7 @@ import Fn.Result
 import Fn.Set
 import Fn.String
 import Fn.Task
+import Fn.Test
 import Fn.Tuple
 import Review.Fix as Fix exposing (Fix)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
@@ -3116,6 +3117,7 @@ intoFnChecks =
         , ( Fn.Random.list, ( 2, randomListChecks ) )
         , ( Fn.Random.map, ( 2, randomMapChecks ) )
         , ( Fn.Random.andThen, ( 2, randomAndThenChecks ) )
+        , ( Fn.Test.concat, ( 1, testConcatChecks ) )
         ]
 
 
@@ -6193,6 +6195,25 @@ parserAdvancedOneOfChecks =
 
 
 
+-- TEST FUNCTIONS
+
+
+testConcatChecks : IntoFnCheck
+testConcatChecks =
+    -- does not use emptiableWrapperFlatFromListChecks because test has no simple Test.none
+    intoFnChecksFirstThatConstructsError
+        [ onWrappedReturnsItsValueCheck listCollection
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
+                    ( listCollection, testProperties )
+                    checkInfo
+            )
+        , intoFnCheckOnlyCall flatFromListsSpreadFlatFromListElementsCheck
+        ]
+
+
+
 -- TYPE PROPERTIES
 
 
@@ -6491,13 +6512,13 @@ getValueWithNodeRange getValue expressionNode =
         (getValue expressionNode)
 
 
-fromListGetLiteral : ConstructibleFromListProperties otherProperties -> ModuleNameLookupTable -> Node Expression -> Maybe { range : Range, elements : List (Node Expression) }
+fromListGetLiteral : ConstructibleFromListProperties otherProperties -> ModuleNameLookupTable -> Node Expression -> Maybe { nodeRange : Range, range : Range, elements : List (Node Expression) }
 fromListGetLiteral constructibleFromList lookupTable expressionNode =
     case constructibleFromList.fromList of
         ConstructionAsList ->
             case AstHelpers.removeParens expressionNode of
                 Node listLiteralRange (Expression.ListExpr listElements) ->
-                    Just { range = listLiteralRange, elements = listElements }
+                    Just { nodeRange = Node.range expressionNode, range = listLiteralRange, elements = listElements }
 
                 _ ->
                     Nothing
@@ -6507,7 +6528,7 @@ fromListGetLiteral constructibleFromList lookupTable expressionNode =
                 Just fromListCall ->
                     case AstHelpers.removeParens fromListCall.firstArg of
                         Node listLiteralRange (Expression.ListExpr listElements) ->
-                            Just { range = listLiteralRange, elements = listElements }
+                            Just { nodeRange = Node.range expressionNode, range = listLiteralRange, elements = listElements }
 
                         _ ->
                             Nothing
@@ -7298,6 +7319,29 @@ subCollection : TypeProperties (EmptiableProperties ConstantProperties {})
 subCollection =
     { represents = "subscription"
     , empty = { specific = constantFnProperties Fn.Platform.Sub.none, kind = Constant }
+    }
+
+
+testProperties : TypeProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties {}))
+testProperties =
+    { represents = "test"
+    , empty = { specific = testConcatOnEmptyListConstant, kind = Constant }
+    , fromList = ConstructionFromListCall Fn.Test.concat
+    }
+
+
+testConcatOnEmptyListConstant : ConstantProperties
+testConcatOnEmptyListConstant =
+    { description = "Test.concat []"
+    , is =
+        \res expr ->
+            case AstHelpers.getSpecificFnCall Fn.Test.concat res.lookupTable expr of
+                Nothing ->
+                    False
+
+                Just testConcatCall ->
+                    isInTypeSubset listCollection.empty res testConcatCall.firstArg
+    , asString = \res -> "(" ++ qualifiedToString (qualify Fn.Test.concat res) ++ " [])"
     }
 
 
@@ -8140,6 +8184,62 @@ emptiableWrapperFlatFromListChecks batchable =
                     checkInfo
             )
         ]
+
+
+{-| The "flatFromList" check
+
+    flatFromList [ a, flatFromList [ b, c ], d ]
+    --> flatFromList [ a, b, c, d ]
+
+So for example
+
+    String.concat [ "a", String.concat [ b, c ], d ]
+    --> String.concat [ "a", b, c, d ]
+
+-}
+flatFromListsSpreadFlatFromListElementsCheck : CallCheckInfo -> Maybe (Error {})
+flatFromListsSpreadFlatFromListElementsCheck checkInfo =
+    case AstHelpers.getListLiteral checkInfo.firstArg of
+        Just listLiteralElements ->
+            let
+                getFlatFromListOnLiteralCheck : Node Expression -> Maybe { callNodeRange : Range, literalRange : Range }
+                getFlatFromListOnLiteralCheck expressionNode =
+                    AstHelpers.getSpecificFnCall checkInfo.fn checkInfo.lookupTable expressionNode
+                        |> Maybe.andThen
+                            (\flatFromListCall ->
+                                case flatFromListCall.firstArg of
+                                    Node literalRange (Expression.ListExpr _) ->
+                                        Just { callNodeRange = Node.range expressionNode, literalRange = literalRange }
+
+                                    _ ->
+                                        Nothing
+                            )
+            in
+            case List.filterMap getFlatFromListOnLiteralCheck listLiteralElements of
+                nestedFromListLiteral0 :: nestedFromListLiteral1Up ->
+                    let
+                        fromListOnLiteralDescription =
+                            qualifiedToString checkInfo.fn ++ " call"
+                    in
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Nested " ++ fromListOnLiteralDescription ++ "s can be spread"
+                            , details = [ "You can move the elements from the inner " ++ fromListOnLiteralDescription ++ "s to inside this outer " ++ fromListOnLiteralDescription ++ "." ]
+                            }
+                            checkInfo.fnRange
+                            (List.concatMap
+                                (\nestedFromListLiteral ->
+                                    keepOnlyFix { parentRange = nestedFromListLiteral.callNodeRange, keep = rangeWithoutBoundaries nestedFromListLiteral.literalRange }
+                                )
+                                (nestedFromListLiteral0 :: nestedFromListLiteral1Up)
+                            )
+                        )
+
+                [] ->
+                    Nothing
+
+        Nothing ->
+            Nothing
 
 
 callOnFromListWithIrrelevantEmptyElement :

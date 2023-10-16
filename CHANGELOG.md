@@ -102,6 +102,9 @@
 - `List.drop 3 [ a, b ]` to `[]` (same for lists with determined size like `List.singleton`)
 - `List.drop 2 [ a, b, c ]` to `[ c ]`
 - `Maybe.andThen (f << Just) maybe` to `Maybe.map f maybe` (same for `Result.andThen`, `List.concatMap`, `Task.andThen`, `Task.onError`, `Json.Decode.andThen`, `Random.andThen`)
+- `Test.concat [ test ]` to `test`
+- `Test.concat [ test0, Test.concat [], test1 ]` to `Test.concat [ test0, test1 ]`
+- `Test.concat [ test0, Test.concat [ test1, test2 ], test3 ]` to `Test.concat [ test0, test1, test2, test3 ]`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`
