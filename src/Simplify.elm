@@ -4805,16 +4805,9 @@ listAppendChecks =
 listConcatChecks : IntoFnCheck
 listConcatChecks =
     intoFnChecksFirstThatConstructsError
-        [ onWrappedReturnsItsValueCheck listCollection
-        , onSpecificFnCallCanBeCombinedCheck
+        [ onSpecificFnCallCanBeCombinedCheck
             { args = [], earlierFn = Fn.List.map, combinedFn = Fn.List.concatMap }
-        , unnecessaryOnEmptyCheck listCollection
-        , intoFnCheckOnlyCall
-            (\checkInfo ->
-                callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
-                    ( listCollection, listCollection )
-                    checkInfo
-            )
+        , emptiableWrapperFlatFromListChecks listCollection
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 case fromListGetLiteral listCollection checkInfo.lookupTable checkInfo.firstArg of
@@ -8153,14 +8146,14 @@ So for example with `emptiableWrapperFlatFromListChecks stringCollection`
 
 -}
 emptiableWrapperFlatFromListChecks : EmptiableProperties ConstantProperties otherProperties -> IntoFnCheck
-emptiableWrapperFlatFromListChecks batchable =
+emptiableWrapperFlatFromListChecks emptiable =
     intoFnChecksFirstThatConstructsError
         [ onWrappedReturnsItsValueCheck listCollection
-        , intoFnCheckOnlyCall (callOnEmptyReturnsCheck { resultAsString = batchable.empty.specific.asString } listCollection)
+        , intoFnCheckOnlyCall (callOnEmptyReturnsCheck { resultAsString = emptiable.empty.specific.asString } listCollection)
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 callOnFromListWithIrrelevantEmptyElement (qualifiedToString (qualify checkInfo.fn defaultQualifyResources))
-                    ( listCollection, batchable )
+                    ( listCollection, emptiable )
                     checkInfo
             )
         ]
