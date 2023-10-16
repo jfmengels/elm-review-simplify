@@ -6849,7 +6849,7 @@ listGetElements resources =
                         ( Nothing, Just rightElements ) ->
                             Just { known = rightElements.known, allKnown = False }
 
-                        _ ->
+                        ( Nothing, Nothing ) ->
                             Nothing
 
                 _ ->
