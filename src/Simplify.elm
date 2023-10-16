@@ -6522,13 +6522,13 @@ getValueWithNodeRange getValue expressionNode =
         (getValue expressionNode)
 
 
-fromListGetLiteral : ConstructibleFromListProperties otherProperties -> ModuleNameLookupTable -> Node Expression -> Maybe { nodeRange : Range, range : Range, elements : List (Node Expression) }
+fromListGetLiteral : ConstructibleFromListProperties otherProperties -> ModuleNameLookupTable -> Node Expression -> Maybe { constructionNodeRange : Range, literalRange : Range, elements : List (Node Expression) }
 fromListGetLiteral constructibleFromList lookupTable expressionNode =
     case constructibleFromList.fromList of
         ConstructionAsList ->
             case AstHelpers.removeParens expressionNode of
                 Node listLiteralRange (Expression.ListExpr listElements) ->
-                    Just { nodeRange = Node.range expressionNode, range = listLiteralRange, elements = listElements }
+                    Just { constructionNodeRange = Node.range expressionNode, literalRange = listLiteralRange, elements = listElements }
 
                 _ ->
                     Nothing
@@ -6538,7 +6538,7 @@ fromListGetLiteral constructibleFromList lookupTable expressionNode =
                 Just fromListCall ->
                     case AstHelpers.removeParens fromListCall.firstArg of
                         Node listLiteralRange (Expression.ListExpr listElements) ->
-                            Just { nodeRange = Node.range expressionNode, range = listLiteralRange, elements = listElements }
+                            Just { constructionNodeRange = Node.range expressionNode, literalRange = listLiteralRange, elements = listElements }
 
                         _ ->
                             Nothing
@@ -8336,7 +8336,7 @@ mergeConsecutiveFromListLiteralsFixWithBeforeEndingIn maybeBefore fixEnding cons
                                 (Fix.removeRange
                                     { start = before.elementEndLocation, end = (Node.range first).end }
                                     :: Fix.insertAt before.literalInsertLocation
-                                        (", " ++ resources.extractSourceCode (rangeWithoutBoundaries firstFromListLiteral.range))
+                                        (", " ++ resources.extractSourceCode (rangeWithoutBoundaries firstFromListLiteral.literalRange))
                                     :: fixEnding
                                 )
                                 constructibleFromList
@@ -8346,7 +8346,7 @@ mergeConsecutiveFromListLiteralsFixWithBeforeEndingIn maybeBefore fixEnding cons
                         Nothing ->
                             mergeConsecutiveFromListLiteralsFixWithBeforeEndingIn
                                 (Just
-                                    { literalInsertLocation = endWithoutBoundary firstFromListLiteral.range
+                                    { literalInsertLocation = endWithoutBoundary firstFromListLiteral.literalRange
                                     , elementEndLocation = (Node.range first).end
                                     }
                                 )
@@ -8943,7 +8943,7 @@ sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( constructibleFromList, el
                                     checkInfo.fnRange
                                     [ Fix.removeRange
                                         { start = (Node.range emptyAndNeighbors.found).end
-                                        , end = endWithoutBoundary listLiteral.range
+                                        , end = endWithoutBoundary listLiteral.literalRange
                                         }
                                     ]
                                 )
@@ -9738,7 +9738,7 @@ dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck config const
                                     checkInfo.fnRange
                                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range lastArg }
                                         ++ [ Fix.removeRange
-                                                { start = startWithoutBoundary fromListLiteral.range
+                                                { start = startWithoutBoundary fromListLiteral.literalRange
                                                 , end = elementAfterDroppedRange.start
                                                 }
                                            ]
@@ -11270,15 +11270,15 @@ collectionUnionWithLiteralsChecks config operationInfo collection checkInfo =
                             (if config.leftElementsStayOnTheLeft then
                                 keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range operationInfo.second }
                                     ++ [ Fix.insertAt
-                                            (rangeWithoutBoundaries literalListSecond.range).start
-                                            (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListFirst.range) ++ ",")
+                                            (rangeWithoutBoundaries literalListSecond.literalRange).start
+                                            (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListFirst.literalRange) ++ ",")
                                        ]
 
                              else
                                 keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range operationInfo.first }
                                     ++ [ Fix.insertAt
-                                            (rangeWithoutBoundaries literalListFirst.range).start
-                                            (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListSecond.range) ++ ",")
+                                            (rangeWithoutBoundaries literalListFirst.literalRange).start
+                                            (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListSecond.literalRange) ++ ",")
                                        ]
                             )
                         )
