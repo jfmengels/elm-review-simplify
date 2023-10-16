@@ -180,6 +180,71 @@ a = String.concat []
 a = ""
 """
                         ]
+        , test "should report String.concat with a single item" <|
+            \() ->
+                """module A exposing (..)
+a = [ string ] |> String.concat
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.concat on a singleton list will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the singleton list." ]
+                            , under = "String.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = string
+"""
+                        ]
+        , test "should replace String.concat << List.singleton by identity" <|
+            \() ->
+                """module A exposing (..)
+a = String.concat << List.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.concat on a singleton list will always result in the value inside"
+                            , details = [ "You can replace this composition by identity." ]
+                            , under = "String.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should remove empty list literals passed to List.concat (last item)" <|
+            \() ->
+                """module A exposing (..)
+a = String.concat [ a, "" ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.concat on a list containing an irrelevant \"\""
+                            , details = [ "Including \"\" in the list does not change the result of this call. You can remove the \"\" element." ]
+                            , under = "\"\""
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.concat [ a ]
+"""
+                        ]
+        , test "should replace String.concat [ string0, String.concat [ string1, string2 ], string3, String.concat [ string4, string5 ] ] by String.concat [ string0, string1, string2, string3, string4, string5 ]" <|
+            \() ->
+                """module A exposing (..)
+a = String.concat [ string0, String.concat [ string1, string2 ], string3, String.concat [ string4, string5 ] ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Nested String.concat calls can be spread"
+                            , details = [ "You can move the elements from the inner String.concat calls to inside this outer String.concat call." ]
+                            , under = "String.concat"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 18 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.concat [ string0,  string1, string2 , string3,  string4, string5  ]
+"""
+                        ]
         , test "should replace String.concat (List.repeat n str) by (String.repeat n str)" <|
             \() ->
                 """module A exposing (..)
