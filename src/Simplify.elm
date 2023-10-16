@@ -1310,6 +1310,15 @@ All of these also apply for `Sub`.
     Random.andThen (always thenGenerator) generator
     --> thenGenerator
 
+
+### Test
+
+    Test.concat [ test ]
+    --> test
+
+    Test.concat [ test0, Test.concat [ test1, test2 ], test3 ]
+    --> Test.concat [ test0, test1, test2, test3 ]
+
 -}
 
 import Dict exposing (Dict)
