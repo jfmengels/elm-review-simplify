@@ -617,6 +617,9 @@ Destructuring using case expressions
     List.concat [ a, [], b ]
     --> List.concat [ a, b ]
 
+    List.concat [ a, List.concat [ b, c ], d ]
+    --> List.concat [ a, b, c, d ]
+
     List.concatMap identity list
     --> List.concat list
 
@@ -1151,6 +1154,9 @@ All of these also apply for `Sub`.
 
     Cmd.batch [ a, Cmd.none, b ]
     --> Cmd.batch [ a, b ]
+
+    Cmd.batch [ a, Cmd.batch [ b, c ], d ]
+    --> Cmd.batch [ a, b, c, d ]
 
     Cmd.map identity cmd
     --> cmd
