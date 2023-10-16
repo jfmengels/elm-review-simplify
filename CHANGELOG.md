@@ -105,6 +105,7 @@
 - `Test.concat [ test ]` to `test`
 - `Test.concat [ test0, Test.concat [], test1 ]` to `Test.concat [ test0, test1 ]`
 - `Test.concat [ test0, Test.concat [ test1, test2 ], test3 ]` to `Test.concat [ test0, test1, test2, test3 ]`
+- `Test.describe description [ test0, Test.concat [], test1 ]` to `Test.describe description [ test0, test1 ]`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`

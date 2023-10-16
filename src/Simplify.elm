@@ -6203,12 +6203,6 @@ testConcatChecks =
     -- does not use emptiableWrapperFlatFromListChecks because test has no simple Test.none
     intoFnChecksFirstThatConstructsError
         [ onWrappedReturnsItsValueCheck listCollection
-        , intoFnCheckOnlyCall
-            (\checkInfo ->
-                callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
-                    ( listCollection, testProperties )
-                    checkInfo
-            )
         , intoFnCheckOnlyCall flatFromListsSpreadFlatFromListElementsCheck
         ]
 
@@ -7319,29 +7313,6 @@ subCollection : TypeProperties (EmptiableProperties ConstantProperties {})
 subCollection =
     { represents = "subscription"
     , empty = { specific = constantFnProperties Fn.Platform.Sub.none, kind = Constant }
-    }
-
-
-testProperties : TypeProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties {}))
-testProperties =
-    { represents = "test"
-    , empty = { specific = testConcatOnEmptyListConstant, kind = Constant }
-    , fromList = ConstructionFromListCall Fn.Test.concat
-    }
-
-
-testConcatOnEmptyListConstant : ConstantProperties
-testConcatOnEmptyListConstant =
-    { description = "Test.concat []"
-    , is =
-        \res expr ->
-            case AstHelpers.getSpecificFnCall Fn.Test.concat res.lookupTable expr of
-                Nothing ->
-                    False
-
-                Just testConcatCall ->
-                    isInTypeSubset listCollection.empty res testConcatCall.firstArg
-    , asString = \res -> "(" ++ qualifiedToString (qualify Fn.Test.concat res) ++ " [])"
     }
 
 

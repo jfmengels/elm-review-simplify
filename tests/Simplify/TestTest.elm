@@ -41,22 +41,6 @@ a = Test.concat [ test ]
 a = test
 """
                         ]
-        , test "should replace Test.concat [ test0, Test.concat [], test1 ] by Test.concat [ test0, test1 ]" <|
-            \() ->
-                """module A exposing (..)
-a = Test.concat [ test0, Test.concat [], test1 ]
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Test.concat on a list containing an irrelevant Test.concat []"
-                            , details = [ "Including Test.concat [] in the list does not change the result of this call. You can remove the Test.concat [] element." ]
-                            , under = "Test.concat []"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = Test.concat [ test0, test1 ]
-"""
-                        ]
         , test "should replace Test.concat [ test0, Test.concat [ test1, test2 ], test3, Test.concat [ test4, test5 ] ] by Test.concat [ test0, test1, test2, test3, test4, test5 ]" <|
             \() ->
                 """module A exposing (..)
