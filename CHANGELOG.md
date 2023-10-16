@@ -107,6 +107,9 @@
 - `List.concat [ a, List.concat [ b, c ], d ]` to `List.concat [ a, b, c, d ]`
 - `Platform.Cmd.batch [ a, Platform.Cmd.batch [ b, c ], d ]` to `Platform.Cmd.batch [ a, b, c, d ]`
 - `Platform.Sub.batch [ a, Platform.Sub.batch [ b, c ], d ]` to `Platform.Sub.batch [ a, b, c, d ]`
+- `String.concat [ a, String.concat [ b, c ], d ]` to `String.concat [ a, b, c, d ]`
+- `String.concat [ string ]` to `string`
+- `String.concat [ string0, "", string1 ]` to `String.concat [ string0, string1 ]`
 
 Bug fixes:
 - Fixed an issue where `Dict.intersect Dict.empty` would be fixed to `Dict.empty`

@@ -329,6 +329,15 @@ Destructuring using case expressions
     String.concat []
     --> ""
 
+    String.concat [ string ]
+    --> string
+
+    String.concat [ hello, "", world ]
+    --> String.concat [ hello, world ]
+
+    String.concat [ "a", String.concat [ b, c ], d ]
+    --> String.concat [ "a", b, c, d ]
+
     String.concat (List.repeat n str)
     --> String.repeat n str
 
@@ -4617,8 +4626,7 @@ stringAppendChecks =
 stringConcatChecks : IntoFnCheck
 stringConcatChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall
-            (callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.specific.asString } listCollection)
+        [ emptiableFlatFromListChecks stringCollection
         , onSpecificFnCallCanBeCombinedCheck { args = [], earlierFn = Fn.List.repeat, combinedFn = Fn.String.repeat }
         , onSpecificFnCallCanBeCombinedCheck { args = [], earlierFn = Fn.List.intersperse, combinedFn = Fn.String.join }
         ]
