@@ -4807,7 +4807,7 @@ listConcatChecks =
     intoFnChecksFirstThatConstructsError
         [ onSpecificFnCallCanBeCombinedCheck
             { args = [], earlierFn = Fn.List.map, combinedFn = Fn.List.concatMap }
-        , emptiableWrapperFlatFromListChecks listCollection
+        , emptiableFlatFromListChecks listCollection
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 case fromListGetLiteral listCollection checkInfo.lookupTable checkInfo.firstArg of
@@ -5926,7 +5926,7 @@ dictFoldrChecks =
 
 platformCmdBatchChecks : IntoFnCheck
 platformCmdBatchChecks =
-    emptiableWrapperFlatFromListChecks cmdCollection
+    emptiableFlatFromListChecks cmdCollection
 
 
 platformCmdMapChecks : IntoFnCheck
@@ -5940,7 +5940,7 @@ platformCmdMapChecks =
 
 platformSubBatchChecks : IntoFnCheck
 platformSubBatchChecks =
-    emptiableWrapperFlatFromListChecks subCollection
+    emptiableFlatFromListChecks subCollection
 
 
 platformSubChecks : IntoFnCheck
@@ -6202,7 +6202,7 @@ parserAdvancedOneOfChecks =
 
 testConcatChecks : IntoFnCheck
 testConcatChecks =
-    -- does not use emptiableWrapperFlatFromListChecks because test has no simple Test.none
+    -- does not use emptiableFlatFromListChecks because test has no simple Test.none
     intoFnChecksFirstThatConstructsError
         [ onWrappedReturnsItsValueCheck listCollection
         , intoFnCheckOnlyCall flatFromListsSpreadFlatFromListElementsCheck
@@ -8133,7 +8133,7 @@ fromMaybeWithEmptyValueOnNothingCheck wrapper =
     flatFromList [ aEmptiable, empty, bEmptiable ]
     --> flatFromList [ aEmptiable, bEmptiable ]
 
-So for example with `emptiableWrapperFlatFromListChecks stringCollection`
+So for example with `emptiableFlatFromListChecks stringCollection`
 
     String.concat []
     --> ""
@@ -8145,8 +8145,8 @@ So for example with `emptiableWrapperFlatFromListChecks stringCollection`
     --> String.concat [ "hello", "world" ]
 
 -}
-emptiableWrapperFlatFromListChecks : EmptiableProperties ConstantProperties otherProperties -> IntoFnCheck
-emptiableWrapperFlatFromListChecks emptiable =
+emptiableFlatFromListChecks : EmptiableProperties ConstantProperties otherProperties -> IntoFnCheck
+emptiableFlatFromListChecks emptiable =
     intoFnChecksFirstThatConstructsError
         [ onWrappedReturnsItsValueCheck listCollection
         , intoFnCheckOnlyCall (callOnEmptyReturnsCheck { resultAsString = emptiable.empty.specific.asString } listCollection)
