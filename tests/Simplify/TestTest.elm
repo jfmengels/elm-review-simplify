@@ -2,7 +2,7 @@ module Simplify.TestTest exposing (all)
 
 import Review.Test
 import Test exposing (Test, describe, test)
-import TestHelpers exposing (ruleExpectingNaN, ruleWithDefaults)
+import TestHelpers exposing (ruleWithDefaults)
 
 
 all : Test
