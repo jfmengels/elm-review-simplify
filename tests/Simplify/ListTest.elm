@@ -11,7 +11,7 @@ all =
     describe "List"
         [ usingConsTests
         , listAppendTests
-        , usingListConcatTests
+        , listConcatTests
         , listConcatMapTests
         , listHeadTests
         , listTailTests
@@ -407,8 +407,8 @@ a = list
         ]
 
 
-usingListConcatTests : Test
-usingListConcatTests =
+listConcatTests : Test
+listConcatTests =
     describe "List.concat"
         [ test "should not report List.concat that contains a variable or expression" <|
             \() ->
