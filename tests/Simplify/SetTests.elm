@@ -849,7 +849,7 @@ a = False
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.isEmpty (Set.singleton x)
+a = Set.isEmpty (Set.fromList ([b,c] ++ rest))
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
