@@ -572,6 +572,9 @@ Destructuring using case expressions
     List.member a [ a, b, c ]
     --> True
 
+    List.member a ([a, b] ++ list)
+    --> True
+
     List.member a [ b ]
     --> a == b
 
@@ -996,6 +999,9 @@ Destructuring using case expressions
 
     Set.isEmpty Set.empty
     --> True
+
+    Set.isEmpty (Set.fromList ([a] ++ list)
+    --> False
 
     Set.member x Set.empty
     --> False
@@ -6865,6 +6871,33 @@ listGetElements resources =
 
                         Nothing ->
                             Just { known = [ head ], allKnown = False }
+
+                _ ->
+                    Nothing
+        , \expressionNode ->
+            case AstHelpers.removeParens expressionNode of
+                Node _ (Expression.OperatorApplication "++" _ leftList rightList) ->
+                    case
+                        listGetElements resources leftList
+                            |> Maybe.map
+                                (\lefts ->
+                                    ( lefts
+                                    , if lefts.allKnown then
+                                        listGetElements resources rightList
+
+                                      else
+                                        Nothing
+                                    )
+                                )
+                    of
+                        Just ( leftElements, Just rightElements ) ->
+                            Just { allKnown = rightElements.allKnown, known = leftElements.known ++ rightElements.known }
+
+                        Just ( leftElements, Nothing ) ->
+                            Just { known = leftElements.known, allKnown = False }
+
+                        Nothing ->
+                            Nothing
 
                 _ ->
                     Nothing

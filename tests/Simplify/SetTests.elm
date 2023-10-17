@@ -845,6 +845,24 @@ import Set
 a = False
 """
                         ]
+        , test "should replace Set.isEmpty (Set.fromList ([a,b] ++ rest)) by False" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.isEmpty (Set.fromList ([b,c] ++ rest))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.isEmpty on this set will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Set.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = False
+"""
+                        ]
         , test "should replace Set.singleton set |> Set.isEmpty by False" <|
             \() ->
                 """module A exposing (..)
