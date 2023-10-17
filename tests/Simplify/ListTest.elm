@@ -1478,6 +1478,22 @@ a = List.member d [ b, c, d ]
 a = True
 """
                         ]
+        , test "should replace List.member c ([ a, b, c] ++ dToZ ] by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.member d ([ b, c, d ] ++ eToZ)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.member on a list which contains the given element will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         , test "should not report List.member d [ a, b, c ]" <|
             \() ->
                 """module A exposing (..)
