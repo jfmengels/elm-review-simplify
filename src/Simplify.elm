@@ -563,6 +563,9 @@ Destructuring using case expressions
     List.member a [ a, b, c ]
     --> True
 
+    List.member a ([a, b] ++ list)
+    --> True
+
     List.member a [ b ]
     --> a == b
 
@@ -984,6 +987,9 @@ Destructuring using case expressions
 
     Set.isEmpty Set.empty
     --> True
+
+    Set.isEmpty (Set.fromList ([a] ++ list)
+    --> False
 
     Set.member x Set.empty
     --> False
