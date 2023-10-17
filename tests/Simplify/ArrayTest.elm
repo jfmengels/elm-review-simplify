@@ -2046,6 +2046,7 @@ d = Array.get n (Array.repeat m x)
 e = Array.get 0 (Array.repeat m x)
 f = Array.get 0 (Array.initialize m func)
 g = Array.get n (Array.initialize m func)
+h = Array.get 0 (Array.fromList (xs ++ [1]))
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
