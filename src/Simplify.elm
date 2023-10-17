@@ -6853,7 +6853,7 @@ listGetElements resources =
                                 )
                     of
                         Just ( leftElements, Just rightElements ) ->
-                            Just { allKnown = leftElements.allKnown && rightElements.allKnown, known = leftElements.known ++ rightElements.known }
+                            Just { allKnown = rightElements.allKnown, known = leftElements.known ++ rightElements.known }
 
                         Just ( leftElements, Nothing ) ->
                             Just { known = leftElements.known, allKnown = False }
