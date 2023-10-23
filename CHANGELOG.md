@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+## [2.1.3] - 2023-10-23
+
+The rule now simplifies:
 - composition checks now also detect function pairs across nested compositions like `(here << ...) >> (... << there)`
 - `List.sort (List.sort list)` to `List.sort list`
 - `List.sortBy f (List.sortBy f list)` to `List.sortBy f list`
@@ -593,7 +596,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.2...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.3...HEAD
+[2.1.3]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.3
 [2.1.2]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.2
 [2.1.1]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.1
 [2.1.0]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.0
