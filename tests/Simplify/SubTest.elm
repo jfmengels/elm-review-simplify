@@ -7,7 +7,7 @@ import TestHelpers exposing (ruleWithDefaults)
 
 all : Test
 all =
-    describe "Sub.batch"
+    describe "Sub"
         [ subBatchTests
         , subMapTests
         ]
