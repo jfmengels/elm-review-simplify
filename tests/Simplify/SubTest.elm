@@ -8,6 +8,14 @@ import TestHelpers exposing (ruleWithDefaults)
 all : Test
 all =
     describe "Sub.batch"
+        [ subBatchTests
+        , subMapTests
+        ]
+
+
+subBatchTests : Test
+subBatchTests =
+    describe "Sub.batch"
         [ test "should not report Sub.batch used with okay arguments" <|
             \() ->
                 """module A exposing (..)
@@ -145,7 +153,30 @@ a = Sub.batch [ Sub.none, b ]
 a = Sub.batch [ b ]
 """
                         ]
-        , test "should replace Sub.map identity sub by sub" <|
+        , test "should replace Sub.batch [ subscription0, Sub.batch [ subscription1, subscription2 ], subscription3, Sub.batch [ subscription4, subscription5 ] ] by Sub.batch [ subscription0, subscription1, subscription2, subscription3, subscription4, subscription5 ]" <|
+            \() ->
+                """module A exposing (..)
+a = Sub.batch [ subscription0, Sub.batch [ subscription1, subscription2 ], subscription3, Sub.batch [ subscription4, subscription5 ] ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Nested Sub.batch calls can be spread"
+                            , details = [ "You can move the elements from the inner Sub.batch calls to inside this outer Sub.batch call." ]
+                            , under = "Sub.batch"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Sub.batch [ subscription0,  subscription1, subscription2 , subscription3,  subscription4, subscription5  ]
+"""
+                        ]
+        ]
+
+
+subMapTests : Test
+subMapTests =
+    describe "Sub.map"
+        [ test "should replace Sub.map identity sub by sub" <|
             \() ->
                 """module A exposing (..)
 a = Sub.map identity sub
@@ -175,23 +206,6 @@ a = Sub.map f Sub.none
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Sub.none
-"""
-                        ]
-        , test "should replace Sub.batch [ subscription0, Sub.batch [ subscription1, subscription2 ], subscription3, Sub.batch [ subscription4, subscription5 ] ] by Sub.batch [ subscription0, subscription1, subscription2, subscription3, subscription4, subscription5 ]" <|
-            \() ->
-                """module A exposing (..)
-a = Sub.batch [ subscription0, Sub.batch [ subscription1, subscription2 ], subscription3, Sub.batch [ subscription4, subscription5 ] ]
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Nested Sub.batch calls can be spread"
-                            , details = [ "You can move the elements from the inner Sub.batch calls to inside this outer Sub.batch call." ]
-                            , under = "Sub.batch"
-                            }
-                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 14 } }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = Sub.batch [ subscription0,  subscription1, subscription2 , subscription3,  subscription4, subscription5  ]
 """
                         ]
         ]
