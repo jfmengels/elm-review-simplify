@@ -1566,6 +1566,7 @@ type alias ProjectContext =
     { customTypesToReportInCases : Set ( ModuleName, ConstructorName )
     , exposedVariants : Dict ModuleName (Set String)
     , exposedRecordTypeAliases : Dict ModuleName (Dict String (List String))
+    , exposedCustomTypes : Dict ModuleName (Dict String { variantNames : Set String })
     }
 
 
@@ -1576,6 +1577,8 @@ type alias ModuleContext =
     , commentRanges : List Range
     , importRecordTypeAliases : Dict ModuleName (Dict String (List String))
     , moduleRecordTypeAliases : Dict String (List String)
+    , importCustomTypes : Dict ModuleName (Dict String { variantNames : Set String })
+    , moduleCustomTypes : Dict String { variantNames : Set String }
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
     , branchLocalBindings : RangeDict (Set String)
@@ -1652,6 +1655,7 @@ initialContext =
     { customTypesToReportInCases = Set.empty
     , exposedVariants = Dict.empty
     , exposedRecordTypeAliases = Dict.empty
+    , exposedCustomTypes = Dict.empty
     }
 
 
@@ -1681,6 +1685,25 @@ fromModuleToProject =
                                 )
                                 Dict.empty
                                 exposingSomeContext.potentialTypeAliases
+                    )
+            , exposedCustomTypes =
+                Dict.singleton moduleContext.moduleName
+                    (case moduleContext.exposed of
+                        ExposingAllContext ->
+                            moduleContext.moduleCustomTypes
+
+                        ExposingSomeContext exposingSomeContext ->
+                            Set.foldl
+                                (\exposedPotentialTypeAlias soFar ->
+                                    case Dict.get exposedPotentialTypeAlias moduleContext.moduleCustomTypes of
+                                        Nothing ->
+                                            soFar
+
+                                        Just recordTypeAlias ->
+                                            Dict.insert exposedPotentialTypeAlias recordTypeAlias soFar
+                                )
+                                Dict.empty
+                                exposingSomeContext.typesExposingVariants
                     )
             }
         )
@@ -1717,6 +1740,8 @@ fromProjectToModule =
             , commentRanges = []
             , importRecordTypeAliases = projectContext.exposedRecordTypeAliases
             , moduleRecordTypeAliases = Dict.empty
+            , importCustomTypes = projectContext.exposedCustomTypes
+            , moduleCustomTypes = Dict.empty
             , moduleBindings = Set.empty
             , localBindings = RangeDict.empty
             , branchLocalBindings = RangeDict.empty
@@ -1835,6 +1860,7 @@ foldProjectContexts newContext previousContext =
     { customTypesToReportInCases = Set.empty
     , exposedVariants = Dict.union newContext.exposedVariants previousContext.exposedVariants
     , exposedRecordTypeAliases = Dict.union newContext.exposedRecordTypeAliases previousContext.exposedRecordTypeAliases
+    , exposedCustomTypes = Dict.union newContext.exposedCustomTypes previousContext.exposedCustomTypes
     }
 
 
@@ -1918,6 +1944,35 @@ dependenciesVisitor typeNamesAsStrings dict context =
                             soFar
                     )
                     Dict.empty
+
+        exposedCustomTypes : Dict ModuleName (Dict String { variantNames : Set String })
+        exposedCustomTypes =
+            Dict.union
+                (dict
+                    |> Dict.values
+                    |> List.concatMap
+                        (\dependency ->
+                            dependency
+                                |> Dependency.modules
+                                |> List.map
+                                    (\moduleDocs ->
+                                        ( moduleDocs.name |> AstHelpers.moduleNameFromString
+                                        , moduleDocs.unions
+                                            |> List.map
+                                                (\choiceTypeDocs ->
+                                                    ( choiceTypeDocs.name
+                                                    , { variantNames =
+                                                            choiceTypeDocs.tags |> List.map (\( name, _ ) -> name) |> Set.fromList
+                                                      }
+                                                    )
+                                                )
+                                            |> Dict.fromList
+                                        )
+                                    )
+                        )
+                    |> Dict.fromList
+                )
+                context.exposedCustomTypes
     in
     ( if List.isEmpty unknownTypesToIgnore then
         []
@@ -1927,6 +1982,7 @@ dependenciesVisitor typeNamesAsStrings dict context =
     , { customTypesToReportInCases = customTypesToReportInCases
       , exposedVariants = dependencyExposedVariants
       , exposedRecordTypeAliases = recordTypeAliases
+      , exposedCustomTypes = exposedCustomTypes
       }
     )
 
@@ -1981,6 +2037,24 @@ declarationListVisitor declarationList context =
                 )
                 Dict.empty
                 declarationList
+        , moduleCustomTypes =
+            List.foldl
+                (\(Node _ declaration) soFar ->
+                    case declaration of
+                        Declaration.CustomTypeDeclaration variantType ->
+                            Dict.insert (Node.value variantType.name)
+                                { variantNames =
+                                    variantType.constructors
+                                        |> List.map (\(Node _ variant) -> Node.value variant.name)
+                                        |> Set.fromList
+                                }
+                                soFar
+
+                        _ ->
+                            soFar
+                )
+                Dict.empty
+                declarationList
     }
 
 
@@ -2011,7 +2085,9 @@ declarationVisitor declarationNode context =
                             context.exposedVariants
                             variantType.constructors
                 in
-                { context | exposedVariants = exposedVariants }
+                { context
+                    | exposedVariants = exposedVariants
+                }
 
             else
                 context
