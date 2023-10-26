@@ -11,6 +11,7 @@ all =
     describe "Case of"
         [ regularCaseOfTests
         , booleanCaseOfTests
+        , caseOfWithUnnecessaryCasesTests
         ]
 
 
@@ -207,6 +208,149 @@ a =
     in
             1
 """
+                        ]
+        ]
+
+
+caseOfWithUnnecessaryCasesTests : Test
+caseOfWithUnnecessaryCasesTests =
+    describe "unnecessary cases"
+        [ test "should remove unnecessary case of dependency variant when all cases are variant patterns" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case Ok value of
+        Err _ ->
+            0
+
+        Ok True ->
+            1
+        
+        Ok False ->
+            2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary cases"
+                            , details = [ "The value between case ... of is a known Ok variant. However, the 1st case matches on a different variant which means you can remove it." ]
+                            , under = "Err _"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    case value of
+
+        True ->
+            1
+        
+        False ->
+            2
+"""
+                        ]
+        , test "should remove multiple unnecessary cases of module-local variant with multiple attachments when all cases are variant patterns" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case A b c d of
+        B False ->
+            1
+        
+        C ->
+            0
+        
+        B True ->
+            2
+
+        A True _ _ ->
+            3
+        
+        A _ False _ ->
+            4
+
+type AOrB
+  = A Bool Bool Bool
+  | B Bool
+  | C
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary cases"
+                            , details = [ "The value between case ... of is a known A variant. However, the 1st and 2nd and 3rd case matches on a different variant which means you can remove it." ]
+                            , under = "B False"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    case (b, (c, d)) of
+
+
+
+        (True, (_, _)) ->
+            3
+        
+        (_, (False, _)) ->
+            4
+
+type AOrB
+  = A Bool Bool Bool
+  | B Bool
+  | C
+"""
+                        ]
+        , test "should remove multiple unnecessary cases of project-local variant with multiple attachments when all cases are variant patterns" <|
+            \() ->
+                [ """module A exposing (..)
+import AOrB exposing (AOrB(..))
+
+a =
+    case A b c d of
+        B False ->
+            1
+        
+        C ->
+            0
+        
+        B True ->
+            2
+
+        A True _ _ ->
+            3
+        
+        A _ False _ ->
+            4
+"""
+                , """module AOrB exposing (AOrB(..))
+
+type AOrB
+  = A Bool Bool Bool
+  | B Bool
+  | C
+"""
+                ]
+                    |> Review.Test.runOnModules ruleWithDefaults
+                    |> Review.Test.expectErrorsForModules
+                        [ ( "A"
+                          , [ Review.Test.error
+                                { message = "Unnecessary cases"
+                                , details = [ "The value between case ... of is a known AOrB.A variant. However, the 1st and 2nd and 3rd case matches on a different variant which means you can remove it." ]
+                                , under = "B False"
+                                }
+                                |> Review.Test.whenFixed """module A exposing (..)
+import AOrB exposing (AOrB(..))
+
+a =
+    case (b, (c, d)) of
+
+
+
+        (True, (_, _)) ->
+            3
+        
+        (_, (False, _)) ->
+            4
+"""
+                            ]
+                          )
                         ]
         ]
 

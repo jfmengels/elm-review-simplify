@@ -122,6 +122,15 @@ Below is the list of all kinds of simplifications this rule applies.
         Nothing -> x
     --> x
 
+    -- same with any variant
+    case Just value of
+        Nothing -> a
+        Just (Ok b) -> c
+        Just (Err d) -> e
+    --> case value of
+    -->     Ok b -> c
+    -->     Err d -> e
+
 Destructuring using case expressions
 
     case value of
@@ -2839,6 +2848,8 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             onlyMaybeError
                 (firstThatConstructsJust caseOfChecks
                     { lookupTable = context.lookupTable
+                    , moduleCustomTypes = context.moduleCustomTypes
+                    , importCustomTypes = context.importCustomTypes
                     , extractSourceCode = context.extractSourceCode
                     , customTypesToReportInCases = context.customTypesToReportInCases
                     , inferredConstants = context.inferredConstants
@@ -11944,12 +11955,15 @@ caseOfChecks =
     [ sameBodyForCaseOfChecks
     , booleanCaseOfChecks
     , destructuringCaseOfChecks
+    , caseOfWithUnnecessaryCasesChecks
     ]
 
 
 type alias CaseOfCheckInfo =
     { lookupTable : ModuleNameLookupTable
     , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
+    , moduleCustomTypes : Dict String { variantNames : Set String }
+    , importCustomTypes : Dict ModuleName (Dict String { variantNames : Set String })
     , extractSourceCode : Range -> String
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , parentRange : Range
@@ -12150,6 +12164,152 @@ isSimpleDestructurePattern (Node _ pattern) =
 
         _ ->
             False
+
+
+caseOfWithUnnecessaryCasesChecks : CaseOfCheckInfo -> Maybe (Error {})
+caseOfWithUnnecessaryCasesChecks checkInfo =
+    case AstHelpers.getValueOrFnOrFnCall checkInfo.caseOf.expression of
+        Nothing ->
+            Nothing
+
+        Just valueOrCall ->
+            let
+                maybeValueModule : Maybe { name : ModuleName, customTypes : Dict String { variantNames : Set String } }
+                maybeValueModule =
+                    case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable valueOrCall.fnRange of
+                        Just [] ->
+                            Just { name = [], customTypes = checkInfo.moduleCustomTypes }
+
+                        Just (moduleNamePart0 :: moduleNamePart1Up) ->
+                            Dict.get (moduleNamePart0 :: moduleNamePart1Up)
+                                checkInfo.importCustomTypes
+                                |> Maybe.map
+                                    (\customTypes ->
+                                        { name = moduleNamePart0 :: moduleNamePart1Up, customTypes = customTypes }
+                                    )
+
+                        Nothing ->
+                            Nothing
+            in
+            case maybeValueModule of
+                Nothing ->
+                    Nothing
+
+                Just valueModule ->
+                    let
+                        maybeCustomTypeWithVariant : Maybe { name : String, variantNames : Set String }
+                        maybeCustomTypeWithVariant =
+                            valueModule.customTypes
+                                |> Dict.foldl
+                                    (\customTypeName customTypeInfo soFar ->
+                                        case soFar of
+                                            Just found ->
+                                                Just found
+
+                                            Nothing ->
+                                                if Set.member valueOrCall.fnName customTypeInfo.variantNames then
+                                                    Just { name = customTypeName, variantNames = customTypeInfo.variantNames }
+
+                                                else
+                                                    Nothing
+                                    )
+                                    Nothing
+                    in
+                    case maybeCustomTypeWithVariant of
+                        Nothing ->
+                            Nothing
+
+                        Just customTypeWithVariant ->
+                            let
+                                maybeVariantPatternCases : Maybe (List { patternRange : Range, expressionRange : Range, name : String, arguments : List (Node Pattern) })
+                                maybeVariantPatternCases =
+                                    traverse
+                                        (\( Node casePatternRange casePattern, Node caseExpressionRange caseExpression ) ->
+                                            case casePattern of
+                                                Pattern.NamedPattern qualified arguments ->
+                                                    Just { patternRange = casePatternRange, expressionRange = caseExpressionRange, name = qualified.name, arguments = arguments }
+
+                                                _ ->
+                                                    Nothing
+                                        )
+                                        checkInfo.caseOf.cases
+                            in
+                            case maybeVariantPatternCases of
+                                Nothing ->
+                                    Nothing
+
+                                Just variantPatternCases ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = "Unnecessary cases"
+                                            , details =
+                                                [ "The value between case ... of is a known "
+                                                    ++ qualifiedToString (qualify ( valueModule.name, valueOrCall.fnName ) defaultQualifyResources)
+                                                    ++ " variant. However, the "
+                                                    ++ (variantPatternCases
+                                                            |> List.indexedMap (\caseIndex variant -> { index = caseIndex, variant = variant })
+                                                            |> List.filterMap
+                                                                (\case_ ->
+                                                                    if case_.variant.name /= valueOrCall.fnName then
+                                                                        Just (indexthToString case_.index)
+
+                                                                    else
+                                                                        Nothing
+                                                                )
+                                                            |> String.join " and "
+                                                       )
+                                                    ++ " case matches on a different variant which means you can remove it."
+                                                ]
+                                            }
+                                            (findMap
+                                                (\case_ ->
+                                                    if case_.name /= valueOrCall.fnName then
+                                                        Just case_.patternRange
+
+                                                    else
+                                                        Nothing
+                                                )
+                                                variantPatternCases
+                                                |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
+                                            )
+                                            (toNestedTupleFix { parts = List.map Node.range valueOrCall.args, structure = valueOrCall.nodeRange }
+                                                ++ List.concatMap
+                                                    (\variantPattern ->
+                                                        if variantPattern.name == valueOrCall.fnName then
+                                                            toNestedTupleFix { parts = List.map Node.range variantPattern.arguments, structure = variantPattern.patternRange }
+
+                                                        else
+                                                            [ Fix.removeRange
+                                                                { start = { row = variantPattern.patternRange.start.row, column = 0 }
+                                                                , end =
+                                                                    { row = variantPattern.expressionRange.end.row + 1, column = 0 }
+                                                                }
+                                                            ]
+                                                    )
+                                                    variantPatternCases
+                                            )
+                                        )
+
+
+indexthToString : Int -> String
+indexthToString index =
+    let
+        suffix : String
+        suffix =
+            case (index + 1) |> remainderBy 10 of
+                1 ->
+                    "st"
+
+                2 ->
+                    "nd"
+
+                3 ->
+                    "rd"
+
+                _ ->
+                    "th"
+    in
+    String.fromInt (index + 1) ++ suffix
 
 
 
@@ -12736,6 +12896,30 @@ andBetweenRange ranges =
         -- GT | EQ ->
         _ ->
             { start = ranges.included.start, end = ranges.excluded.start }
+
+
+toNestedTupleFix : { structure : Range, parts : List Range } -> List Fix
+toNestedTupleFix ranges =
+    case ranges.parts of
+        [] ->
+            [ Fix.replaceRangeBy ranges.structure "()" ]
+
+        part0 :: parts1Up ->
+            Fix.removeRange { start = ranges.structure.start, end = part0.start }
+                :: toNestedTupleFixFromPartial { structure = ranges.structure, parts = ( part0, parts1Up ) }
+
+
+toNestedTupleFixFromPartial : { structure : Range, parts : ( Range, List Range ) } -> List Fix
+toNestedTupleFixFromPartial ranges =
+    case ranges.parts of
+        ( only, [] ) ->
+            [ Fix.removeRange { start = only.end, end = ranges.structure.end } ]
+
+        ( first, second :: thirdUp ) ->
+            Fix.replaceRangeBy { start = first.end, end = second.start } ", "
+                :: parenthesizeFix { start = first.start, end = ranges.structure.end }
+                ++ toNestedTupleFixFromPartial
+                    { structure = ranges.structure, parts = ( second, thirdUp ) }
 
 
 rangeContainsLocation : Location -> Range -> Bool
