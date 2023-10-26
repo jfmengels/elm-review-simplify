@@ -12182,6 +12182,7 @@ caseOfWithUnnecessaryCasesChecksOn config checkInfo =
     findMap (\f -> f ())
         [ \() -> caseOfWithUnnecessaryVariantCasesChecks config checkInfo
         , \() -> caseTuple2OfWithUnnecessaryVariantCasesChecks config checkInfo
+        , \() -> caseTuple3OfWithUnnecessaryVariantCasesChecks config checkInfo
         ]
 
 
@@ -12229,6 +12230,60 @@ caseTuple2OfWithUnnecessaryVariantCasesChecks config checkInfo =
                                 }
                                 checkInfo
                         ]
+
+
+caseTuple3OfWithUnnecessaryVariantCasesChecks : { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } } -> CaseOfCheckInfo -> Maybe (Error {})
+caseTuple3OfWithUnnecessaryVariantCasesChecks config checkInfo =
+    case config.casedExpressionNode of
+        Node _ (Expression.TupledExpression (casedTupleFirstNode :: casedTupleSecondNode :: casedTupleThirdNode :: [])) ->
+            let
+                maybeTuplePatternCases : Maybe (List { firstPatternNode : Node Pattern, secondPatternNode : Node Pattern, thirdPatternNode : Node Pattern, expressionRange : Range })
+                maybeTuplePatternCases =
+                    traverse
+                        (\case_ ->
+                            case case_.patternNode of
+                                Node _ (Pattern.TuplePattern (firstPatternNode :: secondPatternNode :: thirdPatternNode :: [])) ->
+                                    Just { firstPatternNode = firstPatternNode, secondPatternNode = secondPatternNode, thirdPatternNode = thirdPatternNode, expressionRange = case_.expressionRange }
+
+                                _ ->
+                                    Nothing
+                        )
+                        config.cases
+            in
+            case maybeTuplePatternCases of
+                Nothing ->
+                    Nothing
+
+                Just tuplePatternCases ->
+                    findMap (\f -> f ())
+                        [ \() ->
+                            caseOfWithUnnecessaryCasesChecksOn
+                                { casedExpressionNode = casedTupleFirstNode
+                                , cases =
+                                    List.map (\case_ -> { patternNode = case_.firstPatternNode, expressionRange = case_.expressionRange })
+                                        tuplePatternCases
+                                }
+                                checkInfo
+                        , \() ->
+                            caseOfWithUnnecessaryCasesChecksOn
+                                { casedExpressionNode = casedTupleSecondNode
+                                , cases =
+                                    List.map (\case_ -> { patternNode = case_.secondPatternNode, expressionRange = case_.expressionRange })
+                                        tuplePatternCases
+                                }
+                                checkInfo
+                        , \() ->
+                            caseOfWithUnnecessaryCasesChecksOn
+                                { casedExpressionNode = casedTupleThirdNode
+                                , cases =
+                                    List.map (\case_ -> { patternNode = case_.thirdPatternNode, expressionRange = case_.expressionRange })
+                                        tuplePatternCases
+                                }
+                                checkInfo
+                        ]
+
+        _ ->
+            Nothing
 
 
 caseOfWithUnnecessaryVariantCasesChecks : { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } } -> CaseOfCheckInfo -> Maybe (Error {})
