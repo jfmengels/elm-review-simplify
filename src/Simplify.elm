@@ -12219,12 +12219,12 @@ caseOfWithUnnecessaryCasesChecks checkInfo =
                         Nothing ->
                             Nothing
 
-                        Just customTypeWithVariant ->
+                        Just _ ->
                             let
                                 maybeVariantPatternCases : Maybe (List { patternRange : Range, expressionRange : Range, name : String, arguments : List (Node Pattern) })
                                 maybeVariantPatternCases =
                                     traverse
-                                        (\( Node casePatternRange casePattern, Node caseExpressionRange caseExpression ) ->
+                                        (\( Node casePatternRange casePattern, Node caseExpressionRange _ ) ->
                                             case casePattern of
                                                 Pattern.NamedPattern qualified arguments ->
                                                     Just { patternRange = casePatternRange, expressionRange = caseExpressionRange, name = qualified.name, arguments = arguments }
