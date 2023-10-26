@@ -12339,76 +12339,81 @@ caseOfWithUnnecessaryVariantCasesChecks config checkInfo =
                         Nothing ->
                             Nothing
 
-                        Just _ ->
-                            let
-                                maybeVariantPatternCases : Maybe (List { patternRange : Range, expressionRange : Range, name : String, arguments : List (Node Pattern) })
-                                maybeVariantPatternCases =
-                                    traverse
-                                        (\case_ ->
-                                            case case_.patternNode of
-                                                Node patternRange (Pattern.NamedPattern qualified arguments) ->
-                                                    Just { patternRange = patternRange, expressionRange = case_.expressionRange, name = qualified.name, arguments = arguments }
-
-                                                _ ->
-                                                    Nothing
-                                        )
-                                        config.cases
-                            in
-                            case maybeVariantPatternCases of
-                                Nothing ->
+                        Just customTypeWithVariant ->
+                            case Set.size customTypeWithVariant.variantNames of
+                                1 ->
                                     Nothing
 
-                                Just variantPatternCases ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = "Unnecessary cases"
-                                            , details =
-                                                [ "The value between case ... of is a known "
-                                                    ++ qualifiedToString (qualify ( valueModule.name, valueOrCall.fnName ) defaultQualifyResources)
-                                                    ++ " variant. However, the "
-                                                    ++ (variantPatternCases
-                                                            |> List.indexedMap (\caseIndex variant -> { index = caseIndex, variant = variant })
-                                                            |> List.filterMap
-                                                                (\case_ ->
-                                                                    if case_.variant.name /= valueOrCall.fnName then
-                                                                        Just (indexthToString case_.index)
-
-                                                                    else
-                                                                        Nothing
-                                                                )
-                                                            |> String.join " and "
-                                                       )
-                                                    ++ " case matches on a different variant which means you can remove it."
-                                                ]
-                                            }
-                                            (findMap
+                                _ ->
+                                    let
+                                        maybeVariantPatternCases : Maybe (List { patternRange : Range, expressionRange : Range, name : String, arguments : List (Node Pattern) })
+                                        maybeVariantPatternCases =
+                                            traverse
                                                 (\case_ ->
-                                                    if case_.name /= valueOrCall.fnName then
-                                                        Just case_.patternRange
+                                                    case case_.patternNode of
+                                                        Node patternRange (Pattern.NamedPattern qualified arguments) ->
+                                                            Just { patternRange = patternRange, expressionRange = case_.expressionRange, name = qualified.name, arguments = arguments }
 
-                                                    else
-                                                        Nothing
+                                                        _ ->
+                                                            Nothing
                                                 )
-                                                variantPatternCases
-                                                |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
-                                            )
-                                            (toNestedTupleFix { parts = List.map Node.range valueOrCall.args, structure = valueOrCall.nodeRange }
-                                                ++ List.concatMap
-                                                    (\variantPattern ->
-                                                        if variantPattern.name == valueOrCall.fnName then
-                                                            toNestedTupleFix { parts = List.map Node.range variantPattern.arguments, structure = variantPattern.patternRange }
+                                                config.cases
+                                    in
+                                    case maybeVariantPatternCases of
+                                        Nothing ->
+                                            Nothing
 
-                                                        else
-                                                            [ Fix.removeRange
-                                                                { start = { row = variantPattern.patternRange.start.row, column = 0 }
-                                                                , end =
-                                                                    { row = variantPattern.expressionRange.end.row + 1, column = 0 }
-                                                                }
-                                                            ]
+                                        Just variantPatternCases ->
+                                            Just
+                                                (Rule.errorWithFix
+                                                    { message = "Unnecessary cases"
+                                                    , details =
+                                                        [ "The value between case ... of is a known "
+                                                            ++ qualifiedToString (qualify ( valueModule.name, valueOrCall.fnName ) defaultQualifyResources)
+                                                            ++ " variant. However, the "
+                                                            ++ (variantPatternCases
+                                                                    |> List.indexedMap (\caseIndex variant -> { index = caseIndex, variant = variant })
+                                                                    |> List.filterMap
+                                                                        (\case_ ->
+                                                                            if case_.variant.name /= valueOrCall.fnName then
+                                                                                Just (indexthToString case_.index)
+
+                                                                            else
+                                                                                Nothing
+                                                                        )
+                                                                    |> String.join " and "
+                                                               )
+                                                            ++ " case matches on a different variant which means you can remove it."
+                                                        ]
+                                                    }
+                                                    (findMap
+                                                        (\case_ ->
+                                                            if case_.name /= valueOrCall.fnName then
+                                                                Just case_.patternRange
+
+                                                            else
+                                                                Nothing
+                                                        )
+                                                        variantPatternCases
+                                                        |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
                                                     )
-                                                    variantPatternCases
-                                            )
-                                        )
+                                                    (toNestedTupleFix { parts = List.map Node.range valueOrCall.args, structure = valueOrCall.nodeRange }
+                                                        ++ List.concatMap
+                                                            (\variantPattern ->
+                                                                if variantPattern.name == valueOrCall.fnName then
+                                                                    toNestedTupleFix { parts = List.map Node.range variantPattern.arguments, structure = variantPattern.patternRange }
+
+                                                                else
+                                                                    [ Fix.removeRange
+                                                                        { start = { row = variantPattern.patternRange.start.row, column = 0 }
+                                                                        , end =
+                                                                            { row = variantPattern.expressionRange.end.row + 1, column = 0 }
+                                                                        }
+                                                                    ]
+                                                            )
+                                                            variantPatternCases
+                                                    )
+                                                )
 
 
 indexthToString : Int -> String

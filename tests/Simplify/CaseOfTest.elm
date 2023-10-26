@@ -297,6 +297,31 @@ type AOrB
   | C
 """
                         ]
+        , test "should not report case of on variant from single-variant type" <|
+            \() ->
+                """module Toop4 exposing (Toop4(..), maybeMap4)
+maybeMap4 f a0 a1 a2 a3 =
+    case Toop4 a0 a1 a2 a3 of
+        Toop4 (Just v0) (Just v1) (Just v2) (Just v3) ->
+            Toop4 v0 v1 v2 v3
+        
+        Toop4 Nothing _ _ _ ->
+            Nothing
+        
+        Toop4 _ Nothing _ _ ->
+            Nothing
+        
+        Toop4 _ _ Nothing _ ->
+            Nothing
+        
+        Toop4 _ _ _ Nothing ->
+            Nothing
+
+type Toop4 a0 a1 a2 a3
+  = Toop4 a0 a1 a2 a3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should remove multiple unnecessary cases of project-local variant with multiple attachments when all cases are variant patterns" <|
             \() ->
                 [ """module A exposing (..)
