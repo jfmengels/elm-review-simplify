@@ -352,6 +352,38 @@ a =
                             ]
                           )
                         ]
+        , test "should remove unnecessary case of dependency variant when all cases of nested 2-tuple part are variant patterns" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case ( b, ( b_, Ok value ) ) of
+        ( c, ( c_, Err _ ) ) ->
+            0
+
+        ( c, ( c_, Ok True ) ) ->
+            1
+        
+        ( c, ( c_, Ok False ) ) ->
+            2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary cases"
+                            , details = [ "The value between case ... of is a known Ok variant. However, the 1st case matches on a different variant which means you can remove it." ]
+                            , under = "Err _"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    case ( b, ( b_, value ) ) of
+
+        ( c, ( c_, True ) ) ->
+            1
+        
+        ( c, ( c_, False ) ) ->
+            2
+"""
+                        ]
         ]
 
 
