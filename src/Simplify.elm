@@ -12168,7 +12168,72 @@ isSimpleDestructurePattern (Node _ pattern) =
 
 caseOfWithUnnecessaryCasesChecks : CaseOfCheckInfo -> Maybe (Error {})
 caseOfWithUnnecessaryCasesChecks checkInfo =
-    case AstHelpers.getValueOrFnOrFnCall checkInfo.caseOf.expression of
+    caseOfWithUnnecessaryCasesChecksOn
+        { casedExpressionNode = checkInfo.caseOf.expression
+        , cases =
+            checkInfo.caseOf.cases
+                |> List.map (\( patternNode, Node expressionRange _ ) -> { patternNode = patternNode, expressionRange = expressionRange })
+        }
+        checkInfo
+
+
+caseOfWithUnnecessaryCasesChecksOn : { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } } -> CaseOfCheckInfo -> Maybe (Error {})
+caseOfWithUnnecessaryCasesChecksOn config checkInfo =
+    findMap (\f -> f ())
+        [ \() -> caseOfWithUnnecessaryVariantCasesChecks config checkInfo
+        , \() -> caseTuple2OfWithUnnecessaryVariantCasesChecks config checkInfo
+        ]
+
+
+caseTuple2OfWithUnnecessaryVariantCasesChecks : { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } } -> CaseOfCheckInfo -> Maybe (Error {})
+caseTuple2OfWithUnnecessaryVariantCasesChecks config checkInfo =
+    case AstHelpers.getTuple2 checkInfo.lookupTable config.casedExpressionNode of
+        Nothing ->
+            Nothing
+
+        Just casedTuple ->
+            let
+                maybeTuplePatternCases : Maybe (List { firstPatternNode : Node Pattern, secondPatternNode : Node Pattern, expressionRange : Range })
+                maybeTuplePatternCases =
+                    traverse
+                        (\case_ ->
+                            case case_.patternNode of
+                                Node _ (Pattern.TuplePattern (firstPatternNode :: secondPatternNode :: [])) ->
+                                    Just { firstPatternNode = firstPatternNode, secondPatternNode = secondPatternNode, expressionRange = case_.expressionRange }
+
+                                _ ->
+                                    Nothing
+                        )
+                        config.cases
+            in
+            case maybeTuplePatternCases of
+                Nothing ->
+                    Nothing
+
+                Just tuplePatternCases ->
+                    findMap (\f -> f ())
+                        [ \() ->
+                            caseOfWithUnnecessaryCasesChecksOn
+                                { casedExpressionNode = casedTuple.first
+                                , cases =
+                                    List.map (\case_ -> { patternNode = case_.firstPatternNode, expressionRange = case_.expressionRange })
+                                        tuplePatternCases
+                                }
+                                checkInfo
+                        , \() ->
+                            caseOfWithUnnecessaryCasesChecksOn
+                                { casedExpressionNode = casedTuple.second
+                                , cases =
+                                    List.map (\case_ -> { patternNode = case_.secondPatternNode, expressionRange = case_.expressionRange })
+                                        tuplePatternCases
+                                }
+                                checkInfo
+                        ]
+
+
+caseOfWithUnnecessaryVariantCasesChecks : { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } } -> CaseOfCheckInfo -> Maybe (Error {})
+caseOfWithUnnecessaryVariantCasesChecks config checkInfo =
+    case AstHelpers.getValueOrFnOrFnCall config.casedExpressionNode of
         Nothing ->
             Nothing
 
@@ -12224,15 +12289,15 @@ caseOfWithUnnecessaryCasesChecks checkInfo =
                                 maybeVariantPatternCases : Maybe (List { patternRange : Range, expressionRange : Range, name : String, arguments : List (Node Pattern) })
                                 maybeVariantPatternCases =
                                     traverse
-                                        (\( Node casePatternRange casePattern, Node caseExpressionRange _ ) ->
-                                            case casePattern of
-                                                Pattern.NamedPattern qualified arguments ->
-                                                    Just { patternRange = casePatternRange, expressionRange = caseExpressionRange, name = qualified.name, arguments = arguments }
+                                        (\case_ ->
+                                            case case_.patternNode of
+                                                Node patternRange (Pattern.NamedPattern qualified arguments) ->
+                                                    Just { patternRange = patternRange, expressionRange = case_.expressionRange, name = qualified.name, arguments = arguments }
 
                                                 _ ->
                                                     Nothing
                                         )
-                                        checkInfo.caseOf.cases
+                                        config.cases
                             in
                             case maybeVariantPatternCases of
                                 Nothing ->
