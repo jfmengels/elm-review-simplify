@@ -352,18 +352,18 @@ a =
                             ]
                           )
                         ]
-        , test "should remove unnecessary case of dependency variant when all cases of nested 2-tuple part are variant patterns" <|
+        , test "should remove unnecessary case of dependency variant when all cases of nested tuple part are variant patterns" <|
             \() ->
                 """module A exposing (..)
 a =
-    case ( b, ( b_, Ok value ) ) of
-        ( c, ( c_, Err _ ) ) ->
+    case ( b, ( c, d, Ok value ) ) of
+        ( b_, ( c_, d_, Err _ ) ) ->
             0
 
-        ( c, ( c_, Ok True ) ) ->
+        ( b_, ( c_, d_, Ok True ) ) ->
             1
         
-        ( c, ( c_, Ok False ) ) ->
+        ( b_, ( c_, d_, Ok False ) ) ->
             2
 """
                     |> Review.Test.run ruleWithDefaults
@@ -375,12 +375,12 @@ a =
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
-    case ( b, ( b_, value ) ) of
+    case ( b, ( c, d, value ) ) of
 
-        ( c, ( c_, True ) ) ->
+        ( b_, ( c_, d_, True ) ) ->
             1
         
-        ( c, ( c_, False ) ) ->
+        ( b_, ( c_, d_, False ) ) ->
             2
 """
                         ]
