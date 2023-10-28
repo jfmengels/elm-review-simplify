@@ -12180,14 +12180,15 @@ caseOfWithUnnecessaryCasesChecks checkInfo =
 caseOfWithUnnecessaryCasesChecksOn : { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } } -> CaseOfCheckInfo -> Maybe (Error {})
 caseOfWithUnnecessaryCasesChecksOn config checkInfo =
     findMap (\f -> f ())
-        [ \() -> caseOfWithUnnecessaryVariantCasesChecks config checkInfo
-        , \() -> caseTuple2OfWithUnnecessaryVariantCasesChecks config checkInfo
-        , \() -> caseTuple3OfWithUnnecessaryVariantCasesChecks config checkInfo
+        [ \() -> caseVariantOfWithUnnecessaryCasesChecks config checkInfo
+        , \() -> caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo
+        , \() -> caseTuple2OfWithUnnecessaryCasesChecks config checkInfo
+        , \() -> caseTuple3OfWithUnnecessaryCasesChecks config checkInfo
         ]
 
 
-caseTuple2OfWithUnnecessaryVariantCasesChecks : { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } } -> CaseOfCheckInfo -> Maybe (Error {})
-caseTuple2OfWithUnnecessaryVariantCasesChecks config checkInfo =
+caseTuple2OfWithUnnecessaryCasesChecks : { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } } -> CaseOfCheckInfo -> Maybe (Error {})
+caseTuple2OfWithUnnecessaryCasesChecks config checkInfo =
     case AstHelpers.getTuple2 checkInfo.lookupTable config.casedExpressionNode of
         Nothing ->
             Nothing
@@ -12232,8 +12233,8 @@ caseTuple2OfWithUnnecessaryVariantCasesChecks config checkInfo =
                         ]
 
 
-caseTuple3OfWithUnnecessaryVariantCasesChecks : { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } } -> CaseOfCheckInfo -> Maybe (Error {})
-caseTuple3OfWithUnnecessaryVariantCasesChecks config checkInfo =
+caseTuple3OfWithUnnecessaryCasesChecks : { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } } -> CaseOfCheckInfo -> Maybe (Error {})
+caseTuple3OfWithUnnecessaryCasesChecks config checkInfo =
     case config.casedExpressionNode of
         Node _ (Expression.TupledExpression (casedTupleFirstNode :: casedTupleSecondNode :: casedTupleThirdNode :: [])) ->
             let
@@ -12286,8 +12287,8 @@ caseTuple3OfWithUnnecessaryVariantCasesChecks config checkInfo =
             Nothing
 
 
-caseOfWithUnnecessaryVariantCasesChecks : { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } } -> CaseOfCheckInfo -> Maybe (Error {})
-caseOfWithUnnecessaryVariantCasesChecks config checkInfo =
+caseVariantOfWithUnnecessaryCasesChecks : { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } } -> CaseOfCheckInfo -> Maybe (Error {})
+caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
     case AstHelpers.getValueOrFnOrFnCall config.casedExpressionNode of
         Nothing ->
             Nothing
@@ -12414,6 +12415,168 @@ caseOfWithUnnecessaryVariantCasesChecks config checkInfo =
                                                             variantPatternCases
                                                     )
                                                 )
+
+
+caseListLiteralOfWithUnnecessaryCasesChecks : { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } } -> CaseOfCheckInfo -> Maybe (Error {})
+caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo =
+    case AstHelpers.getListLiteral config.casedExpressionNode of
+        Nothing ->
+            Nothing
+
+        Just casedListLiteralElements ->
+            let
+                maybeListPatternCases : Maybe (List { patternRange : Range, expressionRange : Range, pattern : ListPattern })
+                maybeListPatternCases =
+                    traverse
+                        (\case_ ->
+                            case getListPattern (Node.value case_.patternNode) of
+                                Just listPattern ->
+                                    Just { patternRange = Node.range case_.patternNode, expressionRange = case_.expressionRange, pattern = listPattern }
+
+                                _ ->
+                                    Nothing
+                        )
+                        config.cases
+            in
+            case maybeListPatternCases of
+                Nothing ->
+                    Nothing
+
+                Just listPatternCases ->
+                    let
+                        casedListLiteralLength : Int
+                        casedListLiteralLength =
+                            List.length casedListLiteralElements
+
+                        isUnnecessaryListPattern : ListPattern -> Bool
+                        isUnnecessaryListPattern listPattern =
+                            case listPattern of
+                                ListLiteralPattern listLiteralPatternELements ->
+                                    if List.length listLiteralPatternELements /= casedListLiteralLength then
+                                        True
+
+                                    else
+                                        False
+
+                                ConsPattern consPattern ->
+                                    if List.length (listFilledToList consPattern.beginningElements) >= (casedListLiteralLength + 1) then
+                                        True
+
+                                    else
+                                        False
+
+                        alwaysMatchedBeginningLength : Int
+                        alwaysMatchedBeginningLength =
+                            listPatternCases
+                                |> List.filterMap
+                                    (\listPatternCase ->
+                                        case listPatternCase.pattern of
+                                            ListLiteralPattern _ ->
+                                                Nothing
+
+                                            ConsPattern consPattern ->
+                                                Just (List.length (listFilledToList consPattern.beginningElements))
+                                    )
+                                |> List.minimum
+                                |> Maybe.withDefault casedListLiteralLength
+                    in
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Unnecessary cases"
+                            , details =
+                                [ "The value between case ... of is a known list of length "
+                                    ++ String.fromInt casedListLiteralLength
+                                    ++ ". However, the "
+                                    ++ (listPatternCases
+                                            |> List.indexedMap (\caseIndex case_ -> { index = caseIndex, case_ = case_ })
+                                            |> List.filterMap
+                                                (\caseAndIndex ->
+                                                    if isUnnecessaryListPattern caseAndIndex.case_.pattern then
+                                                        Just (indexthToString caseAndIndex.index)
+
+                                                    else
+                                                        Nothing
+                                                )
+                                            |> String.join " and "
+                                       )
+                                    ++ " case matches on a list with a different length which means you can remove it."
+                                ]
+                            }
+                            (findMap
+                                (\case_ ->
+                                    if isUnnecessaryListPattern case_.pattern then
+                                        Just case_.patternRange
+
+                                    else
+                                        Nothing
+                                )
+                                listPatternCases
+                                |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
+                            )
+                            (listLiteralToNestedTupleFix
+                                { tupledBeginningLength = alwaysMatchedBeginningLength
+                                , elements = List.map Node.range casedListLiteralElements
+                                , structure = Node.range config.casedExpressionNode
+                                }
+                                ++ List.concatMap
+                                    (\listPatternCase ->
+                                        if isUnnecessaryListPattern listPatternCase.pattern then
+                                            [ Fix.removeRange
+                                                { start = { row = listPatternCase.patternRange.start.row, column = 0 }
+                                                , end = { row = listPatternCase.expressionRange.end.row + 1, column = 0 }
+                                                }
+                                            ]
+
+                                        else
+                                            case listPatternCase.pattern of
+                                                ListLiteralPattern listPatternElements ->
+                                                    listLiteralToNestedTupleFix
+                                                        { tupledBeginningLength = alwaysMatchedBeginningLength
+                                                        , elements = List.map Node.range listPatternElements
+                                                        , structure = listPatternCase.patternRange
+                                                        }
+
+                                                ConsPattern consPattern ->
+                                                    collapsedConsToNestedTupleFix
+                                                        { tupledBeginningLength = alwaysMatchedBeginningLength
+                                                        , beginningElements = listFilledMap Node.range consPattern.beginningElements
+                                                        , tail = Node.range consPattern.tail
+                                                        , structure = listPatternCase.patternRange
+                                                        }
+                                    )
+                                    listPatternCases
+                            )
+                        )
+
+
+type ListPattern
+    = ListLiteralPattern (List (Node Pattern))
+    | ConsPattern { beginningElements : ( Node Pattern, List (Node Pattern) ), tail : Node Pattern }
+
+
+getListPattern : Pattern -> Maybe ListPattern
+getListPattern pattern =
+    case pattern of
+        Pattern.ListPattern elementPatterns ->
+            Just (ListLiteralPattern elementPatterns)
+
+        nonListLiteralPattern ->
+            Maybe.map ConsPattern (getCollapsedConsPattern nonListLiteralPattern)
+
+
+getCollapsedConsPattern : Pattern -> Maybe { beginningElements : ( Node Pattern, List (Node Pattern) ), tail : Node Pattern }
+getCollapsedConsPattern pattern =
+    case pattern of
+        Pattern.UnConsPattern head tail ->
+            case getCollapsedConsPattern (Node.value tail) of
+                Nothing ->
+                    Just { beginningElements = ( head, [] ), tail = tail }
+
+                Just tailCollapsed ->
+                    Just { beginningElements = ( head, listFilledToList tailCollapsed.beginningElements ), tail = tailCollapsed.tail }
+
+        _ ->
+            Nothing
 
 
 indexthToString : Int -> String
@@ -13021,6 +13184,71 @@ andBetweenRange ranges =
         -- GT | EQ ->
         _ ->
             { start = ranges.included.start, end = ranges.excluded.start }
+
+
+listLiteralToNestedTupleFix : { tupledBeginningLength : Int, elements : List Range, structure : Range } -> List Fix
+listLiteralToNestedTupleFix config =
+    if config.tupledBeginningLength <= 0 then
+        []
+
+    else
+        case config.elements of
+            [] ->
+                [ Fix.replaceRangeBy config.structure "()" ]
+
+            elementRange0 :: elementRange1Up ->
+                let
+                    tupledBeginningElementRanges : ( Range, List Range )
+                    tupledBeginningElementRanges =
+                        ( elementRange0, List.take (config.tupledBeginningLength - 1) elementRange1Up )
+                in
+                case List.drop (config.tupledBeginningLength - 1) elementRange1Up of
+                    [] ->
+                        toNestedTupleFix { structure = config.structure, parts = listFilledToList tupledBeginningElementRanges }
+
+                    firstUntupledElementRange :: afterFirstUntupledElementRange ->
+                        [ Fix.replaceRangeBy { start = (listFilledLast tupledBeginningElementRanges).end, end = firstUntupledElementRange.start } ", [ "
+                        , Fix.replaceRangeBy { start = (listFilledLast ( firstUntupledElementRange, afterFirstUntupledElementRange )).end, end = config.structure.end } " ])"
+                        ]
+                            ++ toNestedTupleFix { structure = Range.combine (listFilledToList tupledBeginningElementRanges), parts = listFilledToList tupledBeginningElementRanges }
+                            ++ [ Fix.replaceRangeBy { start = config.structure.start, end = elementRange0.start } "("
+                               ]
+
+
+collapsedConsToNestedTupleFix : { tupledBeginningLength : Int, beginningElements : ( Range, List Range ), tail : Range, structure : Range } -> List Fix
+collapsedConsToNestedTupleFix config =
+    if config.tupledBeginningLength <= 0 then
+        []
+
+    else
+        let
+            tupledElementRanges : ( Range, List Range )
+            tupledElementRanges =
+                ( listFilledHead config.beginningElements
+                , List.take (config.tupledBeginningLength - 1) (listFilledTail config.beginningElements)
+                )
+
+            tupledRange : Range
+            tupledRange =
+                Range.combine (listFilledToList tupledElementRanges)
+
+            notTupledRange : Range
+            notTupledRange =
+                case List.drop (config.tupledBeginningLength - 1) (listFilledTail config.beginningElements) of
+                    firstUntupledElementRange :: _ ->
+                        { start = firstUntupledElementRange.start, end = config.tail.end }
+
+                    [] ->
+                        config.tail
+        in
+        [ Fix.replaceRangeBy { start = tupledRange.end, end = notTupledRange.start } ", "
+        , Fix.replaceRangeBy { start = config.tail.end, end = config.structure.end } ")"
+        ]
+            ++ toNestedTupleFix
+                { structure = tupledRange
+                , parts = listFilledToList tupledElementRanges
+                }
+            ++ [ Fix.replaceRangeBy { start = config.structure.start, end = (listFilledHead config.beginningElements).start } "(" ]
 
 
 toNestedTupleFix : { structure : Range, parts : List Range } -> List Fix
@@ -13733,6 +13961,21 @@ listLast list =
             Just (listFilledLast ( head, tail ))
 
 
+listFilledToList : ( a, List a ) -> List a
+listFilledToList ( head, tail ) =
+    head :: tail
+
+
+listFilledHead : ( a, List a ) -> a
+listFilledHead ( head, tail ) =
+    head
+
+
+listFilledTail : ( a, List a ) -> List a
+listFilledTail ( head, tail ) =
+    tail
+
+
 listFilledLast : ( a, List a ) -> a
 listFilledLast ( head, tail ) =
     case tail of
@@ -13751,6 +13994,11 @@ listFilledInit ( head, tail ) =
 
         tailHead :: tailTail ->
             head :: listFilledInit ( tailHead, tailTail )
+
+
+listFilledMap : (a -> b) -> ( a, List a ) -> ( b, List b )
+listFilledMap elementChange ( head, tail ) =
+    ( elementChange head, List.map elementChange tail )
 
 
 findMap : (a -> Maybe b) -> List a -> Maybe b
