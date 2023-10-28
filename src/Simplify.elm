@@ -13959,12 +13959,12 @@ listFilledToList ( head, tail ) =
 
 
 listFilledHead : ( a, List a ) -> a
-listFilledHead ( head, tail ) =
+listFilledHead ( head, _ ) =
     head
 
 
 listFilledTail : ( a, List a ) -> List a
-listFilledTail ( head, tail ) =
+listFilledTail ( _, tail ) =
     tail
 
 
