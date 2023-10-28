@@ -12452,18 +12452,10 @@ caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo =
                         isUnnecessaryListPattern listPattern =
                             case listPattern of
                                 ListLiteralPattern listLiteralPatternELements ->
-                                    if List.length listLiteralPatternELements /= casedListLiteralLength then
-                                        True
-
-                                    else
-                                        False
+                                    List.length listLiteralPatternELements /= casedListLiteralLength
 
                                 ConsPattern consPattern ->
-                                    if List.length (listFilledToList consPattern.beginningElements) >= (casedListLiteralLength + 1) then
-                                        True
-
-                                    else
-                                        False
+                                    List.length (listFilledToList consPattern.beginningElements) >= (casedListLiteralLength + 1)
 
                         alwaysMatchedBeginningLength : Int
                         alwaysMatchedBeginningLength =
