@@ -464,7 +464,7 @@ a =
     case [ 0, 0, 0, 0 ] of
         [ _, _, _, _ ] ->
             0
-        
+
         _ :: _ :: _ :: _ ->
             1
         
@@ -492,12 +492,66 @@ a =
     case ((0, (0, 0)), [ 0 ]) of
         ((_, (_, _)), [ _ ]) ->
             0
-        
+
         ((_, (_, _)), _) ->
             1
         
 
 
+
+"""
+                        ]
+        , test "should remove unnecessary case of cons when all cases are list patterns" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case 0 :: 0 :: tail of
+        _ :: _ :: _ :: _ ->
+            0
+        
+        [ _, _, _ ] ->
+            1
+        
+        _ :: _ :: _ ->
+            2
+        
+        [ _, _ ] ->
+            3
+
+        _ :: _ ->
+            4
+        
+        [] ->
+            5
+        
+        [ _ ] ->
+            6
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary cases"
+                            , details = [ "The value between case ... of is a list of length >= 2. However, the 6th and 7th case matches on a shorter list which means you can remove it." ]
+                            , under = "[]"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    case (0, 0 :: tail) of
+        (_, _ :: _ :: _) ->
+            0
+        
+        (_, [ _, _ ]) ->
+            1
+        
+        (_, _ :: _) ->
+            2
+        
+        (_, [ _ ]) ->
+            3
+
+        (_, _) ->
+            4
+        
 
 """
                         ]
