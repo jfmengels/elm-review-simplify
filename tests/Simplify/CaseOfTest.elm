@@ -377,6 +377,130 @@ a =
                             ]
                           )
                         ]
+        , test "should remove unnecessary case of empty list when all cases are list patterns" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case [] of
+        _ :: _ :: _ ->
+            0
+        
+        [ _ ] ->
+            1
+
+        _ :: _ ->
+            2
+        
+        [] ->
+            3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary cases"
+                            , details = [ "The value between case ... of is a known list of length 0. However, the 1st and 2nd and 3rd case matches on a list with a different length which means you can remove it." ]
+                            , under = "_ :: _ :: _"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    case () of
+
+
+
+        () ->
+            3
+"""
+                        ]
+        , test "should remove unnecessary case of filled list literal when all cases are list patterns" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case [ 0, 0 ] of
+        _ :: _ :: _ ->
+            0
+        
+        [ _ ] ->
+            1
+        
+        [ _, _ ] ->
+            2
+        
+        [ _, _, _ ] ->
+            3
+
+        _ :: _ ->
+            4
+        
+        [] ->
+            5
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary cases"
+                            , details = [ "The value between case ... of is a known list of length 2. However, the 2nd and 4th and 6th case matches on a list with a different length which means you can remove it." ]
+                            , under = "[ _ ]"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    case (0, [ 0 ]) of
+        (_, _ :: _) ->
+            0
+        
+
+        (_, [ _ ]) ->
+            2
+        
+
+        (_, _) ->
+            4
+        
+"""
+                        ]
+        , test "should remove unnecessary case of filled list literal when all cases are list patterns with length >= 3" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case [ 0, 0, 0, 0 ] of
+        [ _, _, _, _ ] ->
+            0
+        
+        _ :: _ :: _ :: _ ->
+            1
+        
+        [] ->
+            2
+        
+        [ _ ] ->
+            3
+        
+        [ _, _ ] ->
+            4
+        
+        [ _, _, _ ] ->
+            5
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary cases"
+                            , details = [ "The value between case ... of is a known list of length 4. However, the 3rd and 4th and 5th and 6th case matches on a list with a different length which means you can remove it." ]
+                            , under = "[]"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    case ((0, (0, 0)), [ 0 ]) of
+        ((_, (_, _)), [ _ ]) ->
+            0
+        
+        ((_, (_, _)), _) ->
+            1
+        
+
+
+
+"""
+                        ]
         , test "should remove unnecessary case of dependency variant when all cases of nested tuple part are variant patterns" <|
             \() ->
                 """module A exposing (..)
