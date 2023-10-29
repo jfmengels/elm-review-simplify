@@ -122,7 +122,7 @@ Below is the list of all kinds of simplifications this rule applies.
         Nothing -> x
     --> x
 
-    -- same with any variant
+    -- same with any variant, list or tuple containing either
     case Just value of
         Nothing -> a
         Just (Ok b) -> c
