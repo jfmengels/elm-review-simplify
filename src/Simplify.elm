@@ -12168,9 +12168,7 @@ caseOfWithUnnecessaryCasesChecks : CaseOfCheckInfo -> Maybe (Error {})
 caseOfWithUnnecessaryCasesChecks checkInfo =
     caseOfWithUnnecessaryCasesChecksOn
         { casedExpressionNode = checkInfo.caseOf.expression
-        , cases =
-            checkInfo.caseOf.cases
-                |> List.map (\( patternNode, Node expressionRange _ ) -> { patternNode = patternNode, expressionRange = expressionRange })
+        , cases = checkInfo.caseOf.cases
         }
         checkInfo
         |> Maybe.map
@@ -12214,7 +12212,7 @@ unnecessaryCaseToReviewFixes unnecessaryCaseFix =
 
 
 caseOfWithUnnecessaryCasesChecksOn :
-    { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } }
+    { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
     -> CaseOfCheckInfo
     -> Maybe { message : String, details : List String, range : Range, fix : UnnecessaryCasesFix }
 caseOfWithUnnecessaryCasesChecksOn config checkInfo =
@@ -12228,7 +12226,7 @@ caseOfWithUnnecessaryCasesChecksOn config checkInfo =
 
 
 caseTuple2OfWithUnnecessaryCasesChecks :
-    { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } }
+    { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
     -> CaseOfCheckInfo
     -> Maybe { message : String, details : List String, range : Range, fix : UnnecessaryCasesFix }
 caseTuple2OfWithUnnecessaryCasesChecks config checkInfo =
@@ -12238,13 +12236,13 @@ caseTuple2OfWithUnnecessaryCasesChecks config checkInfo =
 
         Just casedTuple ->
             let
-                maybeTuplePatternCases : Maybe (List { firstPatternNode : Node Pattern, secondPatternNode : Node Pattern, expressionRange : Range })
+                maybeTuplePatternCases : Maybe (List { firstPatternNode : Node Pattern, secondPatternNode : Node Pattern, expressionNode : Node Expression })
                 maybeTuplePatternCases =
                     traverse
-                        (\case_ ->
-                            case case_.patternNode of
+                        (\( patternNode, expressionNode ) ->
+                            case patternNode of
                                 Node _ (Pattern.TuplePattern (firstPatternNode :: secondPatternNode :: [])) ->
-                                    Just { firstPatternNode = firstPatternNode, secondPatternNode = secondPatternNode, expressionRange = case_.expressionRange }
+                                    Just { firstPatternNode = firstPatternNode, secondPatternNode = secondPatternNode, expressionNode = expressionNode }
 
                                 _ ->
                                     Nothing
@@ -12261,7 +12259,7 @@ caseTuple2OfWithUnnecessaryCasesChecks config checkInfo =
                             caseOfWithUnnecessaryCasesChecksOn
                                 { casedExpressionNode = casedTuple.first
                                 , cases =
-                                    List.map (\case_ -> { patternNode = case_.firstPatternNode, expressionRange = case_.expressionRange })
+                                    List.map (\case_ -> ( case_.firstPatternNode, case_.expressionNode ))
                                         tuplePatternCases
                                 }
                                 checkInfo
@@ -12269,7 +12267,7 @@ caseTuple2OfWithUnnecessaryCasesChecks config checkInfo =
                             caseOfWithUnnecessaryCasesChecksOn
                                 { casedExpressionNode = casedTuple.second
                                 , cases =
-                                    List.map (\case_ -> { patternNode = case_.secondPatternNode, expressionRange = case_.expressionRange })
+                                    List.map (\case_ -> ( case_.secondPatternNode, case_.expressionNode ))
                                         tuplePatternCases
                                 }
                                 checkInfo
@@ -12277,20 +12275,20 @@ caseTuple2OfWithUnnecessaryCasesChecks config checkInfo =
 
 
 caseTuple3OfWithUnnecessaryCasesChecks :
-    { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } }
+    { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
     -> CaseOfCheckInfo
     -> Maybe { message : String, details : List String, range : Range, fix : UnnecessaryCasesFix }
 caseTuple3OfWithUnnecessaryCasesChecks config checkInfo =
     case config.casedExpressionNode of
         Node _ (Expression.TupledExpression (casedTupleFirstNode :: casedTupleSecondNode :: casedTupleThirdNode :: [])) ->
             let
-                maybeTuplePatternCases : Maybe (List { firstPatternNode : Node Pattern, secondPatternNode : Node Pattern, thirdPatternNode : Node Pattern, expressionRange : Range })
+                maybeTuplePatternCases : Maybe (List { firstPatternNode : Node Pattern, secondPatternNode : Node Pattern, thirdPatternNode : Node Pattern, expressionNode : Node Expression })
                 maybeTuplePatternCases =
                     traverse
-                        (\case_ ->
-                            case case_.patternNode of
+                        (\( patternNode, expressionNode ) ->
+                            case patternNode of
                                 Node _ (Pattern.TuplePattern (firstPatternNode :: secondPatternNode :: thirdPatternNode :: [])) ->
-                                    Just { firstPatternNode = firstPatternNode, secondPatternNode = secondPatternNode, thirdPatternNode = thirdPatternNode, expressionRange = case_.expressionRange }
+                                    Just { firstPatternNode = firstPatternNode, secondPatternNode = secondPatternNode, thirdPatternNode = thirdPatternNode, expressionNode = expressionNode }
 
                                 _ ->
                                     Nothing
@@ -12307,7 +12305,7 @@ caseTuple3OfWithUnnecessaryCasesChecks config checkInfo =
                             caseOfWithUnnecessaryCasesChecksOn
                                 { casedExpressionNode = casedTupleFirstNode
                                 , cases =
-                                    List.map (\case_ -> { patternNode = case_.firstPatternNode, expressionRange = case_.expressionRange })
+                                    List.map (\case_ -> ( case_.firstPatternNode, case_.expressionNode ))
                                         tuplePatternCases
                                 }
                                 checkInfo
@@ -12315,7 +12313,7 @@ caseTuple3OfWithUnnecessaryCasesChecks config checkInfo =
                             caseOfWithUnnecessaryCasesChecksOn
                                 { casedExpressionNode = casedTupleSecondNode
                                 , cases =
-                                    List.map (\case_ -> { patternNode = case_.secondPatternNode, expressionRange = case_.expressionRange })
+                                    List.map (\case_ -> ( case_.secondPatternNode, case_.expressionNode ))
                                         tuplePatternCases
                                 }
                                 checkInfo
@@ -12323,7 +12321,7 @@ caseTuple3OfWithUnnecessaryCasesChecks config checkInfo =
                             caseOfWithUnnecessaryCasesChecksOn
                                 { casedExpressionNode = casedTupleThirdNode
                                 , cases =
-                                    List.map (\case_ -> { patternNode = case_.thirdPatternNode, expressionRange = case_.expressionRange })
+                                    List.map (\case_ -> ( case_.thirdPatternNode, case_.expressionNode ))
                                         tuplePatternCases
                                 }
                                 checkInfo
@@ -12334,7 +12332,7 @@ caseTuple3OfWithUnnecessaryCasesChecks config checkInfo =
 
 
 caseVariantOfWithUnnecessaryCasesChecks :
-    { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } }
+    { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
     -> CaseOfCheckInfo
     -> Maybe { message : String, details : List String, range : Range, fix : UnnecessaryCasesFix }
 caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
@@ -12342,7 +12340,7 @@ caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
         maybeCasedVariant :
             Maybe
                 { cased : { moduleName : ModuleName, name : String, attachments : List (Node Expression), customTypeVariantNames : Set String }
-                , cases : List { patternRange : Range, name : String, attachments : List (Node Pattern), expressionRange : Range }
+                , cases : List { patternRange : Range, name : String, attachments : List (Node Pattern), expressionNode : Node Expression }
                 }
         maybeCasedVariant =
             case AstHelpers.getValueOrFnOrFnCall config.casedExpressionNode of
@@ -12424,7 +12422,7 @@ caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
                             , remainingCaseVariantAttachmentListsFilled =
                                 List.map
                                     (\case_ ->
-                                        List.map (\patternNode -> { patternNode = patternNode, expressionRange = case_.expressionRange })
+                                        List.map (\patternNode -> ( patternNode, case_.expressionNode ))
                                             case_.attachments
                                     )
                                     variantCaseOf.cases
@@ -12434,9 +12432,7 @@ caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
                             (\casedVariantAttachmentAndCases ->
                                 caseOfWithUnnecessaryCasesChecksOn
                                     { casedExpressionNode = casedVariantAttachmentAndCases.attachment
-                                    , cases =
-                                        List.map (\case_ -> { patternNode = case_.patternNode, expressionRange = case_.expressionRange })
-                                            casedVariantAttachmentAndCases.cases
+                                    , cases = casedVariantAttachmentAndCases.cases
                                     }
                                     checkInfo
                                     |> Maybe.map
@@ -12547,7 +12543,7 @@ caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
                                         else
                                             UnnecessaryCaseRemove
                                                 { patternRange = variantPattern.patternRange
-                                                , expressionRange = variantPattern.expressionRange
+                                                , expressionRange = Node.range variantPattern.expressionNode
                                                 }
                                     )
                                     variantCaseOf.cases
@@ -12555,11 +12551,11 @@ caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
                         }
 
 
-getVariantCase : { patternNode : Node Pattern, expressionRange : Range } -> Maybe { patternRange : Range, expressionRange : Range, name : String, attachments : List (Node Pattern) }
-getVariantCase case_ =
-    case AstHelpers.removeParensFromPattern case_.patternNode of
+getVariantCase : ( Node Pattern, Node Expression ) -> Maybe { patternRange : Range, expressionNode : Node Expression, name : String, attachments : List (Node Pattern) }
+getVariantCase ( patternNode, expressionNode ) =
+    case AstHelpers.removeParensFromPattern patternNode of
         Node patternRange (Pattern.NamedPattern qualified attachments) ->
-            Just { patternRange = patternRange, expressionRange = case_.expressionRange, name = qualified.name, attachments = attachments }
+            Just { patternRange = patternRange, expressionNode = expressionNode, name = qualified.name, attachments = attachments }
 
         _ ->
             Nothing
@@ -12585,7 +12581,7 @@ getCustomTypeWithVariant variantName customTypes =
 
 
 caseListLiteralOfWithUnnecessaryCasesChecks :
-    { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } }
+    { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
     -> CaseOfCheckInfo
     -> Maybe { message : String, details : List String, range : Range, fix : UnnecessaryCasesFix }
 caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo =
@@ -12598,12 +12594,12 @@ caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo =
                 maybeListPatternCases : Maybe (List { patternRange : Range, expressionRange : Range, pattern : ListPattern })
                 maybeListPatternCases =
                     traverse
-                        (\case_ ->
+                        (\( patternNode, Node expressionRange _ ) ->
                             Maybe.map
                                 (\listPattern ->
-                                    { patternRange = Node.range case_.patternNode, expressionRange = case_.expressionRange, pattern = listPattern }
+                                    { patternRange = Node.range patternNode, expressionRange = expressionRange, pattern = listPattern }
                                 )
-                                (getListPattern (Node.value case_.patternNode))
+                                (getListPattern (Node.value patternNode))
                         )
                         config.cases
             in
@@ -12725,7 +12721,7 @@ caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo =
 
 
 caseConsOfWithUnnecessaryCasesChecks :
-    { casedExpressionNode : Node Expression, cases : List { patternNode : Node Pattern, expressionRange : Range } }
+    { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
     -> CaseOfCheckInfo
     -> Maybe { message : String, details : List String, range : Range, fix : UnnecessaryCasesFix }
 caseConsOfWithUnnecessaryCasesChecks config checkInfo =
@@ -12738,13 +12734,12 @@ caseConsOfWithUnnecessaryCasesChecks config checkInfo =
                 maybeListPatternCases : Maybe (List { patternRange : Range, expressionRange : Range, pattern : ListPattern })
                 maybeListPatternCases =
                     traverse
-                        (\case_ ->
-                            case getListPattern (Node.value case_.patternNode) of
-                                Just listPattern ->
-                                    Just { patternRange = Node.range case_.patternNode, expressionRange = case_.expressionRange, pattern = listPattern }
-
-                                _ ->
-                                    Nothing
+                        (\( patternNode, Node expressionRange _ ) ->
+                            Maybe.map
+                                (\listPattern ->
+                                    { patternRange = Node.range patternNode, expressionRange = expressionRange, pattern = listPattern }
+                                )
+                                (getListPattern (Node.value patternNode))
                         )
                         config.cases
             in
