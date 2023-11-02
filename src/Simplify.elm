@@ -13535,26 +13535,26 @@ listLiteralToNestedTupleFix config =
                     toNestedTupleFix (listFilledToList tupledElements)
 
                 firstUntupledElementRange :: afterFirstUntupledElementRange ->
-                    "("
-                        ++ toNestedTupleFix (listFilledToList tupledElements)
-                        ++ ", [ "
-                        ++ String.join ", " (firstUntupledElementRange :: afterFirstUntupledElementRange)
-                        ++ " ])"
+                    toNestedTupleFix
+                        (listFilledToList tupledElements
+                            ++ [ "[ "
+                                    ++ String.join ", " (firstUntupledElementRange :: afterFirstUntupledElementRange)
+                                    ++ " ]"
+                               ]
+                        )
 
 
 collapsedConsToNestedTupleFix : { tupledBeginningLength : Int, beginningElements : ( String, List String ), tail : String } -> String
 collapsedConsToNestedTupleFix config =
-    "("
-        ++ toNestedTupleFix
-            (listFilledHead config.beginningElements
-                :: List.take (config.tupledBeginningLength - 1) (listFilledTail config.beginningElements)
-            )
-        ++ ", "
-        ++ String.join " :: "
-            (List.drop (config.tupledBeginningLength - 1) (listFilledTail config.beginningElements)
-                ++ [ config.tail ]
-            )
-        ++ ")"
+    toNestedTupleFix
+        (listFilledHead config.beginningElements
+            :: List.take (config.tupledBeginningLength - 1) (listFilledTail config.beginningElements)
+            ++ [ String.join " :: "
+                    (List.drop (config.tupledBeginningLength - 1) (listFilledTail config.beginningElements)
+                        ++ [ config.tail ]
+                    )
+               ]
+        )
 
 
 toNestedTupleFix : List String -> String
