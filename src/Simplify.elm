@@ -12582,12 +12582,11 @@ caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo =
                 maybeListPatternCases =
                     traverse
                         (\case_ ->
-                            case getListPattern (Node.value case_.patternNode) of
-                                Just listPattern ->
-                                    Just { patternRange = Node.range case_.patternNode, expressionRange = case_.expressionRange, pattern = listPattern }
-
-                                _ ->
-                                    Nothing
+                            Maybe.map
+                                (\listPattern ->
+                                    { patternRange = Node.range case_.patternNode, expressionRange = case_.expressionRange, pattern = listPattern }
+                                )
+                                (getListPattern (Node.value case_.patternNode))
                         )
                         config.cases
             in
