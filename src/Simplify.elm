@@ -12338,233 +12338,250 @@ caseVariantOfWithUnnecessaryCasesChecks :
     -> CaseOfCheckInfo
     -> Maybe { message : String, details : List String, range : Range, fix : UnnecessaryCasesFix }
 caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
-    case AstHelpers.getValueOrFnOrFnCall config.casedExpressionNode of
-        Nothing ->
-            Nothing
-
-        Just valueOrCall ->
-            let
-                maybeValueModule : Maybe { name : ModuleName, customTypes : Dict String { variantNames : Set String } }
-                maybeValueModule =
-                    case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable valueOrCall.fnRange of
-                        Just [] ->
-                            Just { name = [], customTypes = checkInfo.moduleCustomTypes }
-
-                        Just (moduleNamePart0 :: moduleNamePart1Up) ->
-                            Dict.get (moduleNamePart0 :: moduleNamePart1Up)
-                                checkInfo.importCustomTypes
-                                |> Maybe.map
-                                    (\customTypes ->
-                                        { name = moduleNamePart0 :: moduleNamePart1Up, customTypes = customTypes }
-                                    )
-
-                        Nothing ->
-                            Nothing
-            in
-            case maybeValueModule of
+    let
+        maybeCasedVariant :
+            Maybe
+                { cased : { moduleName : ModuleName, name : String, attachments : List (Node Expression), customTypeVariantNames : Set String }
+                , cases : List { patternRange : Range, name : String, attachments : List (Node Pattern), expressionRange : Range }
+                }
+        maybeCasedVariant =
+            case AstHelpers.getValueOrFnOrFnCall config.casedExpressionNode of
                 Nothing ->
                     Nothing
 
-                Just valueModule ->
+                Just valueOrCall ->
                     let
-                        maybeCustomTypeWithVariant : Maybe { name : String, variantNames : Set String }
-                        maybeCustomTypeWithVariant =
-                            valueModule.customTypes
-                                |> Dict.foldl
-                                    (\customTypeName customTypeInfo soFar ->
-                                        case soFar of
-                                            Just found ->
-                                                Just found
+                        maybeValueModule : Maybe { name : ModuleName, customTypes : Dict String { variantNames : Set String } }
+                        maybeValueModule =
+                            case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable valueOrCall.fnRange of
+                                Just [] ->
+                                    Just { name = [], customTypes = checkInfo.moduleCustomTypes }
 
-                                            Nothing ->
-                                                if Set.member valueOrCall.fnName customTypeInfo.variantNames then
-                                                    Just { name = customTypeName, variantNames = customTypeInfo.variantNames }
+                                Just (moduleNamePart0 :: moduleNamePart1Up) ->
+                                    Dict.get (moduleNamePart0 :: moduleNamePart1Up) checkInfo.importCustomTypes
+                                        |> Maybe.map
+                                            (\customTypes ->
+                                                { name = moduleNamePart0 :: moduleNamePart1Up, customTypes = customTypes }
+                                            )
 
-                                                else
-                                                    Nothing
-                                    )
+                                Nothing ->
                                     Nothing
                     in
-                    case maybeCustomTypeWithVariant of
+                    case maybeValueModule of
                         Nothing ->
                             Nothing
 
-                        Just customTypeWithVariant ->
-                            let
-                                maybeVariantPatternCases : Maybe (List { patternRange : Range, expressionRange : Range, name : String, attachments : List (Node Pattern) })
-                                maybeVariantPatternCases =
-                                    traverse
-                                        (\case_ ->
-                                            case AstHelpers.removeParensFromPattern case_.patternNode of
-                                                Node patternRange (Pattern.NamedPattern qualified attachments) ->
-                                                    Just { patternRange = patternRange, expressionRange = case_.expressionRange, name = qualified.name, attachments = attachments }
-
-                                                _ ->
-                                                    Nothing
-                                        )
-                                        config.cases
-                            in
-                            case maybeVariantPatternCases of
+                        Just valueModule ->
+                            case getCustomTypeWithVariant valueOrCall.fnName valueModule.customTypes of
                                 Nothing ->
                                     Nothing
 
-                                Just variantPatternCases ->
-                                    case Set.size customTypeWithVariant.variantNames of
-                                        1 ->
-                                            valueOrCall.args
-                                                |> List.foldl
-                                                    (\attachment soFar ->
-                                                        case traverse listFilledFromList soFar.remainingCaseVariantAttachmentListsFilled of
-                                                            Just caseVariantAttachmentListsFilled ->
-                                                                { index = soFar.index + 1
-                                                                , remainingCaseVariantAttachmentListsFilled =
-                                                                    List.map listFilledTail caseVariantAttachmentListsFilled
-                                                                , attachmentAndCasesList =
-                                                                    soFar.attachmentAndCasesList
-                                                                        |> (::) { index = soFar.index, attachment = attachment, cases = List.map listFilledHead caseVariantAttachmentListsFilled }
-                                                                }
+                                Just customTypeWithVariant ->
+                                    case traverse getVariantCase config.cases of
+                                        Nothing ->
+                                            Nothing
 
-                                                            -- case curried variant of → compiler error
-                                                            Nothing ->
-                                                                { index = 0
-                                                                , remainingCaseVariantAttachmentListsFilled = []
-                                                                , attachmentAndCasesList = []
-                                                                }
-                                                    )
-                                                    { index = 0
-                                                    , attachmentAndCasesList = []
-                                                    , remainingCaseVariantAttachmentListsFilled =
-                                                        List.map
-                                                            (\case_ ->
-                                                                List.map (\patternNode -> { patternNode = patternNode, expressionRange = case_.expressionRange })
-                                                                    case_.attachments
-                                                            )
-                                                            variantPatternCases
-                                                    }
-                                                |> .attachmentAndCasesList
-                                                |> findMap
-                                                    (\casedVariantAttachmentAndCases ->
-                                                        caseOfWithUnnecessaryCasesChecksOn
-                                                            { casedExpressionNode = casedVariantAttachmentAndCases.attachment
-                                                            , cases =
-                                                                List.map (\case_ -> { patternNode = case_.patternNode, expressionRange = case_.expressionRange })
-                                                                    casedVariantAttachmentAndCases.cases
-                                                            }
-                                                            checkInfo
-                                                            |> Maybe.map
-                                                                (\attachmentError ->
-                                                                    { attachmentError
-                                                                        | fix =
-                                                                            { casedExpressionReplace =
-                                                                                { range = valueOrCall.nodeRange
-                                                                                , replacement =
-                                                                                    toNestedTupleFix
-                                                                                        (List.indexedMap
-                                                                                            (\i (Node argRange _) ->
-                                                                                                if i == casedVariantAttachmentAndCases.index then
-                                                                                                    attachmentError.fix.casedExpressionReplace.replacement
-
-                                                                                                else
-                                                                                                    checkInfo.extractSourceCode argRange
-                                                                                            )
-                                                                                            valueOrCall.args
-                                                                                        )
-                                                                                }
-                                                                            , cases =
-                                                                                List.map2
-                                                                                    (\variantPattern patternAttachmentError ->
-                                                                                        case patternAttachmentError of
-                                                                                            UnnecessaryCaseRemove remove ->
-                                                                                                UnnecessaryCaseRemove remove
-
-                                                                                            UnnecessaryCaseReplace replace ->
-                                                                                                UnnecessaryCaseReplace
-                                                                                                    { range = variantPattern.patternRange
-                                                                                                    , replacement =
-                                                                                                        toNestedTupleFix
-                                                                                                            (List.indexedMap
-                                                                                                                (\i (Node attachmentRange _) ->
-                                                                                                                    if i == casedVariantAttachmentAndCases.index then
-                                                                                                                        replace.replacement
-
-                                                                                                                    else
-                                                                                                                        checkInfo.extractSourceCode attachmentRange
-                                                                                                                )
-                                                                                                                variantPattern.attachments
-                                                                                                            )
-                                                                                                    }
-                                                                                    )
-                                                                                    variantPatternCases
-                                                                                    attachmentError.fix.cases
-                                                                            }
-                                                                    }
-                                                                )
-                                                    )
-
-                                        -- >= 2 possible variants
-                                        _ ->
+                                        Just cases ->
                                             Just
-                                                { message = "Unnecessary cases"
-                                                , details =
-                                                    [ "The value between case ... of is a known "
-                                                        ++ qualifiedToString (qualify ( valueModule.name, valueOrCall.fnName ) defaultQualifyResources)
-                                                        ++ " variant. However, the "
-                                                        ++ (variantPatternCases
-                                                                |> List.indexedMap (\caseIndex variant -> { index = caseIndex, variant = variant })
-                                                                |> List.filterMap
-                                                                    (\case_ ->
-                                                                        if case_.variant.name /= valueOrCall.fnName then
-                                                                            Just (indexthToString case_.index)
+                                                { cased =
+                                                    { moduleName = valueModule.name
+                                                    , name = valueOrCall.fnName
+                                                    , attachments = valueOrCall.args
+                                                    , customTypeVariantNames = customTypeWithVariant.variantNames
+                                                    }
+                                                , cases = cases
+                                                }
+    in
+    case maybeCasedVariant of
+        Nothing ->
+            Nothing
 
-                                                                        else
-                                                                            Nothing
-                                                                    )
-                                                                |> String.join " and "
-                                                           )
-                                                        ++ " case matches on a different variant which means you can remove it."
-                                                    ]
-                                                , range =
-                                                    findMap
-                                                        (\case_ ->
-                                                            if case_.name /= valueOrCall.fnName then
-                                                                Just case_.patternRange
+        Just variantCaseOf ->
+            case Set.size variantCaseOf.cased.customTypeVariantNames of
+                1 ->
+                    variantCaseOf.cased.attachments
+                        |> List.foldl
+                            (\attachment soFar ->
+                                case traverse listFilledFromList soFar.remainingCaseVariantAttachmentListsFilled of
+                                    Just caseVariantAttachmentListsFilled ->
+                                        { index = soFar.index + 1
+                                        , remainingCaseVariantAttachmentListsFilled =
+                                            List.map listFilledTail caseVariantAttachmentListsFilled
+                                        , attachmentAndCasesList =
+                                            soFar.attachmentAndCasesList
+                                                |> (::) { index = soFar.index, attachment = attachment, cases = List.map listFilledHead caseVariantAttachmentListsFilled }
+                                        }
 
-                                                            else
-                                                                Nothing
-                                                        )
-                                                        variantPatternCases
-                                                        |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
-                                                , fix =
+                                    -- case curried variant of → compiler error
+                                    Nothing ->
+                                        { index = 0
+                                        , remainingCaseVariantAttachmentListsFilled = []
+                                        , attachmentAndCasesList = []
+                                        }
+                            )
+                            { index = 0
+                            , attachmentAndCasesList = []
+                            , remainingCaseVariantAttachmentListsFilled =
+                                List.map
+                                    (\case_ ->
+                                        List.map (\patternNode -> { patternNode = patternNode, expressionRange = case_.expressionRange })
+                                            case_.attachments
+                                    )
+                                    variantCaseOf.cases
+                            }
+                        |> .attachmentAndCasesList
+                        |> findMap
+                            (\casedVariantAttachmentAndCases ->
+                                caseOfWithUnnecessaryCasesChecksOn
+                                    { casedExpressionNode = casedVariantAttachmentAndCases.attachment
+                                    , cases =
+                                        List.map (\case_ -> { patternNode = case_.patternNode, expressionRange = case_.expressionRange })
+                                            casedVariantAttachmentAndCases.cases
+                                    }
+                                    checkInfo
+                                    |> Maybe.map
+                                        (\attachmentError ->
+                                            { attachmentError
+                                                | fix =
                                                     { casedExpressionReplace =
-                                                        { range = valueOrCall.nodeRange
+                                                        { range = Node.range config.casedExpressionNode
                                                         , replacement =
                                                             toNestedTupleFix
-                                                                (List.map (\(Node argRange _) -> checkInfo.extractSourceCode argRange)
-                                                                    valueOrCall.args
+                                                                (List.indexedMap
+                                                                    (\i (Node argRange _) ->
+                                                                        if i == casedVariantAttachmentAndCases.index then
+                                                                            attachmentError.fix.casedExpressionReplace.replacement
+
+                                                                        else
+                                                                            checkInfo.extractSourceCode argRange
+                                                                    )
+                                                                    variantCaseOf.cased.attachments
                                                                 )
                                                         }
                                                     , cases =
-                                                        List.map
-                                                            (\variantPattern ->
-                                                                if variantPattern.name == valueOrCall.fnName then
-                                                                    UnnecessaryCaseReplace
-                                                                        { range = variantPattern.patternRange
-                                                                        , replacement =
-                                                                            toNestedTupleFix
-                                                                                (List.map (\(Node argRange _) -> checkInfo.extractSourceCode argRange)
-                                                                                    variantPattern.attachments
-                                                                                )
-                                                                        }
+                                                        List.map2
+                                                            (\variantPattern patternAttachmentError ->
+                                                                case patternAttachmentError of
+                                                                    UnnecessaryCaseRemove remove ->
+                                                                        UnnecessaryCaseRemove remove
 
-                                                                else
-                                                                    UnnecessaryCaseRemove
-                                                                        { patternRange = variantPattern.patternRange
-                                                                        , expressionRange = variantPattern.expressionRange
-                                                                        }
+                                                                    UnnecessaryCaseReplace replace ->
+                                                                        UnnecessaryCaseReplace
+                                                                            { range = variantPattern.patternRange
+                                                                            , replacement =
+                                                                                toNestedTupleFix
+                                                                                    (List.indexedMap
+                                                                                        (\i (Node attachmentRange _) ->
+                                                                                            if i == casedVariantAttachmentAndCases.index then
+                                                                                                replace.replacement
+
+                                                                                            else
+                                                                                                checkInfo.extractSourceCode attachmentRange
+                                                                                        )
+                                                                                        variantPattern.attachments
+                                                                                    )
+                                                                            }
                                                             )
-                                                            variantPatternCases
+                                                            variantCaseOf.cases
+                                                            attachmentError.fix.cases
                                                     }
+                                            }
+                                        )
+                            )
+
+                -- >= 2 possible variants
+                _ ->
+                    Just
+                        { message = "Unnecessary cases"
+                        , details =
+                            [ "The value between case ... of is a known "
+                                ++ qualifiedToString (qualify ( variantCaseOf.cased.moduleName, variantCaseOf.cased.name ) defaultQualifyResources)
+                                ++ " variant. However, the "
+                                ++ (variantCaseOf.cases
+                                        |> List.indexedMap (\caseIndex variant -> { index = caseIndex, variant = variant })
+                                        |> List.filterMap
+                                            (\case_ ->
+                                                if case_.variant.name /= variantCaseOf.cased.name then
+                                                    Just (indexthToString case_.index)
+
+                                                else
+                                                    Nothing
+                                            )
+                                        |> String.join " and "
+                                   )
+                                ++ " case matches on a different variant which means you can remove it."
+                            ]
+                        , range =
+                            findMap
+                                (\case_ ->
+                                    if case_.name /= variantCaseOf.cased.name then
+                                        Just case_.patternRange
+
+                                    else
+                                        Nothing
+                                )
+                                variantCaseOf.cases
+                                |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
+                        , fix =
+                            { casedExpressionReplace =
+                                { range = Node.range config.casedExpressionNode
+                                , replacement =
+                                    toNestedTupleFix
+                                        (List.map (\(Node argRange _) -> checkInfo.extractSourceCode argRange)
+                                            variantCaseOf.cased.attachments
+                                        )
+                                }
+                            , cases =
+                                List.map
+                                    (\variantPattern ->
+                                        if variantPattern.name == variantCaseOf.cased.name then
+                                            UnnecessaryCaseReplace
+                                                { range = variantPattern.patternRange
+                                                , replacement =
+                                                    toNestedTupleFix
+                                                        (List.map (\(Node argRange _) -> checkInfo.extractSourceCode argRange)
+                                                            variantPattern.attachments
+                                                        )
                                                 }
+
+                                        else
+                                            UnnecessaryCaseRemove
+                                                { patternRange = variantPattern.patternRange
+                                                , expressionRange = variantPattern.expressionRange
+                                                }
+                                    )
+                                    variantCaseOf.cases
+                            }
+                        }
+
+
+getVariantCase : { patternNode : Node Pattern, expressionRange : Range } -> Maybe { patternRange : Range, expressionRange : Range, name : String, attachments : List (Node Pattern) }
+getVariantCase case_ =
+    case AstHelpers.removeParensFromPattern case_.patternNode of
+        Node patternRange (Pattern.NamedPattern qualified attachments) ->
+            Just { patternRange = patternRange, expressionRange = case_.expressionRange, name = qualified.name, attachments = attachments }
+
+        _ ->
+            Nothing
+
+
+getCustomTypeWithVariant : String -> Dict String { variantNames : Set String } -> Maybe { name : String, variantNames : Set String }
+getCustomTypeWithVariant variantName customTypes =
+    customTypes
+        |> Dict.foldl
+            (\customTypeName customTypeInfo soFar ->
+                case soFar of
+                    Just found ->
+                        Just found
+
+                    Nothing ->
+                        if Set.member variantName customTypeInfo.variantNames then
+                            Just { name = customTypeName, variantNames = customTypeInfo.variantNames }
+
+                        else
+                            Nothing
+            )
+            Nothing
 
 
 caseListLiteralOfWithUnnecessaryCasesChecks :
