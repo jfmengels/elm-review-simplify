@@ -2094,9 +2094,7 @@ declarationVisitor declarationNode context =
                             context.exposedVariants
                             variantType.constructors
                 in
-                { context
-                    | exposedVariants = exposedVariants
-                }
+                { context | exposedVariants = exposedVariants }
 
             else
                 context
