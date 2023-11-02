@@ -12196,8 +12196,8 @@ type UnnecessaryCaseFix
 
 unnecessaryCasesFixToReviewFixes : UnnecessaryCasesFix -> List Fix
 unnecessaryCasesFixToReviewFixes unnecessaryCasesFix =
-    [ Fix.replaceRangeBy unnecessaryCasesFix.casedExpressionReplace.range unnecessaryCasesFix.casedExpressionReplace.replacement ]
-        ++ List.concatMap unnecessaryCaseToReviewFixes unnecessaryCasesFix.cases
+    Fix.replaceRangeBy unnecessaryCasesFix.casedExpressionReplace.range unnecessaryCasesFix.casedExpressionReplace.replacement
+        :: List.concatMap unnecessaryCaseToReviewFixes unnecessaryCasesFix.cases
 
 
 unnecessaryCaseToReviewFixes : UnnecessaryCaseFix -> List Fix
@@ -13515,10 +13515,6 @@ listLiteralToNestedTupleFix config =
                 tupledElements : ( String, List String )
                 tupledElements =
                     ( element0, List.take (config.tupledBeginningLength - 1) element1Up )
-
-                untupledElements : List String
-                untupledElements =
-                    List.drop (config.tupledBeginningLength - 1) element1Up
             in
             case List.drop (config.tupledBeginningLength - 1) element1Up of
                 [] ->
@@ -13528,7 +13524,7 @@ listLiteralToNestedTupleFix config =
                     "("
                         ++ toNestedTupleFix (listFilledToList tupledElements)
                         ++ ", [ "
-                        ++ String.join ", " untupledElements
+                        ++ String.join ", " (firstUntupledElementRange :: afterFirstUntupledElementRange)
                         ++ " ])"
 
 
