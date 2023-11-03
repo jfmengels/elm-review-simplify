@@ -11953,7 +11953,7 @@ caseOfChecks =
     [ sameBodyForCaseOfChecks
     , booleanCaseOfChecks
     , destructuringCaseOfChecks
-    , caseOfWithUnnecessaryCasesChecks
+    , caseOfWithUnreachableCasesChecks
     ]
 
 
@@ -12164,9 +12164,9 @@ isSimpleDestructurePattern (Node _ pattern) =
             False
 
 
-caseOfWithUnnecessaryCasesChecks : CaseOfCheckInfo -> Maybe (Error {})
-caseOfWithUnnecessaryCasesChecks checkInfo =
-    caseOfWithUnnecessaryCasesChecksOn
+caseOfWithUnreachableCasesChecks : CaseOfCheckInfo -> Maybe (Error {})
+caseOfWithUnreachableCasesChecks checkInfo =
+    caseOfWithUnreachableCasesChecksOn
         { casedExpressionNode = checkInfo.caseOf.expression
         , cases = checkInfo.caseOf.cases
         }
@@ -12175,44 +12175,44 @@ caseOfWithUnnecessaryCasesChecks checkInfo =
             (\error ->
                 Rule.errorWithFix { message = error.message, details = error.details }
                     error.range
-                    (unnecessaryCasesFixToReviewFixes error.fix)
+                    (unreachableCasesFixToReviewFixes error.fix)
             )
 
 
-type alias UnnecessaryCasesFix =
+type alias UnreachableCasesFix =
     { casedExpressionReplace : { range : Range, replacement : String }
-    , cases : List UnnecessaryCaseFix
+    , cases : List UnreachableCaseFix
     }
 
 
-type UnnecessaryCaseFix
-    = UnnecessaryCaseRemove { patternRange : Range, expressionRange : Range }
-    | UnnecessaryCaseReplace { range : Range, replacement : String, expressionRange : Range }
+type UnreachableCaseFix
+    = UnreachableCaseRemove { patternRange : Range, expressionRange : Range }
+    | UnreachableCaseReplace { range : Range, replacement : String, expressionRange : Range }
 
 
-unnecessaryCasesFixToReviewFixes : UnnecessaryCasesFix -> List Fix
-unnecessaryCasesFixToReviewFixes unnecessaryCasesFix =
-    Fix.replaceRangeBy unnecessaryCasesFix.casedExpressionReplace.range unnecessaryCasesFix.casedExpressionReplace.replacement
+unreachableCasesFixToReviewFixes : UnreachableCasesFix -> List Fix
+unreachableCasesFixToReviewFixes unreachableCasesFix =
+    Fix.replaceRangeBy unreachableCasesFix.casedExpressionReplace.range unreachableCasesFix.casedExpressionReplace.replacement
         :: List.concat
             (List.map2
-                (\unnecessaryCaseFix unnecessaryCaseFixBefore ->
-                    case unnecessaryCaseFix of
-                        UnnecessaryCaseReplace unnecessaryCaseReplace ->
-                            [ Fix.replaceRangeBy unnecessaryCaseReplace.range unnecessaryCaseReplace.replacement ]
+                (\unreachableCaseFix unreachableCaseFixBefore ->
+                    case unreachableCaseFix of
+                        UnreachableCaseReplace unreachableCaseReplace ->
+                            [ Fix.replaceRangeBy unreachableCaseReplace.range unreachableCaseReplace.replacement ]
 
-                        UnnecessaryCaseRemove caseRanges ->
+                        UnreachableCaseRemove caseRanges ->
                             [ Fix.removeRange
                                 { start =
                                     { row =
-                                        case unnecessaryCaseFixBefore of
+                                        case unreachableCaseFixBefore of
                                             Nothing ->
                                                 caseRanges.patternRange.start.row
 
-                                            Just (UnnecessaryCaseRemove beforeCaseRanges) ->
+                                            Just (UnreachableCaseRemove beforeCaseRanges) ->
                                                 beforeCaseRanges.expressionRange.end.row + 1
 
-                                            Just (UnnecessaryCaseReplace beforeUnnecessaryCaseReplace) ->
-                                                beforeUnnecessaryCaseReplace.expressionRange.end.row + 1
+                                            Just (UnreachableCaseReplace beforeUnreachableCaseReplace) ->
+                                                beforeUnreachableCaseReplace.expressionRange.end.row + 1
                                     , column = 0
                                     }
                                 , end =
@@ -12220,30 +12220,30 @@ unnecessaryCasesFixToReviewFixes unnecessaryCasesFix =
                                 }
                             ]
                 )
-                unnecessaryCasesFix.cases
-                (Nothing :: List.map Just unnecessaryCasesFix.cases)
+                unreachableCasesFix.cases
+                (Nothing :: List.map Just unreachableCasesFix.cases)
             )
 
 
-caseOfWithUnnecessaryCasesChecksOn :
+caseOfWithUnreachableCasesChecksOn :
     { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
     -> CaseOfCheckInfo
-    -> Maybe { message : String, details : List String, range : Range, fix : UnnecessaryCasesFix }
-caseOfWithUnnecessaryCasesChecksOn config checkInfo =
+    -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseOfWithUnreachableCasesChecksOn config checkInfo =
     findMap (\f -> f ())
-        [ \() -> caseVariantOfWithUnnecessaryCasesChecks config checkInfo
-        , \() -> caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo
-        , \() -> caseConsOfWithUnnecessaryCasesChecks config checkInfo
-        , \() -> caseTuple2OfWithUnnecessaryCasesChecks config checkInfo
-        , \() -> caseTuple3OfWithUnnecessaryCasesChecks config checkInfo
+        [ \() -> caseVariantOfWithUnreachableCasesChecks config checkInfo
+        , \() -> caseListLiteralOfWithUnreachableCasesChecks config checkInfo
+        , \() -> caseConsOfWithUnreachableCasesChecks config checkInfo
+        , \() -> caseTuple2OfWithUnreachableCasesChecks config checkInfo
+        , \() -> caseTuple3OfWithUnreachableCasesChecks config checkInfo
         ]
 
 
-caseTuple2OfWithUnnecessaryCasesChecks :
+caseTuple2OfWithUnreachableCasesChecks :
     { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
     -> CaseOfCheckInfo
-    -> Maybe { message : String, details : List String, range : Range, fix : UnnecessaryCasesFix }
-caseTuple2OfWithUnnecessaryCasesChecks config checkInfo =
+    -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseTuple2OfWithUnreachableCasesChecks config checkInfo =
     case AstHelpers.getTuple2 checkInfo.lookupTable config.casedExpressionNode of
         Nothing ->
             Nothing
@@ -12270,7 +12270,7 @@ caseTuple2OfWithUnnecessaryCasesChecks config checkInfo =
                 Just tuplePatternCases ->
                     findMap (\f -> f ())
                         [ \() ->
-                            caseOfWithUnnecessaryCasesChecksOn
+                            caseOfWithUnreachableCasesChecksOn
                                 { casedExpressionNode = casedTuple.first
                                 , cases =
                                     List.map (\case_ -> ( case_.firstPatternNode, case_.expressionNode ))
@@ -12278,7 +12278,7 @@ caseTuple2OfWithUnnecessaryCasesChecks config checkInfo =
                                 }
                                 checkInfo
                         , \() ->
-                            caseOfWithUnnecessaryCasesChecksOn
+                            caseOfWithUnreachableCasesChecksOn
                                 { casedExpressionNode = casedTuple.second
                                 , cases =
                                     List.map (\case_ -> ( case_.secondPatternNode, case_.expressionNode ))
@@ -12288,11 +12288,11 @@ caseTuple2OfWithUnnecessaryCasesChecks config checkInfo =
                         ]
 
 
-caseTuple3OfWithUnnecessaryCasesChecks :
+caseTuple3OfWithUnreachableCasesChecks :
     { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
     -> CaseOfCheckInfo
-    -> Maybe { message : String, details : List String, range : Range, fix : UnnecessaryCasesFix }
-caseTuple3OfWithUnnecessaryCasesChecks config checkInfo =
+    -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseTuple3OfWithUnreachableCasesChecks config checkInfo =
     case config.casedExpressionNode of
         Node _ (Expression.TupledExpression (casedTupleFirstNode :: casedTupleSecondNode :: casedTupleThirdNode :: [])) ->
             let
@@ -12316,7 +12316,7 @@ caseTuple3OfWithUnnecessaryCasesChecks config checkInfo =
                 Just tuplePatternCases ->
                     findMap (\f -> f ())
                         [ \() ->
-                            caseOfWithUnnecessaryCasesChecksOn
+                            caseOfWithUnreachableCasesChecksOn
                                 { casedExpressionNode = casedTupleFirstNode
                                 , cases =
                                     List.map (\case_ -> ( case_.firstPatternNode, case_.expressionNode ))
@@ -12324,7 +12324,7 @@ caseTuple3OfWithUnnecessaryCasesChecks config checkInfo =
                                 }
                                 checkInfo
                         , \() ->
-                            caseOfWithUnnecessaryCasesChecksOn
+                            caseOfWithUnreachableCasesChecksOn
                                 { casedExpressionNode = casedTupleSecondNode
                                 , cases =
                                     List.map (\case_ -> ( case_.secondPatternNode, case_.expressionNode ))
@@ -12332,7 +12332,7 @@ caseTuple3OfWithUnnecessaryCasesChecks config checkInfo =
                                 }
                                 checkInfo
                         , \() ->
-                            caseOfWithUnnecessaryCasesChecksOn
+                            caseOfWithUnreachableCasesChecksOn
                                 { casedExpressionNode = casedTupleThirdNode
                                 , cases =
                                     List.map (\case_ -> ( case_.thirdPatternNode, case_.expressionNode ))
@@ -12345,11 +12345,11 @@ caseTuple3OfWithUnnecessaryCasesChecks config checkInfo =
             Nothing
 
 
-caseVariantOfWithUnnecessaryCasesChecks :
+caseVariantOfWithUnreachableCasesChecks :
     { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
     -> CaseOfCheckInfo
-    -> Maybe { message : String, details : List String, range : Range, fix : UnnecessaryCasesFix }
-caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
+    -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseVariantOfWithUnreachableCasesChecks config checkInfo =
     let
         maybeCasedVariant :
             Maybe
@@ -12444,7 +12444,7 @@ caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
                         |> .attachmentAndCasesList
                         |> findMap
                             (\casedVariantAttachmentAndCases ->
-                                caseOfWithUnnecessaryCasesChecksOn
+                                caseOfWithUnreachableCasesChecksOn
                                     { casedExpressionNode = casedVariantAttachmentAndCases.attachment
                                     , cases = casedVariantAttachmentAndCases.cases
                                     }
@@ -12472,11 +12472,11 @@ caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
                                                         List.map2
                                                             (\variantPattern patternAttachmentError ->
                                                                 case patternAttachmentError of
-                                                                    UnnecessaryCaseRemove remove ->
-                                                                        UnnecessaryCaseRemove remove
+                                                                    UnreachableCaseRemove remove ->
+                                                                        UnreachableCaseRemove remove
 
-                                                                    UnnecessaryCaseReplace replace ->
-                                                                        UnnecessaryCaseReplace
+                                                                    UnreachableCaseReplace replace ->
+                                                                        UnreachableCaseReplace
                                                                             { range = variantPattern.patternRange
                                                                             , replacement =
                                                                                 toNestedTupleFix
@@ -12503,7 +12503,7 @@ caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
                 -- >= 2 possible variants
                 _ ->
                     Just
-                        { message = "Unnecessary cases"
+                        { message = "Unreachable case branches"
                         , details =
                             [ "The value between case ... of is a known "
                                 ++ qualifiedToString (qualify ( variantCaseOf.cased.moduleName, variantCaseOf.cased.name ) defaultQualifyResources)
@@ -12546,7 +12546,7 @@ caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
                                 List.map
                                     (\variantCase ->
                                         if variantCase.name == variantCaseOf.cased.name then
-                                            UnnecessaryCaseReplace
+                                            UnreachableCaseReplace
                                                 { range = variantCase.patternRange
                                                 , replacement =
                                                     toNestedTupleFix
@@ -12557,7 +12557,7 @@ caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
                                                 }
 
                                         else
-                                            UnnecessaryCaseRemove
+                                            UnreachableCaseRemove
                                                 { patternRange = variantCase.patternRange
                                                 , expressionRange = Node.range variantCase.expressionNode
                                                 }
@@ -12596,11 +12596,11 @@ getCustomTypeWithVariant variantName customTypes =
             Nothing
 
 
-caseListLiteralOfWithUnnecessaryCasesChecks :
+caseListLiteralOfWithUnreachableCasesChecks :
     { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
     -> CaseOfCheckInfo
-    -> Maybe { message : String, details : List String, range : Range, fix : UnnecessaryCasesFix }
-caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo =
+    -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseListLiteralOfWithUnreachableCasesChecks config checkInfo =
     case AstHelpers.getListLiteral config.casedExpressionNode of
         Nothing ->
             Nothing
@@ -12654,7 +12654,7 @@ caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo =
                                 |> Maybe.withDefault casedListLiteralLength
                     in
                     Just
-                        { message = "Unnecessary cases"
+                        { message = "Unreachable case branches"
                         , details =
                             [ "The value between case ... of is a known list of length "
                                 ++ String.fromInt casedListLiteralLength
@@ -12699,7 +12699,7 @@ caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo =
                                 List.map
                                     (\listPatternCase ->
                                         if isUnnecessaryListPattern listPatternCase.pattern then
-                                            UnnecessaryCaseRemove
+                                            UnreachableCaseRemove
                                                 { patternRange = listPatternCase.patternRange
                                                 , expressionRange = listPatternCase.expressionRange
                                                 }
@@ -12707,7 +12707,7 @@ caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo =
                                         else
                                             case listPatternCase.pattern of
                                                 ListLiteralPattern listPatternElements ->
-                                                    UnnecessaryCaseReplace
+                                                    UnreachableCaseReplace
                                                         { range = listPatternCase.patternRange
                                                         , replacement =
                                                             listLiteralToNestedTupleFix
@@ -12720,7 +12720,7 @@ caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo =
                                                         }
 
                                                 ConsPattern consPattern ->
-                                                    UnnecessaryCaseReplace
+                                                    UnreachableCaseReplace
                                                         { range = listPatternCase.patternRange
                                                         , replacement =
                                                             collapsedConsToNestedTupleFix
@@ -12738,11 +12738,11 @@ caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo =
                         }
 
 
-caseConsOfWithUnnecessaryCasesChecks :
+caseConsOfWithUnreachableCasesChecks :
     { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
     -> CaseOfCheckInfo
-    -> Maybe { message : String, details : List String, range : Range, fix : UnnecessaryCasesFix }
-caseConsOfWithUnnecessaryCasesChecks config checkInfo =
+    -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseConsOfWithUnreachableCasesChecks config checkInfo =
     case getCollapsedCons (Node.value config.casedExpressionNode) of
         Nothing ->
             Nothing
@@ -12796,7 +12796,7 @@ caseConsOfWithUnnecessaryCasesChecks config checkInfo =
                                 |> Maybe.withDefault casedBeginningElementCount
                     in
                     Just
-                        { message = "Unnecessary cases"
+                        { message = "Unreachable case branches"
                         , details =
                             [ "The value between case ... of is a list of length >= "
                                 ++ String.fromInt casedBeginningElementCount
@@ -12842,7 +12842,7 @@ caseConsOfWithUnnecessaryCasesChecks config checkInfo =
                                 List.map
                                     (\listPatternCase ->
                                         if isUnnecessaryListPattern listPatternCase.pattern then
-                                            UnnecessaryCaseRemove
+                                            UnreachableCaseRemove
                                                 { patternRange = listPatternCase.patternRange
                                                 , expressionRange = listPatternCase.expressionRange
                                                 }
@@ -12850,7 +12850,7 @@ caseConsOfWithUnnecessaryCasesChecks config checkInfo =
                                         else
                                             case listPatternCase.pattern of
                                                 ListLiteralPattern listPatternElements ->
-                                                    UnnecessaryCaseReplace
+                                                    UnreachableCaseReplace
                                                         { range = listPatternCase.patternRange
                                                         , replacement =
                                                             listLiteralToNestedTupleFix
@@ -12863,7 +12863,7 @@ caseConsOfWithUnnecessaryCasesChecks config checkInfo =
                                                         }
 
                                                 ConsPattern consPattern ->
-                                                    UnnecessaryCaseReplace
+                                                    UnreachableCaseReplace
                                                         { range = listPatternCase.patternRange
                                                         , replacement =
                                                             collapsedConsToNestedTupleFix

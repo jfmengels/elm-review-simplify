@@ -232,7 +232,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary cases"
+                            { message = "Unreachable case branches"
                             , details = [ "The value between case ... of is a known Ok variant. However, the 1st case matches on a different variant which means you can remove it." ]
                             , under = "Err _"
                             }
@@ -275,7 +275,7 @@ type AOrB
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary cases"
+                            { message = "Unreachable case branches"
                             , details = [ "The value between case ... of is a known A variant. However, the 1st and 2nd and 3rd case matches on a different variant which means you can remove it." ]
                             , under = "B False"
                             }
@@ -315,7 +315,7 @@ type Toop4 a0 a1 a2 a3
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary cases"
+                            { message = "Unreachable case branches"
                             , details = [ "The value between case ... of is a known Just variant. However, the 3rd case matches on a different variant which means you can remove it." ]
                             , under = "Nothing"
                             }
@@ -366,7 +366,7 @@ type AOrB
                     |> Review.Test.expectErrorsForModules
                         [ ( "A"
                           , [ Review.Test.error
-                                { message = "Unnecessary cases"
+                                { message = "Unreachable case branches"
                                 , details = [ "The value between case ... of is a known AOrB.A variant. However, the 1st and 2nd and 3rd case matches on a different variant which means you can remove it." ]
                                 , under = "B False"
                                 }
@@ -405,7 +405,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary cases"
+                            { message = "Unreachable case branches"
                             , details = [ "The value between case ... of is a known list of length 0. However, the 1st and 2nd and 3rd case matches on a list with a different length which means you can remove it." ]
                             , under = "_ :: _ :: _"
                             }
@@ -443,7 +443,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary cases"
+                            { message = "Unreachable case branches"
                             , details = [ "The value between case ... of is a known list of length 2. However, the 2nd and 4th and 6th case matches on a list with a different length which means you can remove it." ]
                             , under = "[ _ ]"
                             }
@@ -486,7 +486,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary cases"
+                            { message = "Unreachable case branches"
                             , details = [ "The value between case ... of is a known list of length 4. However, the 3rd and 4th and 5th and 6th case matches on a list with a different length which means you can remove it." ]
                             , under = "[]"
                             }
@@ -529,7 +529,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary cases"
+                            { message = "Unreachable case branches"
                             , details = [ "The value between case ... of is a list of length >= 2. However, the 6th and 7th case matches on a shorter list which means you can remove it." ]
                             , under = "[]"
                             }
@@ -569,7 +569,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary cases"
+                            { message = "Unreachable case branches"
                             , details = [ "The value between case ... of is a known Ok variant. However, the 1st case matches on a different variant which means you can remove it." ]
                             , under = "Err _"
                             }
