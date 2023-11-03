@@ -406,15 +406,15 @@ a =
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unreachable case branches"
-                            , details = [ "The value between case ... of is a known list of length 0. However, the 1st and 2nd and 3rd case matches on a list with a different length which means you can remove it." ]
+                            , details =
+                                [ "The value between case ... of is a known list of length 0. However, the 1st and 2nd and 3rd case matches on a list with a different length which means you can remove it."
+                                , "Since only a single case branch will remain after removing the unreachable ones, you can replace this case-of by the result of the 4th case."
+                                ]
                             , under = "_ :: _ :: _"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
-    case () of
-
-        () ->
-            3
+    3
 """
                         ]
         , test "should remove unnecessary case of filled list literal when all cases are list patterns" <|

@@ -12173,9 +12173,44 @@ caseOfWithUnreachableCasesChecks checkInfo =
         checkInfo
         |> Maybe.map
             (\error ->
-                Rule.errorWithFix { message = error.message, details = error.details }
-                    error.range
-                    (unreachableCasesFixToReviewFixes error.fix)
+                let
+                    maybeOnlyMatchingCase : Maybe { index : Int, expressionNode : Node Expression }
+                    maybeOnlyMatchingCase =
+                        case error.fix.casedExpressionReplace.replacement of
+                            "()" ->
+                                error.fix.cases
+                                    |> List.indexedMap (\index fix -> { index = index, fix = fix })
+                                    |> findMap
+                                        (\case_ ->
+                                            case case_.fix of
+                                                UnreachableCaseRemove _ ->
+                                                    Nothing
+
+                                                UnreachableCaseReplace replace ->
+                                                    Just { index = case_.index, expressionNode = replace.expressionNode }
+                                        )
+
+                            _ ->
+                                Nothing
+                in
+                case maybeOnlyMatchingCase of
+                    Nothing ->
+                        Rule.errorWithFix { message = error.message, details = error.details }
+                            error.range
+                            (unreachableCasesFixToReviewFixes error.fix)
+
+                    Just onlyMatchingCase ->
+                        Rule.errorWithFix
+                            { message = error.message
+                            , details =
+                                error.details
+                                    ++ [ "Since only a single case branch will remain after removing the unreachable ones, you can replace this case-of by the result of the "
+                                            ++ indexthToString onlyMatchingCase.index
+                                            ++ " case."
+                                       ]
+                            }
+                            error.range
+                            (replaceBySubExpressionFix checkInfo.parentRange onlyMatchingCase.expressionNode)
             )
 
 
@@ -12187,7 +12222,7 @@ type alias UnreachableCasesFix =
 
 type UnreachableCaseFix
     = UnreachableCaseRemove { patternRange : Range, expressionRange : Range }
-    | UnreachableCaseReplace { range : Range, replacement : String, expressionRange : Range }
+    | UnreachableCaseReplace { range : Range, replacement : String, expressionNode : Node Expression }
 
 
 unreachableCasesFixToReviewFixes : UnreachableCasesFix -> List Fix
@@ -12212,7 +12247,7 @@ unreachableCasesFixToReviewFixes unreachableCasesFix =
                                                 beforeCaseRanges.expressionRange.end.row + 1
 
                                             Just (UnreachableCaseReplace beforeUnreachableCaseReplace) ->
-                                                beforeUnreachableCaseReplace.expressionRange.end.row + 1
+                                                (Node.range beforeUnreachableCaseReplace.expressionNode).end.row + 1
                                     , column = 0
                                     }
                                 , end =
@@ -12490,7 +12525,7 @@ caseVariantOfWithUnreachableCasesChecks config checkInfo =
                                                                                         )
                                                                                         variantPattern.attachments
                                                                                     )
-                                                                            , expressionRange = replace.expressionRange
+                                                                            , expressionNode = replace.expressionNode
                                                                             }
                                                             )
                                                             variantCaseOf.cases
@@ -12553,7 +12588,7 @@ caseVariantOfWithUnreachableCasesChecks config checkInfo =
                                                         (List.map (\(Node argRange _) -> checkInfo.extractSourceCode argRange)
                                                             variantCase.attachments
                                                         )
-                                                , expressionRange = Node.range variantCase.expressionNode
+                                                , expressionNode = variantCase.expressionNode
                                                 }
 
                                         else
@@ -12607,13 +12642,13 @@ caseListLiteralOfWithUnreachableCasesChecks config checkInfo =
 
         Just casedListLiteralElements ->
             let
-                maybeListPatternCases : Maybe (List { patternRange : Range, expressionRange : Range, pattern : ListPattern })
+                maybeListPatternCases : Maybe (List { patternRange : Range, expressionNode : Node Expression, pattern : ListPattern })
                 maybeListPatternCases =
                     traverse
-                        (\( patternNode, Node expressionRange _ ) ->
+                        (\( patternNode, expressionNode ) ->
                             Maybe.map
                                 (\listPattern ->
-                                    { patternRange = Node.range patternNode, expressionRange = expressionRange, pattern = listPattern }
+                                    { patternRange = Node.range patternNode, expressionNode = expressionNode, pattern = listPattern }
                                 )
                                 (getListPattern (Node.value patternNode))
                         )
@@ -12701,7 +12736,7 @@ caseListLiteralOfWithUnreachableCasesChecks config checkInfo =
                                         if isUnnecessaryListPattern listPatternCase.pattern then
                                             UnreachableCaseRemove
                                                 { patternRange = listPatternCase.patternRange
-                                                , expressionRange = listPatternCase.expressionRange
+                                                , expressionRange = Node.range listPatternCase.expressionNode
                                                 }
 
                                         else
@@ -12716,7 +12751,7 @@ caseListLiteralOfWithUnreachableCasesChecks config checkInfo =
                                                                     List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
                                                                         listPatternElements
                                                                 }
-                                                        , expressionRange = listPatternCase.expressionRange
+                                                        , expressionNode = listPatternCase.expressionNode
                                                         }
 
                                                 ConsPattern consPattern ->
@@ -12730,7 +12765,7 @@ caseListLiteralOfWithUnreachableCasesChecks config checkInfo =
                                                                         consPattern.beginningElements
                                                                 , tail = checkInfo.extractSourceCode (Node.range consPattern.tail)
                                                                 }
-                                                        , expressionRange = listPatternCase.expressionRange
+                                                        , expressionNode = listPatternCase.expressionNode
                                                         }
                                     )
                                     listPatternCases
@@ -12749,13 +12784,13 @@ caseConsOfWithUnreachableCasesChecks config checkInfo =
 
         Just casedCons ->
             let
-                maybeListPatternCases : Maybe (List { patternRange : Range, expressionRange : Range, pattern : ListPattern })
+                maybeListPatternCases : Maybe (List { patternRange : Range, expressionNode : Node Expression, pattern : ListPattern })
                 maybeListPatternCases =
                     traverse
-                        (\( patternNode, Node expressionRange _ ) ->
+                        (\( patternNode, expressionNode ) ->
                             Maybe.map
                                 (\listPattern ->
-                                    { patternRange = Node.range patternNode, expressionRange = expressionRange, pattern = listPattern }
+                                    { patternRange = Node.range patternNode, expressionNode = expressionNode, pattern = listPattern }
                                 )
                                 (getListPattern (Node.value patternNode))
                         )
@@ -12844,7 +12879,7 @@ caseConsOfWithUnreachableCasesChecks config checkInfo =
                                         if isUnnecessaryListPattern listPatternCase.pattern then
                                             UnreachableCaseRemove
                                                 { patternRange = listPatternCase.patternRange
-                                                , expressionRange = listPatternCase.expressionRange
+                                                , expressionRange = Node.range listPatternCase.expressionNode
                                                 }
 
                                         else
@@ -12859,7 +12894,7 @@ caseConsOfWithUnreachableCasesChecks config checkInfo =
                                                                     List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
                                                                         listPatternElements
                                                                 }
-                                                        , expressionRange = listPatternCase.expressionRange
+                                                        , expressionNode = listPatternCase.expressionNode
                                                         }
 
                                                 ConsPattern consPattern ->
@@ -12873,7 +12908,7 @@ caseConsOfWithUnreachableCasesChecks config checkInfo =
                                                                         consPattern.beginningElements
                                                                 , tail = checkInfo.extractSourceCode (Node.range consPattern.tail)
                                                                 }
-                                                        , expressionRange = listPatternCase.expressionRange
+                                                        , expressionNode = listPatternCase.expressionNode
                                                         }
                                     )
                                     listPatternCases
