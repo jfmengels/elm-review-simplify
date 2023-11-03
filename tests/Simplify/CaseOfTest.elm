@@ -283,8 +283,6 @@ type AOrB
 a =
     case (b, (c, d)) of
 
-
-
         (True, (_, _)) ->
             3
         
@@ -329,7 +327,6 @@ a =
         
         (_, (_, (_, _))) ->
             1
-        
 
 type Toop4 a0 a1 a2 a3
   = Toop4 a0 a1 a2 a3
@@ -379,8 +376,6 @@ import AOrB exposing (AOrB(..))
 a =
     case (b, (c, d)) of
 
-
-
         (True, (_, _)) ->
             3
         
@@ -417,8 +412,6 @@ a =
                             |> Review.Test.whenFixed """module A exposing (..)
 a =
     case () of
-
-
 
         () ->
             3
@@ -459,15 +452,12 @@ a =
     case (0, [ 0 ]) of
         (_, _ :: _) ->
             0
-        
 
         (_, [ _ ]) ->
             2
-        
 
         (_, _) ->
             4
-        
 """
                         ]
         , test "should remove unnecessary case of filled list literal when all cases are list patterns with length >= 3" <|
@@ -508,10 +498,6 @@ a =
 
         (_, (_, (_, _))) ->
             1
-        
-
-
-
 """
                         ]
         , test "should remove unnecessary case of cons when all cases are list patterns" <|
@@ -564,8 +550,6 @@ a =
 
         (_, _) ->
             4
-        
-
 """
                         ]
         , test "should remove unnecessary case of dependency variant when all cases of nested tuple part are variant patterns" <|

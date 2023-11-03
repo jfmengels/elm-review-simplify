@@ -12187,28 +12187,42 @@ type alias UnnecessaryCasesFix =
 
 type UnnecessaryCaseFix
     = UnnecessaryCaseRemove { patternRange : Range, expressionRange : Range }
-    | UnnecessaryCaseReplace { range : Range, replacement : String }
+    | UnnecessaryCaseReplace { range : Range, replacement : String, expressionRange : Range }
 
 
 unnecessaryCasesFixToReviewFixes : UnnecessaryCasesFix -> List Fix
 unnecessaryCasesFixToReviewFixes unnecessaryCasesFix =
     Fix.replaceRangeBy unnecessaryCasesFix.casedExpressionReplace.range unnecessaryCasesFix.casedExpressionReplace.replacement
-        :: List.concatMap unnecessaryCaseToReviewFixes unnecessaryCasesFix.cases
+        :: List.concat
+            (List.map2
+                (\unnecessaryCaseFix unnecessaryCaseFixBefore ->
+                    case unnecessaryCaseFix of
+                        UnnecessaryCaseReplace unnecessaryCaseReplace ->
+                            [ Fix.replaceRangeBy unnecessaryCaseReplace.range unnecessaryCaseReplace.replacement ]
 
+                        UnnecessaryCaseRemove caseRanges ->
+                            [ Fix.removeRange
+                                { start =
+                                    { row =
+                                        case unnecessaryCaseFixBefore of
+                                            Nothing ->
+                                                caseRanges.patternRange.start.row
 
-unnecessaryCaseToReviewFixes : UnnecessaryCaseFix -> List Fix
-unnecessaryCaseToReviewFixes unnecessaryCaseFix =
-    case unnecessaryCaseFix of
-        UnnecessaryCaseRemove caseRanges ->
-            [ Fix.removeRange
-                { start = { row = caseRanges.patternRange.start.row, column = 0 }
-                , end =
-                    { row = caseRanges.expressionRange.end.row + 1, column = 0 }
-                }
-            ]
+                                            Just (UnnecessaryCaseRemove beforeCaseRanges) ->
+                                                beforeCaseRanges.expressionRange.end.row + 1
 
-        UnnecessaryCaseReplace unnecessaryCaseReplace ->
-            [ Fix.replaceRangeBy unnecessaryCaseReplace.range unnecessaryCaseReplace.replacement ]
+                                            Just (UnnecessaryCaseReplace beforeUnnecessaryCaseReplace) ->
+                                                beforeUnnecessaryCaseReplace.expressionRange.end.row + 1
+                                    , column = 0
+                                    }
+                                , end =
+                                    { row = caseRanges.expressionRange.end.row + 1, column = 0 }
+                                }
+                            ]
+                )
+                unnecessaryCasesFix.cases
+                (Nothing :: List.map Just unnecessaryCasesFix.cases)
+            )
 
 
 caseOfWithUnnecessaryCasesChecksOn :
@@ -12476,6 +12490,7 @@ caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
                                                                                         )
                                                                                         variantPattern.attachments
                                                                                     )
+                                                                            , expressionRange = replace.expressionRange
                                                                             }
                                                             )
                                                             variantCaseOf.cases
@@ -12529,21 +12544,22 @@ caseVariantOfWithUnnecessaryCasesChecks config checkInfo =
                                 }
                             , cases =
                                 List.map
-                                    (\variantPattern ->
-                                        if variantPattern.name == variantCaseOf.cased.name then
+                                    (\variantCase ->
+                                        if variantCase.name == variantCaseOf.cased.name then
                                             UnnecessaryCaseReplace
-                                                { range = variantPattern.patternRange
+                                                { range = variantCase.patternRange
                                                 , replacement =
                                                     toNestedTupleFix
                                                         (List.map (\(Node argRange _) -> checkInfo.extractSourceCode argRange)
-                                                            variantPattern.attachments
+                                                            variantCase.attachments
                                                         )
+                                                , expressionRange = Node.range variantCase.expressionNode
                                                 }
 
                                         else
                                             UnnecessaryCaseRemove
-                                                { patternRange = variantPattern.patternRange
-                                                , expressionRange = Node.range variantPattern.expressionNode
+                                                { patternRange = variantCase.patternRange
+                                                , expressionRange = Node.range variantCase.expressionNode
                                                 }
                                     )
                                     variantCaseOf.cases
@@ -12700,6 +12716,7 @@ caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo =
                                                                     List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
                                                                         listPatternElements
                                                                 }
+                                                        , expressionRange = listPatternCase.expressionRange
                                                         }
 
                                                 ConsPattern consPattern ->
@@ -12713,6 +12730,7 @@ caseListLiteralOfWithUnnecessaryCasesChecks config checkInfo =
                                                                         consPattern.beginningElements
                                                                 , tail = checkInfo.extractSourceCode (Node.range consPattern.tail)
                                                                 }
+                                                        , expressionRange = listPatternCase.expressionRange
                                                         }
                                     )
                                     listPatternCases
@@ -12841,6 +12859,7 @@ caseConsOfWithUnnecessaryCasesChecks config checkInfo =
                                                                     List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
                                                                         listPatternElements
                                                                 }
+                                                        , expressionRange = listPatternCase.expressionRange
                                                         }
 
                                                 ConsPattern consPattern ->
@@ -12854,6 +12873,7 @@ caseConsOfWithUnnecessaryCasesChecks config checkInfo =
                                                                         consPattern.beginningElements
                                                                 , tail = checkInfo.extractSourceCode (Node.range consPattern.tail)
                                                                 }
+                                                        , expressionRange = listPatternCase.expressionRange
                                                         }
                                     )
                                     listPatternCases
