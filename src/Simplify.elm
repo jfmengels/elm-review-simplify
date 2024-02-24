@@ -1443,7 +1443,7 @@ moduleVisitor config schema =
 -- CONFIGURATION
 
 
-{-| Configuration for this rule. Create a new one with [`defaults`](#defaults) and use [`ignoreCaseOfForTypes`](#ignoreCaseOfForTypes) to alter it.
+{-| Configuration for this rule. Create a new one with [`defaults`](#defaults) and use [`ignoreCaseOfForTypes`](#ignoreCaseOfForTypes) and [`expectNaN`](#expectNaN) to alter it.
 -}
 type Configuration
     = Configuration
