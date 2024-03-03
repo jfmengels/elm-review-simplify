@@ -12636,37 +12636,30 @@ caseListLiteralOfWithUnreachableCasesChecks :
     -> CaseOfCheckInfo
     -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
 caseListLiteralOfWithUnreachableCasesChecks config checkInfo =
-    case AstHelpers.getListLiteral config.casedExpressionNode of
-        Nothing ->
-            Nothing
-
-        Just casedListLiteralElements ->
-            let
-                maybeListPatternCases : Maybe (List { patternRange : Range, expressionNode : Node Expression, pattern : ListPattern })
-                maybeListPatternCases =
-                    traverse
-                        (\( patternNode, expressionNode ) ->
-                            Maybe.map
-                                (\listPattern ->
-                                    { patternRange = Node.range patternNode, expressionNode = expressionNode, pattern = listPattern }
-                                )
-                                (getListPattern (Node.value patternNode))
+    let
+        maybeListPatternCases : Maybe (List { patternRange : Range, expressionNode : Node Expression, pattern : ListPattern })
+        maybeListPatternCases =
+            traverse
+                (\( patternNode, expressionNode ) ->
+                    Maybe.map
+                        (\listPattern ->
+                            { patternRange = Node.range patternNode, expressionNode = expressionNode, pattern = listPattern }
                         )
-                        config.cases
-            in
-            case maybeListPatternCases of
-                Nothing ->
-                    Nothing
-
-                Just listPatternCases ->
-                    Just
-                        (caseListLiteralOfWithUnreachableCasesError
-                            { casedExpressionRange = Node.range config.casedExpressionNode
-                            , listPatternCases = listPatternCases
-                            , casedListLiteralElements = casedListLiteralElements
-                            }
-                            checkInfo
-                        )
+                        (getListPattern (Node.value patternNode))
+                )
+                config.cases
+    in
+    Maybe.map2
+        (\casedListLiteralElements listPatternCases ->
+            caseListLiteralOfWithUnreachableCasesError
+                { casedExpressionRange = Node.range config.casedExpressionNode
+                , listPatternCases = listPatternCases
+                , casedListLiteralElements = casedListLiteralElements
+                }
+                checkInfo
+        )
+        (AstHelpers.getListLiteral config.casedExpressionNode)
+        maybeListPatternCases
 
 
 caseListLiteralOfWithUnreachableCasesError :
@@ -12801,37 +12794,30 @@ caseConsOfWithUnreachableCasesChecks :
     -> CaseOfCheckInfo
     -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
 caseConsOfWithUnreachableCasesChecks config checkInfo =
-    case getCollapsedCons (Node.value config.casedExpressionNode) of
-        Nothing ->
-            Nothing
-
-        Just casedCons ->
-            let
-                maybeListPatternCases : Maybe (List { patternRange : Range, expressionNode : Node Expression, pattern : ListPattern })
-                maybeListPatternCases =
-                    traverse
-                        (\( patternNode, expressionNode ) ->
-                            Maybe.map
-                                (\listPattern ->
-                                    { patternRange = Node.range patternNode, expressionNode = expressionNode, pattern = listPattern }
-                                )
-                                (getListPattern (Node.value patternNode))
+    let
+        maybeListPatternCases : Maybe (List { patternRange : Range, expressionNode : Node Expression, pattern : ListPattern })
+        maybeListPatternCases =
+            traverse
+                (\( patternNode, expressionNode ) ->
+                    Maybe.map
+                        (\listPattern ->
+                            { patternRange = Node.range patternNode, expressionNode = expressionNode, pattern = listPattern }
                         )
-                        config.cases
-            in
-            case maybeListPatternCases of
-                Nothing ->
-                    Nothing
-
-                Just listPatternCases ->
-                    Just
-                        (caseConsOfWithUnreachableCasesError
-                            { casedExpressionRange = Node.range config.casedExpressionNode
-                            , casedCons = casedCons
-                            , listPatternCases = listPatternCases
-                            }
-                            checkInfo
-                        )
+                        (getListPattern (Node.value patternNode))
+                )
+                config.cases
+    in
+    Maybe.map2
+        (\casedCons listPatternCases ->
+            caseConsOfWithUnreachableCasesError
+                { casedExpressionRange = Node.range config.casedExpressionNode
+                , casedCons = casedCons
+                , listPatternCases = listPatternCases
+                }
+                checkInfo
+        )
+        (getCollapsedCons (Node.value config.casedExpressionNode))
+        maybeListPatternCases
 
 
 caseConsOfWithUnreachableCasesError :
