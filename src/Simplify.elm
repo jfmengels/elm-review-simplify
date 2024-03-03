@@ -12756,24 +12756,20 @@ caseListLiteralOfWithUnreachableCasesError config checkInfo =
                             }
 
                     else
-                        case listPatternCase.pattern of
-                            ListLiteralPattern listPatternElements ->
-                                UnreachableCaseReplace
-                                    { range = listPatternCase.patternRange
-                                    , replacement =
+                        UnreachableCaseReplace
+                            { range = listPatternCase.patternRange
+                            , expressionNode = listPatternCase.expressionNode
+                            , replacement =
+                                case listPatternCase.pattern of
+                                    ListLiteralPattern listPatternElements ->
                                         listLiteralToNestedTupleFix
                                             { tupledBeginningLength = alwaysMatchedBeginningElementCount
                                             , elements =
                                                 List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
                                                     listPatternElements
                                             }
-                                    , expressionNode = listPatternCase.expressionNode
-                                    }
 
-                            ConsPattern consPattern ->
-                                UnreachableCaseReplace
-                                    { range = listPatternCase.patternRange
-                                    , replacement =
+                                    ConsPattern consPattern ->
                                         collapsedConsToNestedTupleFix
                                             { tupledBeginningLength = alwaysMatchedBeginningElementCount
                                             , beginningElements =
@@ -12781,8 +12777,7 @@ caseListLiteralOfWithUnreachableCasesError config checkInfo =
                                                     consPattern.beginningElements
                                             , tail = checkInfo.extractSourceCode (Node.range consPattern.tail)
                                             }
-                                    , expressionNode = listPatternCase.expressionNode
-                                    }
+                            }
                 )
                 config.listPatternCases
         }
@@ -12915,24 +12910,20 @@ caseConsOfWithUnreachableCasesError config checkInfo =
                             }
 
                     else
-                        case listPatternCase.pattern of
-                            ListLiteralPattern listPatternElements ->
-                                UnreachableCaseReplace
-                                    { range = listPatternCase.patternRange
-                                    , replacement =
+                        UnreachableCaseReplace
+                            { range = listPatternCase.patternRange
+                            , expressionNode = listPatternCase.expressionNode
+                            , replacement =
+                                case listPatternCase.pattern of
+                                    ListLiteralPattern listPatternElements ->
                                         listLiteralToNestedTupleFix
                                             { tupledBeginningLength = alwaysMatchedBeginningElementCount
                                             , elements =
                                                 List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
                                                     listPatternElements
                                             }
-                                    , expressionNode = listPatternCase.expressionNode
-                                    }
 
-                            ConsPattern consPattern ->
-                                UnreachableCaseReplace
-                                    { range = listPatternCase.patternRange
-                                    , replacement =
+                                    ConsPattern consPattern ->
                                         collapsedConsToNestedTupleFix
                                             { tupledBeginningLength = alwaysMatchedBeginningElementCount
                                             , beginningElements =
@@ -12940,8 +12931,7 @@ caseConsOfWithUnreachableCasesError config checkInfo =
                                                     consPattern.beginningElements
                                             , tail = checkInfo.extractSourceCode (Node.range consPattern.tail)
                                             }
-                                    , expressionNode = listPatternCase.expressionNode
-                                    }
+                            }
                 )
                 config.listPatternCases
         }
