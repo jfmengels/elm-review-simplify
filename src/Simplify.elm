@@ -12659,118 +12659,141 @@ caseListLiteralOfWithUnreachableCasesChecks config checkInfo =
                     Nothing
 
                 Just listPatternCases ->
-                    let
-                        casedListLiteralLength : Int
-                        casedListLiteralLength =
-                            List.length casedListLiteralElements
-
-                        isUnnecessaryListPattern : ListPattern -> Bool
-                        isUnnecessaryListPattern listPattern =
-                            case listPattern of
-                                ListLiteralPattern listLiteralPatternELements ->
-                                    List.length listLiteralPatternELements /= casedListLiteralLength
-
-                                ConsPattern consPattern ->
-                                    List.length (listFilledToList consPattern.beginningElements) >= (casedListLiteralLength + 1)
-
-                        alwaysMatchedBeginningElementCount : Int
-                        alwaysMatchedBeginningElementCount =
-                            listPatternCases
-                                |> List.filterMap
-                                    (\listPatternCase ->
-                                        case listPatternCase.pattern of
-                                            ListLiteralPattern _ ->
-                                                Nothing
-
-                                            ConsPattern consPattern ->
-                                                Just (List.length (listFilledToList consPattern.beginningElements))
-                                    )
-                                |> List.minimum
-                                |> Maybe.withDefault casedListLiteralLength
-                    in
                     Just
-                        { message = "Unreachable case branches"
-                        , details =
-                            [ "The value between case ... of is a known list of length "
-                                ++ String.fromInt casedListLiteralLength
-                                ++ ". However, the "
-                                ++ (listPatternCases
-                                        |> List.indexedMap (\caseIndex case_ -> { index = caseIndex, case_ = case_ })
-                                        |> List.filterMap
-                                            (\caseAndIndex ->
-                                                if isUnnecessaryListPattern caseAndIndex.case_.pattern then
-                                                    Just (indexthToString caseAndIndex.index)
-
-                                                else
-                                                    Nothing
-                                            )
-                                        |> String.join " and "
-                                   )
-                                ++ " case matches on a list with a different length which means you can remove it."
-                            ]
-                        , range =
-                            findMap
-                                (\case_ ->
-                                    if isUnnecessaryListPattern case_.pattern then
-                                        Just case_.patternRange
-
-                                    else
-                                        Nothing
-                                )
-                                listPatternCases
-                                |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
-                        , fix =
-                            { casedExpressionReplace =
-                                { range = Node.range config.casedExpressionNode
-                                , replacement =
-                                    listLiteralToNestedTupleFix
-                                        { tupledBeginningLength = alwaysMatchedBeginningElementCount
-                                        , elements =
-                                            List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
-                                                casedListLiteralElements
-                                        }
-                                }
-                            , cases =
-                                List.map
-                                    (\listPatternCase ->
-                                        if isUnnecessaryListPattern listPatternCase.pattern then
-                                            UnreachableCaseRemove
-                                                { patternRange = listPatternCase.patternRange
-                                                , expressionRange = Node.range listPatternCase.expressionNode
-                                                }
-
-                                        else
-                                            case listPatternCase.pattern of
-                                                ListLiteralPattern listPatternElements ->
-                                                    UnreachableCaseReplace
-                                                        { range = listPatternCase.patternRange
-                                                        , replacement =
-                                                            listLiteralToNestedTupleFix
-                                                                { tupledBeginningLength = alwaysMatchedBeginningElementCount
-                                                                , elements =
-                                                                    List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
-                                                                        listPatternElements
-                                                                }
-                                                        , expressionNode = listPatternCase.expressionNode
-                                                        }
-
-                                                ConsPattern consPattern ->
-                                                    UnreachableCaseReplace
-                                                        { range = listPatternCase.patternRange
-                                                        , replacement =
-                                                            collapsedConsToNestedTupleFix
-                                                                { tupledBeginningLength = alwaysMatchedBeginningElementCount
-                                                                , beginningElements =
-                                                                    listFilledMap (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
-                                                                        consPattern.beginningElements
-                                                                , tail = checkInfo.extractSourceCode (Node.range consPattern.tail)
-                                                                }
-                                                        , expressionNode = listPatternCase.expressionNode
-                                                        }
-                                    )
-                                    listPatternCases
+                        (caseListLiteralOfWithUnreachableCasesError
+                            { casedExpressionRange = Node.range config.casedExpressionNode
+                            , listPatternCases = listPatternCases
+                            , casedListLiteralElements = casedListLiteralElements
                             }
-                        }
+                            checkInfo
+                        )
+
+
+caseListLiteralOfWithUnreachableCasesError :
+    { casedExpressionRange : Range
+    , casedListLiteralElements : List (Node Expression)
+    , listPatternCases : List { patternRange : Range, expressionNode : Node Expression, pattern : ListPattern }
+    }
+    ->
+        { checkInfo
+            | extractSourceCode : Range -> String
+            , parentRange : Range
+        }
+    -> { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseListLiteralOfWithUnreachableCasesError config checkInfo =
+    let
+        casedListLiteralLength : Int
+        casedListLiteralLength =
+            List.length config.casedListLiteralElements
+
+        isUnnecessaryListPattern : ListPattern -> Bool
+        isUnnecessaryListPattern listPattern =
+            case listPattern of
+                ListLiteralPattern listLiteralPatternELements ->
+                    List.length listLiteralPatternELements /= casedListLiteralLength
+
+                ConsPattern consPattern ->
+                    List.length (listFilledToList consPattern.beginningElements) >= (casedListLiteralLength + 1)
+
+        alwaysMatchedBeginningElementCount : Int
+        alwaysMatchedBeginningElementCount =
+            config.listPatternCases
+                |> List.filterMap
+                    (\listPatternCase ->
+                        case listPatternCase.pattern of
+                            ListLiteralPattern _ ->
+                                Nothing
+
+                            ConsPattern consPattern ->
+                                Just (List.length (listFilledToList consPattern.beginningElements))
+                    )
+                |> List.minimum
+                |> Maybe.withDefault casedListLiteralLength
+
+        unnecessaryListPatternIndexes : List Int
+        unnecessaryListPatternIndexes =
+            config.listPatternCases
+                |> List.indexedMap (\caseIndex case_ -> { index = caseIndex, case_ = case_ })
+                |> List.filterMap
+                    (\caseAndIndex ->
+                        if isUnnecessaryListPattern caseAndIndex.case_.pattern then
+                            Just caseAndIndex.index
+
+                        else
+                            Nothing
+                    )
+    in
+    { message = "Unreachable case branches"
+    , details =
+        [ "The value between case ... of is a known list of length "
+            ++ String.fromInt casedListLiteralLength
+            ++ ". However, the "
+            ++ (unnecessaryListPatternIndexes |> List.map indexthToString |> String.join " and ")
+            ++ " case matches on a list with a different length which means you can remove it."
+        ]
+    , range =
+        findMap
+            (\case_ ->
+                if isUnnecessaryListPattern case_.pattern then
+                    Just case_.patternRange
+
+                else
+                    Nothing
+            )
+            config.listPatternCases
+            |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
+    , fix =
+        { casedExpressionReplace =
+            { range = config.casedExpressionRange
+            , replacement =
+                listLiteralToNestedTupleFix
+                    { tupledBeginningLength = alwaysMatchedBeginningElementCount
+                    , elements =
+                        List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
+                            config.casedListLiteralElements
+                    }
+            }
+        , cases =
+            List.map
+                (\listPatternCase ->
+                    if isUnnecessaryListPattern listPatternCase.pattern then
+                        UnreachableCaseRemove
+                            { patternRange = listPatternCase.patternRange
+                            , expressionRange = Node.range listPatternCase.expressionNode
+                            }
+
+                    else
+                        case listPatternCase.pattern of
+                            ListLiteralPattern listPatternElements ->
+                                UnreachableCaseReplace
+                                    { range = listPatternCase.patternRange
+                                    , replacement =
+                                        listLiteralToNestedTupleFix
+                                            { tupledBeginningLength = alwaysMatchedBeginningElementCount
+                                            , elements =
+                                                List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
+                                                    listPatternElements
+                                            }
+                                    , expressionNode = listPatternCase.expressionNode
+                                    }
+
+                            ConsPattern consPattern ->
+                                UnreachableCaseReplace
+                                    { range = listPatternCase.patternRange
+                                    , replacement =
+                                        collapsedConsToNestedTupleFix
+                                            { tupledBeginningLength = alwaysMatchedBeginningElementCount
+                                            , beginningElements =
+                                                listFilledMap (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
+                                                    consPattern.beginningElements
+                                            , tail = checkInfo.extractSourceCode (Node.range consPattern.tail)
+                                            }
+                                    , expressionNode = listPatternCase.expressionNode
+                                    }
+                )
+                config.listPatternCases
+        }
+    }
 
 
 caseConsOfWithUnreachableCasesChecks :
@@ -12801,119 +12824,142 @@ caseConsOfWithUnreachableCasesChecks config checkInfo =
                     Nothing
 
                 Just listPatternCases ->
-                    let
-                        casedBeginningElementCount : Int
-                        casedBeginningElementCount =
-                            listFilledLength casedCons.beginningElements
-
-                        isUnnecessaryListPattern : ListPattern -> Bool
-                        isUnnecessaryListPattern listPattern =
-                            case listPattern of
-                                ListLiteralPattern listLiteralPatternELements ->
-                                    List.length listLiteralPatternELements < casedBeginningElementCount
-
-                                ConsPattern _ ->
-                                    False
-
-                        alwaysMatchedBeginningElementCount : Int
-                        alwaysMatchedBeginningElementCount =
-                            listPatternCases
-                                |> List.filterMap
-                                    (\listPatternCase ->
-                                        case listPatternCase.pattern of
-                                            ListLiteralPattern _ ->
-                                                Nothing
-
-                                            ConsPattern consPattern ->
-                                                Just (List.length (listFilledToList consPattern.beginningElements))
-                                    )
-                                |> List.minimum
-                                |> Maybe.withDefault casedBeginningElementCount
-                    in
                     Just
-                        { message = "Unreachable case branches"
-                        , details =
-                            [ "The value between case ... of is a list of length >= "
-                                ++ String.fromInt casedBeginningElementCount
-                                ++ ". However, the "
-                                ++ (listPatternCases
-                                        |> List.indexedMap (\caseIndex case_ -> { index = caseIndex, case_ = case_ })
-                                        |> List.filterMap
-                                            (\caseAndIndex ->
-                                                if isUnnecessaryListPattern caseAndIndex.case_.pattern then
-                                                    Just (indexthToString caseAndIndex.index)
-
-                                                else
-                                                    Nothing
-                                            )
-                                        |> String.join " and "
-                                   )
-                                ++ " case matches on a shorter list which means you can remove it."
-                            ]
-                        , range =
-                            findMap
-                                (\case_ ->
-                                    if isUnnecessaryListPattern case_.pattern then
-                                        Just case_.patternRange
-
-                                    else
-                                        Nothing
-                                )
-                                listPatternCases
-                                |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
-                        , fix =
-                            { casedExpressionReplace =
-                                { range = Node.range config.casedExpressionNode
-                                , replacement =
-                                    collapsedConsToNestedTupleFix
-                                        { tupledBeginningLength = alwaysMatchedBeginningElementCount
-                                        , beginningElements =
-                                            listFilledMap (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
-                                                casedCons.beginningElements
-                                        , tail = checkInfo.extractSourceCode (Node.range casedCons.tail)
-                                        }
-                                }
-                            , cases =
-                                List.map
-                                    (\listPatternCase ->
-                                        if isUnnecessaryListPattern listPatternCase.pattern then
-                                            UnreachableCaseRemove
-                                                { patternRange = listPatternCase.patternRange
-                                                , expressionRange = Node.range listPatternCase.expressionNode
-                                                }
-
-                                        else
-                                            case listPatternCase.pattern of
-                                                ListLiteralPattern listPatternElements ->
-                                                    UnreachableCaseReplace
-                                                        { range = listPatternCase.patternRange
-                                                        , replacement =
-                                                            listLiteralToNestedTupleFix
-                                                                { tupledBeginningLength = alwaysMatchedBeginningElementCount
-                                                                , elements =
-                                                                    List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
-                                                                        listPatternElements
-                                                                }
-                                                        , expressionNode = listPatternCase.expressionNode
-                                                        }
-
-                                                ConsPattern consPattern ->
-                                                    UnreachableCaseReplace
-                                                        { range = listPatternCase.patternRange
-                                                        , replacement =
-                                                            collapsedConsToNestedTupleFix
-                                                                { tupledBeginningLength = alwaysMatchedBeginningElementCount
-                                                                , beginningElements =
-                                                                    listFilledMap (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
-                                                                        consPattern.beginningElements
-                                                                , tail = checkInfo.extractSourceCode (Node.range consPattern.tail)
-                                                                }
-                                                        , expressionNode = listPatternCase.expressionNode
-                                                        }
-                                    )
-                                    listPatternCases
+                        (caseConsOfWithUnreachableCasesError
+                            { casedExpressionRange = Node.range config.casedExpressionNode
+                            , casedCons = casedCons
+                            , listPatternCases = listPatternCases
                             }
-                        }
+                            checkInfo
+                        )
+
+
+caseConsOfWithUnreachableCasesError :
+    { casedExpressionRange : Range
+    , casedCons : { beginningElements : ( Node Expression, List (Node Expression) ), tail : Node Expression }
+    , listPatternCases : List { patternRange : Range, expressionNode : Node Expression, pattern : ListPattern }
+    }
+    ->
+        { checkInfo
+            | extractSourceCode : Range -> String
+            , parentRange : Range
+        }
+    -> { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseConsOfWithUnreachableCasesError config checkInfo =
+    let
+        casedBeginningElementCount : Int
+        casedBeginningElementCount =
+            listFilledLength config.casedCons.beginningElements
+
+        isUnnecessaryListPattern : ListPattern -> Bool
+        isUnnecessaryListPattern listPattern =
+            case listPattern of
+                ListLiteralPattern listLiteralPatternELements ->
+                    List.length listLiteralPatternELements < casedBeginningElementCount
+
+                ConsPattern _ ->
+                    False
+
+        alwaysMatchedBeginningElementCount : Int
+        alwaysMatchedBeginningElementCount =
+            config.listPatternCases
+                |> List.filterMap
+                    (\listPatternCase ->
+                        case listPatternCase.pattern of
+                            ListLiteralPattern _ ->
+                                Nothing
+
+                            ConsPattern consPattern ->
+                                Just (List.length (listFilledToList consPattern.beginningElements))
+                    )
+                |> List.minimum
+                |> Maybe.withDefault casedBeginningElementCount
+
+        unnecessaryListPatternIndexes : List Int
+        unnecessaryListPatternIndexes =
+            config.listPatternCases
+                |> List.indexedMap (\caseIndex case_ -> { index = caseIndex, case_ = case_ })
+                |> List.filterMap
+                    (\caseAndIndex ->
+                        if isUnnecessaryListPattern caseAndIndex.case_.pattern then
+                            Just caseAndIndex.index
+
+                        else
+                            Nothing
+                    )
+    in
+    { message = "Unreachable case branches"
+    , details =
+        [ "The value between case ... of is a list of length >= "
+            ++ String.fromInt casedBeginningElementCount
+            ++ ". However, the "
+            ++ (unnecessaryListPatternIndexes |> List.map indexthToString |> String.join " and ")
+            ++ " case matches on a shorter list which means you can remove it."
+        ]
+    , range =
+        findMap
+            (\case_ ->
+                if isUnnecessaryListPattern case_.pattern then
+                    Just case_.patternRange
+
+                else
+                    Nothing
+            )
+            config.listPatternCases
+            |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
+    , fix =
+        { casedExpressionReplace =
+            { range = config.casedExpressionRange
+            , replacement =
+                collapsedConsToNestedTupleFix
+                    { tupledBeginningLength = alwaysMatchedBeginningElementCount
+                    , beginningElements =
+                        listFilledMap (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
+                            config.casedCons.beginningElements
+                    , tail = checkInfo.extractSourceCode (Node.range config.casedCons.tail)
+                    }
+            }
+        , cases =
+            List.map
+                (\listPatternCase ->
+                    if isUnnecessaryListPattern listPatternCase.pattern then
+                        UnreachableCaseRemove
+                            { patternRange = listPatternCase.patternRange
+                            , expressionRange = Node.range listPatternCase.expressionNode
+                            }
+
+                    else
+                        case listPatternCase.pattern of
+                            ListLiteralPattern listPatternElements ->
+                                UnreachableCaseReplace
+                                    { range = listPatternCase.patternRange
+                                    , replacement =
+                                        listLiteralToNestedTupleFix
+                                            { tupledBeginningLength = alwaysMatchedBeginningElementCount
+                                            , elements =
+                                                List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
+                                                    listPatternElements
+                                            }
+                                    , expressionNode = listPatternCase.expressionNode
+                                    }
+
+                            ConsPattern consPattern ->
+                                UnreachableCaseReplace
+                                    { range = listPatternCase.patternRange
+                                    , replacement =
+                                        collapsedConsToNestedTupleFix
+                                            { tupledBeginningLength = alwaysMatchedBeginningElementCount
+                                            , beginningElements =
+                                                listFilledMap (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
+                                                    consPattern.beginningElements
+                                            , tail = checkInfo.extractSourceCode (Node.range consPattern.tail)
+                                            }
+                                    , expressionNode = listPatternCase.expressionNode
+                                    }
+                )
+                config.listPatternCases
+        }
+    }
 
 
 type ListPattern
