@@ -6269,7 +6269,7 @@ a = Dict.keys dict |> List.length
 a = Dict.size dict
 """
                         ]
-        , test "should replace List.length (Array.toList dict) with Dict.size" <|
+        , test "should replace List.length (Array.toList array) with Dict.size" <|
             \() ->
                 """module A exposing (..)
 a = Array.toList array |> List.length
@@ -6279,6 +6279,22 @@ a = Array.toList array |> List.length
                         [ Review.Test.error
                             { message = "Array.toList, then List.length can be combined into Array.length"
                             , details = [ "You can replace this call by Array.length with the same arguments given to Array.toList which is meant for this exact purpose." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Array.length array
+"""
+                        ]
+        , test "should replace List.length (Array.toIndexedList array) with Dict.size" <|
+            \() ->
+                """module A exposing (..)
+a = Array.toIndexedList array |> List.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toIndexedList, then List.length can be combined into Array.length"
+                            , details = [ "You can replace this call by Array.length with the same arguments given to Array.toIndexedList which is meant for this exact purpose." ]
                             , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
