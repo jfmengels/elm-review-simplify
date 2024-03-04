@@ -3108,6 +3108,102 @@ a = List.isEmpty (b |> List.singleton)
 a = False
 """
                         ]
+        , test "should replace List.isEmpty (Set.toList set) by Set.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.toList set |> List.isEmpty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.toList, then List.isEmpty can be combined into Set.isEmpty"
+                            , details = [ "You can replace this call by Set.isEmpty with the same arguments given to Set.toList which is meant for this exact purpose." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.isEmpty set
+"""
+                        ]
+        , test "should replace List.isEmpty (Dict.toList dict) by Dict.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.toList dict |> List.isEmpty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.toList, then List.isEmpty can be combined into Dict.isEmpty"
+                            , details = [ "You can replace this call by Dict.isEmpty with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.isEmpty dict
+"""
+                        ]
+        , test "should replace List.isEmpty (Dict.values dict) by Dict.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.values dict |> List.isEmpty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.values, then List.isEmpty can be combined into Dict.isEmpty"
+                            , details = [ "You can replace this call by Dict.isEmpty with the same arguments given to Dict.values which is meant for this exact purpose." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.isEmpty dict
+"""
+                        ]
+        , test "should replace List.isEmpty (Dict.keys dict) by Dict.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.keys dict |> List.isEmpty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.keys, then List.isEmpty can be combined into Dict.isEmpty"
+                            , details = [ "You can replace this call by Dict.isEmpty with the same arguments given to Dict.keys which is meant for this exact purpose." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.isEmpty dict
+"""
+                        ]
+        , test "should replace List.isEmpty (Array.toList array) by Array.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = Array.toList array |> List.isEmpty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toList, then List.isEmpty can be combined into Array.isEmpty"
+                            , details = [ "You can replace this call by Array.isEmpty with the same arguments given to Array.toList which is meant for this exact purpose." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Array.isEmpty array
+"""
+                        ]
+        , test "should replace List.isEmpty (Array.toIndexedList array) by Dict.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = Array.toIndexedList array |> List.isEmpty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.toIndexedList, then List.isEmpty can be combined into Array.isEmpty"
+                            , details = [ "You can replace this call by Array.isEmpty with the same arguments given to Array.toIndexedList which is meant for this exact purpose." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Array.isEmpty array
+"""
+                        ]
         ]
 
 

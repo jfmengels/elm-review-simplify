@@ -5102,15 +5102,17 @@ listMapOnSingletonCheck =
 
 listMemberChecks : IntoFnCheck
 listMemberChecks =
-    intoFnCheckOnlyCall
-        (firstThatConstructsJust
-            [ callOnEmptyReturnsCheck
-                { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
-                listCollection
-            , knownMemberChecks listCollection
-            , wrapperMemberChecks listCollection
-            ]
-        )
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (firstThatConstructsJust
+                [ callOnEmptyReturnsCheck
+                    { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
+                    listCollection
+                , knownMemberChecks listCollection
+                , wrapperMemberChecks listCollection
+                ]
+            )
+        ]
 
 
 listSumChecks : IntoFnCheck
@@ -5387,7 +5389,39 @@ listFoldAnyDirectionChecks =
 
 listIsEmptyChecks : IntoFnCheck
 listIsEmptyChecks =
-    intoFnCheckOnlyCall (collectionIsEmptyChecks listCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (collectionIsEmptyChecks listCollection)
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Set.toList
+            , combinedFn = Fn.Set.isEmpty
+            }
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Array.toList
+            , combinedFn = Fn.Array.isEmpty
+            }
+                , onSpecificFnCallCanBeCombinedCheck
+                    { args = []
+                    , earlierFn = Fn.Array.toIndexedList
+                    , combinedFn = Fn.Array.isEmpty
+                    }
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Dict.toList
+            , combinedFn = Fn.Dict.isEmpty
+            }
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Dict.values
+            , combinedFn = Fn.Dict.isEmpty
+            }
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Dict.keys
+            , combinedFn = Fn.Dict.isEmpty
+            }
+        ]
 
 
 listLengthChecks : IntoFnCheck
