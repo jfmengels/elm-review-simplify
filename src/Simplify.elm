@@ -5414,6 +5414,11 @@ listLengthChecks =
             , earlierFn = Fn.Set.toList
             , combinedFn = Fn.Set.size
             }
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Array.toList
+            , combinedFn = Fn.Array.length
+            }
         ]
 
 
