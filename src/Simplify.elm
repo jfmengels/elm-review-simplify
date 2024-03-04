@@ -12529,24 +12529,27 @@ caseVariantOfWithUnreachableCasesChecks config checkInfo =
 
                 -- >= 2 possible variants
                 _ ->
+                    let
+                        caseIndexesMatchingOnDifferentVariant : List Int
+                        caseIndexesMatchingOnDifferentVariant =
+                            variantCaseOf.cases
+                                |> List.indexedMap (\caseIndex variant -> { index = caseIndex, variant = variant })
+                                |> List.filterMap
+                                    (\case_ ->
+                                        if case_.variant.name /= variantCaseOf.cased.name then
+                                            Just case_.index
+
+                                        else
+                                            Nothing
+                                    )
+                    in
                     Just
                         { message = "Unreachable case branches"
                         , details =
                             [ "The value between case ... of is a known "
                                 ++ qualifiedToString (qualify ( variantCaseOf.cased.moduleName, variantCaseOf.cased.name ) defaultQualifyResources)
                                 ++ " variant. However, the "
-                                ++ (variantCaseOf.cases
-                                        |> List.indexedMap (\caseIndex variant -> { index = caseIndex, variant = variant })
-                                        |> List.filterMap
-                                            (\case_ ->
-                                                if case_.variant.name /= variantCaseOf.cased.name then
-                                                    Just (indexthToString case_.index)
-
-                                                else
-                                                    Nothing
-                                            )
-                                        |> String.join " and "
-                                   )
+                                ++ (caseIndexesMatchingOnDifferentVariant |> List.map indexthToString |> String.join " and ")
                                 ++ " case matches on a different variant which means you can remove it."
                             ]
                         , range =
