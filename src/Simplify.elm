@@ -12378,12 +12378,12 @@ caseVariantOfWithUnreachableCasesChecks :
     -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
 caseVariantOfWithUnreachableCasesChecks config checkInfo =
     let
-        maybeCasedVariant :
+        maybeVariantCaseOf :
             Maybe
                 { cased : { moduleName : ModuleName, name : String, attachments : List (Node Expression), customTypeVariantNames : Set String }
                 , cases : List { patternRange : Range, name : String, attachments : List (Node Pattern), expressionNode : Node Expression }
                 }
-        maybeCasedVariant =
+        maybeVariantCaseOf =
             case AstHelpers.getValueOrFnOrFnCall config.casedExpressionNode of
                 Nothing ->
                     Nothing
@@ -12431,170 +12431,207 @@ caseVariantOfWithUnreachableCasesChecks config checkInfo =
                                                 , cases = cases
                                                 }
     in
-    case maybeCasedVariant of
+    case maybeVariantCaseOf of
         Nothing ->
             Nothing
 
         Just variantCaseOf ->
             case Set.size variantCaseOf.cased.customTypeVariantNames of
                 1 ->
-                    variantCaseOf.cased.attachments
-                        |> List.foldl
-                            (\attachment soFar ->
-                                case traverse listFilledFromList soFar.remainingCaseVariantAttachmentListsFilled of
-                                    Just caseVariantAttachmentListsFilled ->
-                                        { index = soFar.index + 1
-                                        , remainingCaseVariantAttachmentListsFilled =
-                                            List.map listFilledTail caseVariantAttachmentListsFilled
-                                        , attachmentAndCasesList =
-                                            soFar.attachmentAndCasesList
-                                                |> (::) { index = soFar.index, attachment = attachment, cases = List.map listFilledHead caseVariantAttachmentListsFilled }
-                                        }
-
-                                    -- case curried variant of → compiler error
-                                    Nothing ->
-                                        { index = 0
-                                        , remainingCaseVariantAttachmentListsFilled = []
-                                        , attachmentAndCasesList = []
-                                        }
-                            )
-                            { index = 0
-                            , attachmentAndCasesList = []
-                            , remainingCaseVariantAttachmentListsFilled =
-                                List.map
-                                    (\case_ ->
-                                        List.map (\patternNode -> ( patternNode, case_.expressionNode ))
-                                            case_.attachments
-                                    )
-                                    variantCaseOf.cases
-                            }
-                        |> .attachmentAndCasesList
-                        |> findMap
-                            (\casedVariantAttachmentAndCases ->
-                                caseOfWithUnreachableCasesChecksOn
-                                    { casedExpressionNode = casedVariantAttachmentAndCases.attachment
-                                    , cases = casedVariantAttachmentAndCases.cases
-                                    }
-                                    checkInfo
-                                    |> Maybe.map
-                                        (\attachmentError ->
-                                            { attachmentError
-                                                | fix =
-                                                    { casedExpressionReplace =
-                                                        { range = Node.range config.casedExpressionNode
-                                                        , replacement =
-                                                            toNestedTupleFix
-                                                                (List.indexedMap
-                                                                    (\i (Node argRange _) ->
-                                                                        if i == casedVariantAttachmentAndCases.index then
-                                                                            attachmentError.fix.casedExpressionReplace.replacement
-
-                                                                        else
-                                                                            checkInfo.extractSourceCode argRange
-                                                                    )
-                                                                    variantCaseOf.cased.attachments
-                                                                )
-                                                        }
-                                                    , cases =
-                                                        List.map2
-                                                            (\variantPattern patternAttachmentError ->
-                                                                case patternAttachmentError of
-                                                                    UnreachableCaseRemove remove ->
-                                                                        UnreachableCaseRemove remove
-
-                                                                    UnreachableCaseReplace replace ->
-                                                                        UnreachableCaseReplace
-                                                                            { range = variantPattern.patternRange
-                                                                            , replacement =
-                                                                                toNestedTupleFix
-                                                                                    (List.indexedMap
-                                                                                        (\i (Node attachmentRange _) ->
-                                                                                            if i == casedVariantAttachmentAndCases.index then
-                                                                                                replace.replacement
-
-                                                                                            else
-                                                                                                checkInfo.extractSourceCode attachmentRange
-                                                                                        )
-                                                                                        variantPattern.attachments
-                                                                                    )
-                                                                            , expressionNode = replace.expressionNode
-                                                                            }
-                                                            )
-                                                            variantCaseOf.cases
-                                                            attachmentError.fix.cases
-                                                    }
-                                            }
-                                        )
-                            )
+                    caseSingleVariantWithUnreachableCasesCheck
+                        { cased = variantCaseOf.cased
+                        , casedExpressionRange = Node.range config.casedExpressionNode
+                        , cases = variantCaseOf.cases
+                        }
+                        checkInfo
 
                 -- >= 2 possible variants
                 _ ->
-                    let
-                        caseIndexesMatchingOnDifferentVariant : List Int
-                        caseIndexesMatchingOnDifferentVariant =
-                            variantCaseOf.cases
-                                |> List.indexedMap (\caseIndex variant -> { index = caseIndex, variant = variant })
-                                |> List.filterMap
-                                    (\case_ ->
-                                        if case_.variant.name /= variantCaseOf.cased.name then
-                                            Just case_.index
-
-                                        else
-                                            Nothing
-                                    )
-                    in
                     Just
-                        { message = "Unreachable case branches"
-                        , details =
-                            [ "The value between case ... of is a known "
-                                ++ qualifiedToString (qualify ( variantCaseOf.cased.moduleName, variantCaseOf.cased.name ) defaultQualifyResources)
-                                ++ " variant. However, the "
-                                ++ (caseIndexesMatchingOnDifferentVariant |> List.map indexthToString |> String.join " and ")
-                                ++ " case matches on a different variant which means you can remove it."
-                            ]
-                        , range =
-                            findMap
-                                (\case_ ->
-                                    if case_.name /= variantCaseOf.cased.name then
-                                        Just case_.patternRange
-
-                                    else
-                                        Nothing
-                                )
-                                variantCaseOf.cases
-                                |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
-                        , fix =
-                            { casedExpressionReplace =
-                                { range = Node.range config.casedExpressionNode
-                                , replacement =
-                                    toNestedTupleFix
-                                        (List.map (\(Node argRange _) -> checkInfo.extractSourceCode argRange)
-                                            variantCaseOf.cased.attachments
-                                        )
-                                }
-                            , cases =
-                                List.map
-                                    (\variantCase ->
-                                        if variantCase.name == variantCaseOf.cased.name then
-                                            UnreachableCaseReplace
-                                                { range = variantCase.patternRange
-                                                , replacement =
-                                                    toNestedTupleFix
-                                                        (List.map (\(Node argRange _) -> checkInfo.extractSourceCode argRange)
-                                                            variantCase.attachments
-                                                        )
-                                                , expressionNode = variantCase.expressionNode
-                                                }
-
-                                        else
-                                            UnreachableCaseRemove
-                                                { patternRange = variantCase.patternRange
-                                                , expressionRange = Node.range variantCase.expressionNode
-                                                }
-                                    )
-                                    variantCaseOf.cases
+                        (caseMultiVariantWithUnreachableCasesError
+                            { cased = variantCaseOf.cased
+                            , casedExpressionRange = Node.range config.casedExpressionNode
+                            , cases = variantCaseOf.cases
                             }
+                            checkInfo
+                        )
+
+
+caseSingleVariantWithUnreachableCasesCheck :
+    { cased : { moduleName : ModuleName, name : String, attachments : List (Node Expression), customTypeVariantNames : Set String }
+    , casedExpressionRange : Range
+    , cases : List { patternRange : Range, name : String, attachments : List (Node Pattern), expressionNode : Node Expression }
+    }
+    -> CaseOfCheckInfo
+    -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseSingleVariantWithUnreachableCasesCheck variantCaseOf checkInfo =
+    variantCaseOf.cased.attachments
+        |> List.foldl
+            (\attachment soFar ->
+                case traverse listFilledFromList soFar.remainingCaseVariantAttachmentListsFilled of
+                    Just caseVariantAttachmentListsFilled ->
+                        { index = soFar.index + 1
+                        , remainingCaseVariantAttachmentListsFilled =
+                            List.map listFilledTail caseVariantAttachmentListsFilled
+                        , attachmentAndCasesList =
+                            soFar.attachmentAndCasesList
+                                |> (::) { index = soFar.index, attachment = attachment, cases = List.map listFilledHead caseVariantAttachmentListsFilled }
                         }
+
+                    -- case curried variant of → compiler error
+                    Nothing ->
+                        { index = 0
+                        , remainingCaseVariantAttachmentListsFilled = []
+                        , attachmentAndCasesList = []
+                        }
+            )
+            { index = 0
+            , attachmentAndCasesList = []
+            , remainingCaseVariantAttachmentListsFilled =
+                List.map
+                    (\case_ ->
+                        List.map (\patternNode -> ( patternNode, case_.expressionNode ))
+                            case_.attachments
+                    )
+                    variantCaseOf.cases
+            }
+        |> .attachmentAndCasesList
+        |> findMap
+            (\casedVariantAttachmentAndCases ->
+                caseOfWithUnreachableCasesChecksOn
+                    { casedExpressionNode = casedVariantAttachmentAndCases.attachment
+                    , cases = casedVariantAttachmentAndCases.cases
+                    }
+                    checkInfo
+                    |> Maybe.map
+                        (\attachmentError ->
+                            { attachmentError
+                                | fix =
+                                    { casedExpressionReplace =
+                                        { range = variantCaseOf.casedExpressionRange
+                                        , replacement =
+                                            toNestedTupleFix
+                                                (List.indexedMap
+                                                    (\i (Node argRange _) ->
+                                                        if i == casedVariantAttachmentAndCases.index then
+                                                            attachmentError.fix.casedExpressionReplace.replacement
+
+                                                        else
+                                                            checkInfo.extractSourceCode argRange
+                                                    )
+                                                    variantCaseOf.cased.attachments
+                                                )
+                                        }
+                                    , cases =
+                                        List.map2
+                                            (\variantPattern patternAttachmentError ->
+                                                case patternAttachmentError of
+                                                    UnreachableCaseRemove remove ->
+                                                        UnreachableCaseRemove remove
+
+                                                    UnreachableCaseReplace replace ->
+                                                        UnreachableCaseReplace
+                                                            { range = variantPattern.patternRange
+                                                            , replacement =
+                                                                toNestedTupleFix
+                                                                    (List.indexedMap
+                                                                        (\i (Node attachmentRange _) ->
+                                                                            if i == casedVariantAttachmentAndCases.index then
+                                                                                replace.replacement
+
+                                                                            else
+                                                                                checkInfo.extractSourceCode attachmentRange
+                                                                        )
+                                                                        variantPattern.attachments
+                                                                    )
+                                                            , expressionNode = replace.expressionNode
+                                                            }
+                                            )
+                                            variantCaseOf.cases
+                                            attachmentError.fix.cases
+                                    }
+                            }
+                        )
+            )
+
+
+caseMultiVariantWithUnreachableCasesError :
+    { cased : { moduleName : ModuleName, name : String, attachments : List (Node Expression), customTypeVariantNames : Set String }
+    , casedExpressionRange : Range
+    , cases : List { patternRange : Range, name : String, attachments : List (Node Pattern), expressionNode : Node Expression }
+    }
+    ->
+        { checkInfo
+            | parentRange : Range
+            , extractSourceCode : Range -> String
+        }
+    -> { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseMultiVariantWithUnreachableCasesError variantCaseOf checkInfo =
+    let
+        caseIndexesMatchingOnDifferentVariant : List Int
+        caseIndexesMatchingOnDifferentVariant =
+            variantCaseOf.cases
+                |> List.indexedMap (\caseIndex variant -> { index = caseIndex, variant = variant })
+                |> List.filterMap
+                    (\case_ ->
+                        if case_.variant.name /= variantCaseOf.cased.name then
+                            Just case_.index
+
+                        else
+                            Nothing
+                    )
+    in
+    { message = "Unreachable case branches"
+    , details =
+        [ "The value between case ... of is a known "
+            ++ qualifiedToString (qualify ( variantCaseOf.cased.moduleName, variantCaseOf.cased.name ) defaultQualifyResources)
+            ++ " variant. However, the "
+            ++ (caseIndexesMatchingOnDifferentVariant |> List.map indexthToString |> String.join " and ")
+            ++ " case matches on a different variant which means you can remove it."
+        ]
+    , range =
+        findMap
+            (\case_ ->
+                if case_.name /= variantCaseOf.cased.name then
+                    Just case_.patternRange
+
+                else
+                    Nothing
+            )
+            variantCaseOf.cases
+            |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
+    , fix =
+        { casedExpressionReplace =
+            { range = variantCaseOf.casedExpressionRange
+            , replacement =
+                toNestedTupleFix
+                    (List.map (\(Node argRange _) -> checkInfo.extractSourceCode argRange)
+                        variantCaseOf.cased.attachments
+                    )
+            }
+        , cases =
+            List.map
+                (\variantCase ->
+                    if variantCase.name == variantCaseOf.cased.name then
+                        UnreachableCaseReplace
+                            { range = variantCase.patternRange
+                            , replacement =
+                                toNestedTupleFix
+                                    (List.map (\(Node argRange _) -> checkInfo.extractSourceCode argRange)
+                                        variantCase.attachments
+                                    )
+                            , expressionNode = variantCase.expressionNode
+                            }
+
+                    else
+                        UnreachableCaseRemove
+                            { patternRange = variantCase.patternRange
+                            , expressionRange = Node.range variantCase.expressionNode
+                            }
+                )
+                variantCaseOf.cases
+        }
+    }
 
 
 getVariantCase : ( Node Pattern, Node Expression ) -> Maybe { patternRange : Range, expressionNode : Node Expression, name : String, attachments : List (Node Pattern) }
