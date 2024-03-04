@@ -12264,13 +12264,13 @@ caseOfWithUnreachableCasesChecksOn :
     { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
     -> CaseOfCheckInfo
     -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
-caseOfWithUnreachableCasesChecksOn config checkInfo =
-    findMap (\f -> f ())
-        [ \() -> caseVariantOfWithUnreachableCasesChecks config checkInfo
-        , \() -> caseListLiteralOfWithUnreachableCasesChecks config checkInfo
-        , \() -> caseConsOfWithUnreachableCasesChecks config checkInfo
-        , \() -> caseTuple2OfWithUnreachableCasesChecks config checkInfo
-        , \() -> caseTuple3OfWithUnreachableCasesChecks config checkInfo
+caseOfWithUnreachableCasesChecksOn config =
+    firstThatConstructsJust
+        [ caseVariantOfWithUnreachableCasesChecks config
+        , caseListLiteralOfWithUnreachableCasesChecks config
+        , caseConsOfWithUnreachableCasesChecks config
+        , caseTuple2OfWithUnreachableCasesChecks config
+        , caseTuple3OfWithUnreachableCasesChecks config
         ]
 
 
@@ -12303,24 +12303,21 @@ caseTuple2OfWithUnreachableCasesChecks config checkInfo =
                     Nothing
 
                 Just tuplePatternCases ->
-                    findMap (\f -> f ())
-                        [ \() ->
-                            caseOfWithUnreachableCasesChecksOn
-                                { casedExpressionNode = casedTuple.first
-                                , cases =
-                                    List.map (\case_ -> ( case_.firstPatternNode, case_.expressionNode ))
-                                        tuplePatternCases
-                                }
-                                checkInfo
-                        , \() ->
-                            caseOfWithUnreachableCasesChecksOn
-                                { casedExpressionNode = casedTuple.second
-                                , cases =
-                                    List.map (\case_ -> ( case_.secondPatternNode, case_.expressionNode ))
-                                        tuplePatternCases
-                                }
-                                checkInfo
+                    firstThatConstructsJust
+                        [ caseOfWithUnreachableCasesChecksOn
+                            { casedExpressionNode = casedTuple.first
+                            , cases =
+                                List.map (\case_ -> ( case_.firstPatternNode, case_.expressionNode ))
+                                    tuplePatternCases
+                            }
+                        , caseOfWithUnreachableCasesChecksOn
+                            { casedExpressionNode = casedTuple.second
+                            , cases =
+                                List.map (\case_ -> ( case_.secondPatternNode, case_.expressionNode ))
+                                    tuplePatternCases
+                            }
                         ]
+                        checkInfo
 
 
 caseTuple3OfWithUnreachableCasesChecks :
@@ -12349,32 +12346,27 @@ caseTuple3OfWithUnreachableCasesChecks config checkInfo =
                     Nothing
 
                 Just tuplePatternCases ->
-                    findMap (\f -> f ())
-                        [ \() ->
-                            caseOfWithUnreachableCasesChecksOn
-                                { casedExpressionNode = casedTupleFirstNode
-                                , cases =
-                                    List.map (\case_ -> ( case_.firstPatternNode, case_.expressionNode ))
-                                        tuplePatternCases
-                                }
-                                checkInfo
-                        , \() ->
-                            caseOfWithUnreachableCasesChecksOn
-                                { casedExpressionNode = casedTupleSecondNode
-                                , cases =
-                                    List.map (\case_ -> ( case_.secondPatternNode, case_.expressionNode ))
-                                        tuplePatternCases
-                                }
-                                checkInfo
-                        , \() ->
-                            caseOfWithUnreachableCasesChecksOn
-                                { casedExpressionNode = casedTupleThirdNode
-                                , cases =
-                                    List.map (\case_ -> ( case_.thirdPatternNode, case_.expressionNode ))
-                                        tuplePatternCases
-                                }
-                                checkInfo
+                    firstThatConstructsJust
+                        [ caseOfWithUnreachableCasesChecksOn
+                            { casedExpressionNode = casedTupleFirstNode
+                            , cases =
+                                List.map (\case_ -> ( case_.firstPatternNode, case_.expressionNode ))
+                                    tuplePatternCases
+                            }
+                        , caseOfWithUnreachableCasesChecksOn
+                            { casedExpressionNode = casedTupleSecondNode
+                            , cases =
+                                List.map (\case_ -> ( case_.secondPatternNode, case_.expressionNode ))
+                                    tuplePatternCases
+                            }
+                        , caseOfWithUnreachableCasesChecksOn
+                            { casedExpressionNode = casedTupleThirdNode
+                            , cases =
+                                List.map (\case_ -> ( case_.thirdPatternNode, case_.expressionNode ))
+                                    tuplePatternCases
+                            }
                         ]
+                        checkInfo
 
         _ ->
             Nothing
