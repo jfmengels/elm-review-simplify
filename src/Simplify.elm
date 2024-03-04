@@ -12411,25 +12411,19 @@ caseVariantOfWithUnreachableCasesChecks config checkInfo =
                             Nothing
 
                         Just valueModule ->
-                            case getCustomTypeWithVariant valueOrCall.fnName valueModule.customTypes of
-                                Nothing ->
-                                    Nothing
-
-                                Just customTypeWithVariant ->
-                                    case traverse getVariantCase config.cases of
-                                        Nothing ->
-                                            Nothing
-
-                                        Just cases ->
-                                            Just
-                                                { cased =
-                                                    { moduleName = valueModule.name
-                                                    , name = valueOrCall.fnName
-                                                    , attachments = valueOrCall.args
-                                                    , customTypeVariantNames = customTypeWithVariant.variantNames
-                                                    }
-                                                , cases = cases
-                                                }
+                            Maybe.map2
+                                (\customTypeWithVariant cases ->
+                                    { cased =
+                                        { moduleName = valueModule.name
+                                        , name = valueOrCall.fnName
+                                        , attachments = valueOrCall.args
+                                        , customTypeVariantNames = customTypeWithVariant.variantNames
+                                        }
+                                    , cases = cases
+                                    }
+                                )
+                                (getCustomTypeWithVariant valueOrCall.fnName valueModule.customTypes)
+                                (traverse getVariantCase config.cases)
     in
     case maybeVariantCaseOf of
         Nothing ->
