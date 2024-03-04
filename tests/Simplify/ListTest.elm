@@ -6109,6 +6109,70 @@ a = List.length (List.range 3 7)
 a = 4
 """
                         ]
+        , test "should replace List.length (Set.fromList set) with Set.size" <|
+            \() ->
+                """module A exposing (..)
+a = Set.toList set |> List.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.toList, then List.length can be combined into Set.size"
+                            , details = [ "You can replace this call by Set.size with the same arguments given to Set.toList which is meant for this exact purpose." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.size set
+"""
+                        ]
+        , test "should replace List.length (Dict.fromList dict) with Dict.size" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.toList dict |> List.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.toList, then List.length can be combined into Dict.size"
+                            , details = [ "You can replace this call by Dict.size with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.size dict
+"""
+                        ]
+        , test "should replace List.length (Dict.values dict) with Dict.size" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.values dict |> List.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.values, then List.length can be combined into Dict.size"
+                            , details = [ "You can replace this call by Dict.size with the same arguments given to Dict.values which is meant for this exact purpose." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.size dict
+"""
+                        ]
+        , test "should replace List.length (Dict.keys dict) with Dict.size" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.keys dict |> List.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.keys, then List.length can be combined into Dict.size"
+                            , details = [ "You can replace this call by Dict.size with the same arguments given to Dict.keys which is meant for this exact purpose." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.size dict
+"""
+                        ]
         ]
 
 
