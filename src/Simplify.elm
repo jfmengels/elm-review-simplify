@@ -5392,7 +5392,29 @@ listIsEmptyChecks =
 
 listLengthChecks : IntoFnCheck
 listLengthChecks =
-    intoFnCheckOnlyCall (collectionSizeChecks listCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (collectionSizeChecks listCollection)
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Dict.toList
+            , combinedFn = Fn.Dict.size
+            }
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Dict.values
+            , combinedFn = Fn.Dict.size
+            }
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Dict.keys
+            , combinedFn = Fn.Dict.size
+            }
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Set.toList
+            , combinedFn = Fn.Set.size
+            }
+        ]
 
 
 listAllChecks : IntoFnCheck
