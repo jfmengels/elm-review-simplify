@@ -5453,6 +5453,11 @@ listLengthChecks =
             , earlierFn = Fn.Array.toList
             , combinedFn = Fn.Array.length
             }
+                , onSpecificFnCallCanBeCombinedCheck
+                    { args = []
+                    , earlierFn = Fn.Array.toIndexedList
+                    , combinedFn = Fn.Array.length
+                    }
         ]
 
 
