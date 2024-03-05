@@ -5102,17 +5102,15 @@ listMapOnSingletonCheck =
 
 listMemberChecks : IntoFnCheck
 listMemberChecks =
-    intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall
-            (firstThatConstructsJust
-                [ callOnEmptyReturnsCheck
-                    { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
-                    listCollection
-                , knownMemberChecks listCollection
-                , wrapperMemberChecks listCollection
-                ]
-            )
-        ]
+    intoFnCheckOnlyCall
+        (firstThatConstructsJust
+            [ callOnEmptyReturnsCheck
+                { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
+                listCollection
+            , knownMemberChecks listCollection
+            , wrapperMemberChecks listCollection
+            ]
+        )
 
 
 listSumChecks : IntoFnCheck
@@ -5401,11 +5399,11 @@ listIsEmptyChecks =
             , earlierFn = Fn.Array.toList
             , combinedFn = Fn.Array.isEmpty
             }
-                , onSpecificFnCallCanBeCombinedCheck
-                    { args = []
-                    , earlierFn = Fn.Array.toIndexedList
-                    , combinedFn = Fn.Array.isEmpty
-                    }
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Array.toIndexedList
+            , combinedFn = Fn.Array.isEmpty
+            }
         , onSpecificFnCallCanBeCombinedCheck
             { args = []
             , earlierFn = Fn.Dict.toList
@@ -5453,11 +5451,11 @@ listLengthChecks =
             , earlierFn = Fn.Array.toList
             , combinedFn = Fn.Array.length
             }
-                , onSpecificFnCallCanBeCombinedCheck
-                    { args = []
-                    , earlierFn = Fn.Array.toIndexedList
-                    , combinedFn = Fn.Array.length
-                    }
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Array.toIndexedList
+            , combinedFn = Fn.Array.length
+            }
         ]
 
 
