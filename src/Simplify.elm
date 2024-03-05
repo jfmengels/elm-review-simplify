@@ -979,6 +979,17 @@ Destructuring using case expressions
     List.map Tuple.second (Array.toIndexedList array)
     --> Array.toList array
 
+    Array.length (Array.fromList list)
+    --> List.length list
+
+    -- The following simplification also works for Array.toIndexedList
+    List.length (Array.toList array)
+    --> Array.length array
+
+    -- The following simplification also works for Array.toIndexedList
+    List.isEmpty (Array.toList array)
+    --> Array.isEmpty array
+
 
 ### Sets
 
@@ -1061,6 +1072,12 @@ Destructuring using case expressions
 
     Set.foldl (\_ soFar -> soFar) initial set
     --> initial
+
+    List.length (Set.toList set)
+    --> Set.size set
+
+    List.isEmpty (Set.toList set)
+    --> Set.isEmpty set
 
 
 ### Dict
@@ -1146,6 +1163,14 @@ Destructuring using case expressions
 
     Dict.foldl (\_ soFar -> soFar) initial dict
     --> initial
+
+    -- The following simplification also works for Dict.keys, Dict.values
+    List.length (Dict.toList dict)
+    --> Dict.size dict
+
+    -- The following simplification also works for Dict.keys, Dict.values
+    List.isEmpty (Dict.toList dict)
+    --> Dict.isEmpty dict
 
 
 ### Cmd / Sub

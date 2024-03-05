@@ -3108,9 +3108,10 @@ a = List.isEmpty (b |> List.singleton)
 a = False
 """
                         ]
-        , test "should replace List.isEmpty (Set.toList set) by Set.isEmpty" <|
+        , test "should replace Set.toList set |> List.isEmpty by Set.isEmpty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.toList set |> List.isEmpty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3121,12 +3122,14 @@ a = Set.toList set |> List.isEmpty
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.isEmpty set
 """
                         ]
-        , test "should replace List.isEmpty (Dict.toList dict) by Dict.isEmpty" <|
+        , test "should replace Dict.toList dict |> List.isEmpty by Dict.isEmpty" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.toList dict |> List.isEmpty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3137,12 +3140,14 @@ a = Dict.toList dict |> List.isEmpty
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.isEmpty dict
 """
                         ]
-        , test "should replace List.isEmpty (Dict.values dict) by Dict.isEmpty" <|
+        , test "should replace Dict.values dict |> List.isEmpty by Dict.isEmpty" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.values dict |> List.isEmpty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3153,12 +3158,14 @@ a = Dict.values dict |> List.isEmpty
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.isEmpty dict
 """
                         ]
-        , test "should replace List.isEmpty (Dict.keys dict) by Dict.isEmpty" <|
+        , test "should replace Dict.keys dict |> List.isEmpty by Dict.isEmpty" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.keys dict |> List.isEmpty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3169,12 +3176,14 @@ a = Dict.keys dict |> List.isEmpty
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.isEmpty dict
 """
                         ]
-        , test "should replace List.isEmpty (Array.toList array) by Array.isEmpty" <|
+        , test "should replace Array.toList array |> List.isEmpty by Array.isEmpty" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.toList array |> List.isEmpty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3185,12 +3194,14 @@ a = Array.toList array |> List.isEmpty
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.isEmpty array
 """
                         ]
-        , test "should replace List.isEmpty (Array.toIndexedList array) by Dict.isEmpty" <|
+        , test "should replace Array.toIndexedList array |> List.isEmpty by Array.isEmpty" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.toIndexedList array |> List.isEmpty
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3201,6 +3212,7 @@ a = Array.toIndexedList array |> List.isEmpty
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.isEmpty array
 """
                         ]
@@ -6205,9 +6217,10 @@ a = List.length (List.range 3 7)
 a = 4
 """
                         ]
-        , test "should replace List.length (Set.fromList set) with Set.size" <|
+        , test "should replace Set.toList set |> List.length with Set.size" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.toList set |> List.length
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6218,12 +6231,14 @@ a = Set.toList set |> List.length
                             , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.size set
 """
                         ]
-        , test "should replace List.length (Dict.fromList dict) with Dict.size" <|
+        , test "should replace Dict.toList dict |> List.length with Dict.size" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.toList dict |> List.length
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6234,12 +6249,14 @@ a = Dict.toList dict |> List.length
                             , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.size dict
 """
                         ]
-        , test "should replace List.length (Dict.values dict) with Dict.size" <|
+        , test "should replace Dict.values dict |> List.length with Dict.size" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.values dict |> List.length
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6250,12 +6267,14 @@ a = Dict.values dict |> List.length
                             , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.size dict
 """
                         ]
-        , test "should replace List.length (Dict.keys dict) with Dict.size" <|
+        , test "should replace Dict.keys dict |> List.length with Dict.size" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.keys dict |> List.length
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6266,12 +6285,14 @@ a = Dict.keys dict |> List.length
                             , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.size dict
 """
                         ]
-        , test "should replace List.length (Array.toList array) with Dict.size" <|
+        , test "should replace Array.toList array |> List.length with Dict.size" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.toList array |> List.length
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6282,12 +6303,14 @@ a = Array.toList array |> List.length
                             , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.length array
 """
                         ]
-        , test "should replace List.length (Array.toIndexedList array) with Dict.size" <|
+        , test "should replace Array.toIndexedList array |> List.length with Array.length" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.toIndexedList array |> List.length
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6298,6 +6321,7 @@ a = Array.toIndexedList array |> List.length
                             , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.length array
 """
                         ]
