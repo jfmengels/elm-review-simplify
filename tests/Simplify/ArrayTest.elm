@@ -1723,6 +1723,24 @@ import Array
 a = max 0 n
 """
                         ]
+        , test "should replace Array.fromList list |> Array.length with List.length list" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList list |> Array.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList, then Array.length can be combined into List.length"
+                            , details = [ "You can replace this call by List.length with the same arguments given to Array.fromList which is meant for this exact purpose." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = List.length list
+"""
+                        ]
         ]
 
 

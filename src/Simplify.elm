@@ -5758,12 +5758,19 @@ arrayIsEmptyChecks =
 
 arrayLengthChecks : IntoFnCheck
 arrayLengthChecks =
-    intoFnCheckOnlyCall
-        (firstThatConstructsJust
-            [ collectionSizeChecks arrayCollection
-            , arrayLengthOnArrayRepeatOrInitializeChecks
-            ]
-        )
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (firstThatConstructsJust
+                [ collectionSizeChecks arrayCollection
+                , arrayLengthOnArrayRepeatOrInitializeChecks
+                ]
+            )
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Array.fromList
+            , combinedFn = Fn.List.length
+            }
+        ]
 
 
 arrayGetChecks : IntoFnCheck
