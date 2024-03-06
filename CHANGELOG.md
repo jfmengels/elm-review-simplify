@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+The rule now simplifies:
+- `Array.length (Array.fromList list)` to `List.length list`
+- `List.length (Array.toList array)` to `Array.length array` (same for `Array.toIndexedList`)
+- `List.isEmpty (Array.toList array)` to `Array.isEmpty array` (same for `Array.toIndexedList`)
+- `List.length (Set.toList set)` to `Set.size set`
+- `List.isEmpty (Set.toList set)` to `Set.isEmpty set`
+- `List.length (Dict.toList dict)` to `Dict.size dict` (same for `Dict.values` and `Dict.keys`)
+- `List.isEmpty (Dict.toList dict)` to `Dict.isEmpty dict` (same for `Dict.values` and `Dict.keys`)
+
 ## [2.1.3] - 2023-10-23
 
 The rule now simplifies:
