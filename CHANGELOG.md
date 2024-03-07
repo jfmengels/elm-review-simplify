@@ -3,6 +3,19 @@
 ## [Unreleased]
 
 The rule now simplifies:
+- ```elm
+  case Just value of
+      Nothing -> a
+      Just (Ok b) -> c
+      Just (Err d) -> e
+  ```
+  to
+  ```elm
+  case value of
+      Ok b -> c
+      Err d -> e
+  ```
+  (same with any variant, list or tuple containing either)
 - `Array.length (Array.fromList list)` to `List.length list`
 - `List.length (Array.toList array)` to `Array.length array` (same for `Array.toIndexedList`)
 - `List.isEmpty (Array.toList array)` to `Array.isEmpty array` (same for `Array.toIndexedList`)

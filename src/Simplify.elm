@@ -122,6 +122,15 @@ Below is the list of all kinds of simplifications this rule applies.
         Nothing -> x
     --> x
 
+    -- same with any variant, list or tuple containing either
+    case Just value of
+        Nothing -> a
+        Just (Ok b) -> c
+        Just (Err d) -> e
+    --> case value of
+    -->     Ok b -> c
+    -->     Err d -> e
+
 Destructuring using case expressions
 
     case value of
@@ -1566,6 +1575,7 @@ type alias ProjectContext =
     { customTypesToReportInCases : Set ( ModuleName, ConstructorName )
     , exposedVariants : Dict ModuleName (Set String)
     , exposedRecordTypeAliases : Dict ModuleName (Dict String (List String))
+    , exposedCustomTypes : Dict ModuleName (Dict String { variantNames : Set String })
     }
 
 
@@ -1576,6 +1586,8 @@ type alias ModuleContext =
     , commentRanges : List Range
     , importRecordTypeAliases : Dict ModuleName (Dict String (List String))
     , moduleRecordTypeAliases : Dict String (List String)
+    , importCustomTypes : Dict ModuleName (Dict String { variantNames : Set String })
+    , moduleCustomTypes : Dict String { variantNames : Set String }
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
     , branchLocalBindings : RangeDict (Set String)
@@ -1652,6 +1664,7 @@ initialContext =
     { customTypesToReportInCases = Set.empty
     , exposedVariants = Dict.empty
     , exposedRecordTypeAliases = Dict.empty
+    , exposedCustomTypes = Dict.empty
     }
 
 
@@ -1681,6 +1694,25 @@ fromModuleToProject =
                                 )
                                 Dict.empty
                                 exposingSomeContext.potentialTypeAliases
+                    )
+            , exposedCustomTypes =
+                Dict.singleton moduleContext.moduleName
+                    (case moduleContext.exposed of
+                        ExposingAllContext ->
+                            moduleContext.moduleCustomTypes
+
+                        ExposingSomeContext exposingSomeContext ->
+                            Set.foldl
+                                (\exposedPotentialTypeAlias soFar ->
+                                    case Dict.get exposedPotentialTypeAlias moduleContext.moduleCustomTypes of
+                                        Nothing ->
+                                            soFar
+
+                                        Just recordTypeAlias ->
+                                            Dict.insert exposedPotentialTypeAlias recordTypeAlias soFar
+                                )
+                                Dict.empty
+                                exposingSomeContext.typesExposingVariants
                     )
             }
         )
@@ -1717,6 +1749,8 @@ fromProjectToModule =
             , commentRanges = []
             , importRecordTypeAliases = projectContext.exposedRecordTypeAliases
             , moduleRecordTypeAliases = Dict.empty
+            , importCustomTypes = projectContext.exposedCustomTypes
+            , moduleCustomTypes = Dict.empty
             , moduleBindings = Set.empty
             , localBindings = RangeDict.empty
             , branchLocalBindings = RangeDict.empty
@@ -1835,6 +1869,7 @@ foldProjectContexts newContext previousContext =
     { customTypesToReportInCases = Set.empty
     , exposedVariants = Dict.union newContext.exposedVariants previousContext.exposedVariants
     , exposedRecordTypeAliases = Dict.union newContext.exposedRecordTypeAliases previousContext.exposedRecordTypeAliases
+    , exposedCustomTypes = Dict.union newContext.exposedCustomTypes previousContext.exposedCustomTypes
     }
 
 
@@ -1918,6 +1953,35 @@ dependenciesVisitor typeNamesAsStrings dict context =
                             soFar
                     )
                     Dict.empty
+
+        exposedCustomTypes : Dict ModuleName (Dict String { variantNames : Set String })
+        exposedCustomTypes =
+            Dict.union
+                (dict
+                    |> Dict.values
+                    |> List.concatMap
+                        (\dependency ->
+                            dependency
+                                |> Dependency.modules
+                                |> List.map
+                                    (\moduleDocs ->
+                                        ( moduleDocs.name |> AstHelpers.moduleNameFromString
+                                        , moduleDocs.unions
+                                            |> List.map
+                                                (\choiceTypeDocs ->
+                                                    ( choiceTypeDocs.name
+                                                    , { variantNames =
+                                                            choiceTypeDocs.tags |> List.map (\( name, _ ) -> name) |> Set.fromList
+                                                      }
+                                                    )
+                                                )
+                                            |> Dict.fromList
+                                        )
+                                    )
+                        )
+                    |> Dict.fromList
+                )
+                context.exposedCustomTypes
     in
     ( if List.isEmpty unknownTypesToIgnore then
         []
@@ -1927,6 +1991,7 @@ dependenciesVisitor typeNamesAsStrings dict context =
     , { customTypesToReportInCases = customTypesToReportInCases
       , exposedVariants = dependencyExposedVariants
       , exposedRecordTypeAliases = recordTypeAliases
+      , exposedCustomTypes = exposedCustomTypes
       }
     )
 
@@ -1975,6 +2040,24 @@ declarationListVisitor declarationList context =
 
                                 _ ->
                                     soFar
+
+                        _ ->
+                            soFar
+                )
+                Dict.empty
+                declarationList
+        , moduleCustomTypes =
+            List.foldl
+                (\(Node _ declaration) soFar ->
+                    case declaration of
+                        Declaration.CustomTypeDeclaration variantType ->
+                            Dict.insert (Node.value variantType.name)
+                                { variantNames =
+                                    variantType.constructors
+                                        |> List.map (\(Node _ variant) -> Node.value variant.name)
+                                        |> Set.fromList
+                                }
+                                soFar
 
                         _ ->
                             soFar
@@ -2763,6 +2846,8 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             onlyMaybeError
                 (firstThatConstructsJust caseOfChecks
                     { lookupTable = context.lookupTable
+                    , moduleCustomTypes = context.moduleCustomTypes
+                    , importCustomTypes = context.importCustomTypes
                     , extractSourceCode = context.extractSourceCode
                     , customTypesToReportInCases = context.customTypesToReportInCases
                     , inferredConstants = context.inferredConstants
@@ -11868,12 +11953,15 @@ caseOfChecks =
     [ sameBodyForCaseOfChecks
     , booleanCaseOfChecks
     , destructuringCaseOfChecks
+    , caseOfWithUnreachableCasesChecks
     ]
 
 
 type alias CaseOfCheckInfo =
     { lookupTable : ModuleNameLookupTable
     , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
+    , moduleCustomTypes : Dict String { variantNames : Set String }
+    , importCustomTypes : Dict ModuleName (Dict String { variantNames : Set String })
     , extractSourceCode : Range -> String
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , parentRange : Range
@@ -12074,6 +12162,872 @@ isSimpleDestructurePattern (Node _ pattern) =
 
         _ ->
             False
+
+
+caseOfWithUnreachableCasesChecks : CaseOfCheckInfo -> Maybe (Error {})
+caseOfWithUnreachableCasesChecks checkInfo =
+    caseOfWithUnreachableCasesChecksOn
+        { casedExpressionNode = checkInfo.caseOf.expression
+        , cases = checkInfo.caseOf.cases
+        }
+        checkInfo
+        |> Maybe.map
+            (\error ->
+                let
+                    maybeOnlyMatchingCase : Maybe { index : Int, expressionNode : Node Expression }
+                    maybeOnlyMatchingCase =
+                        case error.fix.casedExpressionReplace.replacement of
+                            "()" ->
+                                error.fix.cases
+                                    |> List.indexedMap (\index fix -> { index = index, fix = fix })
+                                    |> findMap
+                                        (\case_ ->
+                                            case case_.fix of
+                                                UnreachableCaseRemove _ ->
+                                                    Nothing
+
+                                                UnreachableCaseReplace replace ->
+                                                    Just { index = case_.index, expressionNode = replace.expressionNode }
+                                        )
+
+                            _ ->
+                                Nothing
+                in
+                case maybeOnlyMatchingCase of
+                    Nothing ->
+                        Rule.errorWithFix { message = error.message, details = error.details }
+                            error.range
+                            (unreachableCasesFixToReviewFixes error.fix)
+
+                    Just onlyMatchingCase ->
+                        Rule.errorWithFix
+                            { message = error.message
+                            , details =
+                                error.details
+                                    ++ [ "Since only a single case branch will remain after removing the unreachable ones, you can replace this case-of by the result of the "
+                                            ++ indexthToString onlyMatchingCase.index
+                                            ++ " case."
+                                       ]
+                            }
+                            error.range
+                            (replaceBySubExpressionFix checkInfo.parentRange onlyMatchingCase.expressionNode)
+            )
+
+
+type alias UnreachableCasesFix =
+    { casedExpressionReplace : { range : Range, replacement : String }
+    , cases : List UnreachableCaseFix
+    }
+
+
+type UnreachableCaseFix
+    = UnreachableCaseRemove { patternRange : Range, expressionRange : Range }
+    | UnreachableCaseReplace { range : Range, replacement : String, expressionNode : Node Expression }
+
+
+unreachableCasesFixToReviewFixes : UnreachableCasesFix -> List Fix
+unreachableCasesFixToReviewFixes unreachableCasesFix =
+    Fix.replaceRangeBy unreachableCasesFix.casedExpressionReplace.range unreachableCasesFix.casedExpressionReplace.replacement
+        :: List.concat
+            (List.map2
+                (\unreachableCaseFix unreachableCaseFixBefore ->
+                    case unreachableCaseFix of
+                        UnreachableCaseReplace unreachableCaseReplace ->
+                            [ Fix.replaceRangeBy unreachableCaseReplace.range unreachableCaseReplace.replacement ]
+
+                        UnreachableCaseRemove caseRanges ->
+                            [ Fix.removeRange
+                                { start =
+                                    { row =
+                                        case unreachableCaseFixBefore of
+                                            Nothing ->
+                                                caseRanges.patternRange.start.row
+
+                                            Just (UnreachableCaseRemove beforeCaseRanges) ->
+                                                beforeCaseRanges.expressionRange.end.row + 1
+
+                                            Just (UnreachableCaseReplace beforeUnreachableCaseReplace) ->
+                                                (Node.range beforeUnreachableCaseReplace.expressionNode).end.row + 1
+                                    , column = 0
+                                    }
+                                , end =
+                                    { row = caseRanges.expressionRange.end.row + 1, column = 0 }
+                                }
+                            ]
+                )
+                unreachableCasesFix.cases
+                (Nothing :: List.map Just unreachableCasesFix.cases)
+            )
+
+
+caseOfWithUnreachableCasesChecksOn :
+    { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
+    -> CaseOfCheckInfo
+    -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseOfWithUnreachableCasesChecksOn config =
+    firstThatConstructsJust
+        [ caseVariantOfWithUnreachableCasesChecks config
+        , caseListLiteralOfWithUnreachableCasesChecks config
+        , caseConsOfWithUnreachableCasesChecks config
+        , caseTuple2OfWithUnreachableCasesChecks config
+        , caseTuple3OfWithUnreachableCasesChecks config
+        ]
+
+
+caseTuple2OfWithUnreachableCasesChecks :
+    { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
+    -> CaseOfCheckInfo
+    -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseTuple2OfWithUnreachableCasesChecks config checkInfo =
+    case AstHelpers.getTuple2 checkInfo.lookupTable config.casedExpressionNode of
+        Nothing ->
+            Nothing
+
+        Just casedTuple ->
+            let
+                maybeTuplePatternCases : Maybe (List { firstPatternNode : Node Pattern, secondPatternNode : Node Pattern, expressionNode : Node Expression })
+                maybeTuplePatternCases =
+                    traverse
+                        (\( patternNode, expressionNode ) ->
+                            case patternNode of
+                                Node _ (Pattern.TuplePattern (firstPatternNode :: secondPatternNode :: [])) ->
+                                    Just { firstPatternNode = firstPatternNode, secondPatternNode = secondPatternNode, expressionNode = expressionNode }
+
+                                _ ->
+                                    Nothing
+                        )
+                        config.cases
+            in
+            case maybeTuplePatternCases of
+                Nothing ->
+                    Nothing
+
+                Just tuplePatternCases ->
+                    firstThatConstructsJust
+                        [ caseOfWithUnreachableCasesChecksOn
+                            { casedExpressionNode = casedTuple.first
+                            , cases =
+                                List.map (\case_ -> ( case_.firstPatternNode, case_.expressionNode ))
+                                    tuplePatternCases
+                            }
+                        , caseOfWithUnreachableCasesChecksOn
+                            { casedExpressionNode = casedTuple.second
+                            , cases =
+                                List.map (\case_ -> ( case_.secondPatternNode, case_.expressionNode ))
+                                    tuplePatternCases
+                            }
+                        ]
+                        checkInfo
+
+
+caseTuple3OfWithUnreachableCasesChecks :
+    { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
+    -> CaseOfCheckInfo
+    -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseTuple3OfWithUnreachableCasesChecks config checkInfo =
+    case config.casedExpressionNode of
+        Node _ (Expression.TupledExpression (casedTupleFirstNode :: casedTupleSecondNode :: casedTupleThirdNode :: [])) ->
+            let
+                maybeTuplePatternCases : Maybe (List { firstPatternNode : Node Pattern, secondPatternNode : Node Pattern, thirdPatternNode : Node Pattern, expressionNode : Node Expression })
+                maybeTuplePatternCases =
+                    traverse
+                        (\( patternNode, expressionNode ) ->
+                            case patternNode of
+                                Node _ (Pattern.TuplePattern (firstPatternNode :: secondPatternNode :: thirdPatternNode :: [])) ->
+                                    Just { firstPatternNode = firstPatternNode, secondPatternNode = secondPatternNode, thirdPatternNode = thirdPatternNode, expressionNode = expressionNode }
+
+                                _ ->
+                                    Nothing
+                        )
+                        config.cases
+            in
+            case maybeTuplePatternCases of
+                Nothing ->
+                    Nothing
+
+                Just tuplePatternCases ->
+                    firstThatConstructsJust
+                        [ caseOfWithUnreachableCasesChecksOn
+                            { casedExpressionNode = casedTupleFirstNode
+                            , cases =
+                                List.map (\case_ -> ( case_.firstPatternNode, case_.expressionNode ))
+                                    tuplePatternCases
+                            }
+                        , caseOfWithUnreachableCasesChecksOn
+                            { casedExpressionNode = casedTupleSecondNode
+                            , cases =
+                                List.map (\case_ -> ( case_.secondPatternNode, case_.expressionNode ))
+                                    tuplePatternCases
+                            }
+                        , caseOfWithUnreachableCasesChecksOn
+                            { casedExpressionNode = casedTupleThirdNode
+                            , cases =
+                                List.map (\case_ -> ( case_.thirdPatternNode, case_.expressionNode ))
+                                    tuplePatternCases
+                            }
+                        ]
+                        checkInfo
+
+        _ ->
+            Nothing
+
+
+caseVariantOfWithUnreachableCasesChecks :
+    { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
+    -> CaseOfCheckInfo
+    -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseVariantOfWithUnreachableCasesChecks config checkInfo =
+    let
+        maybeVariantCaseOf :
+            Maybe
+                { cased : { moduleName : ModuleName, name : String, attachments : List (Node Expression), customTypeVariantNames : Set String }
+                , cases : List { patternRange : Range, name : String, attachments : List (Node Pattern), expressionNode : Node Expression }
+                }
+        maybeVariantCaseOf =
+            case AstHelpers.getValueOrFnOrFnCall config.casedExpressionNode of
+                Nothing ->
+                    Nothing
+
+                Just valueOrCall ->
+                    let
+                        maybeValueModule : Maybe { name : ModuleName, customTypes : Dict String { variantNames : Set String } }
+                        maybeValueModule =
+                            case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable valueOrCall.fnRange of
+                                Just [] ->
+                                    Just { name = [], customTypes = checkInfo.moduleCustomTypes }
+
+                                Just (moduleNamePart0 :: moduleNamePart1Up) ->
+                                    Dict.get (moduleNamePart0 :: moduleNamePart1Up) checkInfo.importCustomTypes
+                                        |> Maybe.map
+                                            (\customTypes ->
+                                                { name = moduleNamePart0 :: moduleNamePart1Up, customTypes = customTypes }
+                                            )
+
+                                Nothing ->
+                                    Nothing
+                    in
+                    case maybeValueModule of
+                        Nothing ->
+                            Nothing
+
+                        Just valueModule ->
+                            Maybe.map2
+                                (\customTypeWithVariant cases ->
+                                    { cased =
+                                        { moduleName = valueModule.name
+                                        , name = valueOrCall.fnName
+                                        , attachments = valueOrCall.args
+                                        , customTypeVariantNames = customTypeWithVariant.variantNames
+                                        }
+                                    , cases = cases
+                                    }
+                                )
+                                (getCustomTypeWithVariant valueOrCall.fnName valueModule.customTypes)
+                                (traverse getVariantCase config.cases)
+    in
+    case maybeVariantCaseOf of
+        Nothing ->
+            Nothing
+
+        Just variantCaseOf ->
+            case Set.size variantCaseOf.cased.customTypeVariantNames of
+                1 ->
+                    caseSingleVariantWithUnreachableCasesCheck
+                        { cased = variantCaseOf.cased
+                        , casedExpressionRange = Node.range config.casedExpressionNode
+                        , cases = variantCaseOf.cases
+                        }
+                        checkInfo
+
+                -- >= 2 possible variants
+                _ ->
+                    Just
+                        (caseMultiVariantWithUnreachableCasesError
+                            { cased = variantCaseOf.cased
+                            , casedExpressionRange = Node.range config.casedExpressionNode
+                            , cases = variantCaseOf.cases
+                            }
+                            checkInfo
+                        )
+
+
+caseSingleVariantWithUnreachableCasesCheck :
+    { cased : { moduleName : ModuleName, name : String, attachments : List (Node Expression), customTypeVariantNames : Set String }
+    , casedExpressionRange : Range
+    , cases : List { patternRange : Range, name : String, attachments : List (Node Pattern), expressionNode : Node Expression }
+    }
+    -> CaseOfCheckInfo
+    -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseSingleVariantWithUnreachableCasesCheck variantCaseOf checkInfo =
+    variantCaseOf.cased.attachments
+        |> List.foldl
+            (\attachment soFar ->
+                case traverse listFilledFromList soFar.remainingCaseVariantAttachmentListsFilled of
+                    Just caseVariantAttachmentListsFilled ->
+                        { index = soFar.index + 1
+                        , remainingCaseVariantAttachmentListsFilled =
+                            List.map listFilledTail caseVariantAttachmentListsFilled
+                        , attachmentAndCasesList =
+                            soFar.attachmentAndCasesList
+                                |> (::) { index = soFar.index, attachment = attachment, cases = List.map listFilledHead caseVariantAttachmentListsFilled }
+                        }
+
+                    -- case curried variant of → compiler error
+                    Nothing ->
+                        { index = 0
+                        , remainingCaseVariantAttachmentListsFilled = []
+                        , attachmentAndCasesList = []
+                        }
+            )
+            { index = 0
+            , attachmentAndCasesList = []
+            , remainingCaseVariantAttachmentListsFilled =
+                List.map
+                    (\case_ ->
+                        List.map (\patternNode -> ( patternNode, case_.expressionNode ))
+                            case_.attachments
+                    )
+                    variantCaseOf.cases
+            }
+        |> .attachmentAndCasesList
+        |> findMap
+            (\casedVariantAttachmentAndCases ->
+                caseOfWithUnreachableCasesChecksOn
+                    { casedExpressionNode = casedVariantAttachmentAndCases.attachment
+                    , cases = casedVariantAttachmentAndCases.cases
+                    }
+                    checkInfo
+                    |> Maybe.map
+                        (\attachmentError ->
+                            { attachmentError
+                                | fix =
+                                    { casedExpressionReplace =
+                                        { range = variantCaseOf.casedExpressionRange
+                                        , replacement =
+                                            toNestedTupleFix
+                                                (List.indexedMap
+                                                    (\i (Node argRange _) ->
+                                                        if i == casedVariantAttachmentAndCases.index then
+                                                            attachmentError.fix.casedExpressionReplace.replacement
+
+                                                        else
+                                                            checkInfo.extractSourceCode argRange
+                                                    )
+                                                    variantCaseOf.cased.attachments
+                                                )
+                                        }
+                                    , cases =
+                                        List.map2
+                                            (\variantPattern patternAttachmentError ->
+                                                case patternAttachmentError of
+                                                    UnreachableCaseRemove remove ->
+                                                        UnreachableCaseRemove remove
+
+                                                    UnreachableCaseReplace replace ->
+                                                        UnreachableCaseReplace
+                                                            { range = variantPattern.patternRange
+                                                            , replacement =
+                                                                toNestedTupleFix
+                                                                    (List.indexedMap
+                                                                        (\i (Node attachmentRange _) ->
+                                                                            if i == casedVariantAttachmentAndCases.index then
+                                                                                replace.replacement
+
+                                                                            else
+                                                                                checkInfo.extractSourceCode attachmentRange
+                                                                        )
+                                                                        variantPattern.attachments
+                                                                    )
+                                                            , expressionNode = replace.expressionNode
+                                                            }
+                                            )
+                                            variantCaseOf.cases
+                                            attachmentError.fix.cases
+                                    }
+                            }
+                        )
+            )
+
+
+caseMultiVariantWithUnreachableCasesError :
+    { cased : { moduleName : ModuleName, name : String, attachments : List (Node Expression), customTypeVariantNames : Set String }
+    , casedExpressionRange : Range
+    , cases : List { patternRange : Range, name : String, attachments : List (Node Pattern), expressionNode : Node Expression }
+    }
+    ->
+        { checkInfo
+            | parentRange : Range
+            , extractSourceCode : Range -> String
+        }
+    -> { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseMultiVariantWithUnreachableCasesError variantCaseOf checkInfo =
+    let
+        caseIndexesMatchingOnDifferentVariant : List Int
+        caseIndexesMatchingOnDifferentVariant =
+            variantCaseOf.cases
+                |> List.indexedMap (\caseIndex variant -> { index = caseIndex, variant = variant })
+                |> List.filterMap
+                    (\case_ ->
+                        if case_.variant.name /= variantCaseOf.cased.name then
+                            Just case_.index
+
+                        else
+                            Nothing
+                    )
+    in
+    { message = "Unreachable case branches"
+    , details =
+        [ "The value between case ... of is a known "
+            ++ qualifiedToString (qualify ( variantCaseOf.cased.moduleName, variantCaseOf.cased.name ) defaultQualifyResources)
+            ++ " variant. However, the "
+            ++ (caseIndexesMatchingOnDifferentVariant |> List.map indexthToString |> String.join " and ")
+            ++ " case matches on a different variant which means you can remove it."
+        ]
+    , range =
+        findMap
+            (\case_ ->
+                if case_.name /= variantCaseOf.cased.name then
+                    Just case_.patternRange
+
+                else
+                    Nothing
+            )
+            variantCaseOf.cases
+            |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
+    , fix =
+        { casedExpressionReplace =
+            { range = variantCaseOf.casedExpressionRange
+            , replacement =
+                toNestedTupleFix
+                    (List.map (\(Node argRange _) -> checkInfo.extractSourceCode argRange)
+                        variantCaseOf.cased.attachments
+                    )
+            }
+        , cases =
+            List.map
+                (\variantCase ->
+                    if variantCase.name == variantCaseOf.cased.name then
+                        UnreachableCaseReplace
+                            { range = variantCase.patternRange
+                            , replacement =
+                                toNestedTupleFix
+                                    (List.map (\(Node argRange _) -> checkInfo.extractSourceCode argRange)
+                                        variantCase.attachments
+                                    )
+                            , expressionNode = variantCase.expressionNode
+                            }
+
+                    else
+                        UnreachableCaseRemove
+                            { patternRange = variantCase.patternRange
+                            , expressionRange = Node.range variantCase.expressionNode
+                            }
+                )
+                variantCaseOf.cases
+        }
+    }
+
+
+getVariantCase : ( Node Pattern, Node Expression ) -> Maybe { patternRange : Range, expressionNode : Node Expression, name : String, attachments : List (Node Pattern) }
+getVariantCase ( patternNode, expressionNode ) =
+    case AstHelpers.removeParensFromPattern patternNode of
+        Node patternRange (Pattern.NamedPattern qualified attachments) ->
+            Just { patternRange = patternRange, expressionNode = expressionNode, name = qualified.name, attachments = attachments }
+
+        _ ->
+            Nothing
+
+
+getCustomTypeWithVariant : String -> Dict String { variantNames : Set String } -> Maybe { name : String, variantNames : Set String }
+getCustomTypeWithVariant variantName customTypes =
+    customTypes
+        |> Dict.foldl
+            (\customTypeName customTypeInfo soFar ->
+                case soFar of
+                    Just found ->
+                        Just found
+
+                    Nothing ->
+                        if Set.member variantName customTypeInfo.variantNames then
+                            Just { name = customTypeName, variantNames = customTypeInfo.variantNames }
+
+                        else
+                            Nothing
+            )
+            Nothing
+
+
+caseListLiteralOfWithUnreachableCasesChecks :
+    { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
+    -> CaseOfCheckInfo
+    -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseListLiteralOfWithUnreachableCasesChecks config checkInfo =
+    let
+        maybeListPatternCases : Maybe (List { patternRange : Range, expressionNode : Node Expression, pattern : ListPattern })
+        maybeListPatternCases =
+            traverse
+                (\( patternNode, expressionNode ) ->
+                    Maybe.map
+                        (\listPattern ->
+                            { patternRange = Node.range patternNode, expressionNode = expressionNode, pattern = listPattern }
+                        )
+                        (getListPattern (Node.value patternNode))
+                )
+                config.cases
+    in
+    Maybe.map2
+        (\casedListLiteralElements listPatternCases ->
+            caseListLiteralOfWithUnreachableCasesError
+                { casedExpressionRange = Node.range config.casedExpressionNode
+                , listPatternCases = listPatternCases
+                , casedListLiteralElements = casedListLiteralElements
+                }
+                checkInfo
+        )
+        (AstHelpers.getListLiteral config.casedExpressionNode)
+        maybeListPatternCases
+
+
+caseListLiteralOfWithUnreachableCasesError :
+    { casedExpressionRange : Range
+    , casedListLiteralElements : List (Node Expression)
+    , listPatternCases : List { patternRange : Range, expressionNode : Node Expression, pattern : ListPattern }
+    }
+    ->
+        { checkInfo
+            | extractSourceCode : Range -> String
+            , parentRange : Range
+        }
+    -> { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseListLiteralOfWithUnreachableCasesError config checkInfo =
+    let
+        casedListLiteralLength : Int
+        casedListLiteralLength =
+            List.length config.casedListLiteralElements
+
+        isUnnecessaryListPattern : ListPattern -> Bool
+        isUnnecessaryListPattern listPattern =
+            case listPattern of
+                ListLiteralPattern listLiteralPatternELements ->
+                    List.length listLiteralPatternELements /= casedListLiteralLength
+
+                ConsPattern consPattern ->
+                    List.length (listFilledToList consPattern.beginningElements) >= (casedListLiteralLength + 1)
+
+        alwaysMatchedBeginningElementCount : Int
+        alwaysMatchedBeginningElementCount =
+            config.listPatternCases
+                |> List.filterMap
+                    (\listPatternCase ->
+                        case listPatternCase.pattern of
+                            ListLiteralPattern _ ->
+                                Nothing
+
+                            ConsPattern consPattern ->
+                                Just (List.length (listFilledToList consPattern.beginningElements))
+                    )
+                |> List.minimum
+                |> Maybe.withDefault casedListLiteralLength
+
+        unnecessaryListPatternIndexes : List Int
+        unnecessaryListPatternIndexes =
+            config.listPatternCases
+                |> List.indexedMap (\caseIndex case_ -> { index = caseIndex, case_ = case_ })
+                |> List.filterMap
+                    (\caseAndIndex ->
+                        if isUnnecessaryListPattern caseAndIndex.case_.pattern then
+                            Just caseAndIndex.index
+
+                        else
+                            Nothing
+                    )
+    in
+    { message = "Unreachable case branches"
+    , details =
+        [ "The value between case ... of is a known list of length "
+            ++ String.fromInt casedListLiteralLength
+            ++ ". However, the "
+            ++ (unnecessaryListPatternIndexes |> List.map indexthToString |> String.join " and ")
+            ++ " case matches on a list with a different length which means you can remove it."
+        ]
+    , range =
+        findMap
+            (\case_ ->
+                if isUnnecessaryListPattern case_.pattern then
+                    Just case_.patternRange
+
+                else
+                    Nothing
+            )
+            config.listPatternCases
+            |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
+    , fix =
+        { casedExpressionReplace =
+            { range = config.casedExpressionRange
+            , replacement =
+                listLiteralToNestedTupleFix
+                    { tupledBeginningLength = alwaysMatchedBeginningElementCount
+                    , elements =
+                        List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
+                            config.casedListLiteralElements
+                    }
+            }
+        , cases =
+            List.map
+                (\listPatternCase ->
+                    if isUnnecessaryListPattern listPatternCase.pattern then
+                        UnreachableCaseRemove
+                            { patternRange = listPatternCase.patternRange
+                            , expressionRange = Node.range listPatternCase.expressionNode
+                            }
+
+                    else
+                        UnreachableCaseReplace
+                            { range = listPatternCase.patternRange
+                            , expressionNode = listPatternCase.expressionNode
+                            , replacement =
+                                case listPatternCase.pattern of
+                                    ListLiteralPattern listPatternElements ->
+                                        listLiteralToNestedTupleFix
+                                            { tupledBeginningLength = alwaysMatchedBeginningElementCount
+                                            , elements =
+                                                List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
+                                                    listPatternElements
+                                            }
+
+                                    ConsPattern consPattern ->
+                                        collapsedConsToNestedTupleFix
+                                            { tupledBeginningLength = alwaysMatchedBeginningElementCount
+                                            , beginningElements =
+                                                listFilledMap (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
+                                                    consPattern.beginningElements
+                                            , tail = checkInfo.extractSourceCode (Node.range consPattern.tail)
+                                            }
+                            }
+                )
+                config.listPatternCases
+        }
+    }
+
+
+caseConsOfWithUnreachableCasesChecks :
+    { casedExpressionNode : Node Expression, cases : List ( Node Pattern, Node Expression ) }
+    -> CaseOfCheckInfo
+    -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseConsOfWithUnreachableCasesChecks config checkInfo =
+    let
+        maybeListPatternCases : Maybe (List { patternRange : Range, expressionNode : Node Expression, pattern : ListPattern })
+        maybeListPatternCases =
+            traverse
+                (\( patternNode, expressionNode ) ->
+                    Maybe.map
+                        (\listPattern ->
+                            { patternRange = Node.range patternNode, expressionNode = expressionNode, pattern = listPattern }
+                        )
+                        (getListPattern (Node.value patternNode))
+                )
+                config.cases
+    in
+    Maybe.map2
+        (\casedCons listPatternCases ->
+            caseConsOfWithUnreachableCasesError
+                { casedExpressionRange = Node.range config.casedExpressionNode
+                , casedCons = casedCons
+                , listPatternCases = listPatternCases
+                }
+                checkInfo
+        )
+        (getCollapsedCons (Node.value config.casedExpressionNode))
+        maybeListPatternCases
+
+
+caseConsOfWithUnreachableCasesError :
+    { casedExpressionRange : Range
+    , casedCons : { beginningElements : ( Node Expression, List (Node Expression) ), tail : Node Expression }
+    , listPatternCases : List { patternRange : Range, expressionNode : Node Expression, pattern : ListPattern }
+    }
+    ->
+        { checkInfo
+            | extractSourceCode : Range -> String
+            , parentRange : Range
+        }
+    -> { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
+caseConsOfWithUnreachableCasesError config checkInfo =
+    let
+        casedBeginningElementCount : Int
+        casedBeginningElementCount =
+            listFilledLength config.casedCons.beginningElements
+
+        isUnnecessaryListPattern : ListPattern -> Bool
+        isUnnecessaryListPattern listPattern =
+            case listPattern of
+                ListLiteralPattern listLiteralPatternELements ->
+                    List.length listLiteralPatternELements < casedBeginningElementCount
+
+                ConsPattern _ ->
+                    False
+
+        alwaysMatchedBeginningElementCount : Int
+        alwaysMatchedBeginningElementCount =
+            config.listPatternCases
+                |> List.filterMap
+                    (\listPatternCase ->
+                        case listPatternCase.pattern of
+                            ListLiteralPattern _ ->
+                                Nothing
+
+                            ConsPattern consPattern ->
+                                Just (List.length (listFilledToList consPattern.beginningElements))
+                    )
+                |> List.minimum
+                |> Maybe.withDefault casedBeginningElementCount
+
+        unnecessaryListPatternIndexes : List Int
+        unnecessaryListPatternIndexes =
+            config.listPatternCases
+                |> List.indexedMap (\caseIndex case_ -> { index = caseIndex, case_ = case_ })
+                |> List.filterMap
+                    (\caseAndIndex ->
+                        if isUnnecessaryListPattern caseAndIndex.case_.pattern then
+                            Just caseAndIndex.index
+
+                        else
+                            Nothing
+                    )
+    in
+    { message = "Unreachable case branches"
+    , details =
+        [ "The value between case ... of is a list of length >= "
+            ++ String.fromInt casedBeginningElementCount
+            ++ ". However, the "
+            ++ (unnecessaryListPatternIndexes |> List.map indexthToString |> String.join " and ")
+            ++ " case matches on a shorter list which means you can remove it."
+        ]
+    , range =
+        findMap
+            (\case_ ->
+                if isUnnecessaryListPattern case_.pattern then
+                    Just case_.patternRange
+
+                else
+                    Nothing
+            )
+            config.listPatternCases
+            |> Maybe.withDefault (caseKeyWordRange checkInfo.parentRange)
+    , fix =
+        { casedExpressionReplace =
+            { range = config.casedExpressionRange
+            , replacement =
+                collapsedConsToNestedTupleFix
+                    { tupledBeginningLength = alwaysMatchedBeginningElementCount
+                    , beginningElements =
+                        listFilledMap (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
+                            config.casedCons.beginningElements
+                    , tail = checkInfo.extractSourceCode (Node.range config.casedCons.tail)
+                    }
+            }
+        , cases =
+            List.map
+                (\listPatternCase ->
+                    if isUnnecessaryListPattern listPatternCase.pattern then
+                        UnreachableCaseRemove
+                            { patternRange = listPatternCase.patternRange
+                            , expressionRange = Node.range listPatternCase.expressionNode
+                            }
+
+                    else
+                        UnreachableCaseReplace
+                            { range = listPatternCase.patternRange
+                            , expressionNode = listPatternCase.expressionNode
+                            , replacement =
+                                case listPatternCase.pattern of
+                                    ListLiteralPattern listPatternElements ->
+                                        listLiteralToNestedTupleFix
+                                            { tupledBeginningLength = alwaysMatchedBeginningElementCount
+                                            , elements =
+                                                List.map (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
+                                                    listPatternElements
+                                            }
+
+                                    ConsPattern consPattern ->
+                                        collapsedConsToNestedTupleFix
+                                            { tupledBeginningLength = alwaysMatchedBeginningElementCount
+                                            , beginningElements =
+                                                listFilledMap (\(Node elementRange _) -> checkInfo.extractSourceCode elementRange)
+                                                    consPattern.beginningElements
+                                            , tail = checkInfo.extractSourceCode (Node.range consPattern.tail)
+                                            }
+                            }
+                )
+                config.listPatternCases
+        }
+    }
+
+
+type ListPattern
+    = ListLiteralPattern (List (Node Pattern))
+    | ConsPattern { beginningElements : ( Node Pattern, List (Node Pattern) ), tail : Node Pattern }
+
+
+getListPattern : Pattern -> Maybe ListPattern
+getListPattern pattern =
+    case pattern of
+        Pattern.ListPattern elementPatterns ->
+            Just (ListLiteralPattern elementPatterns)
+
+        nonListLiteralPattern ->
+            Maybe.map ConsPattern (getCollapsedConsPattern nonListLiteralPattern)
+
+
+getCollapsedConsPattern : Pattern -> Maybe { beginningElements : ( Node Pattern, List (Node Pattern) ), tail : Node Pattern }
+getCollapsedConsPattern pattern =
+    case pattern of
+        Pattern.UnConsPattern head tail ->
+            case getCollapsedConsPattern (Node.value tail) of
+                Nothing ->
+                    Just { beginningElements = ( head, [] ), tail = tail }
+
+                Just tailCollapsed ->
+                    Just { beginningElements = ( head, listFilledToList tailCollapsed.beginningElements ), tail = tailCollapsed.tail }
+
+        _ ->
+            Nothing
+
+
+getCollapsedCons : Expression -> Maybe { beginningElements : ( Node Expression, List (Node Expression) ), tail : Node Expression }
+getCollapsedCons expression =
+    case expression of
+        Expression.OperatorApplication "::" _ head tail ->
+            case getCollapsedCons (Node.value tail) of
+                Just tailCollapsed ->
+                    Just { beginningElements = ( head, listFilledToList tailCollapsed.beginningElements ), tail = tailCollapsed.tail }
+
+                Nothing ->
+                    Just { beginningElements = ( head, [] ), tail = tail }
+
+        _ ->
+            Nothing
+
+
+indexthToString : Int -> String
+indexthToString index =
+    let
+        suffix : String
+        suffix =
+            case (index + 1) |> remainderBy 10 of
+                1 ->
+                    "st"
+
+                2 ->
+                    "nd"
+
+                3 ->
+                    "rd"
+
+                _ ->
+                    "th"
+    in
+    String.fromInt (index + 1) ++ suffix
 
 
 
@@ -12660,6 +13614,65 @@ andBetweenRange ranges =
         -- GT | EQ ->
         _ ->
             { start = ranges.included.start, end = ranges.excluded.start }
+
+
+listLiteralToNestedTupleFix : { tupledBeginningLength : Int, elements : List String } -> String
+listLiteralToNestedTupleFix config =
+    case config.elements of
+        [] ->
+            "()"
+
+        element0 :: element1Up ->
+            let
+                tupledElements : ( String, List String )
+                tupledElements =
+                    ( element0, List.take (config.tupledBeginningLength - 1) element1Up )
+            in
+            case List.drop (config.tupledBeginningLength - 1) element1Up of
+                [] ->
+                    toNestedTupleFix (listFilledToList tupledElements)
+
+                firstUntupledElementRange :: afterFirstUntupledElementRange ->
+                    toNestedTupleFix
+                        (listFilledToList tupledElements
+                            ++ [ "[ "
+                                    ++ String.join ", " (firstUntupledElementRange :: afterFirstUntupledElementRange)
+                                    ++ " ]"
+                               ]
+                        )
+
+
+collapsedConsToNestedTupleFix : { tupledBeginningLength : Int, beginningElements : ( String, List String ), tail : String } -> String
+collapsedConsToNestedTupleFix config =
+    toNestedTupleFix
+        (listFilledHead config.beginningElements
+            :: List.take (config.tupledBeginningLength - 1) (listFilledTail config.beginningElements)
+            ++ [ String.join " :: "
+                    (List.drop (config.tupledBeginningLength - 1) (listFilledTail config.beginningElements)
+                        ++ [ config.tail ]
+                    )
+               ]
+        )
+
+
+toNestedTupleFix : List String -> String
+toNestedTupleFix parts =
+    case parts of
+        [] ->
+            "()"
+
+        part0 :: parts1Up ->
+            toNestedTupleFixFromPartial ( part0, parts1Up )
+
+
+toNestedTupleFixFromPartial : ( String, List String ) -> String
+toNestedTupleFixFromPartial parts =
+    case parts of
+        ( only, [] ) ->
+            only
+
+        ( first, second :: thirdUp ) ->
+            "(" ++ first ++ ", " ++ toNestedTupleFixFromPartial ( second, thirdUp ) ++ ")"
 
 
 rangeContainsLocation : Location -> Range -> Bool
@@ -13348,6 +14361,36 @@ listLast list =
             Just (listFilledLast ( head, tail ))
 
 
+listFilledFromList : List a -> Maybe ( a, List a )
+listFilledFromList list =
+    case list of
+        [] ->
+            Nothing
+
+        head :: tail ->
+            Just ( head, tail )
+
+
+listFilledLength : ( a, List a ) -> Int
+listFilledLength ( _, tail ) =
+    1 + List.length tail
+
+
+listFilledToList : ( a, List a ) -> List a
+listFilledToList ( head, tail ) =
+    head :: tail
+
+
+listFilledHead : ( a, List a ) -> a
+listFilledHead ( head, _ ) =
+    head
+
+
+listFilledTail : ( a, List a ) -> List a
+listFilledTail ( _, tail ) =
+    tail
+
+
 listFilledLast : ( a, List a ) -> a
 listFilledLast ( head, tail ) =
     case tail of
@@ -13366,6 +14409,11 @@ listFilledInit ( head, tail ) =
 
         tailHead :: tailTail ->
             head :: listFilledInit ( tailHead, tailTail )
+
+
+listFilledMap : (a -> b) -> ( a, List a ) -> ( b, List b )
+listFilledMap elementChange ( head, tail ) =
+    ( elementChange head, List.map elementChange tail )
 
 
 findMap : (a -> Maybe b) -> List a -> Maybe b

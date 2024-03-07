@@ -11,6 +11,7 @@ all =
     describe "Case of"
         [ regularCaseOfTests
         , booleanCaseOfTests
+        , caseOfWithUnnecessaryCasesTests
         ]
 
 
@@ -206,6 +207,381 @@ a =
     let var = value
     in
             1
+"""
+                        ]
+        ]
+
+
+caseOfWithUnnecessaryCasesTests : Test
+caseOfWithUnnecessaryCasesTests =
+    describe "unnecessary cases"
+        [ test "should remove unnecessary case of dependency variant when all cases are variant patterns" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case Ok value of
+        Err _ ->
+            0
+
+        Ok True ->
+            1
+        
+        Ok False ->
+            2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unreachable case branches"
+                            , details = [ "The value between case ... of is a known Ok variant. However, the 1st case matches on a different variant which means you can remove it." ]
+                            , under = "Err _"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    case value of
+
+        True ->
+            1
+        
+        False ->
+            2
+"""
+                        ]
+        , test "should remove multiple unnecessary cases of module-local variant with multiple attachments when all cases are variant patterns" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case A b c d of
+        B False ->
+            1
+        
+        C ->
+            0
+        
+        B True ->
+            2
+
+        A True _ _ ->
+            3
+        
+        A _ False _ ->
+            4
+
+type AOrB
+  = A Bool Bool Bool
+  | B Bool
+  | C
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unreachable case branches"
+                            , details = [ "The value between case ... of is a known A variant. However, the 1st and 2nd and 3rd case matches on a different variant which means you can remove it." ]
+                            , under = "B False"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    case (b, (c, d)) of
+
+        (True, (_, _)) ->
+            3
+        
+        (_, (False, _)) ->
+            4
+
+type AOrB
+  = A Bool Bool Bool
+  | B Bool
+  | C
+"""
+                        ]
+        , test "should report case of on variant from single-variant type with variant argument" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case Toop4 (Just a0) a1 a2 a3 of
+        Toop4 (Just 0) _ _ _ ->
+            0
+        
+        Toop4 (Just _) _ _ _ ->
+            1
+        
+        Toop4 Nothing _ _ _ ->
+            2
+
+type Toop4 a0 a1 a2 a3
+  = Toop4 a0 a1 a2 a3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unreachable case branches"
+                            , details = [ "The value between case ... of is a known Just variant. However, the 3rd case matches on a different variant which means you can remove it." ]
+                            , under = "Nothing"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    case (a0, (a1, (a2, a3))) of
+        (0, (_, (_, _))) ->
+            0
+        
+        (_, (_, (_, _))) ->
+            1
+
+type Toop4 a0 a1 a2 a3
+  = Toop4 a0 a1 a2 a3
+"""
+                        ]
+        , test "should remove multiple unnecessary cases of project-local variant with multiple attachments when all cases are variant patterns" <|
+            \() ->
+                [ """module A exposing (..)
+import AOrB exposing (AOrB(..))
+
+a =
+    case A b c d of
+        B False ->
+            1
+        
+        C ->
+            0
+        
+        B True ->
+            2
+
+        A True _ _ ->
+            3
+        
+        A _ False _ ->
+            4
+"""
+                , """module AOrB exposing (AOrB(..))
+
+type AOrB
+  = A Bool Bool Bool
+  | B Bool
+  | C
+"""
+                ]
+                    |> Review.Test.runOnModules ruleWithDefaults
+                    |> Review.Test.expectErrorsForModules
+                        [ ( "A"
+                          , [ Review.Test.error
+                                { message = "Unreachable case branches"
+                                , details = [ "The value between case ... of is a known AOrB.A variant. However, the 1st and 2nd and 3rd case matches on a different variant which means you can remove it." ]
+                                , under = "B False"
+                                }
+                                |> Review.Test.whenFixed """module A exposing (..)
+import AOrB exposing (AOrB(..))
+
+a =
+    case (b, (c, d)) of
+
+        (True, (_, _)) ->
+            3
+        
+        (_, (False, _)) ->
+            4
+"""
+                            ]
+                          )
+                        ]
+        , test "should remove unnecessary case of empty list when all cases are list patterns" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case [] of
+        _ :: _ :: _ ->
+            0
+        
+        [ _ ] ->
+            1
+
+        _ :: _ ->
+            2
+        
+        [] ->
+            3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unreachable case branches"
+                            , details =
+                                [ "The value between case ... of is a known list of length 0. However, the 1st and 2nd and 3rd case matches on a list with a different length which means you can remove it."
+                                , "Since only a single case branch will remain after removing the unreachable ones, you can replace this case-of by the result of the 4th case."
+                                ]
+                            , under = "_ :: _ :: _"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    3
+"""
+                        ]
+        , test "should remove unnecessary case of filled list literal when all cases are list patterns" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case [ 0, 0 ] of
+        _ :: _ :: _ ->
+            0
+        
+        [ _ ] ->
+            1
+        
+        [ _, _ ] ->
+            2
+        
+        [ _, _, _ ] ->
+            3
+
+        _ :: _ ->
+            4
+        
+        [] ->
+            5
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unreachable case branches"
+                            , details = [ "The value between case ... of is a known list of length 2. However, the 2nd and 4th and 6th case matches on a list with a different length which means you can remove it." ]
+                            , under = "[ _ ]"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    case (0, [ 0 ]) of
+        (_, _ :: _) ->
+            0
+
+        (_, [ _ ]) ->
+            2
+
+        (_, _) ->
+            4
+"""
+                        ]
+        , test "should remove unnecessary case of filled list literal when all cases are list patterns with length >= 3" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case [ 0, 0, 0, 0 ] of
+        [ _, _, _, _ ] ->
+            0
+
+        _ :: _ :: _ :: _ ->
+            1
+        
+        [] ->
+            2
+        
+        [ _ ] ->
+            3
+        
+        [ _, _ ] ->
+            4
+        
+        [ _, _, _ ] ->
+            5
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unreachable case branches"
+                            , details = [ "The value between case ... of is a known list of length 4. However, the 3rd and 4th and 5th and 6th case matches on a list with a different length which means you can remove it." ]
+                            , under = "[]"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    case (0, (0, (0, [ 0 ]))) of
+        (_, (_, (_, [ _ ]))) ->
+            0
+
+        (_, (_, (_, _))) ->
+            1
+"""
+                        ]
+        , test "should remove unnecessary case of cons when all cases are list patterns" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case 0 :: 0 :: tail of
+        _ :: _ :: _ :: _ ->
+            0
+        
+        [ _, _, _ ] ->
+            1
+        
+        _ :: _ :: _ ->
+            2
+        
+        [ _, _ ] ->
+            3
+
+        _ :: _ ->
+            4
+        
+        [] ->
+            5
+        
+        [ _ ] ->
+            6
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unreachable case branches"
+                            , details = [ "The value between case ... of is a list of length >= 2. However, the 6th and 7th case matches on a shorter list which means you can remove it." ]
+                            , under = "[]"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    case (0, 0 :: tail) of
+        (_, _ :: _ :: _) ->
+            0
+        
+        (_, [ _, _ ]) ->
+            1
+        
+        (_, _ :: _) ->
+            2
+        
+        (_, [ _ ]) ->
+            3
+
+        (_, _) ->
+            4
+"""
+                        ]
+        , test "should remove unnecessary case of dependency variant when all cases of nested tuple part are variant patterns" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case ( b, ( c, d, Ok value ) ) of
+        ( b_, ( c_, d_, Err _ ) ) ->
+            0
+
+        ( b_, ( c_, d_, Ok True ) ) ->
+            1
+        
+        ( b_, ( c_, d_, Ok False ) ) ->
+            2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unreachable case branches"
+                            , details = [ "The value between case ... of is a known Ok variant. However, the 1st case matches on a different variant which means you can remove it." ]
+                            , under = "Err _"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    case ( b, ( c, d, value ) ) of
+
+        ( b_, ( c_, d_, True ) ) ->
+            1
+        
+        ( b_, ( c_, d_, False ) ) ->
+            2
 """
                         ]
         ]

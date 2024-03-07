@@ -7,6 +7,14 @@ import TestHelpers exposing (ruleWithDefaults)
 
 all : Test
 all =
+    describe "Cmd"
+        [ cmdBatchTests
+        , cmdMapTests
+        ]
+
+
+cmdBatchTests : Test
+cmdBatchTests =
     describe "Cmd.batch"
         [ test "should not report Cmd.batch used with okay arguments" <|
             \() ->
@@ -129,7 +137,30 @@ a = Cmd.batch [ Cmd.none, b ]
 a = Cmd.batch [ b ]
 """
                         ]
-        , test "should replace Cmd.map identity cmd by cmd" <|
+        , test "should replace Cmd.batch [ command0, Cmd.batch [ command1, command2 ], command3, Cmd.batch [ command4, command5 ] ] by Cmd.batch [ command0, command1, command2, command3, command4, command5 ]" <|
+            \() ->
+                """module A exposing (..)
+a = Cmd.batch [ command0, Cmd.batch [ command1, command2 ], command3, Cmd.batch [ command4, command5 ] ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Nested Cmd.batch calls can be spread"
+                            , details = [ "You can move the elements from the inner Cmd.batch calls to inside this outer Cmd.batch call." ]
+                            , under = "Cmd.batch"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Cmd.batch [ command0,  command1, command2 , command3,  command4, command5  ]
+"""
+                        ]
+        ]
+
+
+cmdMapTests : Test
+cmdMapTests =
+    describe "Cmd.map"
+        [ test "should replace Cmd.map identity cmd by cmd" <|
             \() ->
                 """module A exposing (..)
 a = Cmd.map identity cmd
@@ -159,23 +190,6 @@ a = Cmd.map f Cmd.none
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Cmd.none
-"""
-                        ]
-        , test "should replace Cmd.batch [ command0, Cmd.batch [ command1, command2 ], command3, Cmd.batch [ command4, command5 ] ] by Cmd.batch [ command0, command1, command2, command3, command4, command5 ]" <|
-            \() ->
-                """module A exposing (..)
-a = Cmd.batch [ command0, Cmd.batch [ command1, command2 ], command3, Cmd.batch [ command4, command5 ] ]
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Nested Cmd.batch calls can be spread"
-                            , details = [ "You can move the elements from the inner Cmd.batch calls to inside this outer Cmd.batch call." ]
-                            , under = "Cmd.batch"
-                            }
-                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 14 } }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = Cmd.batch [ command0,  command1, command2 , command3,  command4, command5  ]
 """
                         ]
         ]
