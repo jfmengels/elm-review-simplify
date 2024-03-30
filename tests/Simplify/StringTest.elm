@@ -660,7 +660,7 @@ b = String.words str
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test """should replace String.words "" by []""" <|
+        , test """should replace String.words "" by [ "" ]""" <|
             \() ->
                 """module A exposing (..)
 a = String.words ""
@@ -668,12 +668,12 @@ a = String.words ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.words on \"\" will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "String.words on \"\" will result in [ \"\" ]"
+                            , details = [ "You can replace this call by [ \"\" ]." ]
                             , under = "String.words"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = []
+a = [ "" ]
 """
                         ]
         ]
@@ -698,12 +698,12 @@ a = String.lines ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.lines on \"\" will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "String.lines on \"\" will result in [ \"\" ]"
+                            , details = [ "You can replace this call by [ \"\" ]." ]
                             , under = "String.lines"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = []
+a = [ "" ]
 """
                         ]
         ]
