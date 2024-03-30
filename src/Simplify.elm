@@ -378,7 +378,7 @@ Destructuring using case expressions
     --> "z" -- only when resulting string is unchanged
 
     String.words ""
-    --> []
+    --> [""]
 
     String.lines ""
     --> []
@@ -4687,7 +4687,7 @@ stringRepeatChecks =
 stringWordsChecks : IntoFnCheck
 stringWordsChecks =
     intoFnCheckOnlyCall
-        (callOnEmptyReturnsCheck { resultAsString = listCollection.empty.specific.asString } stringCollection)
+        (callOnEmptyReturnsCheck { resultAsString = \_ -> """[""]""" } stringCollection)
 
 
 stringLinesChecks : IntoFnCheck
