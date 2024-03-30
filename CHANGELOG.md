@@ -11,6 +11,10 @@ The rule now simplifies:
 - `List.length (Dict.toList dict)` to `Dict.size dict` (same for `Dict.values` and `Dict.keys`)
 - `List.isEmpty (Dict.toList dict)` to `Dict.isEmpty dict` (same for `Dict.values` and `Dict.keys`)
 
+Bug fixes:
+- Fixed an issue where `String.words ""` would be fixed to `[]`
+- Fixed an issue where `String.lines ""` would be fixed to `[]`
+
 ## [2.1.3] - 2023-10-23
 
 The rule now simplifies:
