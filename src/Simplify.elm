@@ -381,7 +381,7 @@ Destructuring using case expressions
     --> [""]
 
     String.lines ""
-    --> []
+    --> [""]
 
     String.reverse ""
     --> ""
@@ -4693,7 +4693,7 @@ stringWordsChecks =
 stringLinesChecks : IntoFnCheck
 stringLinesChecks =
     intoFnCheckOnlyCall
-        (callOnEmptyReturnsCheck { resultAsString = listCollection.empty.specific.asString } stringCollection)
+        (callOnEmptyReturnsCheck { resultAsString = \_ -> """[""]""" } stringCollection)
 
 
 stringToListChecks : IntoFnCheck

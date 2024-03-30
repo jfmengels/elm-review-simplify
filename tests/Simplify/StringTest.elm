@@ -690,7 +690,7 @@ b = String.lines str
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test """should replace String.lines "" by []""" <|
+        , test """should replace String.lines "" by [""]""" <|
             \() ->
                 """module A exposing (..)
 a = String.lines ""
@@ -698,12 +698,12 @@ a = String.lines ""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "String.lines on \"\" will result in []"
-                            , details = [ "You can replace this call by []." ]
+                            { message = "String.lines on \"\" will result in [\"\"]"
+                            , details = [ "You can replace this call by [\"\"]." ]
                             , under = "String.lines"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = []
+a = [""]
 """
                         ]
         ]
