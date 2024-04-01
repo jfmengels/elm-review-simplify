@@ -19,7 +19,7 @@ case value of
 ```
   (same with any variant, list or tuple containing either)
 
-The rule also simplifies:
+The rule also simplifies (thanks to [@morteako]):
 - `Array.length (Array.fromList list)` to `List.length list`
 - `List.length (Array.toList array)` to `Array.length array` (same for `Array.toIndexedList`)
 - `List.isEmpty (Array.toList array)` to `Array.isEmpty array` (same for `Array.toIndexedList`)
@@ -665,6 +665,7 @@ Help would be appreciated to fill the blanks!
 
 [@miniBill]: https://github.com/miniBill
 [@lue-bird]: https://github.com/lue-bird
+[@morteako]: https://github.com/morteako
 [@w0rm]: https://github.com/w0rm
 
 [`expectNaN`]: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify#expectNaN
