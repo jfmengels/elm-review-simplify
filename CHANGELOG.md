@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.1.4] - 2024-04-01
+
 The rule now simplifies unnecessary wrapping of values evaluated by a case expression:
 ```elm
 case Just value of
@@ -624,7 +626,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.3...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.4...HEAD
+[2.1.4]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.4
 [2.1.3]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.3
 [2.1.2]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.2
 [2.1.1]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.1
