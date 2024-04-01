@@ -2,20 +2,22 @@
 
 ## [Unreleased]
 
-The rule now simplifies:
-- ```elm
-  case Just value of
-      Nothing -> a
-      Just (Ok b) -> c
-      Just (Err d) -> e
-  ```
-  to
-  ```elm
-  case value of
-      Ok b -> c
-      Err d -> e
-  ```
+The rule now simplifies unnecessary wrapping of values evaluated by a case expression:
+```elm
+case Just value of
+    Nothing -> a
+    Just (Ok b) -> c
+    Just (Err d) -> e
+```
+is simplified to
+```elm
+case value of
+    Ok b -> c
+    Err d -> e
+```
   (same with any variant, list or tuple containing either)
+
+The rule also simplifies:
 - `Array.length (Array.fromList list)` to `List.length list`
 - `List.length (Array.toList array)` to `Array.length array` (same for `Array.toIndexedList`)
 - `List.isEmpty (Array.toList array)` to `Array.isEmpty array` (same for `Array.toIndexedList`)
@@ -25,8 +27,8 @@ The rule now simplifies:
 - `List.isEmpty (Dict.toList dict)` to `Dict.isEmpty dict` (same for `Dict.values` and `Dict.keys`)
 
 Bug fixes:
-- Fixed an issue where `String.words ""` would be fixed to `[]`
-- Fixed an issue where `String.lines ""` would be fixed to `[]`
+- Fixed an issue where `String.words ""` would incorrectly be fixed to `[]`. Thanks [@w0rm] and [@lue-bird]! [#300]
+- Fixed an issue where `String.lines ""` would incorrectly be fixed to `[]`. Thanks [@w0rm] and [@lue-bird]! [#300]
 
 ## [2.1.3] - 2023-10-23
 
@@ -381,11 +383,11 @@ The rule now simplifies:
 - `List.unzip []` to `( [], [] )`
 - `List.foldl f x (Set.toList set)` to `Set.foldl f x set`
 
-All the changes in this release were contributed by [@lue-bird](https://github.com/lue-bird).
+All the changes in this release were contributed by [@lue-bird].
 
 ## [2.0.24] - 2023-01-20
 
-All the changes in this release were contributed by [@lue-bird](https://github.com/lue-bird).
+All the changes in this release were contributed by [@lue-bird].
 
 The rule now simplifies:
 - `String.slice n n str` to `""`
@@ -656,7 +658,10 @@ Help would be appreciated to fill the blanks!
 [#40]: https://github.com/jfmengels/elm-review-simplify/pull/40
 [#48]: https://github.com/jfmengels/elm-review-simplify/pull/48
 [#52]: https://github.com/jfmengels/elm-review-simplify/pull/52
+[#300]: https://github.com/jfmengels/elm-review-simplify/issues/300
 
 [@miniBill]: https://github.com/miniBill
+[@lue-bird]: https://github.com/lue-bird
+[@w0rm]: https://github.com/w0rm
 
 [`expectNaN`]: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify#expectNaN
