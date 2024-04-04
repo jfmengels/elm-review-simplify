@@ -1190,6 +1190,24 @@ import Array
 a = False
 """
                         ]
+        , test "should replace list |> Array.fromList |> Array.isEmpty by list |> List.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = list |> Array.fromList |> Array.isEmpty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList, then Array.isEmpty can be combined into List.isEmpty"
+                            , details = [ "You can replace this call by List.isEmpty with the same arguments given to Array.fromList which is meant for this exact purpose." ]
+                            , under = "Array.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = list |> List.isEmpty
+"""
+                        ]
         , test "should not report Array.isEmpty (Array.repeat n x)" <|
             \() ->
                 """module A exposing (..)

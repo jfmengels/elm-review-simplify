@@ -5863,7 +5863,14 @@ arrayIndexedMapChecks =
 
 arrayIsEmptyChecks : IntoFnCheck
 arrayIsEmptyChecks =
-    intoFnCheckOnlyCall (collectionIsEmptyChecks arrayCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (collectionIsEmptyChecks arrayCollection)
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Array.fromList
+            , combinedFn = Fn.List.isEmpty
+            }
+        ]
 
 
 arrayLengthChecks : IntoFnCheck
@@ -5970,7 +5977,14 @@ setFromListChecks =
 
 setIsEmptyChecks : IntoFnCheck
 setIsEmptyChecks =
-    intoFnCheckOnlyCall (collectionIsEmptyChecks setCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (collectionIsEmptyChecks setCollection)
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Set.fromList
+            , combinedFn = Fn.List.isEmpty
+            }
+        ]
 
 
 setSizeChecks : IntoFnCheck
@@ -6055,7 +6069,14 @@ dictFromListChecks =
 
 dictIsEmptyChecks : IntoFnCheck
 dictIsEmptyChecks =
-    intoFnCheckOnlyCall (collectionIsEmptyChecks dictCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (collectionIsEmptyChecks dictCollection)
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.Dict.fromList
+            , combinedFn = Fn.List.isEmpty
+            }
+        ]
 
 
 dictSizeChecks : IntoFnCheck
