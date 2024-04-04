@@ -881,6 +881,24 @@ import Set
 a = False
 """
                         ]
+        , test "should replace list |> Set.fromList |> Set.isEmpty by list |> List.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = list |> Set.fromList |> Set.isEmpty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.fromList, then Set.isEmpty can be combined into List.isEmpty"
+                            , details = [ "You can replace this call by List.isEmpty with the same arguments given to Set.fromList which is meant for this exact purpose." ]
+                            , under = "Set.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = list |> List.isEmpty
+"""
+                        ]
         ]
 
 

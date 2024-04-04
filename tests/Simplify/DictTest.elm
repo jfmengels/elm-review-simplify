@@ -136,6 +136,24 @@ import Dict
 a = False
 """
                         ]
+        , test "should replace list |> Dict.fromList |> Dict.isEmpty by list |> List.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = list |> Dict.fromList |> Dict.isEmpty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.fromList, then Dict.isEmpty can be combined into List.isEmpty"
+                            , details = [ "You can replace this call by List.isEmpty with the same arguments given to Dict.fromList which is meant for this exact purpose." ]
+                            , under = "Dict.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = list |> List.isEmpty
+"""
+                        ]
         ]
 
 

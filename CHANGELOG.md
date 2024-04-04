@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+The rule also simplifies:
+- `Set.isEmpty (Set.fromList list)` to `List.isEmpty list`
+- `Dict.isEmpty (Dict.fromList list)` to `List.isEmpty list`
+- `Array.isEmpty (Array.fromList list)` to `List.isEmpty list`
+
 ## [2.1.4] - 2024-04-01
 
 The rule now simplifies unnecessary wrapping of values evaluated by a case expression:
