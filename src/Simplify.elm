@@ -4992,26 +4992,52 @@ listIntersperseChecks =
 
 listHeadChecks : IntoFnCheck
 listHeadChecks =
-    intoFnCheckOnlyCall
-        (firstThatConstructsJust
-            [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } listCollection
-            , \checkInfo ->
-                Maybe.map
-                    (\listArgHead ->
-                        Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " on a list with a first element will result in Just that element"
-                            , details = [ "You can replace this call by Just the first list element." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceBySubExpressionFix (Node.range checkInfo.firstArg) listArgHead
-                                ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                        (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo))
-                                   ]
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (firstThatConstructsJust
+                [ callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } listCollection
+                , \checkInfo ->
+                    Maybe.map
+                        (\listArgHead ->
+                            Rule.errorWithFix
+                                { message = qualifiedToString checkInfo.fn ++ " on a list with a first element will result in Just that element"
+                                , details = [ "You can replace this call by Just the first list element." ]
+                                }
+                                checkInfo.fnRange
+                                (replaceBySubExpressionFix (Node.range checkInfo.firstArg) listArgHead
+                                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                            (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo))
+                                       ]
+                                )
+                        )
+                        (getListHead checkInfo.lookupTable checkInfo.firstArg)
+                , \checkInfo ->
+                    AstHelpers.getSpecificFnCall Fn.List.reverse checkInfo.lookupTable checkInfo.firstArg
+                        |> Maybe.andThen
+                            (\reverseCall ->
+                                AstHelpers.getSpecificFnCall Fn.List.sort checkInfo.lookupTable reverseCall.firstArg
+                                    |> Maybe.map
+                                        (\sortCall ->
+                                            Rule.errorWithFix
+                                                { message = "List.sort, then List.reverse, then List.head can be combined into List.maximum"
+                                                , details = [ "You can replace this call by List.maximum with the same list given to List.sort which is meant for this exact purpose." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (replaceBySubExpressionFix (Node.range checkInfo.firstArg) sortCall.firstArg
+                                                    ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                                            (qualifiedToString (qualify Fn.List.maximum checkInfo))
+                                                       ]
+                                                )
+                                        )
                             )
-                    )
-                    (getListHead checkInfo.lookupTable checkInfo.firstArg)
-            ]
-        )
+                ]
+            )
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.List.sort
+            , combinedFn = Fn.List.minimum
+            }
+        ]
 
 
 getListHead : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)

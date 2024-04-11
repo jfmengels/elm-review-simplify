@@ -1192,6 +1192,54 @@ a = List.head (b :: cToZ)
 a = Just b
 """
                         ]
+        , test "should replace List.sort list |> List.head by List.minimum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort list |> List.head
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sort, then List.head can be combined into List.minimum"
+                            , details = [ "You can replace this call by List.minimum with the same arguments given to List.sort which is meant for this exact purpose." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.minimum list
+"""
+                        ]
+        , test "should replace List.sort list |> List.reverse |> List.head by List.maximum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort list |> List.reverse |> List.head
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sort, then List.reverse, then List.head can be combined into List.maximum"
+                            , details = [ "You can replace this call by List.maximum with the same list given to List.sort which is meant for this exact purpose." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list |> List.maximum
+"""
+                        ]
+        , test "should replace List.head (List.reverse (List.sort list)) by List.maximum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.head (List.reverse (List.sort list))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sort, then List.reverse, then List.head can be combined into List.maximum"
+                            , details = [ "You can replace this call by List.maximum with the same list given to List.sort which is meant for this exact purpose." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.maximum list
+"""
+                        ]
         ]
 
 
