@@ -22,7 +22,10 @@ a =
                             { message = "Use |> instead of >>"
                             , details =
                                 [ "Because of the precedence of operators, using >> at this location is the same as using |>."
-                                , "Please use |> instead as that is more idiomatic in Elm and generally easier to read."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use |> instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: data |> fn1 |> (fn2 >> fn3)
+After:  data |> fn1 |>  fn2 |> fn3"""
                                 ]
                             , under = ">>"
                             }
@@ -48,7 +51,10 @@ a =
                             { message = "Use |> instead of >>"
                             , details =
                                 [ "Because of the precedence of operators, using >> at this location is the same as using |>."
-                                , "Please use |> instead as that is more idiomatic in Elm and generally easier to read."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use |> instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: data |> fn1 |> (fn2 >> fn3)
+After:  data |> fn1 |>  fn2 |> fn3"""
                                 ]
                             , under = ">>"
                             }
@@ -74,7 +80,10 @@ a =
                             { message = "Use |> instead of >>"
                             , details =
                                 [ "Because of the precedence of operators, using >> at this location is the same as using |>."
-                                , "Please use |> instead as that is more idiomatic in Elm and generally easier to read."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use |> instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: data |> fn1 |> (fn2 >> fn3)
+After:  data |> fn1 |>  fn2 |> fn3"""
                                 ]
                             , under = ">>"
                             }
@@ -97,7 +106,10 @@ a =
                             { message = "Use |> instead of >>"
                             , details =
                                 [ "Because of the precedence of operators, using >> at this location is the same as using |>."
-                                , "Please use |> instead as that is more idiomatic in Elm and generally easier to read."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use |> instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: data |> fn1 |> (fn2 >> fn3)
+After:  data |> fn1 |>  fn2 |> fn3"""
                                 ]
                             , under = ">>"
                             }
@@ -121,7 +133,10 @@ a =
                             { message = "Use <| instead of <<"
                             , details =
                                 [ "Because of the precedence of operators, using << at this location is the same as using <|."
-                                , "Please use <| instead as that is more idiomatic in Elm and generally easier to read."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use <| instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: (fn3 << fn2) <| fn1 <| data
+After:   fn3 <| fn2  <| fn1 <| data"""
                                 ]
                             , under = "<<"
                             }
@@ -144,7 +159,10 @@ a =
                             { message = "Use <| instead of <<"
                             , details =
                                 [ "Because of the precedence of operators, using << at this location is the same as using <|."
-                                , "Please use <| instead as that is more idiomatic in Elm and generally easier to read."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use <| instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: (fn3 << fn2) <| fn1 <| data
+After:   fn3 <| fn2  <| fn1 <| data"""
                                 ]
                             , under = "<<"
                             }
@@ -167,7 +185,10 @@ a =
                             { message = "Use <| instead of <<"
                             , details =
                                 [ "Because of the precedence of operators, using << at this location is the same as using <|."
-                                , "Please use <| instead as that is more idiomatic in Elm and generally easier to read."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use <| instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: (fn3 << fn2) <| fn1 <| data
+After:   fn3 <| fn2  <| fn1 <| data"""
                                 ]
                             , under = "<<"
                             }
@@ -190,7 +211,10 @@ a =
                             { message = "Use <| instead of <<"
                             , details =
                                 [ "Because of the precedence of operators, using << at this location is the same as using <|."
-                                , "Please use <| instead as that is more idiomatic in Elm and generally easier to read."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use <| instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: (fn3 << fn2) <| fn1 <| data
+After:   fn3 <| fn2  <| fn1 <| data"""
                                 ]
                             , under = "<<"
                             }

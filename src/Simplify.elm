@@ -10707,12 +10707,34 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                     { message = "Use " ++ replacement ++ " instead of " ++ opToFind
                     , details =
                         [ "Because of the precedence of operators, using " ++ opToFind ++ " at this location is the same as using " ++ replacement ++ "."
-                        , "Please use " ++ replacement ++ " instead as that is more idiomatic in Elm and generally easier to read."
+                        , "To make it more idiomatic in Elm and generally easier to read, please use " ++ replacement ++ " instead. You may need to remove some parentheses to do this."
+                        , "Here is an example:"
+                            ++ (case compositionDirection of
+                                    RightToLeft ->
+                                        leftPipeExample
+
+                                    LeftToRight ->
+                                        rightPipeExample
+                               )
                         ]
                     }
                     error.opToReplaceRange
                     error.fixes
                 )
+
+
+rightPipeExample : String
+rightPipeExample =
+    """
+Before: data |> fn1 |> (fn2 >> fn3)
+After:  data |> fn1 |>  fn2 |> fn3"""
+
+
+leftPipeExample : String
+leftPipeExample =
+    """
+Before: (fn3 << fn2) <| fn1 <| data
+After:   fn3 <| fn2  <| fn1 <| data"""
 
 
 

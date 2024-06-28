@@ -7,6 +7,9 @@ The rule also simplifies:
 - `Dict.isEmpty (Dict.fromList list)` to `List.isEmpty list`
 - `Array.isEmpty (Array.fromList list)` to `List.isEmpty list`
 
+Other improvements:
+- Improved the error message for the `data |> (f >> g)` simplification
+
 ## [2.1.4] - 2024-04-01
 
 The rule now simplifies unnecessary wrapping of values evaluated by a case expression:
