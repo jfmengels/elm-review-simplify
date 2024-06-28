@@ -2,7 +2,9 @@
 
 ## [Unreleased]
 
-The rule also simplifies:
+## [2.1.5] - 2024-06-28
+
+The rule also simplifies (thanks to [@morteako]):
 - `Set.isEmpty (Set.fromList list)` to `List.isEmpty list`
 - `Dict.isEmpty (Dict.fromList list)` to `List.isEmpty list`
 - `Array.isEmpty (Array.fromList list)` to `List.isEmpty list`
@@ -634,7 +636,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.4...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.5...HEAD
+[2.1.5]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.5
 [2.1.4]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.4
 [2.1.3]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.3
 [2.1.2]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.2
