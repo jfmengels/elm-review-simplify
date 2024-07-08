@@ -3889,7 +3889,7 @@ equalityChecks isEqual =
             let
                 handle : Node Expression -> Node Expression -> Maybe (Error {})
                 handle thisNode thatNode =
-                    case compareWithZeroChecks checkInfo.lookupTable isEqual thisNode of
+                    case compareWithZeroChecks checkInfo isEqual thisNode of
                         Just { message, details, fnRange, replacement } ->
                             Just
                                 (Rule.errorWithFix { message = message, details = details }
@@ -4012,7 +4012,7 @@ equalityChecks isEqual =
 
 
 compareWithZeroChecks :
-    ModuleNameLookupTable
+    OperatorApplicationCheckInfo
     -> Bool
     -> Node Expression
     ->
@@ -4022,53 +4022,52 @@ compareWithZeroChecks :
             , fnRange : Range
             , replacement : String
             }
-compareWithZeroChecks lookupTable isEqual node =
-    let
-        maybeRangeAndNames : Maybe { range : Range, newName : String, oldName : String }
-        maybeRangeAndNames =
-            [ ( "List.isEmpty", "List.length", Fn.List.length )
-            , ( "Dict.isEmpty", "Dict.size", Fn.Dict.size )
-            , ( "Set.isEmpty", "Set.size", Fn.Set.size )
+compareWithZeroChecks checkInfo isEqual node =
+    [ ( Fn.List.isEmpty, Fn.List.length, "List" )
+    , ( Fn.Dict.isEmpty, Fn.Dict.size, "Dict" )
+    , ( Fn.Set.isEmpty, Fn.Set.size, "Set" )
 
-            -- , ( "String.isEmpty", "String.length", Fn.String.length ) is this the best replacement? Should it be == ""?
-            ]
-                |> List.map (\( newName, oldName, fn ) -> ( newName, oldName, AstHelpers.getSpecificFnCall fn lookupTable node ))
-                |> List.filterMap
-                    (\( newName, oldName, maybeCall ) ->
-                        Maybe.map
-                            (\call ->
-                                { range = call.fnRange
-                                , newName = newName
-                                , oldName = oldName
-                                }
-                            )
-                            maybeCall
-                    )
-                |> List.head
-    in
-    case maybeRangeAndNames of
-        Just { range, oldName, newName } ->
-            let
-                replacement : String
-                replacement =
-                    if isEqual then
-                        newName
+    -- , ( Fn.String.isEmpty, Fn.String.length, "String" ) is this the best replacement? Should it be == ""?
+    ]
+        |> findMap
+            (\( newFn, oldFn, structName ) ->
+                case
+                    AstHelpers.getSpecificFnCall
+                        oldFn
+                        checkInfo.lookupTable
+                        node
+                of
+                    Just call ->
+                        let
+                            newName : String
+                            newName =
+                                qualifiedToString (qualify newFn checkInfo)
 
-                    else
-                        "(not " ++ newName ++ ")"
-            in
-            Just
-                { message = "This can be replaced with a call to " ++ replacement
-                , details =
-                    [ oldName ++ " takes as long to run as the list is long"
-                    , "whereas " ++ newName ++ " runs in constant time."
-                    ]
-                , fnRange = range
-                , replacement = replacement
-                }
+                            replacement : String
+                            replacement =
+                                if isEqual then
+                                    newName
 
-        Nothing ->
-            Nothing
+                                else
+                                    "(not " ++ newName ++ ")"
+                        in
+                        Just
+                            { message = "This can be replaced with a call to " ++ replacement
+                            , details =
+                                [ "Whereas "
+                                    ++ qualifiedToString (qualify oldFn checkInfo)
+                                    ++ " takes as long to run as the number of elements in the "
+                                    ++ structName
+                                    ++ ","
+                                , newName ++ " runs in constant time."
+                                ]
+                            , fnRange = call.fnRange
+                            , replacement = replacement
+                            }
+
+                    Nothing ->
+                        Nothing
+            )
 
 
 
