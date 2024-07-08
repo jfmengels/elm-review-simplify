@@ -1005,8 +1005,11 @@ Destructuring using case expressions
     List.isEmpty (Array.toList array)
     --> Array.isEmpty array
 
-    a = List.length l == 0
-    --> a = List.isEmpty l
+    Array.length a == 0
+    --> Array.isEmpty a
+
+    Array.length a /= 0
+    --> (not << Array.isEmpty) a
 
 
 ### Sets
@@ -3990,6 +3993,7 @@ compareWithZeroChecks checkInfo isEqual node =
     [ ( Fn.List.isEmpty, Fn.List.length, "List" )
     , ( Fn.Dict.isEmpty, Fn.Dict.size, "Dict" )
     , ( Fn.Set.isEmpty, Fn.Set.size, "Set" )
+    , ( Fn.Array.isEmpty, Fn.Array.length, "Array" )
 
     -- , ( Fn.String.isEmpty, Fn.String.length, "String" ) is this the best replacement? Should it be == ""?
     ]
