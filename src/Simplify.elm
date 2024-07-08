@@ -864,6 +864,12 @@ Destructuring using case expressions
     List.unzip []
     --> ( [], [] )
 
+    List.length l == 0
+    --> List.isEmpty l
+
+    List.length l /= 0
+    --> (not << List.isEmpty) l
+
 
 ### Arrays
 
@@ -1091,6 +1097,12 @@ Destructuring using case expressions
     List.isEmpty (Set.toList set)
     --> Set.isEmpty set
 
+    Set.size set == 0
+    --> Set.isEmpty set
+
+    Set.size set /= 0
+    --> (not << Set.isEmpty) set
+
 
 ### Dict
 
@@ -1183,6 +1195,12 @@ Destructuring using case expressions
     -- The following simplification also works for Dict.keys, Dict.values
     List.isEmpty (Dict.toList dict)
     --> Dict.isEmpty dict
+
+    Set.size dict == 0
+    --> Set.isEmpty dict
+
+    Set.size dict /= 0
+    --> (not << Set.isEmpty) dict
 
 
 ### Cmd / Sub
@@ -3994,7 +4012,7 @@ compareWithZeroChecks checkInfo isEqual node =
                                     newName
 
                                 else
-                                    "(not " ++ newName ++ ")"
+                                    "(not << " ++ newName ++ ")"
                         in
                         Just
                             { message = "This can be replaced with a call to " ++ replacement
