@@ -999,6 +999,9 @@ Destructuring using case expressions
     List.isEmpty (Array.toList array)
     --> Array.isEmpty array
 
+    a = List.length l == 0
+    --> a = List.isEmpty l
+
 
 ### Sets
 
@@ -3834,6 +3837,46 @@ equalityChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
 equalityChecks isEqual =
     firstThatConstructsJust
         [ \checkInfo ->
+            let
+                handle : Node Expression -> Node Expression -> Maybe (Error {})
+                handle thisNode thatNode =
+                    case compareWithZeroChecks checkInfo.lookupTable isEqual thisNode of
+                        Just { message, details, fnRange, replacement } ->
+                            Just
+                                (Rule.errorWithFix { message = message, details = details }
+                                    (Range.combine
+                                        [ checkInfo.leftRange
+                                        , checkInfo.operatorRange
+                                        , checkInfo.rightRange
+                                        ]
+                                    )
+                                    [ Fix.replaceRangeBy
+                                        fnRange
+                                        replacement
+                                    , Range.combine
+                                        [ Node.range thatNode
+                                        , checkInfo.operatorRange
+                                        ]
+                                        |> Fix.removeRange
+                                    ]
+                                )
+
+                        Nothing ->
+                            Nothing
+            in
+            case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
+                ( Expression.Integer _, Expression.Integer _ ) ->
+                    Nothing
+
+                ( Expression.Integer 0, _ ) ->
+                    handle checkInfo.right checkInfo.left
+
+                ( _, Expression.Integer 0 ) ->
+                    handle checkInfo.left checkInfo.right
+
+                _ ->
+                    Nothing
+        , \checkInfo ->
             findMap
                 (\side ->
                     if Evaluate.getBoolean checkInfo side.node == Determined isEqual then
@@ -3912,6 +3955,64 @@ equalityChecks isEqual =
                 Normalize.Unconfirmed ->
                     Nothing
         ]
+
+
+compareWithZeroChecks :
+    ModuleNameLookupTable
+    -> Bool
+    -> Node Expression
+    ->
+        Maybe
+            { message : String
+            , details : List String
+            , fnRange : Range
+            , replacement : String
+            }
+compareWithZeroChecks lookupTable isEqual node =
+    let
+        maybeRangeAndNames =
+            [ ( "List.isEmpty", "List.length", Fn.List.length )
+            , ( "Dict.isEmpty", "Dict.size", Fn.Dict.size )
+            , ( "Set.isEmpty", "Set.size", Fn.Set.size )
+
+            -- , ( "String.isEmpty", "String.length", Fn.String.length ) is this the best replacement? Should it be == ""?
+            ]
+                |> List.map (\( newName, oldName, fn ) -> ( newName, oldName, AstHelpers.getSpecificFnCall fn lookupTable node ))
+                |> List.filterMap
+                    (\( newName, oldName, maybeCall ) ->
+                        Maybe.map
+                            (\call ->
+                                { range = call.fnRange
+                                , newName = newName
+                                , oldName = oldName
+                                }
+                            )
+                            maybeCall
+                    )
+                |> List.head
+    in
+    case maybeRangeAndNames of
+        Just { range, oldName, newName } ->
+            let
+                replacement =
+                    if isEqual then
+                        newName
+
+                    else
+                        "(not " ++ newName ++ ")"
+            in
+            Just
+                { message = "This can be replaced with a call to " ++ replacement
+                , details =
+                    [ oldName ++ " takes as long to run as the list is long"
+                    , "whereas " ++ newName ++ " runs in constant time."
+                    ]
+                , fnRange = range
+                , replacement = replacement
+                }
+
+        Nothing ->
+            Nothing
 
 
 
