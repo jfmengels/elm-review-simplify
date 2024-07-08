@@ -936,4 +936,585 @@ a = ({ a = 1 }).a == ({ a = 1 }).b
 a = 1 == ({ a = 1 }).b
 """
                         ]
+        , listTests
+        , setTests
+        , dictTests
+        ]
+
+
+listTests : Test
+listTests =
+    describe "List.length should be List.isEmpty"
+        [ test "should replace List.length l == 0 with List.isEmpty l" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = List.length l == 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to List.isEmpty"
+                            , details =
+                                [ "List.length takes as long to run as the list is long"
+                                , "whereas List.isEmpty runs in constant time."
+                                ]
+                            , under = "List.length l == 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a = List.isEmpty l 
+"""
+                        ]
+        , test "should replace 0 == List.length l with List.isEmpty l" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = 0 == List.length l
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to List.isEmpty"
+                            , details =
+                                [ "List.length takes as long to run as the list is long"
+                                , "whereas List.isEmpty runs in constant time."
+                                ]
+                            , under = "0 == List.length l"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a =  List.isEmpty l
+"""
+                        ]
+        , test "should replace (l |> List.length) == 0 with List.isEmpty l" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = (l |> List.length) == 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to List.isEmpty"
+                            , details =
+                                [ "List.length takes as long to run as the list is long"
+                                , "whereas List.isEmpty runs in constant time."
+                                ]
+                            , under = "(l |> List.length) == 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a = (l |> List.isEmpty) 
+"""
+                        ]
+        , test "should replace 0 == ([] |> List.length) with List.isEmpty l" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = 0 == (l |> List.length)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to List.isEmpty"
+                            , details =
+                                [ "List.length takes as long to run as the list is long"
+                                , "whereas List.isEmpty runs in constant time."
+                                ]
+                            , under = "0 == (l |> List.length)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a =  (l |> List.isEmpty)
+"""
+                        ]
+        , test "should replace List.length l /= 0 with (not List.isEmpty)" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = List.length l /= 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to (not List.isEmpty)"
+                            , details =
+                                [ "List.length takes as long to run as the list is long"
+                                , "whereas List.isEmpty runs in constant time."
+                                ]
+                            , under = "List.length l /= 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a = (not List.isEmpty) l 
+"""
+                        ]
+        , test "should replace 0 /= List.length l with (not List.isEmpty)" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = 0 /= List.length l
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to (not List.isEmpty)"
+                            , details =
+                                [ "List.length takes as long to run as the list is long"
+                                , "whereas List.isEmpty runs in constant time."
+                                ]
+                            , under = "0 /= List.length l"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a =  (not List.isEmpty) l
+"""
+                        ]
+        , test "should replace (l |> List.length) /= 0 with (not List.isEmpty)" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = (l |> List.length) /= 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to (not List.isEmpty)"
+                            , details =
+                                [ "List.length takes as long to run as the list is long"
+                                , "whereas List.isEmpty runs in constant time."
+                                ]
+                            , under = "(l |> List.length) /= 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a = (l |> (not List.isEmpty)) 
+"""
+                        ]
+        , test "should replace 0 /= (l |> List.length) with (not List.isEmpty)" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = 0 /= (l |> List.length)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to (not List.isEmpty)"
+                            , details =
+                                [ "List.length takes as long to run as the list is long"
+                                , "whereas List.isEmpty runs in constant time."
+                                ]
+                            , under = "0 /= (l |> List.length)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a =  (l |> (not List.isEmpty))
+"""
+                        ]
+        ]
+
+
+setTests : Test
+setTests =
+    describe "Set.size should be Set.isEmpty"
+        [ test "should replace Set.size s == 0 with Set.isEmpty s" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = Set.size s == 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to Set.isEmpty"
+                            , details =
+                                [ "Set.size takes as long to run as the list is long"
+                                , "whereas Set.isEmpty runs in constant time."
+                                ]
+                            , under = "Set.size s == 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a = Set.isEmpty s 
+"""
+                        ]
+        , Test.skip <|
+            test "should replace size s == 0 with isEmpty s" <|
+                \() ->
+                    """module A exposing (..)
+import Set as CoreSet exposing (..)
+
+
+a : Bool
+a = size s == 0
+"""
+                        |> Review.Test.run ruleWithDefaults
+                        |> Review.Test.expectErrors
+                            [ Review.Test.error
+                                { message = "This can be replaced with a call to Set.isEmpty"
+                                , details =
+                                    [ "Set.size takes as long to run as the list is long"
+                                    , "whereas Set.isEmpty runs in constant time."
+                                    ]
+                                , under = "size s == 0"
+                                }
+                                |> Review.Test.whenFixed """module A exposing (..)
+import Set as CoreSet exposing (..)
+
+
+a : Bool
+a = isEmpty s 
+"""
+                            ]
+        , test "should replace 0 == Set.size s with Set.isEmpty s" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = 0 == Set.size s
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to Set.isEmpty"
+                            , details =
+                                [ "Set.size takes as long to run as the list is long"
+                                , "whereas Set.isEmpty runs in constant time."
+                                ]
+                            , under = "0 == Set.size s"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a =  Set.isEmpty s
+"""
+                        ]
+        , test "should replace (s |> Set.size) == 0 with Set.isEmpty s" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = (s |> Set.size) == 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to Set.isEmpty"
+                            , details =
+                                [ "Set.size takes as long to run as the list is long"
+                                , "whereas Set.isEmpty runs in constant time."
+                                ]
+                            , under = "(s |> Set.size) == 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a = (s |> Set.isEmpty) 
+"""
+                        ]
+        , test "should replace 0 == ([] |> Set.size) with Set.isEmpty s" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = 0 == (s |> Set.size)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to Set.isEmpty"
+                            , details =
+                                [ "Set.size takes as long to run as the list is long"
+                                , "whereas Set.isEmpty runs in constant time."
+                                ]
+                            , under = "0 == (s |> Set.size)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a =  (s |> Set.isEmpty)
+"""
+                        ]
+        , test "should replace Set.size s /= 0 with (not Set.isEmpty)" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = Set.size s /= 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to (not Set.isEmpty)"
+                            , details =
+                                [ "Set.size takes as long to run as the list is long"
+                                , "whereas Set.isEmpty runs in constant time."
+                                ]
+                            , under = "Set.size s /= 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a = (not Set.isEmpty) s 
+"""
+                        ]
+        , test "should replace 0 /= Set.size s with (not Set.isEmpty)" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = 0 /= Set.size s
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to (not Set.isEmpty)"
+                            , details =
+                                [ "Set.size takes as long to run as the list is long"
+                                , "whereas Set.isEmpty runs in constant time."
+                                ]
+                            , under = "0 /= Set.size s"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a =  (not Set.isEmpty) s
+"""
+                        ]
+        , test "should replace (s |> Set.size) /= 0 with (not Set.isEmpty)" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = (s |> Set.size) /= 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to (not Set.isEmpty)"
+                            , details =
+                                [ "Set.size takes as long to run as the list is long"
+                                , "whereas Set.isEmpty runs in constant time."
+                                ]
+                            , under = "(s |> Set.size) /= 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a = (s |> (not Set.isEmpty)) 
+"""
+                        ]
+        , test "should replace 0 /= (s |> Set.size) with (not Set.isEmpty)" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = 0 /= (s |> Set.size)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to (not Set.isEmpty)"
+                            , details =
+                                [ "Set.size takes as long to run as the list is long"
+                                , "whereas Set.isEmpty runs in constant time."
+                                ]
+                            , under = "0 /= (s |> Set.size)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a =  (s |> (not Set.isEmpty))
+"""
+                        ]
+        ]
+
+
+dictTests : Test
+dictTests =
+    describe "Dict.size should be Set.isEmpty"
+        [ test "should replace Dict.size d == 0 with Dict.isEmpty d" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = Dict.size d == 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to Dict.isEmpty"
+                            , details =
+                                [ "Dict.size takes as long to run as the list is long"
+                                , "whereas Dict.isEmpty runs in constant time."
+                                ]
+                            , under = "Dict.size d == 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a = Dict.isEmpty d 
+"""
+                        ]
+        , Test.skip <|
+            test "should replace size d == 0 with isEmpty d" <|
+                \() ->
+                    """module A exposing (..)
+import Dict as CoreDict exposing (..)
+
+
+a : Bool
+a = size d == 0
+"""
+                        |> Review.Test.run ruleWithDefaults
+                        |> Review.Test.expectErrors
+                            [ Review.Test.error
+                                { message = "This can be replaced with a call to Dict.isEmpty"
+                                , details =
+                                    [ "Dict.size takes as long to run as the list is long"
+                                    , "whereas Dict.isEmpty runs in constant time."
+                                    ]
+                                , under = "size d == 0"
+                                }
+                                |> Review.Test.whenFixed """module A exposing (..)
+import Dict as CoreDict exposing (..)
+
+
+a : Bool
+a = isEmpty d 
+"""
+                            ]
+        , test "should replace 0 == Dict.size d with Dict.isEmpty d" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = 0 == Dict.size d
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to Dict.isEmpty"
+                            , details =
+                                [ "Dict.size takes as long to run as the list is long"
+                                , "whereas Dict.isEmpty runs in constant time."
+                                ]
+                            , under = "0 == Dict.size d"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a =  Dict.isEmpty d
+"""
+                        ]
+        , test "should replace (d |> Dict.size) == 0 with Dict.isEmpty d" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = (d |> Dict.size) == 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to Dict.isEmpty"
+                            , details =
+                                [ "Dict.size takes as long to run as the list is long"
+                                , "whereas Dict.isEmpty runs in constant time."
+                                ]
+                            , under = "(d |> Dict.size) == 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a = (d |> Dict.isEmpty) 
+"""
+                        ]
+        , test "should replace 0 == ([] |> Dict.size) with Dict.isEmpty d" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = 0 == (d |> Dict.size)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to Dict.isEmpty"
+                            , details =
+                                [ "Dict.size takes as long to run as the list is long"
+                                , "whereas Dict.isEmpty runs in constant time."
+                                ]
+                            , under = "0 == (d |> Dict.size)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a =  (d |> Dict.isEmpty)
+"""
+                        ]
+        , test "should replace Dict.size d /= 0 with (not Dict.isEmpty)" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = Dict.size d /= 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to (not Dict.isEmpty)"
+                            , details =
+                                [ "Dict.size takes as long to run as the list is long"
+                                , "whereas Dict.isEmpty runs in constant time."
+                                ]
+                            , under = "Dict.size d /= 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a = (not Dict.isEmpty) d 
+"""
+                        ]
+        , test "should replace 0 /= Dict.size d with (not Dict.isEmpty)" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = 0 /= Dict.size d
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to (not Dict.isEmpty)"
+                            , details =
+                                [ "Dict.size takes as long to run as the list is long"
+                                , "whereas Dict.isEmpty runs in constant time."
+                                ]
+                            , under = "0 /= Dict.size d"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a =  (not Dict.isEmpty) d
+"""
+                        ]
+        , test "should replace (d |> Dict.size) /= 0 with (not Dict.isEmpty)" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = (d |> Dict.size) /= 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to (not Dict.isEmpty)"
+                            , details =
+                                [ "Dict.size takes as long to run as the list is long"
+                                , "whereas Dict.isEmpty runs in constant time."
+                                ]
+                            , under = "(d |> Dict.size) /= 0"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a = (d |> (not Dict.isEmpty)) 
+"""
+                        ]
+        , test "should replace 0 /= (d |> Dict.size) with (not Dict.isEmpty)" <|
+            \() ->
+                """module A exposing (..)
+a : Bool
+a = 0 /= (d |> Dict.size)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to (not Dict.isEmpty)"
+                            , details =
+                                [ "Dict.size takes as long to run as the list is long"
+                                , "whereas Dict.isEmpty runs in constant time."
+                                ]
+                            , under = "0 /= (d |> Dict.size)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a : Bool
+a =  (d |> (not Dict.isEmpty))
+"""
+                        ]
         ]
