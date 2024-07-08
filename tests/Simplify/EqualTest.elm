@@ -1029,7 +1029,7 @@ a : Bool
 a =  (l |> List.isEmpty)
 """
                         ]
-        , test "should replace List.length l /= 0 with (not List.isEmpty)" <|
+        , test "should replace List.length l /= 0 with (not << List.isEmpty)" <|
             \() ->
                 """module A exposing (..)
 a : Bool
@@ -1038,7 +1038,7 @@ a = List.length l /= 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to (not List.isEmpty)"
+                            { message = "This can be replaced with a call to (not << List.isEmpty)"
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List,"
                                 , "List.isEmpty runs in constant time."
@@ -1047,10 +1047,10 @@ a = List.length l /= 0
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
-a = (not List.isEmpty) l 
+a = (not << List.isEmpty) l 
 """
                         ]
-        , test "should replace 0 /= List.length l with (not List.isEmpty)" <|
+        , test "should replace 0 /= List.length l with (not << List.isEmpty)" <|
             \() ->
                 """module A exposing (..)
 a : Bool
@@ -1059,7 +1059,7 @@ a = 0 /= List.length l
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to (not List.isEmpty)"
+                            { message = "This can be replaced with a call to (not << List.isEmpty)"
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List,"
                                 , "List.isEmpty runs in constant time."
@@ -1068,10 +1068,10 @@ a = 0 /= List.length l
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
-a =  (not List.isEmpty) l
+a =  (not << List.isEmpty) l
 """
                         ]
-        , test "should replace (l |> List.length) /= 0 with (not List.isEmpty)" <|
+        , test "should replace (l |> List.length) /= 0 with (not << List.isEmpty)" <|
             \() ->
                 """module A exposing (..)
 a : Bool
@@ -1080,7 +1080,7 @@ a = (l |> List.length) /= 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to (not List.isEmpty)"
+                            { message = "This can be replaced with a call to (not << List.isEmpty)"
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List,"
                                 , "List.isEmpty runs in constant time."
@@ -1089,10 +1089,10 @@ a = (l |> List.length) /= 0
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
-a = (l |> (not List.isEmpty)) 
+a = (l |> (not << List.isEmpty)) 
 """
                         ]
-        , test "should replace 0 /= (l |> List.length) with (not List.isEmpty)" <|
+        , test "should replace 0 /= (l |> List.length) with (not << List.isEmpty)" <|
             \() ->
                 """module A exposing (..)
 a : Bool
@@ -1101,7 +1101,7 @@ a = 0 /= (l |> List.length)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to (not List.isEmpty)"
+                            { message = "This can be replaced with a call to (not << List.isEmpty)"
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List,"
                                 , "List.isEmpty runs in constant time."
@@ -1110,7 +1110,7 @@ a = 0 /= (l |> List.length)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
-a =  (l |> (not List.isEmpty))
+a =  (l |> (not << List.isEmpty))
 """
                         ]
         ]
@@ -1230,7 +1230,7 @@ a : Bool
 a =  (s |> Set.isEmpty)
 """
                         ]
-        , test "should replace Set.size s /= 0 with (not Set.isEmpty)" <|
+        , test "should replace Set.size s /= 0 with (not << Set.isEmpty)" <|
             \() ->
                 """module A exposing (..)
 a : Bool
@@ -1239,7 +1239,7 @@ a = Set.size s /= 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to (not Set.isEmpty)"
+                            { message = "This can be replaced with a call to (not << Set.isEmpty)"
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set,"
                                 , "Set.isEmpty runs in constant time."
@@ -1248,10 +1248,10 @@ a = Set.size s /= 0
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
-a = (not Set.isEmpty) s 
+a = (not << Set.isEmpty) s 
 """
                         ]
-        , test "should replace 0 /= Set.size s with (not Set.isEmpty)" <|
+        , test "should replace 0 /= Set.size s with (not << Set.isEmpty)" <|
             \() ->
                 """module A exposing (..)
 a : Bool
@@ -1260,7 +1260,7 @@ a = 0 /= Set.size s
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to (not Set.isEmpty)"
+                            { message = "This can be replaced with a call to (not << Set.isEmpty)"
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set,"
                                 , "Set.isEmpty runs in constant time."
@@ -1269,10 +1269,10 @@ a = 0 /= Set.size s
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
-a =  (not Set.isEmpty) s
+a =  (not << Set.isEmpty) s
 """
                         ]
-        , test "should replace (s |> Set.size) /= 0 with (not Set.isEmpty)" <|
+        , test "should replace (s |> Set.size) /= 0 with (not << Set.isEmpty)" <|
             \() ->
                 """module A exposing (..)
 a : Bool
@@ -1281,7 +1281,7 @@ a = (s |> Set.size) /= 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to (not Set.isEmpty)"
+                            { message = "This can be replaced with a call to (not << Set.isEmpty)"
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set,"
                                 , "Set.isEmpty runs in constant time."
@@ -1290,10 +1290,10 @@ a = (s |> Set.size) /= 0
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
-a = (s |> (not Set.isEmpty)) 
+a = (s |> (not << Set.isEmpty)) 
 """
                         ]
-        , test "should replace 0 /= (s |> Set.size) with (not Set.isEmpty)" <|
+        , test "should replace 0 /= (s |> Set.size) with (not << Set.isEmpty)" <|
             \() ->
                 """module A exposing (..)
 a : Bool
@@ -1302,7 +1302,7 @@ a = 0 /= (s |> Set.size)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to (not Set.isEmpty)"
+                            { message = "This can be replaced with a call to (not << Set.isEmpty)"
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set,"
                                 , "Set.isEmpty runs in constant time."
@@ -1311,7 +1311,7 @@ a = 0 /= (s |> Set.size)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
-a =  (s |> (not Set.isEmpty))
+a =  (s |> (not << Set.isEmpty))
 """
                         ]
         ]
@@ -1431,7 +1431,7 @@ a : Bool
 a =  (d |> Dict.isEmpty)
 """
                         ]
-        , test "should replace Dict.size d /= 0 with (not Dict.isEmpty)" <|
+        , test "should replace Dict.size d /= 0 with (not << Dict.isEmpty)" <|
             \() ->
                 """module A exposing (..)
 a : Bool
@@ -1440,7 +1440,7 @@ a = Dict.size d /= 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to (not Dict.isEmpty)"
+                            { message = "This can be replaced with a call to (not << Dict.isEmpty)"
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict,"
                                 , "Dict.isEmpty runs in constant time."
@@ -1449,10 +1449,10 @@ a = Dict.size d /= 0
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
-a = (not Dict.isEmpty) d 
+a = (not << Dict.isEmpty) d 
 """
                         ]
-        , test "should replace 0 /= Dict.size d with (not Dict.isEmpty)" <|
+        , test "should replace 0 /= Dict.size d with (not << Dict.isEmpty)" <|
             \() ->
                 """module A exposing (..)
 a : Bool
@@ -1461,7 +1461,7 @@ a = 0 /= Dict.size d
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to (not Dict.isEmpty)"
+                            { message = "This can be replaced with a call to (not << Dict.isEmpty)"
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict,"
                                 , "Dict.isEmpty runs in constant time."
@@ -1470,10 +1470,10 @@ a = 0 /= Dict.size d
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
-a =  (not Dict.isEmpty) d
+a =  (not << Dict.isEmpty) d
 """
                         ]
-        , test "should replace (d |> Dict.size) /= 0 with (not Dict.isEmpty)" <|
+        , test "should replace (d |> Dict.size) /= 0 with (not << Dict.isEmpty)" <|
             \() ->
                 """module A exposing (..)
 a : Bool
@@ -1482,7 +1482,7 @@ a = (d |> Dict.size) /= 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to (not Dict.isEmpty)"
+                            { message = "This can be replaced with a call to (not << Dict.isEmpty)"
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict,"
                                 , "Dict.isEmpty runs in constant time."
@@ -1491,10 +1491,10 @@ a = (d |> Dict.size) /= 0
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
-a = (d |> (not Dict.isEmpty)) 
+a = (d |> (not << Dict.isEmpty)) 
 """
                         ]
-        , test "should replace 0 /= (d |> Dict.size) with (not Dict.isEmpty)" <|
+        , test "should replace 0 /= (d |> Dict.size) with (not << Dict.isEmpty)" <|
             \() ->
                 """module A exposing (..)
 a : Bool
@@ -1503,7 +1503,7 @@ a = 0 /= (d |> Dict.size)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to (not Dict.isEmpty)"
+                            { message = "This can be replaced with a call to (not << Dict.isEmpty)"
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict,"
                                 , "Dict.isEmpty runs in constant time."
@@ -1512,7 +1512,7 @@ a = 0 /= (d |> Dict.size)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
-a =  (d |> (not Dict.isEmpty))
+a =  (d |> (not << Dict.isEmpty))
 """
                         ]
         ]
