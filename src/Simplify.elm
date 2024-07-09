@@ -3923,11 +3923,17 @@ equalityChecks isEqual =
                                     [ Fix.replaceRangeBy
                                         fnRange
                                         replacement
-                                    , Range.combine
-                                        [ Node.range thatNode
-                                        , checkInfo.operatorRange
-                                        ]
-                                        |> Fix.removeRange
+                                    , Fix.removeRange <|
+                                        case Range.compare (Node.range thisNode) (Node.range thatNode) of
+                                            LT ->
+                                                { start = (Node.range thisNode).end
+                                                , end = (Node.range thatNode).end
+                                                }
+
+                                            _ ->
+                                                { start = (Node.range thatNode).start
+                                                , end = (Node.range thisNode).start
+                                                }
                                     ]
                                 )
 
