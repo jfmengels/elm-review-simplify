@@ -4017,6 +4017,7 @@ compareWithZeroChecks checkInfo isEqual node =
                             newName =
                                 qualifiedToString (qualify newFn checkInfo)
 
+                            replacement : String
                             replacement =
                                 if isEqual then
                                     newName
