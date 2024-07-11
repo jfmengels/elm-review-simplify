@@ -864,6 +864,12 @@ Destructuring using case expressions
     List.unzip []
     --> ( [], [] )
 
+    List.length l == 0
+    --> List.isEmpty l
+
+    List.length l /= 0
+    --> (not << List.isEmpty) l
+
 
 ### Arrays
 
@@ -999,6 +1005,12 @@ Destructuring using case expressions
     List.isEmpty (Array.toList array)
     --> Array.isEmpty array
 
+    Array.length a == 0
+    --> Array.isEmpty a
+
+    Array.length a /= 0
+    --> (not << Array.isEmpty) a
+
 
 ### Sets
 
@@ -1087,6 +1099,12 @@ Destructuring using case expressions
 
     List.isEmpty (Set.toList set)
     --> Set.isEmpty set
+
+    Set.size set == 0
+    --> Set.isEmpty set
+
+    Set.size set /= 0
+    --> (not << Set.isEmpty) set
 
 
 ### Dict
@@ -1180,6 +1198,12 @@ Destructuring using case expressions
     -- The following simplification also works for Dict.keys, Dict.values
     List.isEmpty (Dict.toList dict)
     --> Dict.isEmpty dict
+
+    Set.size dict == 0
+    --> Set.isEmpty dict
+
+    Set.size dict /= 0
+    --> (not << Set.isEmpty) dict
 
 
 ### Cmd / Sub
@@ -3834,6 +3858,47 @@ equalityChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
 equalityChecks isEqual =
     firstThatConstructsJust
         [ \checkInfo ->
+            let
+                handle : Node Expression -> Node Expression -> Maybe (Error {})
+                handle thisNode thatNode =
+                    case compareWithZeroChecks checkInfo isEqual thisNode of
+                        Just { message, details, fnRange, replacement } ->
+                            Just
+                                (Rule.errorWithFix { message = message, details = details }
+                                    fnRange
+                                    [ Fix.replaceRangeBy
+                                        fnRange
+                                        replacement
+                                    , Fix.removeRange <|
+                                        case Range.compare (Node.range thisNode) (Node.range thatNode) of
+                                            LT ->
+                                                { start = (Node.range thisNode).end
+                                                , end = (Node.range thatNode).end
+                                                }
+
+                                            _ ->
+                                                { start = (Node.range thatNode).start
+                                                , end = (Node.range thisNode).start
+                                                }
+                                    ]
+                                )
+
+                        Nothing ->
+                            Nothing
+            in
+            case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
+                ( Expression.Integer _, Expression.Integer _ ) ->
+                    Nothing
+
+                ( Expression.Integer 0, _ ) ->
+                    handle checkInfo.right checkInfo.left
+
+                ( _, Expression.Integer 0 ) ->
+                    handle checkInfo.left checkInfo.right
+
+                _ ->
+                    Nothing
+        , \checkInfo ->
             findMap
                 (\side ->
                     if Evaluate.getBoolean checkInfo side.node == Determined isEqual then
@@ -3912,6 +3977,67 @@ equalityChecks isEqual =
                 Normalize.Unconfirmed ->
                     Nothing
         ]
+
+
+compareWithZeroChecks :
+    OperatorApplicationCheckInfo
+    -> Bool
+    -> Node Expression
+    ->
+        Maybe
+            { message : String
+            , details : List String
+            , fnRange : Range
+            , replacement : String
+            }
+compareWithZeroChecks checkInfo isEqual node =
+    [ ( Fn.List.isEmpty, Fn.List.length, "List" )
+    , ( Fn.Dict.isEmpty, Fn.Dict.size, "Dict" )
+    , ( Fn.Set.isEmpty, Fn.Set.size, "Set" )
+    , ( Fn.Array.isEmpty, Fn.Array.length, "Array" )
+
+    -- , ( Fn.String.isEmpty, Fn.String.length, "String" ) is this the best replacement? Should it be == ""?
+    ]
+        |> findMap
+            (\( newFn, oldFn, structName ) ->
+                case
+                    AstHelpers.getSpecificFnCall
+                        oldFn
+                        checkInfo.lookupTable
+                        node
+                of
+                    Just call ->
+                        let
+                            newName : String
+                            newName =
+                                qualifiedToString (qualify newFn checkInfo)
+
+                            replacement : String
+                            replacement =
+                                if isEqual then
+                                    newName
+
+                                else
+                                    "(not << " ++ newName ++ ")"
+                        in
+                        Just
+                            { message = "This can be replaced with a call to " ++ replacement
+                            , details =
+                                [ "Whereas "
+                                    ++ qualifiedToString (qualify oldFn checkInfo)
+                                    ++ " takes as long to run as the number of elements in the "
+                                    ++ structName
+                                    ++ ", "
+                                    ++ newName
+                                    ++ " runs in constant time."
+                                ]
+                            , fnRange = call.fnRange
+                            , replacement = replacement
+                            }
+
+                    Nothing ->
+                        Nothing
+            )
 
 
 
