@@ -1115,6 +1115,7 @@ setIsEmptyTests =
         [ test "should replace Set.size s == 0 with Set.isEmpty s" <|
             \() ->
                 """module A exposing (..)
+import Set
 a : Bool
 a = Set.size s == 0
 """
@@ -1128,16 +1129,37 @@ a = Set.size s == 0
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a : Bool
 a = Set.isEmpty s
+"""
+                        ]
+        , test "should replace CoreSet.size s == 0 with isEmpty s" <|
+            \() ->
+                """module A exposing (..)
+import Set as CoreSet
+a : Bool
+a = CoreSet.size s == 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to CoreSet.isEmpty"
+                            , details =
+                                [ "Whereas CoreSet.size takes as long to run as the number of elements in the Set, CoreSet.isEmpty runs in constant time."
+                                ]
+                            , under = "CoreSet.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set as CoreSet
+a : Bool
+a = CoreSet.isEmpty s
 """
                         ]
         , test "should replace size s == 0 with isEmpty s" <|
             \() ->
                 """module A exposing (..)
 import Set as CoreSet exposing (..)
-
-
 a : Bool
 a = size s == 0
 """
@@ -1152,8 +1174,6 @@ a = size s == 0
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set as CoreSet exposing (..)
-
-
 a : Bool
 a = isEmpty s
 """
@@ -1161,6 +1181,7 @@ a = isEmpty s
         , test "should replace 0 == Set.size s with Set.isEmpty s" <|
             \() ->
                 """module A exposing (..)
+import Set
 a : Bool
 a = 0 == Set.size s
 """
@@ -1174,6 +1195,7 @@ a = 0 == Set.size s
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a : Bool
 a = Set.isEmpty s
 """
@@ -1181,6 +1203,7 @@ a = Set.isEmpty s
         , test "should replace (s |> Set.size) == 0 with Set.isEmpty s" <|
             \() ->
                 """module A exposing (..)
+import Set
 a : Bool
 a = (s |> Set.size) == 0
 """
@@ -1194,6 +1217,7 @@ a = (s |> Set.size) == 0
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a : Bool
 a = (s |> Set.isEmpty)
 """
@@ -1201,6 +1225,7 @@ a = (s |> Set.isEmpty)
         , test "should replace 0 == ([] |> Set.size) with Set.isEmpty s" <|
             \() ->
                 """module A exposing (..)
+import Set
 a : Bool
 a = 0 == (s |> Set.size)
 """
@@ -1214,6 +1239,7 @@ a = 0 == (s |> Set.size)
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a : Bool
 a = (s |> Set.isEmpty)
 """
@@ -1221,6 +1247,7 @@ a = (s |> Set.isEmpty)
         , test "should replace Set.size s /= 0 with (not << Set.isEmpty)" <|
             \() ->
                 """module A exposing (..)
+import Set
 a : Bool
 a = Set.size s /= 0
 """
@@ -1234,6 +1261,7 @@ a = Set.size s /= 0
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a : Bool
 a = (not << Set.isEmpty) s
 """
@@ -1241,6 +1269,7 @@ a = (not << Set.isEmpty) s
         , test "should replace 0 /= Set.size s with (not << Set.isEmpty)" <|
             \() ->
                 """module A exposing (..)
+import Set
 a : Bool
 a = 0 /= Set.size s
 """
@@ -1254,6 +1283,7 @@ a = 0 /= Set.size s
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a : Bool
 a = (not << Set.isEmpty) s
 """
@@ -1261,6 +1291,7 @@ a = (not << Set.isEmpty) s
         , test "should replace (s |> Set.size) /= 0 with (not << Set.isEmpty)" <|
             \() ->
                 """module A exposing (..)
+import Set
 a : Bool
 a = (s |> Set.size) /= 0
 """
@@ -1274,6 +1305,7 @@ a = (s |> Set.size) /= 0
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a : Bool
 a = (s |> (not << Set.isEmpty))
 """
@@ -1281,6 +1313,7 @@ a = (s |> (not << Set.isEmpty))
         , test "should replace 0 /= (s |> Set.size) with (not << Set.isEmpty)" <|
             \() ->
                 """module A exposing (..)
+import Set
 a : Bool
 a = 0 /= (s |> Set.size)
 """
@@ -1294,6 +1327,7 @@ a = 0 /= (s |> Set.size)
                             , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a : Bool
 a = (s |> (not << Set.isEmpty))
 """
@@ -1307,6 +1341,7 @@ dictIsEmptyTests =
         [ test "should replace Dict.size d == 0 with Dict.isEmpty d" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a : Bool
 a = Dict.size d == 0
 """
@@ -1320,6 +1355,7 @@ a = Dict.size d == 0
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a : Bool
 a = Dict.isEmpty d
 """
@@ -1353,6 +1389,7 @@ a = isEmpty d
         , test "should replace 0 == Dict.size d with Dict.isEmpty d" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a : Bool
 a = 0 == Dict.size d
 """
@@ -1366,6 +1403,7 @@ a = 0 == Dict.size d
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a : Bool
 a = Dict.isEmpty d
 """
@@ -1373,6 +1411,7 @@ a = Dict.isEmpty d
         , test "should replace (d |> Dict.size) == 0 with Dict.isEmpty d" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a : Bool
 a = (d |> Dict.size) == 0
 """
@@ -1386,6 +1425,7 @@ a = (d |> Dict.size) == 0
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a : Bool
 a = (d |> Dict.isEmpty)
 """
@@ -1393,6 +1433,7 @@ a = (d |> Dict.isEmpty)
         , test "should replace 0 == ([] |> Dict.size) with Dict.isEmpty d" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a : Bool
 a = 0 == (d |> Dict.size)
 """
@@ -1406,6 +1447,7 @@ a = 0 == (d |> Dict.size)
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a : Bool
 a = (d |> Dict.isEmpty)
 """
@@ -1413,6 +1455,7 @@ a = (d |> Dict.isEmpty)
         , test "should replace Dict.size d /= 0 with (not << Dict.isEmpty)" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a : Bool
 a = Dict.size d /= 0
 """
@@ -1426,6 +1469,7 @@ a = Dict.size d /= 0
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a : Bool
 a = (not << Dict.isEmpty) d
 """
@@ -1433,6 +1477,7 @@ a = (not << Dict.isEmpty) d
         , test "should replace 0 /= Dict.size d with (not << Dict.isEmpty)" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a : Bool
 a = 0 /= Dict.size d
 """
@@ -1446,6 +1491,7 @@ a = 0 /= Dict.size d
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a : Bool
 a = (not << Dict.isEmpty) d
 """
@@ -1453,6 +1499,7 @@ a = (not << Dict.isEmpty) d
         , test "should replace (d |> Dict.size) /= 0 with (not << Dict.isEmpty)" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a : Bool
 a = (d |> Dict.size) /= 0
 """
@@ -1466,6 +1513,7 @@ a = (d |> Dict.size) /= 0
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a : Bool
 a = (d |> (not << Dict.isEmpty))
 """
@@ -1473,6 +1521,7 @@ a = (d |> (not << Dict.isEmpty))
         , test "should replace 0 /= (d |> Dict.size) with (not << Dict.isEmpty)" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a : Bool
 a = 0 /= (d |> Dict.size)
 """
@@ -1486,6 +1535,7 @@ a = 0 /= (d |> Dict.size)
                             , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a : Bool
 a = (d |> (not << Dict.isEmpty))
 """
@@ -1495,10 +1545,11 @@ a = (d |> (not << Dict.isEmpty))
 
 arrayIsEmptyTests : Test
 arrayIsEmptyTests =
-    describe "Array.length should be Array.isEmpty"
+    describe "Array.length should be Arraya.isEmpty"
         [ test "should replace Array.length array == 0 with Array.isEmpty array" <|
             \() ->
                 """module A exposing (..)
+import Array
 a : Bool
 a = Array.length array == 0
 """
@@ -1512,6 +1563,7 @@ a = Array.length array == 0
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a : Bool
 a = Array.isEmpty array
 """
@@ -1545,6 +1597,7 @@ a = isEmpty array
         , test "should replace 0 == Array.length array with Array.isEmpty array" <|
             \() ->
                 """module A exposing (..)
+import Array
 a : Bool
 a = 0 == Array.length array
 """
@@ -1558,6 +1611,7 @@ a = 0 == Array.length array
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a : Bool
 a = Array.isEmpty array
 """
@@ -1565,6 +1619,7 @@ a = Array.isEmpty array
         , test "should replace (array |> Array.length) == 0 with Array.isEmpty array" <|
             \() ->
                 """module A exposing (..)
+import Array
 a : Bool
 a = (array |> Array.length) == 0
 """
@@ -1578,6 +1633,7 @@ a = (array |> Array.length) == 0
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a : Bool
 a = (array |> Array.isEmpty)
 """
@@ -1585,6 +1641,7 @@ a = (array |> Array.isEmpty)
         , test "should replace 0 == ([] |> Array.length) with Array.isEmpty array" <|
             \() ->
                 """module A exposing (..)
+import Array
 a : Bool
 a = 0 == (array |> Array.length)
 """
@@ -1598,6 +1655,7 @@ a = 0 == (array |> Array.length)
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a : Bool
 a = (array |> Array.isEmpty)
 """
@@ -1605,6 +1663,7 @@ a = (array |> Array.isEmpty)
         , test "should replace Array.length array /= 0 with (not << Array.isEmpty)" <|
             \() ->
                 """module A exposing (..)
+import Array
 a : Bool
 a = Array.length array /= 0
 """
@@ -1618,6 +1677,7 @@ a = Array.length array /= 0
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a : Bool
 a = (not << Array.isEmpty) array
 """
@@ -1625,6 +1685,7 @@ a = (not << Array.isEmpty) array
         , test "should replace 0 /= Array.length array with (not << Array.isEmpty)" <|
             \() ->
                 """module A exposing (..)
+import Array
 a : Bool
 a = 0 /= Array.length array
 """
@@ -1638,6 +1699,7 @@ a = 0 /= Array.length array
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a : Bool
 a = (not << Array.isEmpty) array
 """
@@ -1645,6 +1707,7 @@ a = (not << Array.isEmpty) array
         , test "should replace (array |> Array.length) /= 0 with (not << Array.isEmpty)" <|
             \() ->
                 """module A exposing (..)
+import Array
 a : Bool
 a = (array |> Array.length) /= 0
 """
@@ -1658,6 +1721,7 @@ a = (array |> Array.length) /= 0
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a : Bool
 a = (array |> (not << Array.isEmpty))
 """
@@ -1665,6 +1729,7 @@ a = (array |> (not << Array.isEmpty))
         , test "should replace 0 /= (array |> Array.length) with (not << Array.isEmpty)" <|
             \() ->
                 """module A exposing (..)
+import Array
 a : Bool
 a = 0 /= (array |> Array.length)
 """
@@ -1678,6 +1743,7 @@ a = 0 /= (array |> Array.length)
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a : Bool
 a = (array |> (not << Array.isEmpty))
 """
