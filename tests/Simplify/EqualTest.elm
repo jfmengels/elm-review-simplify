@@ -936,15 +936,15 @@ a = ({ a = 1 }).a == ({ a = 1 }).b
 a = 1 == ({ a = 1 }).b
 """
                         ]
-        , listTests
-        , setTests
-        , dictTests
-        , arrayTests
+        , listIsEmptyTests
+        , setIsEmptyTests
+        , dictIsEmptyTests
+        , arrayIsEmptyTests
         ]
 
 
-listTests : Test
-listTests =
+listIsEmptyTests : Test
+listIsEmptyTests =
     describe "List.length should be List.isEmpty"
         [ test "should replace List.length l == 0 with List.isEmpty l" <|
             \() ->
@@ -1109,8 +1109,8 @@ a = (l |> (not << List.isEmpty))
         ]
 
 
-setTests : Test
-setTests =
+setIsEmptyTests : Test
+setIsEmptyTests =
     describe "Set.size should be Set.isEmpty"
         [ test "should replace Set.size s == 0 with Set.isEmpty s" <|
             \() ->
@@ -1301,9 +1301,9 @@ a = (s |> (not << Set.isEmpty))
         ]
 
 
-dictTests : Test
-dictTests =
-    describe "Dict.size should be Set.isEmpty"
+dictIsEmptyTests : Test
+dictIsEmptyTests =
+    describe "Dict.size should be Dict.isEmpty"
         [ test "should replace Dict.size d == 0 with Dict.isEmpty d" <|
             \() ->
                 """module A exposing (..)
@@ -1493,9 +1493,9 @@ a = (d |> (not << Dict.isEmpty))
         ]
 
 
-arrayTests : Test
-arrayTests =
-    describe "Array.length should be Set.isEmpty"
+arrayIsEmptyTests : Test
+arrayIsEmptyTests =
+    describe "Array.length should be Array.isEmpty"
         [ test "should replace Array.length array == 0 with Array.isEmpty array" <|
             \() ->
                 """module A exposing (..)
