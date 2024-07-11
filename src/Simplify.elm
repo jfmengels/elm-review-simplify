@@ -4032,8 +4032,9 @@ compareWithZeroChecks checkInfo isEqual node =
                                     ++ qualifiedToString (qualify oldFn checkInfo)
                                     ++ " takes as long to run as the number of elements in the "
                                     ++ structName
-                                    ++ ","
-                                , newName ++ " runs in constant time."
+                                    ++ ", "
+                                    ++ newName
+                                    ++ " runs in constant time."
                                 ]
                             , fnRange = call.fnRange
                             , replacement = replacement
