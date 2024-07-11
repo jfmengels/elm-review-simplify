@@ -957,8 +957,7 @@ a = List.length l == 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to List.isEmpty"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the List,"
-                                , "List.isEmpty runs in constant time."
+                                [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
                             , under = "List.length l == 0"
                             }
@@ -978,8 +977,7 @@ a = 0 == List.length l
                         [ Review.Test.error
                             { message = "This can be replaced with a call to List.isEmpty"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the List,"
-                                , "List.isEmpty runs in constant time."
+                                [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
                             , under = "0 == List.length l"
                             }
@@ -999,8 +997,7 @@ a = (l |> List.length) == 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to List.isEmpty"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the List,"
-                                , "List.isEmpty runs in constant time."
+                                [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
                             , under = "(l |> List.length) == 0"
                             }
@@ -1020,8 +1017,7 @@ a = 0 == (l |> List.length)
                         [ Review.Test.error
                             { message = "This can be replaced with a call to List.isEmpty"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the List,"
-                                , "List.isEmpty runs in constant time."
+                                [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
                             , under = "0 == (l |> List.length)"
                             }
@@ -1041,8 +1037,7 @@ a = List.length l /= 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << List.isEmpty)"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the List,"
-                                , "List.isEmpty runs in constant time."
+                                [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
                             , under = "List.length l /= 0"
                             }
@@ -1062,8 +1057,7 @@ a = 0 /= List.length l
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << List.isEmpty)"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the List,"
-                                , "List.isEmpty runs in constant time."
+                                [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
                             , under = "0 /= List.length l"
                             }
@@ -1083,8 +1077,7 @@ a = (l |> List.length) /= 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << List.isEmpty)"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the List,"
-                                , "List.isEmpty runs in constant time."
+                                [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
                             , under = "(l |> List.length) /= 0"
                             }
@@ -1104,8 +1097,7 @@ a = 0 /= (l |> List.length)
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << List.isEmpty)"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the List,"
-                                , "List.isEmpty runs in constant time."
+                                [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
                             , under = "0 /= (l |> List.length)"
                             }
@@ -1131,8 +1123,7 @@ a = Set.size s == 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to Set.isEmpty"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the Set,"
-                                , "Set.isEmpty runs in constant time."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
                             , under = "Set.size s == 0"
                             }
@@ -1155,8 +1146,7 @@ a = size s == 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to isEmpty"
                             , details =
-                                [ "Whereas size takes as long to run as the number of elements in the Set,"
-                                , "isEmpty runs in constant time."
+                                [ "Whereas size takes as long to run as the number of elements in the Set, isEmpty runs in constant time."
                                 ]
                             , under = "size s == 0"
                             }
@@ -1179,8 +1169,7 @@ a = 0 == Set.size s
                         [ Review.Test.error
                             { message = "This can be replaced with a call to Set.isEmpty"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the Set,"
-                                , "Set.isEmpty runs in constant time."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
                             , under = "0 == Set.size s"
                             }
@@ -1200,8 +1189,7 @@ a = (s |> Set.size) == 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to Set.isEmpty"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the Set,"
-                                , "Set.isEmpty runs in constant time."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
                             , under = "(s |> Set.size) == 0"
                             }
@@ -1221,8 +1209,7 @@ a = 0 == (s |> Set.size)
                         [ Review.Test.error
                             { message = "This can be replaced with a call to Set.isEmpty"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the Set,"
-                                , "Set.isEmpty runs in constant time."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
                             , under = "0 == (s |> Set.size)"
                             }
@@ -1242,8 +1229,7 @@ a = Set.size s /= 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << Set.isEmpty)"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the Set,"
-                                , "Set.isEmpty runs in constant time."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
                             , under = "Set.size s /= 0"
                             }
@@ -1263,8 +1249,7 @@ a = 0 /= Set.size s
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << Set.isEmpty)"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the Set,"
-                                , "Set.isEmpty runs in constant time."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
                             , under = "0 /= Set.size s"
                             }
@@ -1284,8 +1269,7 @@ a = (s |> Set.size) /= 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << Set.isEmpty)"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the Set,"
-                                , "Set.isEmpty runs in constant time."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
                             , under = "(s |> Set.size) /= 0"
                             }
@@ -1305,8 +1289,7 @@ a = 0 /= (s |> Set.size)
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << Set.isEmpty)"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the Set,"
-                                , "Set.isEmpty runs in constant time."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
                             , under = "0 /= (s |> Set.size)"
                             }
@@ -1332,8 +1315,7 @@ a = Dict.size d == 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to Dict.isEmpty"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict,"
-                                , "Dict.isEmpty runs in constant time."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
                             , under = "Dict.size d == 0"
                             }
@@ -1356,8 +1338,7 @@ a = size d == 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to isEmpty"
                             , details =
-                                [ "Whereas size takes as long to run as the number of elements in the Dict,"
-                                , "isEmpty runs in constant time."
+                                [ "Whereas size takes as long to run as the number of elements in the Dict, isEmpty runs in constant time."
                                 ]
                             , under = "size d == 0"
                             }
@@ -1380,8 +1361,7 @@ a = 0 == Dict.size d
                         [ Review.Test.error
                             { message = "This can be replaced with a call to Dict.isEmpty"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict,"
-                                , "Dict.isEmpty runs in constant time."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
                             , under = "0 == Dict.size d"
                             }
@@ -1401,8 +1381,7 @@ a = (d |> Dict.size) == 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to Dict.isEmpty"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict,"
-                                , "Dict.isEmpty runs in constant time."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
                             , under = "(d |> Dict.size) == 0"
                             }
@@ -1422,8 +1401,7 @@ a = 0 == (d |> Dict.size)
                         [ Review.Test.error
                             { message = "This can be replaced with a call to Dict.isEmpty"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict,"
-                                , "Dict.isEmpty runs in constant time."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
                             , under = "0 == (d |> Dict.size)"
                             }
@@ -1443,8 +1421,7 @@ a = Dict.size d /= 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << Dict.isEmpty)"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict,"
-                                , "Dict.isEmpty runs in constant time."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
                             , under = "Dict.size d /= 0"
                             }
@@ -1464,8 +1441,7 @@ a = 0 /= Dict.size d
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << Dict.isEmpty)"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict,"
-                                , "Dict.isEmpty runs in constant time."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
                             , under = "0 /= Dict.size d"
                             }
@@ -1485,8 +1461,7 @@ a = (d |> Dict.size) /= 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << Dict.isEmpty)"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict,"
-                                , "Dict.isEmpty runs in constant time."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
                             , under = "(d |> Dict.size) /= 0"
                             }
@@ -1506,8 +1481,7 @@ a = 0 /= (d |> Dict.size)
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << Dict.isEmpty)"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict,"
-                                , "Dict.isEmpty runs in constant time."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
                             , under = "0 /= (d |> Dict.size)"
                             }
@@ -1533,8 +1507,7 @@ a = Array.length array == 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to Array.isEmpty"
                             , details =
-                                [ "Whereas Array.length takes as long to run as the number of elements in the Array,"
-                                , "Array.isEmpty runs in constant time."
+                                [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
                             , under = "Array.length array == 0"
                             }
@@ -1557,8 +1530,7 @@ a = length array == 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to isEmpty"
                             , details =
-                                [ "Whereas length takes as long to run as the number of elements in the Array,"
-                                , "isEmpty runs in constant time."
+                                [ "Whereas length takes as long to run as the number of elements in the Array, isEmpty runs in constant time."
                                 ]
                             , under = "length array == 0"
                             }
@@ -1581,8 +1553,7 @@ a = 0 == Array.length array
                         [ Review.Test.error
                             { message = "This can be replaced with a call to Array.isEmpty"
                             , details =
-                                [ "Whereas Array.length takes as long to run as the number of elements in the Array,"
-                                , "Array.isEmpty runs in constant time."
+                                [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
                             , under = "0 == Array.length array"
                             }
@@ -1602,8 +1573,7 @@ a = (array |> Array.length) == 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to Array.isEmpty"
                             , details =
-                                [ "Whereas Array.length takes as long to run as the number of elements in the Array,"
-                                , "Array.isEmpty runs in constant time."
+                                [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
                             , under = "(array |> Array.length) == 0"
                             }
@@ -1623,8 +1593,7 @@ a = 0 == (array |> Array.length)
                         [ Review.Test.error
                             { message = "This can be replaced with a call to Array.isEmpty"
                             , details =
-                                [ "Whereas Array.length takes as long to run as the number of elements in the Array,"
-                                , "Array.isEmpty runs in constant time."
+                                [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
                             , under = "0 == (array |> Array.length)"
                             }
@@ -1644,8 +1613,7 @@ a = Array.length array /= 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << Array.isEmpty)"
                             , details =
-                                [ "Whereas Array.length takes as long to run as the number of elements in the Array,"
-                                , "Array.isEmpty runs in constant time."
+                                [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
                             , under = "Array.length array /= 0"
                             }
@@ -1665,8 +1633,7 @@ a = 0 /= Array.length array
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << Array.isEmpty)"
                             , details =
-                                [ "Whereas Array.length takes as long to run as the number of elements in the Array,"
-                                , "Array.isEmpty runs in constant time."
+                                [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
                             , under = "0 /= Array.length array"
                             }
@@ -1686,8 +1653,7 @@ a = (array |> Array.length) /= 0
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << Array.isEmpty)"
                             , details =
-                                [ "Whereas Array.length takes as long to run as the number of elements in the Array,"
-                                , "Array.isEmpty runs in constant time."
+                                [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
                             , under = "(array |> Array.length) /= 0"
                             }
@@ -1707,8 +1673,7 @@ a = 0 /= (array |> Array.length)
                         [ Review.Test.error
                             { message = "This can be replaced with a call to (not << Array.isEmpty)"
                             , details =
-                                [ "Whereas Array.length takes as long to run as the number of elements in the Array,"
-                                , "Array.isEmpty runs in constant time."
+                                [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
                             , under = "0 /= (array |> Array.length)"
                             }
