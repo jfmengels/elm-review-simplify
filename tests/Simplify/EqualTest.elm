@@ -959,7 +959,7 @@ a = List.length l == 0
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
-                            , under = "List.length l == 0"
+                            , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -979,7 +979,7 @@ a = 0 == List.length l
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
-                            , under = "0 == List.length l"
+                            , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -999,7 +999,7 @@ a = (l |> List.length) == 0
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
-                            , under = "(l |> List.length) == 0"
+                            , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1019,7 +1019,7 @@ a = 0 == (l |> List.length)
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
-                            , under = "0 == (l |> List.length)"
+                            , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1039,7 +1039,7 @@ a = List.length l /= 0
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
-                            , under = "List.length l /= 0"
+                            , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1059,7 +1059,7 @@ a = 0 /= List.length l
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
-                            , under = "0 /= List.length l"
+                            , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1079,7 +1079,7 @@ a = (l |> List.length) /= 0
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
-                            , under = "(l |> List.length) /= 0"
+                            , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1099,7 +1099,7 @@ a = 0 /= (l |> List.length)
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
-                            , under = "0 /= (l |> List.length)"
+                            , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1125,7 +1125,7 @@ a = Set.size s == 0
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
-                            , under = "Set.size s == 0"
+                            , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1148,7 +1148,7 @@ a = size s == 0
                             , details =
                                 [ "Whereas size takes as long to run as the number of elements in the Set, isEmpty runs in constant time."
                                 ]
-                            , under = "size s == 0"
+                            , under = "size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set as CoreSet exposing (..)
@@ -1171,7 +1171,7 @@ a = 0 == Set.size s
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
-                            , under = "0 == Set.size s"
+                            , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1191,7 +1191,7 @@ a = (s |> Set.size) == 0
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
-                            , under = "(s |> Set.size) == 0"
+                            , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1211,7 +1211,7 @@ a = 0 == (s |> Set.size)
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
-                            , under = "0 == (s |> Set.size)"
+                            , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1231,7 +1231,7 @@ a = Set.size s /= 0
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
-                            , under = "Set.size s /= 0"
+                            , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1251,7 +1251,7 @@ a = 0 /= Set.size s
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
-                            , under = "0 /= Set.size s"
+                            , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1271,7 +1271,7 @@ a = (s |> Set.size) /= 0
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
-                            , under = "(s |> Set.size) /= 0"
+                            , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1291,7 +1291,7 @@ a = 0 /= (s |> Set.size)
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
-                            , under = "0 /= (s |> Set.size)"
+                            , under = "Set.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1317,7 +1317,7 @@ a = Dict.size d == 0
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
-                            , under = "Dict.size d == 0"
+                            , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1340,7 +1340,7 @@ a = size d == 0
                             , details =
                                 [ "Whereas size takes as long to run as the number of elements in the Dict, isEmpty runs in constant time."
                                 ]
-                            , under = "size d == 0"
+                            , under = "size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict as CoreDict exposing (..)
@@ -1363,7 +1363,7 @@ a = 0 == Dict.size d
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
-                            , under = "0 == Dict.size d"
+                            , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1383,7 +1383,7 @@ a = (d |> Dict.size) == 0
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
-                            , under = "(d |> Dict.size) == 0"
+                            , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1403,7 +1403,7 @@ a = 0 == (d |> Dict.size)
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
-                            , under = "0 == (d |> Dict.size)"
+                            , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1423,7 +1423,7 @@ a = Dict.size d /= 0
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
-                            , under = "Dict.size d /= 0"
+                            , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1443,7 +1443,7 @@ a = 0 /= Dict.size d
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
-                            , under = "0 /= Dict.size d"
+                            , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1463,7 +1463,7 @@ a = (d |> Dict.size) /= 0
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
-                            , under = "(d |> Dict.size) /= 0"
+                            , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1483,7 +1483,7 @@ a = 0 /= (d |> Dict.size)
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
-                            , under = "0 /= (d |> Dict.size)"
+                            , under = "Dict.size"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1509,7 +1509,7 @@ a = Array.length array == 0
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
-                            , under = "Array.length array == 0"
+                            , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1532,7 +1532,7 @@ a = length array == 0
                             , details =
                                 [ "Whereas length takes as long to run as the number of elements in the Array, isEmpty runs in constant time."
                                 ]
-                            , under = "length array == 0"
+                            , under = "length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array as SomethingElse exposing (..)
@@ -1555,7 +1555,7 @@ a = 0 == Array.length array
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
-                            , under = "0 == Array.length array"
+                            , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1575,7 +1575,7 @@ a = (array |> Array.length) == 0
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
-                            , under = "(array |> Array.length) == 0"
+                            , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1595,7 +1595,7 @@ a = 0 == (array |> Array.length)
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
-                            , under = "0 == (array |> Array.length)"
+                            , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1615,7 +1615,7 @@ a = Array.length array /= 0
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
-                            , under = "Array.length array /= 0"
+                            , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1635,7 +1635,7 @@ a = 0 /= Array.length array
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
-                            , under = "0 /= Array.length array"
+                            , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1655,7 +1655,7 @@ a = (array |> Array.length) /= 0
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
-                            , under = "(array |> Array.length) /= 0"
+                            , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
@@ -1675,7 +1675,7 @@ a = 0 /= (array |> Array.length)
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
-                            , under = "0 /= (array |> Array.length)"
+                            , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool

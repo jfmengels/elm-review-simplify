@@ -3865,12 +3865,7 @@ equalityChecks isEqual =
                         Just { message, details, fnRange, replacement } ->
                             Just
                                 (Rule.errorWithFix { message = message, details = details }
-                                    (Range.combine
-                                        [ checkInfo.leftRange
-                                        , checkInfo.operatorRange
-                                        , checkInfo.rightRange
-                                        ]
-                                    )
+                                    fnRange
                                     [ Fix.replaceRangeBy
                                         fnRange
                                         replacement
