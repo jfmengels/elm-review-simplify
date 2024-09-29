@@ -46,7 +46,7 @@ a = "a" ++ ""
 a = "a"
 """
                         ]
-        , test """should not report x ++ "" when ignoreMicroOptimizations is enabled (because this can lead to better performance)""" <|
+        , test """should not report x ++ "" when doNotSimplifyMicroOptimizedCode is enabled (because this can lead to better performance)""" <|
             \() ->
                 """module A exposing (..)
 a = x ++ ""
@@ -54,11 +54,11 @@ a = x ++ ""
                     |> Review.Test.run
                         (Simplify.rule
                             (Simplify.defaults
-                                |> Simplify.ignoreMicroOptimizations
+                                |> Simplify.doNotSimplifyMicroOptimizedCode
                             )
                         )
                     |> Review.Test.expectNoErrors
-        , test """should replace x ++ "" by x when ignoreMicroOptimizations is not enabled""" <|
+        , test """should replace x ++ "" by x when doNotSimplifyMicroOptimizedCode is not enabled""" <|
             \() ->
                 """module A exposing (..)
 a = x ++ ""

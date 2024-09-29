@@ -1,6 +1,6 @@
 module Simplify exposing
     ( rule
-    , Configuration, defaults, expectNaN, ignoreMicroOptimizations, ignoreCaseOfForTypes
+    , Configuration, defaults, expectNaN, doNotSimplifyMicroOptimizedCode, ignoreCaseOfForTypes
     )
 
 {-| Reports when an expression can be simplified.
@@ -12,7 +12,7 @@ module Simplify exposing
         ]
 
 @docs rule
-@docs Configuration, defaults, expectNaN, ignoreMicroOptimizations, ignoreCaseOfForTypes
+@docs Configuration, defaults, expectNaN, doNotSimplifyMicroOptimizedCode, ignoreCaseOfForTypes
 
 
 ## Try it out
@@ -1438,7 +1438,7 @@ rule (Configuration config) =
         |> Rule.fromProjectRuleSchema
 
 
-moduleVisitor : { config | ignoreMicroOptimizations : Bool, expectNaN : Bool } -> Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
+moduleVisitor : { config | doNotSimplifyMicroOptimizedCode : Bool, expectNaN : Bool } -> Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
 moduleVisitor config schema =
     schema
         |> Rule.withCommentsVisitor (\comments context -> ( [], commentsVisitor comments context ))
@@ -1455,14 +1455,14 @@ moduleVisitor config schema =
 {-| Configuration for this rule.
 Create a new one with [`defaults`](#defaults) and use
 [`ignoreCaseOfForTypes`](#ignoreCaseOfForTypes),
-[`ignoreMicroOptimizations`](#ignoreMicroOptimizations)
+[`doNotSimplifyMicroOptimizedCode`](#doNotSimplifyMicroOptimizedCode)
 and [`expectNaN`](#expectNaN) to alter it.
 -}
 type Configuration
     = Configuration
         { ignoreConstructors : List String
         , expectNaN : Bool
-        , ignoreMicroOptimizations : Bool
+        , doNotSimplifyMicroOptimizedCode : Bool
         }
 
 
@@ -1472,7 +1472,7 @@ The rule aims tries to improve the code through simplifications that don't impac
 when the presence of `NaN` values.
 Use [`expectNaN`](#expectNaN) if you want to opt out of changes that can impact the behaviour of your code if you expect to work with `NaN` values.
 
-Use [`ignoreMicroOptimizations`](#ignoreMicroOptimizations) if you want to opt out of changes that could marginally worsen performance.
+Use [`doNotSimplifyMicroOptimizedCode`](#doNotSimplifyMicroOptimizedCode) if you want to opt out of changes that could marginally worsen performance.
 
 Use [`ignoreCaseOfForTypes`](#ignoreCaseOfForTypes) if you want to prevent simplifying case expressions that work on custom types defined in dependencies.
 
@@ -1484,7 +1484,7 @@ Use [`ignoreCaseOfForTypes`](#ignoreCaseOfForTypes) if you want to prevent simpl
     config =
         [ Simplify.defaults
             |> Simplify.expectNaN
-            |> Simplify.ignoreMicroOptimizations
+            |> Simplify.doNotSimplifyMicroOptimizedCode
             |> Simplify.ignoreCaseOfForTypes [ "Module.Name.Type" ]
             |> Simplify.rule
         ]
@@ -1495,7 +1495,7 @@ defaults =
     Configuration
         { ignoreConstructors = []
         , expectNaN = False
-        , ignoreMicroOptimizations = False
+        , doNotSimplifyMicroOptimizedCode = False
         }
 
 
@@ -1532,7 +1532,7 @@ ignoreCaseOfForTypes ignoreConstructors (Configuration config) =
     Configuration
         { ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors
         , expectNaN = config.expectNaN
-        , ignoreMicroOptimizations = config.ignoreMicroOptimizations
+        , doNotSimplifyMicroOptimizedCode = config.doNotSimplifyMicroOptimizedCode
         }
 
 
@@ -1551,19 +1551,19 @@ use this option to disable these simplifications altogether.
 
     config =
         [ Simplify.defaults
-            |> Simplify.ignoreMicroOptimizations
+            |> Simplify.doNotSimplifyMicroOptimizedCode
             |> Simplify.rule
         ]
 
 And let us know if we missed some cases where your micro-optimizations are reported!
 
 -}
-ignoreMicroOptimizations : Configuration -> Configuration
-ignoreMicroOptimizations (Configuration config) =
+doNotSimplifyMicroOptimizedCode : Configuration -> Configuration
+doNotSimplifyMicroOptimizedCode (Configuration config) =
     Configuration
         { ignoreConstructors = config.ignoreConstructors
         , expectNaN = config.expectNaN
-        , ignoreMicroOptimizations = True
+        , doNotSimplifyMicroOptimizedCode = True
         }
 
 
@@ -1610,7 +1610,7 @@ expectNaN (Configuration config) =
     Configuration
         { ignoreConstructors = config.ignoreConstructors
         , expectNaN = True
-        , ignoreMicroOptimizations = config.ignoreMicroOptimizations
+        , doNotSimplifyMicroOptimizedCode = config.doNotSimplifyMicroOptimizedCode
         }
 
 
@@ -2165,7 +2165,7 @@ declarationVisitor declarationNode context =
 -- EXPRESSION VISITOR
 
 
-expressionVisitor : Node Expression -> { config | ignoreMicroOptimizations : Bool, expectNaN : Bool } -> ModuleContext -> ( List (Error {}), ModuleContext )
+expressionVisitor : Node Expression -> { config | doNotSimplifyMicroOptimizedCode : Bool, expectNaN : Bool } -> ModuleContext -> ( List (Error {}), ModuleContext )
 expressionVisitor node config context =
     let
         expressionRange : Range
@@ -2459,7 +2459,7 @@ onlyMaybeError maybeError =
     }
 
 
-expressionVisitorHelp : Node Expression -> { config | ignoreMicroOptimizations : Bool, expectNaN : Bool } -> ModuleContext -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
+expressionVisitorHelp : Node Expression -> { config | doNotSimplifyMicroOptimizedCode : Bool, expectNaN : Bool } -> ModuleContext -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
 expressionVisitorHelp (Node expressionRange expression) config context =
     let
         toCheckInfo :
@@ -2793,7 +2793,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             { lookupTable = context.lookupTable
                             , extractSourceCode = context.extractSourceCode
                             , expectNaN = config.expectNaN
-                            , ignoreMicroOptimizations = config.ignoreMicroOptimizations
+                            , doNotSimplifyMicroOptimizedCode = config.doNotSimplifyMicroOptimizedCode
                             , importLookup = context.importLookup
                             , moduleBindings = context.moduleBindings
                             , localBindings = context.localBindings
@@ -2981,7 +2981,7 @@ type alias OperatorApplicationCheckInfo =
     { lookupTable : ModuleNameLookupTable
     , extractSourceCode : Range -> String
     , expectNaN : Bool
-    , ignoreMicroOptimizations : Bool
+    , doNotSimplifyMicroOptimizedCode : Bool
     , importLookup : ImportLookup
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
@@ -3733,7 +3733,7 @@ plusplusChecks =
         [ \checkInfo ->
             findMap
                 (\side ->
-                    if checkInfo.ignoreMicroOptimizations then
+                    if checkInfo.doNotSimplifyMicroOptimizedCode then
                         case Node.value side.otherNode of
                             Expression.Literal _ ->
                                 appendEmptyCheck side stringCollection checkInfo
