@@ -1,6 +1,7 @@
 module Simplify.PlusPlusTest exposing (all)
 
 import Review.Test
+import Simplify
 import Test exposing (Test, describe, test)
 import TestHelpers exposing (ruleWithDefaults)
 
@@ -45,13 +46,34 @@ a = "a" ++ ""
 a = "a"
 """
                         ]
-        , test """should not report x ++ "" (because this can lead to better performance)""" <|
+        , test """should not report x ++ "" when ignoreMicroOptimizations is enabled (because this can lead to better performance)""" <|
+            \() ->
+                """module A exposing (..)
+a = x ++ ""
+"""
+                    |> Review.Test.run
+                        (Simplify.rule
+                            (Simplify.defaults
+                                |> Simplify.ignoreMicroOptimizations
+                            )
+                        )
+                    |> Review.Test.expectNoErrors
+        , test """should replace x ++ "" by x when ignoreMicroOptimizations is not enabled""" <|
             \() ->
                 """module A exposing (..)
 a = x ++ ""
 """
                     |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectNoErrors
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary appending \"\""
+                            , details = [ "You can replace this operation by the left string." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
         , test """should replace "" ++ "a" by "a\"""" <|
             \() ->
                 """module A exposing (..)

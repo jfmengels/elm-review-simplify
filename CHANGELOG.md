@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+New opt-in configuration option [`ignoreMicroOptimizations`] which will disable some simplifications when the user indicates their
+project uses performance tricks.
+Since this is now disabled by default, the following simplification is now suggested:
+  - `x ++ ""` to `x`
+Additionally, this opens the door for previously suggested simplifications like combining `a < b || a > b` that were previously avoided to allow micro-optimization.
+
 ## [2.1.5] - 2024-06-28
 
 The rule also simplifies (thanks to [@morteako]):
@@ -680,3 +686,4 @@ Help would be appreciated to fill the blanks!
 [@w0rm]: https://github.com/w0rm
 
 [`expectNaN`]: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify#expectNaN
+[`ignoreMicroOptimizations`]: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify#ignoreMicroOptimizations

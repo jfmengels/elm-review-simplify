@@ -1,6 +1,6 @@
 module Simplify exposing
     ( rule
-    , Configuration, defaults, expectNaN, ignoreCaseOfForTypes
+    , Configuration, defaults, expectNaN, ignoreMicroOptimizations, ignoreCaseOfForTypes
     )
 
 {-| Reports when an expression can be simplified.
@@ -12,7 +12,7 @@ module Simplify exposing
         ]
 
 @docs rule
-@docs Configuration, defaults, expectNaN, ignoreCaseOfForTypes
+@docs Configuration, defaults, expectNaN, ignoreMicroOptimizations, ignoreCaseOfForTypes
 
 
 ## Try it out
@@ -1438,7 +1438,7 @@ rule (Configuration config) =
         |> Rule.fromProjectRuleSchema
 
 
-moduleVisitor : { config | expectNaN : Bool } -> Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
+moduleVisitor : { config | ignoreMicroOptimizations : Bool, expectNaN : Bool } -> Rule.ModuleRuleSchema schemaState ModuleContext -> Rule.ModuleRuleSchema { schemaState | hasAtLeastOneVisitor : () } ModuleContext
 moduleVisitor config schema =
     schema
         |> Rule.withCommentsVisitor (\comments context -> ( [], commentsVisitor comments context ))
@@ -1452,21 +1452,27 @@ moduleVisitor config schema =
 -- CONFIGURATION
 
 
-{-| Configuration for this rule. Create a new one with [`defaults`](#defaults) and use [`ignoreCaseOfForTypes`](#ignoreCaseOfForTypes) and [`expectNaN`](#expectNaN) to alter it.
+{-| Configuration for this rule.
+Create a new one with [`defaults`](#defaults) and use
+[`ignoreCaseOfForTypes`](#ignoreCaseOfForTypes),
+[`ignoreMicroOptimizations`](#ignoreMicroOptimizations)
+and [`expectNaN`](#expectNaN) to alter it.
 -}
 type Configuration
     = Configuration
         { ignoreConstructors : List String
         , expectNaN : Bool
+        , ignoreMicroOptimizations : Bool
         }
 
 
 {-| Default configuration for this rule.
 
 The rule aims tries to improve the code through simplifications that don't impact the behavior. An exception to this are
-when the presence of `NaN` values
-
+when the presence of `NaN` values.
 Use [`expectNaN`](#expectNaN) if you want to opt out of changes that can impact the behaviour of your code if you expect to work with `NaN` values.
+
+Use [`ignoreMicroOptimizations`](#ignoreMicroOptimizations) if you want to opt out of changes that could marginally worsen performance.
 
 Use [`ignoreCaseOfForTypes`](#ignoreCaseOfForTypes) if you want to prevent simplifying case expressions that work on custom types defined in dependencies.
 
@@ -1478,6 +1484,7 @@ Use [`ignoreCaseOfForTypes`](#ignoreCaseOfForTypes) if you want to prevent simpl
     config =
         [ Simplify.defaults
             |> Simplify.expectNaN
+            |> Simplify.ignoreMicroOptimizations
             |> Simplify.ignoreCaseOfForTypes [ "Module.Name.Type" ]
             |> Simplify.rule
         ]
@@ -1488,6 +1495,7 @@ defaults =
     Configuration
         { ignoreConstructors = []
         , expectNaN = False
+        , ignoreMicroOptimizations = False
         }
 
 
@@ -1521,7 +1529,42 @@ Please let me know by opening an issue if you do use this function, I am very cu
 -}
 ignoreCaseOfForTypes : List String -> Configuration -> Configuration
 ignoreCaseOfForTypes ignoreConstructors (Configuration config) =
-    Configuration { ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors, expectNaN = config.expectNaN }
+    Configuration
+        { ignoreConstructors = ignoreConstructors ++ config.ignoreConstructors
+        , expectNaN = config.expectNaN
+        , ignoreMicroOptimizations = config.ignoreMicroOptimizations
+        }
+
+
+{-| Usually, `elm-review-simplify` will only suggest simplifications
+if the resulting code is at least equally performant.
+
+However, some hot paths may need to squeeze water from a stone
+and simplifying them would prevent optimizations:
+
+  - `numberA /= numberB` can be slower than `numberA < numberB || numberA > numberB` or `numberA - numberB /= 0`
+  - `stringA ++ stringB ++ ""` can be faster than `stringA ++ stringB`
+  - `stringA == stringB ++ ""` can be faster than `stringA == stringB`
+
+If you make use of these kinds of micro-optimizations in your codebase,
+use this option to disable these simplifications altogether.
+
+    config =
+        [ Simplify.defaults
+            |> Simplify.ignoreMicroOptimizations
+            |> Simplify.rule
+        ]
+
+And let us know if we missed some cases where your micro-optimizations are reported!
+
+-}
+ignoreMicroOptimizations : Configuration -> Configuration
+ignoreMicroOptimizations (Configuration config) =
+    Configuration
+        { ignoreConstructors = config.ignoreConstructors
+        , expectNaN = config.expectNaN
+        , ignoreMicroOptimizations = True
+        }
 
 
 {-| Usually, `elm-review-simplify` will only suggest simplifications that are safe to apply without risk of changing the original behavior.
@@ -1564,7 +1607,11 @@ If you somehow expect to create and encounter `NaN` values in your codebase, the
 -}
 expectNaN : Configuration -> Configuration
 expectNaN (Configuration config) =
-    Configuration { ignoreConstructors = config.ignoreConstructors, expectNaN = True }
+    Configuration
+        { ignoreConstructors = config.ignoreConstructors
+        , expectNaN = True
+        , ignoreMicroOptimizations = config.ignoreMicroOptimizations
+        }
 
 
 
@@ -2118,7 +2165,7 @@ declarationVisitor declarationNode context =
 -- EXPRESSION VISITOR
 
 
-expressionVisitor : Node Expression -> { config | expectNaN : Bool } -> ModuleContext -> ( List (Error {}), ModuleContext )
+expressionVisitor : Node Expression -> { config | ignoreMicroOptimizations : Bool, expectNaN : Bool } -> ModuleContext -> ( List (Error {}), ModuleContext )
 expressionVisitor node config context =
     let
         expressionRange : Range
@@ -2412,7 +2459,7 @@ onlyMaybeError maybeError =
     }
 
 
-expressionVisitorHelp : Node Expression -> { config | expectNaN : Bool } -> ModuleContext -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
+expressionVisitorHelp : Node Expression -> { config | ignoreMicroOptimizations : Bool, expectNaN : Bool } -> ModuleContext -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
 expressionVisitorHelp (Node expressionRange expression) config context =
     let
         toCheckInfo :
@@ -2746,6 +2793,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             { lookupTable = context.lookupTable
                             , extractSourceCode = context.extractSourceCode
                             , expectNaN = config.expectNaN
+                            , ignoreMicroOptimizations = config.ignoreMicroOptimizations
                             , importLookup = context.importLookup
                             , moduleBindings = context.moduleBindings
                             , localBindings = context.localBindings
@@ -2933,6 +2981,7 @@ type alias OperatorApplicationCheckInfo =
     { lookupTable : ModuleNameLookupTable
     , extractSourceCode : Range -> String
     , expectNaN : Bool
+    , ignoreMicroOptimizations : Bool
     , importLookup : ImportLookup
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
@@ -3684,12 +3733,16 @@ plusplusChecks =
         [ \checkInfo ->
             findMap
                 (\side ->
-                    case Node.value side.otherNode of
-                        Expression.Literal _ ->
-                            appendEmptyCheck side stringCollection checkInfo
+                    if checkInfo.ignoreMicroOptimizations then
+                        case Node.value side.otherNode of
+                            Expression.Literal _ ->
+                                appendEmptyCheck side stringCollection checkInfo
 
-                        _ ->
-                            Nothing
+                            _ ->
+                                Nothing
+
+                    else
+                        appendEmptyCheck side stringCollection checkInfo
                 )
                 (operationSides checkInfo)
         , \checkInfo ->
