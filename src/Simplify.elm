@@ -6168,13 +6168,29 @@ dictFromListChecks =
                     case Node.value checkInfo.firstArg of
                         Expression.ListExpr elements ->
                             let
+                                knownEntryTuples : List { entryRange : Range, first : Node Expression }
+                                knownEntryTuples =
+                                    elements
+                                        |> List.filterMap
+                                            (\entry ->
+                                                case AstHelpers.getTuple2 checkInfo.lookupTable entry of
+                                                    Nothing ->
+                                                        Nothing
+
+                                                    Just otherEntryTupleParts ->
+                                                        Just
+                                                            { entryRange = Node.range entry
+                                                            , first = otherEntryTupleParts.first
+                                                            }
+                                            )
+
                                 allDifferent :
                                     Result
                                         { entryRange : Range
                                         , keyRange : Range
                                         , nextEntryRange : Range
                                         }
-                                        (List (Node Expression))
+                                        (List { entryRange : Range, first : Node Expression })
                                 allDifferent =
                                     List.foldl
                                         (\entry otherEntriesToCheckOrFoundDuplicate ->
@@ -6183,44 +6199,30 @@ dictFromListChecks =
                                                     Err foundDuplicate
 
                                                 Ok otherEntriesToCheck ->
-                                                    case AstHelpers.getTuple2 checkInfo.lookupTable entry of
-                                                        Nothing ->
-                                                            Ok (otherEntriesToCheck |> List.drop 1)
+                                                    case otherEntriesToCheck of
+                                                        nextEntry :: _ ->
+                                                            if
+                                                                Normalize.isAnyTheSameAsBy checkInfo
+                                                                    entry.first
+                                                                    .first
+                                                                    otherEntriesToCheck
+                                                            then
+                                                                Err
+                                                                    { entryRange = entry.entryRange
+                                                                    , keyRange = Node.range entry.first
+                                                                    , nextEntryRange = nextEntry.entryRange
+                                                                    }
 
-                                                        Just entryTupleParts ->
-                                                            case otherEntriesToCheck of
-                                                                (Node nextEntryRange _) :: _ ->
-                                                                    if
-                                                                        Normalize.isAnyTheSameAs checkInfo
-                                                                            entryTupleParts.first
-                                                                            (otherEntriesToCheck
-                                                                                |> List.filterMap
-                                                                                    (\otherEntry ->
-                                                                                        case AstHelpers.getTuple2 checkInfo.lookupTable entry of
-                                                                                            Nothing ->
-                                                                                                Nothing
+                                                            else
+                                                                Ok (otherEntriesToCheck |> List.drop 1)
 
-                                                                                            Just otherEntryTupleParts ->
-                                                                                                Just otherEntryTupleParts.first
-                                                                                    )
-                                                                            )
-                                                                    then
-                                                                        Err
-                                                                            { entryRange = Node.range entry
-                                                                            , keyRange = Node.range entryTupleParts.first
-                                                                            , nextEntryRange = nextEntryRange
-                                                                            }
-
-                                                                    else
-                                                                        Ok (otherEntriesToCheck |> List.drop 1)
-
-                                                                [] ->
-                                                                    -- entry is the last element
-                                                                    -- so it can't be equal to any other key
-                                                                    Ok []
+                                                        [] ->
+                                                            -- entry is the last element
+                                                            -- so it can't be equal to any other key
+                                                            Ok []
                                         )
-                                        (Ok (List.drop 1 elements))
-                                        elements
+                                        (Ok (List.drop 1 knownEntryTuples))
+                                        knownEntryTuples
                             in
                             case allDifferent of
                                 Ok _ ->
