@@ -1011,6 +1011,9 @@ Destructuring using case expressions
     Set.fromList (Set.toList set)
     --> set
 
+    Set.fromList [ a, a ]
+    --> Set.fromList [ a ]
+
     Set.map f Set.empty -- same for Set.filter, Set.remove...
     --> Set.empty
 
@@ -1096,6 +1099,9 @@ Destructuring using case expressions
 
     Dict.fromList (Dict.toList dict)
     --> dict
+
+    Dict.fromList [ ( key, a ), ( key, b ) ]
+    --> Dict.fromList [ ( key, b ) ]
 
     Dict.isEmpty Dict.empty
     --> True
@@ -5998,6 +6004,69 @@ setFromListChecks =
         [ intoFnCheckOnlyCall (emptiableFromListChecks setCollection)
         , wrapperFromListSingletonChecks setCollection
         , onSpecificFnCallReturnsItsLastArgCheck Fn.Set.toList
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                if checkInfo.expectNaN then
+                    Nothing
+
+                else
+                    case Node.value checkInfo.firstArg of
+                        Expression.ListExpr elements ->
+                            let
+                                allDifferent :
+                                    Result
+                                        { keyRange : Range, nextKeyRange : Range }
+                                        (List (Node Expression))
+                                allDifferent =
+                                    List.foldl
+                                        (\key otherKeysToCheckOrFoundDuplicate ->
+                                            case otherKeysToCheckOrFoundDuplicate of
+                                                Err foundDuplicate ->
+                                                    Err foundDuplicate
+
+                                                Ok otherKeysToCheck ->
+                                                    case otherKeysToCheck of
+                                                        (Node nextKeyRange _) :: _ ->
+                                                            if Normalize.isAnyTheSameAs checkInfo key otherKeysToCheck then
+                                                                Err
+                                                                    { keyRange = Node.range key
+                                                                    , nextKeyRange = nextKeyRange
+                                                                    }
+
+                                                            else
+                                                                Ok (otherKeysToCheck |> List.drop 1)
+
+                                                        [] ->
+                                                            -- key is the last element
+                                                            -- so it can't be equal to any other key
+                                                            Ok []
+                                        )
+                                        (Ok (List.drop 1 elements))
+                                        elements
+                            in
+                            case allDifferent of
+                                Ok _ ->
+                                    Nothing
+
+                                Err firstDuplicateKey ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                "Set.fromList on a list with a duplicate key will only keep one of them"
+                                            , details =
+                                                [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                                            }
+                                            firstDuplicateKey.keyRange
+                                            [ Fix.removeRange
+                                                { start = firstDuplicateKey.keyRange.start
+                                                , end = firstDuplicateKey.nextKeyRange.start
+                                                }
+                                            ]
+                                        )
+
+                        _ ->
+                            Nothing
+            )
         ]
 
 
@@ -6090,6 +6159,92 @@ dictFromListChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (emptiableFromListChecks dictCollection)
         , onSpecificFnCallReturnsItsLastArgCheck Fn.Dict.toList
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                if checkInfo.expectNaN then
+                    Nothing
+
+                else
+                    case Node.value checkInfo.firstArg of
+                        Expression.ListExpr elements ->
+                            let
+                                allDifferent :
+                                    Result
+                                        { entryRange : Range
+                                        , keyRange : Range
+                                        , nextEntryRange : Range
+                                        }
+                                        (List (Node Expression))
+                                allDifferent =
+                                    List.foldl
+                                        (\entry otherEntriesToCheckOrFoundDuplicate ->
+                                            case otherEntriesToCheckOrFoundDuplicate of
+                                                Err foundDuplicate ->
+                                                    Err foundDuplicate
+
+                                                Ok otherEntriesToCheck ->
+                                                    case AstHelpers.getTuple2 checkInfo.lookupTable entry of
+                                                        Nothing ->
+                                                            Ok (otherEntriesToCheck |> List.drop 1)
+
+                                                        Just entryTupleParts ->
+                                                            case otherEntriesToCheck of
+                                                                (Node nextEntryRange _) :: _ ->
+                                                                    if
+                                                                        Normalize.isAnyTheSameAs checkInfo
+                                                                            entryTupleParts.first
+                                                                            (otherEntriesToCheck
+                                                                                |> List.filterMap
+                                                                                    (\otherEntry ->
+                                                                                        case AstHelpers.getTuple2 checkInfo.lookupTable entry of
+                                                                                            Nothing ->
+                                                                                                Nothing
+
+                                                                                            Just otherEntryTupleParts ->
+                                                                                                Just otherEntryTupleParts.first
+                                                                                    )
+                                                                            )
+                                                                    then
+                                                                        Err
+                                                                            { entryRange = Node.range entry
+                                                                            , keyRange = Node.range entryTupleParts.first
+                                                                            , nextEntryRange = nextEntryRange
+                                                                            }
+
+                                                                    else
+                                                                        Ok (otherEntriesToCheck |> List.drop 1)
+
+                                                                [] ->
+                                                                    -- entry is the last element
+                                                                    -- so it can't be equal to any other key
+                                                                    Ok []
+                                        )
+                                        (Ok (List.drop 1 elements))
+                                        elements
+                            in
+                            case allDifferent of
+                                Ok _ ->
+                                    Nothing
+
+                                Err firstDuplicateKey ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                "Dict.fromList on entries with a duplicate key will only keep the last entry"
+                                            , details =
+                                                [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                                            }
+                                            firstDuplicateKey.keyRange
+                                            [ Fix.removeRange
+                                                { start = firstDuplicateKey.entryRange.start
+                                                , end = firstDuplicateKey.nextEntryRange.start
+                                                }
+                                            ]
+                                        )
+
+                        _ ->
+                            Nothing
+            )
         ]
 
 
