@@ -1242,6 +1242,55 @@ import Set
 a = []
 """
                         ]
+        , test "should not report Set.fromList with duplicate keys when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList [ key, key ]
+b = Set.fromList [ ( 1, "", [ 'a' ] ), ( 1, "", [ 'a' ] ) ]
+"""
+                    |> Review.Test.run TestHelpers.ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.fromList [ key, key ] by Set.fromList [ key ]" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList [ key, key ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.fromList on a list with a duplicate key will only keep one of them"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                            , under = "key"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 20 }, end = { row = 3, column = 23 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList [ key ]
+"""
+                        ]
+        , test "should replace Set.fromList [ ( 1, \"\", [ 'a' ] ), ( 1, \"\", [ 'a' ] ) ] by Set.fromList [ ( 1, \"\", [ 'a' ] ) ]" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList [ ( 1, "", [ 'a' ] ), ( 1, "", [ 'a' ] ) ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.fromList on a list with a duplicate key will only keep one of them"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                            , under = """( 1, "", [ 'a' ] )"""
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 20 }, end = { row = 3, column = 38 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList [ ( 1, "", [ 'a' ] ) ]
+"""
+                        ]
         ]
 
 

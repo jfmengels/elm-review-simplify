@@ -338,6 +338,55 @@ import Dict
 a = (f >> g)
 """
                         ]
+        , test "should not report Dict.fromList with duplicate keys when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.fromList [ ( key, v0 ), ( key, v1 ) ]
+b = Dict.fromList [ ( ( 1, "", [ 'a' ] ), v0 ), ( ( 1, "", [ 'a' ] ), v1 ) ]
+"""
+                    |> Review.Test.run TestHelpers.ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.fromList [ ( key, v0 ), ( key, v1 ) ] by Dict.fromList [ ( key, v1 ) ]" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.fromList [ ( key, v0 ), ( key, v1 ) ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.fromList on entries with a duplicate key will only keep the last entry"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                            , under = "key"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 23 }, end = { row = 3, column = 26 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.fromList [ ( key, v1 ) ]
+"""
+                        ]
+        , test "should replace Dict.fromList [ ( ( 1, \"\", [ 'a' ] ), v0 ), ( ( 1, \"\", [ 'a' ] ), v1 ) ] by Dict.fromList [ ( ( 1, \"\", [ 'a' ] ), v1 ) ]" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.fromList [ ( ( 1, "", [ 'a' ] ), v0 ), ( ( 1, "", [ 'a' ] ), v1 ) ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.fromList on entries with a duplicate key will only keep the last entry"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                            , under = """( 1, "", [ 'a' ] )"""
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 23 }, end = { row = 3, column = 41 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.fromList [ ( ( 1, "", [ 'a' ] ), v1 ) ]
+"""
+                        ]
         ]
 
 
