@@ -578,6 +578,17 @@ a = Dict.size (Dict.fromList [(1,1), (2,1), (3,1), (3,2), (0x3,2)])
 import Dict
 a = 3
 """
+                        , Review.Test.error
+                            { message = "Dict.fromList on entries with a duplicate key will only keep the last entry"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                            , under = "3"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 46 }, end = { row = 3, column = 47 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.size (Dict.fromList [(1,1), (2,1), (3,2), (0x3,2)])
+"""
                         ]
         , test "should replace Dict.size (Dict.fromList [(1.3,()), (-1.3,()), (2.1,()), (2.1,())]) by 3" <|
             \() ->
@@ -595,6 +606,17 @@ a = Dict.size (Dict.fromList [(1.3,()), (-1.3,()), (2.1,()), (2.1,())])
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = 3
+"""
+                        , Review.Test.error
+                            { message = "Dict.fromList on entries with a duplicate key will only keep the last entry"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                            , under = "2.1"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 53 }, end = { row = 3, column = 56 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.size (Dict.fromList [(1.3,()), (-1.3,()), (2.1,())])
 """
                         ]
         ]

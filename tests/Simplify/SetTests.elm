@@ -613,8 +613,19 @@ a = Set.size (Set.fromList [1, 2, 3, 3, 0x3])
 import Set
 a = 3
 """
+                        , Review.Test.error
+                            { message = "Set.fromList on a list with a duplicate key will only keep one of them"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                            , under = "3"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 35 }, end = { row = 3, column = 36 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.size (Set.fromList [1, 2, 3, 0x3])
+"""
                         ]
-        , test "should replace Set.size (Set.fromList [2, -2, -(-2)]) by 2" <|
+        , test "should replace Set.size (Set.fromList [2, -2, -2]) by 2" <|
             \() ->
                 """module A exposing (..)
 import Set
@@ -630,6 +641,17 @@ a = Set.size (Set.fromList [2, -2, -2])
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
 a = 2
+"""
+                        , Review.Test.error
+                            { message = "Set.fromList on a list with a duplicate key will only keep one of them"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                            , under = "-2"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 32 }, end = { row = 3, column = 34 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.size (Set.fromList [2, -2])
 """
                         ]
         , test "should replace Set.size (Set.fromList [1.3, -1.3, 2.1, 2.1]) by 3" <|
@@ -649,6 +671,17 @@ a = Set.size (Set.fromList [1.3, -1.3, 2.1, 2.1])
 import Set
 a = 3
 """
+                        , Review.Test.error
+                            { message = "Set.fromList on a list with a duplicate key will only keep one of them"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                            , under = "2.1"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 40 }, end = { row = 3, column = 43 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.size (Set.fromList [1.3, -1.3, 2.1])
+"""
                         ]
         , test "should replace Set.size (Set.fromList [\"foo\", \"bar\", \"foo\"]) by 2" <|
             \() ->
@@ -666,6 +699,17 @@ a = Set.size (Set.fromList ["foo", "bar", "foo"])
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
 a = 2
+"""
+                        , Review.Test.error
+                            { message = "Set.fromList on a list with a duplicate key will only keep one of them"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                            , under = "\"foo\""
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 29 }, end = { row = 3, column = 34 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.size (Set.fromList ["bar", "foo"])
 """
                         ]
         , test "should replace Set.size (Set.fromList ['a', 'b', ('a')]) by 2" <|
@@ -685,6 +729,17 @@ a = Set.size (Set.fromList ['a', 'b', ('a')])
 import Set
 a = 2
 """
+                        , Review.Test.error
+                            { message = "Set.fromList on a list with a duplicate key will only keep one of them"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                            , under = "'a'"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 29 }, end = { row = 3, column = 32 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.size (Set.fromList ['b', ('a')])
+"""
                         ]
         , test "should replace Set.size (Set.fromList [([1, 2], [3, 4]), ([1, 2], [3, 4]), ([], [1])]) by 2" <|
             \() ->
@@ -702,6 +757,17 @@ a = Set.size (Set.fromList [([1, 2], [3, 4]), ([1, 2], [3, 4]), ([], [1])])
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
 a = 2
+"""
+                        , Review.Test.error
+                            { message = "Set.fromList on a list with a duplicate key will only keep one of them"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                            , under = "([1, 2], [3, 4])"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 29 }, end = { row = 3, column = 45 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.size (Set.fromList [([1, 2], [3, 4]), ([], [1])])
 """
                         ]
         , test "should replace Set.empty |> Set.size by 0" <|
