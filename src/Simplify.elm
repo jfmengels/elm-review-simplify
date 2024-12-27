@@ -6017,12 +6017,7 @@ setFromListChecks =
                                 allDifferent key otherKeysToCheck =
                                     case otherKeysToCheck of
                                         first :: rest ->
-                                            let
-                                                normalizedFirst : Node Expression
-                                                normalizedFirst =
-                                                    Normalize.normalize checkInfo key
-                                            in
-                                            if List.any (\node -> Normalize.normalize checkInfo node == normalizedFirst) otherKeysToCheck then
+                                            if List.any (\(Node _ otherKey) -> otherKey == Node.value key) otherKeysToCheck then
                                                 Just
                                                     { keyRange = Node.range key
                                                     , nextKeyRange = Node.range first
@@ -6036,7 +6031,7 @@ setFromListChecks =
                                             -- so it can't be equal to any other key
                                             Nothing
                             in
-                            case elements of
+                            case List.map (Normalize.normalizeButKeepRange checkInfo) elements of
                                 [] ->
                                     Nothing
 
