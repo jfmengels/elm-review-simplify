@@ -6201,7 +6201,7 @@ dictFromListChecks =
                                 allDifferentHelp : { entryRange : Range, first : Node Expression } -> List { entryRange : Range, first : Node Expression } -> Maybe { entryRange : Range, keyRange : Range, nextEntryRange : Range }
                                 allDifferentHelp entry otherEntriesToCheck =
                                     case otherEntriesToCheck of
-                                        nextEntry :: _ ->
+                                        nextEntry :: restOfEntries ->
                                             if
                                                 Normalize.isAnyTheSameAsBy checkInfo
                                                     entry.first
@@ -6215,7 +6215,7 @@ dictFromListChecks =
                                                     }
 
                                             else
-                                                allDifferentHelp nextEntry (otherEntriesToCheck |> List.drop 1)
+                                                allDifferentHelp nextEntry restOfEntries
 
                                         [] ->
                                             -- entry is the last element
