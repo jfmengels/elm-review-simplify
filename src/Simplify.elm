@@ -6173,10 +6173,7 @@ dictFromListChecks =
                                                 { entryRange = Node.range entry
                                                 , first =
                                                     AstHelpers.getTuple2 checkInfo.lookupTable entry
-                                                        |> Maybe.map
-                                                            (\tuple ->
-                                                                Node (Node.range tuple.first) (Node.value (Normalize.normalize checkInfo tuple.first))
-                                                            )
+                                                        |> Maybe.map (\tuple -> Normalize.normalizeButKeepRange checkInfo tuple.first)
                                                 }
                                             )
 

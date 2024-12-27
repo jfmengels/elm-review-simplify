@@ -1,4 +1,4 @@
-module Simplify.Normalize exposing (Comparison(..), areAllTheSame, compare, compareWithoutNormalization, getNumberValue, normalize)
+module Simplify.Normalize exposing (Comparison(..), areAllTheSame, compare, compareWithoutNormalization, getNumberValue, normalize, normalizeButKeepRange)
 
 import Dict
 import Elm.Syntax.Expression as Expression exposing (Expression)
@@ -233,6 +233,11 @@ normalize resources node =
 
         expr ->
             toNode expr
+
+
+normalizeButKeepRange : Infer.Resources a -> Node Expression -> Node Expression
+normalizeButKeepRange checkInfo node =
+    Node (Node.range node) (Node.value (normalize checkInfo node))
 
 
 toNodeAndInfer : Infer.Resources a -> Expression -> Node Expression
