@@ -6190,7 +6190,7 @@ dictFromListChecks =
                                             case entry.first of
                                                 Just firstKey ->
                                                     if
-                                                        Normalize.isAnyTheSameAsBy checkInfo
+                                                        isAnyTheSameAsBy checkInfo
                                                             firstKey
                                                             .first
                                                             otherEntriesToCheck
@@ -6232,6 +6232,30 @@ dictFromListChecks =
                             Nothing
             )
         ]
+
+
+isAnyTheSameAsBy :
+    Infer.Resources a
+    -> Node Expression
+    -> (element -> Maybe (Node Expression))
+    -> List element
+    -> Bool
+isAnyTheSameAsBy resources first restElementToNode rest =
+    let
+        normalizedFirst : Node Expression
+        normalizedFirst =
+            Normalize.normalize resources first
+    in
+    List.any
+        (\node ->
+            case restElementToNode node of
+                Just element ->
+                    Normalize.normalize resources element == normalizedFirst
+
+                Nothing ->
+                    False
+        )
+        rest
 
 
 dictIsEmptyChecks : IntoFnCheck

@@ -1,4 +1,4 @@
-module Simplify.Normalize exposing (Comparison(..), areAllTheSame, compare, compareWithoutNormalization, getNumberValue, isAnyTheSameAs, isAnyTheSameAsBy, normalize)
+module Simplify.Normalize exposing (Comparison(..), areAllTheSame, compare, compareWithoutNormalization, getNumberValue, isAnyTheSameAs, normalize)
 
 import Dict
 import Elm.Syntax.Expression as Expression exposing (Expression)
@@ -29,30 +29,6 @@ isAnyTheSameAs resources first rest =
             normalize resources first
     in
     List.any (\node -> normalize resources node == normalizedFirst) rest
-
-
-isAnyTheSameAsBy :
-    Infer.Resources a
-    -> Node Expression
-    -> (element -> Maybe (Node Expression))
-    -> List element
-    -> Bool
-isAnyTheSameAsBy resources first restElementToNode rest =
-    let
-        normalizedFirst : Node Expression
-        normalizedFirst =
-            normalize resources first
-    in
-    List.any
-        (\node ->
-            case restElementToNode node of
-                Just element ->
-                    normalize resources element == normalizedFirst
-
-                Nothing ->
-                    False
-        )
-        rest
 
 
 normalize : Infer.Resources a -> Node Expression -> Node Expression
