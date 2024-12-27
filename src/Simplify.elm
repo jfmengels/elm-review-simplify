@@ -6044,25 +6044,30 @@ setFromListChecks =
                                         (Ok (List.drop 1 elements))
                                         elements
                             in
-                            case allDifferent of
-                                Ok _ ->
+                            case elements of
+                                [] ->
                                     Nothing
 
-                                Err firstDuplicateKey ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message =
-                                                "Set.fromList on a list with a duplicate key will only keep one of them"
-                                            , details =
-                                                [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
-                                            }
-                                            firstDuplicateKey.keyRange
-                                            [ Fix.removeRange
-                                                { start = firstDuplicateKey.keyRange.start
-                                                , end = firstDuplicateKey.nextKeyRange.start
-                                                }
-                                            ]
-                                        )
+                                first :: rest ->
+                                    case allDifferent of
+                                        Ok _ ->
+                                            Nothing
+
+                                        Err firstDuplicateKey ->
+                                            Just
+                                                (Rule.errorWithFix
+                                                    { message =
+                                                        "Set.fromList on a list with a duplicate key will only keep one of them"
+                                                    , details =
+                                                        [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                                                    }
+                                                    firstDuplicateKey.keyRange
+                                                    [ Fix.removeRange
+                                                        { start = firstDuplicateKey.keyRange.start
+                                                        , end = firstDuplicateKey.nextKeyRange.start
+                                                        }
+                                                    ]
+                                                )
 
                         _ ->
                             Nothing
