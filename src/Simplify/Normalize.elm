@@ -34,7 +34,7 @@ isAnyTheSameAs resources first rest =
 isAnyTheSameAsBy :
     Infer.Resources a
     -> Node Expression
-    -> (element -> Node Expression)
+    -> (element -> Maybe (Node Expression))
     -> List element
     -> Bool
 isAnyTheSameAsBy resources first restElementToNode rest =
@@ -45,7 +45,12 @@ isAnyTheSameAsBy resources first restElementToNode rest =
     in
     List.any
         (\node ->
-            normalize resources (restElementToNode node) == normalizedFirst
+            case restElementToNode node of
+                Just element ->
+                    normalize resources element == normalizedFirst
+
+                Nothing ->
+                    False
         )
         rest
 

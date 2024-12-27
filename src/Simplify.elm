@@ -6191,7 +6191,7 @@ dictFromListChecks =
                                             if
                                                 Normalize.isAnyTheSameAsBy checkInfo
                                                     entry.first
-                                                    .first
+                                                    (.first >> Just)
                                                     otherEntriesToCheck
                                             then
                                                 Just
