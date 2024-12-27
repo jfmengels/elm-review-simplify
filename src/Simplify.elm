@@ -6026,7 +6026,7 @@ setFromListChecks =
 
                                                 Ok otherKeysToCheck ->
                                                     case otherKeysToCheck of
-                                                        (Node nextKeyRange _) :: _ ->
+                                                        (Node nextKeyRange _) :: rest ->
                                                             if Normalize.isAnyTheSameAs checkInfo key otherKeysToCheck then
                                                                 Err
                                                                     { keyRange = Node.range key
@@ -6034,7 +6034,7 @@ setFromListChecks =
                                                                     }
 
                                                             else
-                                                                Ok (otherKeysToCheck |> List.drop 1)
+                                                                Ok rest
 
                                                         [] ->
                                                             -- key is the last element
