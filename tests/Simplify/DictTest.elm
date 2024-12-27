@@ -367,6 +367,26 @@ import Dict
 a = Dict.fromList [ ( key, v1 ) ]
 """
                         ]
+        , test "should replace Dict.fromList [ ( key, v0 ), thing, ( key, v1 ) ] by Dict.fromList [ thing, ( key, v1 ) ]" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.fromList [ ( key, v0 ), thing, ( key, v1 ) ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.fromList on entries with a duplicate key will only keep the last entry"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                            , under = "key"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 23 }, end = { row = 3, column = 26 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.fromList [ thing, ( key, v1 ) ]
+"""
+                        ]
         , test "should replace Dict.fromList [ ( ( 1, \"\", [ 'a' ] ), v0 ), ( ( 1, \"\", [ 'a' ] ), v1 ) ] by Dict.fromList [ ( ( 1, \"\", [ 'a' ] ), v1 ) ]" <|
             \() ->
                 """module A exposing (..)
