@@ -6017,7 +6017,12 @@ setFromListChecks =
                                 allDifferent key otherKeysToCheck =
                                     case otherKeysToCheck of
                                         first :: rest ->
-                                            if Normalize.isAnyTheSameAs checkInfo key otherKeysToCheck then
+                                            let
+                                                normalizedFirst : Node Expression
+                                                normalizedFirst =
+                                                    Normalize.normalize checkInfo key
+                                            in
+                                            if List.any (\node -> Normalize.normalize checkInfo node == normalizedFirst) otherKeysToCheck then
                                                 Just
                                                     { keyRange = Node.range key
                                                     , nextKeyRange = Node.range first
