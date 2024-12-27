@@ -6013,43 +6013,35 @@ setFromListChecks =
                     case Node.value checkInfo.firstArg of
                         Expression.ListExpr elements ->
                             let
-                                allDifferent :
-                                    Result
-                                        { keyRange : Range, nextKeyRange : Range }
-                                        (List (Node Expression))
-                                allDifferent =
-                                    List.foldl
-                                        (\key otherKeysToCheckOrFoundDuplicate ->
-                                            case otherKeysToCheckOrFoundDuplicate of
-                                                Err foundDuplicate ->
-                                                    Err foundDuplicate
+                                allDifferent : Node Expression -> Result { keyRange : Range, nextKeyRange : Range } (List (Node Expression)) -> Result { keyRange : Range, nextKeyRange : Range } (List a)
+                                allDifferent key otherKeysToCheckOrFoundDuplicate =
+                                    case otherKeysToCheckOrFoundDuplicate of
+                                        Err foundDuplicate ->
+                                            Err foundDuplicate
 
-                                                Ok otherKeysToCheck ->
-                                                    case otherKeysToCheck of
-                                                        first :: rest ->
-                                                            if Normalize.isAnyTheSameAs checkInfo key otherKeysToCheck then
-                                                                Err
-                                                                    { keyRange = Node.range key
-                                                                    , nextKeyRange = Node.range first
-                                                                    }
+                                        Ok otherKeysToCheck ->
+                                            case otherKeysToCheck of
+                                                first :: rest ->
+                                                    if Normalize.isAnyTheSameAs checkInfo key otherKeysToCheck then
+                                                        Err
+                                                            { keyRange = Node.range key
+                                                            , nextKeyRange = Node.range first
+                                                            }
 
-                                                            else
-                                                                Ok rest
+                                                    else
+                                                        allDifferent first (Ok rest)
 
-                                                        [] ->
-                                                            -- key is the last element
-                                                            -- so it can't be equal to any other key
-                                                            Ok []
-                                        )
-                                        (Ok (List.drop 1 elements))
-                                        elements
+                                                [] ->
+                                                    -- key is the last element
+                                                    -- so it can't be equal to any other key
+                                                    Ok []
                             in
                             case elements of
                                 [] ->
                                     Nothing
 
                                 first :: rest ->
-                                    case allDifferent of
+                                    case allDifferent first (Ok rest) of
                                         Ok _ ->
                                             Nothing
 
