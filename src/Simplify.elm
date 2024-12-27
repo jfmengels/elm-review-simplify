@@ -6189,12 +6189,7 @@ dictFromListChecks =
                                         nextEntry :: restOfEntries ->
                                             case entry.first of
                                                 Just firstKey ->
-                                                    if
-                                                        isAnyTheSameAsBy checkInfo
-                                                            firstKey
-                                                            .first
-                                                            otherEntriesToCheck
-                                                    then
+                                                    if isAnyTheSameAsBy checkInfo firstKey otherEntriesToCheck then
                                                         Just
                                                             (Rule.errorWithFix
                                                                 { message =
@@ -6234,13 +6229,8 @@ dictFromListChecks =
         ]
 
 
-isAnyTheSameAsBy :
-    Infer.Resources a
-    -> Node Expression
-    -> (element -> Maybe (Node Expression))
-    -> List element
-    -> Bool
-isAnyTheSameAsBy resources first restElementToNode rest =
+isAnyTheSameAsBy : Infer.Resources a -> Node Expression -> List { b | first : Maybe (Node Expression) } -> Bool
+isAnyTheSameAsBy resources first rest =
     let
         normalizedFirst : Node Expression
         normalizedFirst =
@@ -6248,7 +6238,7 @@ isAnyTheSameAsBy resources first restElementToNode rest =
     in
     List.any
         (\node ->
-            case restElementToNode node of
+            case node.first of
                 Just element ->
                     Normalize.normalize resources element == normalizedFirst
 
