@@ -6174,7 +6174,12 @@ dictFromListChecks =
                                         |> List.map
                                             (\entry ->
                                                 { entryRange = Node.range entry
-                                                , first = AstHelpers.getTuple2 checkInfo.lookupTable entry |> Maybe.map .first
+                                                , first =
+                                                    AstHelpers.getTuple2 checkInfo.lookupTable entry
+                                                        |> Maybe.map
+                                                            (\tuple ->
+                                                                Node (Node.range tuple.first) (Node.value (Normalize.normalize checkInfo tuple.first))
+                                                            )
                                                 }
                                             )
 
