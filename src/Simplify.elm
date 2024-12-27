@@ -6013,12 +6013,12 @@ setFromListChecks =
                     case Node.value checkInfo.firstArg of
                         Expression.ListExpr elements ->
                             let
-                                allDifferent : Node Expression -> List (Node Expression) -> Result { keyRange : Range, nextKeyRange : Range } (List a)
+                                allDifferent : Node Expression -> List (Node Expression) -> Maybe { keyRange : Range, nextKeyRange : Range }
                                 allDifferent key otherKeysToCheck =
                                     case otherKeysToCheck of
                                         first :: rest ->
                                             if Normalize.isAnyTheSameAs checkInfo key otherKeysToCheck then
-                                                Err
+                                                Just
                                                     { keyRange = Node.range key
                                                     , nextKeyRange = Node.range first
                                                     }
@@ -6029,7 +6029,7 @@ setFromListChecks =
                                         [] ->
                                             -- key is the last element
                                             -- so it can't be equal to any other key
-                                            Ok []
+                                            Nothing
                             in
                             case elements of
                                 [] ->
@@ -6037,10 +6037,10 @@ setFromListChecks =
 
                                 first :: rest ->
                                     case allDifferent first rest of
-                                        Ok _ ->
+                                        Nothing ->
                                             Nothing
 
-                                        Err firstDuplicateKey ->
+                                        Just firstDuplicateKey ->
                                             Just
                                                 (Rule.errorWithFix
                                                     { message =
