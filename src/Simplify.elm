@@ -6026,11 +6026,11 @@ setFromListChecks =
 
                                                 Ok otherKeysToCheck ->
                                                     case otherKeysToCheck of
-                                                        (Node nextKeyRange _) :: rest ->
+                                                        first :: rest ->
                                                             if Normalize.isAnyTheSameAs checkInfo key otherKeysToCheck then
                                                                 Err
                                                                     { keyRange = Node.range key
-                                                                    , nextKeyRange = nextKeyRange
+                                                                    , nextKeyRange = Node.range first
                                                                     }
 
                                                             else
