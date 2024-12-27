@@ -6168,49 +6168,48 @@ dictFromListChecks =
                     case Node.value checkInfo.firstArg of
                         Expression.ListExpr elements ->
                             let
-                                knownEntryTuples : List { entryRange : Range, first : Node Expression }
+                                knownEntryTuples : List { entryRange : Range, first : Maybe (Node Expression) }
                                 knownEntryTuples =
                                     elements
-                                        |> List.filterMap
+                                        |> List.map
                                             (\entry ->
-                                                case AstHelpers.getTuple2 checkInfo.lookupTable entry of
-                                                    Nothing ->
-                                                        Nothing
-
-                                                    Just otherEntryTupleParts ->
-                                                        Just
-                                                            { entryRange = Node.range entry
-                                                            , first = otherEntryTupleParts.first
-                                                            }
+                                                { entryRange = Node.range entry
+                                                , first = AstHelpers.getTuple2 checkInfo.lookupTable entry |> Maybe.map .first
+                                                }
                                             )
 
-                                allDifferent : { entryRange : Range, first : Node Expression } -> List { entryRange : Range, first : Node Expression } -> Maybe (Error {})
+                                allDifferent : { entryRange : Range, first : Maybe (Node Expression) } -> List { entryRange : Range, first : Maybe (Node Expression) } -> Maybe (Error {})
                                 allDifferent entry otherEntriesToCheck =
                                     case otherEntriesToCheck of
                                         nextEntry :: restOfEntries ->
-                                            if
-                                                Normalize.isAnyTheSameAsBy checkInfo
-                                                    entry.first
-                                                    (.first >> Just)
-                                                    otherEntriesToCheck
-                                            then
-                                                Just
-                                                    (Rule.errorWithFix
-                                                        { message =
-                                                            "Dict.fromList on entries with a duplicate key will only keep the last entry"
-                                                        , details =
-                                                            [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
-                                                        }
-                                                        (Node.range entry.first)
-                                                        [ Fix.removeRange
-                                                            { start = entry.entryRange.start
-                                                            , end = nextEntry.entryRange.start
-                                                            }
-                                                        ]
-                                                    )
+                                            case entry.first of
+                                                Just firstKey ->
+                                                    if
+                                                        Normalize.isAnyTheSameAsBy checkInfo
+                                                            firstKey
+                                                            .first
+                                                            otherEntriesToCheck
+                                                    then
+                                                        Just
+                                                            (Rule.errorWithFix
+                                                                { message =
+                                                                    "Dict.fromList on entries with a duplicate key will only keep the last entry"
+                                                                , details =
+                                                                    [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                                                                }
+                                                                (Node.range firstKey)
+                                                                [ Fix.removeRange
+                                                                    { start = entry.entryRange.start
+                                                                    , end = nextEntry.entryRange.start
+                                                                    }
+                                                                ]
+                                                            )
 
-                                            else
-                                                allDifferent nextEntry restOfEntries
+                                                    else
+                                                        allDifferent nextEntry restOfEntries
+
+                                                Nothing ->
+                                                    allDifferent nextEntry restOfEntries
 
                                         [] ->
                                             -- entry is the last element
