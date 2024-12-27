@@ -6184,7 +6184,7 @@ dictFromListChecks =
                                                             }
                                             )
 
-                                allDifferent : { entryRange : Range, first : Node Expression } -> List { entryRange : Range, first : Node Expression } -> Maybe { entryRange : Range, keyRange : Range, nextEntryRange : Range }
+                                allDifferent : { entryRange : Range, first : Node Expression } -> List { entryRange : Range, first : Node Expression } -> Maybe (Error {})
                                 allDifferent entry otherEntriesToCheck =
                                     case otherEntriesToCheck of
                                         nextEntry :: restOfEntries ->
@@ -6195,10 +6195,19 @@ dictFromListChecks =
                                                     otherEntriesToCheck
                                             then
                                                 Just
-                                                    { entryRange = entry.entryRange
-                                                    , keyRange = Node.range entry.first
-                                                    , nextEntryRange = nextEntry.entryRange
-                                                    }
+                                                    (Rule.errorWithFix
+                                                        { message =
+                                                            "Dict.fromList on entries with a duplicate key will only keep the last entry"
+                                                        , details =
+                                                            [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                                                        }
+                                                        (Node.range entry.first)
+                                                        [ Fix.removeRange
+                                                            { start = entry.entryRange.start
+                                                            , end = nextEntry.entryRange.start
+                                                            }
+                                                        ]
+                                                    )
 
                                             else
                                                 allDifferent nextEntry restOfEntries
@@ -6213,25 +6222,7 @@ dictFromListChecks =
                                     Nothing
 
                                 first :: rest ->
-                                    case allDifferent first rest of
-                                        Nothing ->
-                                            Nothing
-
-                                        Just firstDuplicateKey ->
-                                            Just
-                                                (Rule.errorWithFix
-                                                    { message =
-                                                        "Dict.fromList on entries with a duplicate key will only keep the last entry"
-                                                    , details =
-                                                        [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
-                                                    }
-                                                    firstDuplicateKey.keyRange
-                                                    [ Fix.removeRange
-                                                        { start = firstDuplicateKey.entryRange.start
-                                                        , end = firstDuplicateKey.nextEntryRange.start
-                                                        }
-                                                    ]
-                                                )
+                                    allDifferent first rest
 
                         _ ->
                             Nothing
