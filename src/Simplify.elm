@@ -6192,39 +6192,36 @@ dictFromListChecks =
                                         }
                                         (List { entryRange : Range, first : Node Expression })
                                 allDifferent =
-                                    List.foldl
-                                        allDifferentHelp
-                                        (Ok (List.drop 1 knownEntryTuples))
-                                        knownEntryTuples
+                                    case knownEntryTuples of
+                                        [] ->
+                                            Ok []
 
-                                allDifferentHelp : { entryRange : Range, first : Node Expression } -> Result { entryRange : Range, keyRange : Range, nextEntryRange : Range } (List { entryRange : Range, first : Node Expression }) -> Result { entryRange : Range, keyRange : Range, nextEntryRange : Range } (List { entryRange : Range, first : Node Expression })
-                                allDifferentHelp entry otherEntriesToCheckOrFoundDuplicate =
-                                    case otherEntriesToCheckOrFoundDuplicate of
-                                        Err foundDuplicate ->
-                                            Err foundDuplicate
+                                        first :: rest ->
+                                            allDifferentHelp first rest
 
-                                        Ok otherEntriesToCheck ->
-                                            case otherEntriesToCheck of
-                                                nextEntry :: _ ->
-                                                    if
-                                                        Normalize.isAnyTheSameAsBy checkInfo
-                                                            entry.first
-                                                            .first
-                                                            otherEntriesToCheck
-                                                    then
-                                                        Err
-                                                            { entryRange = entry.entryRange
-                                                            , keyRange = Node.range entry.first
-                                                            , nextEntryRange = nextEntry.entryRange
-                                                            }
+                                allDifferentHelp : { entryRange : Range, first : Node Expression } -> List { entryRange : Range, first : Node Expression } -> Result { entryRange : Range, keyRange : Range, nextEntryRange : Range } (List { entryRange : Range, first : Node Expression })
+                                allDifferentHelp entry otherEntriesToCheck =
+                                    case otherEntriesToCheck of
+                                        nextEntry :: _ ->
+                                            if
+                                                Normalize.isAnyTheSameAsBy checkInfo
+                                                    entry.first
+                                                    .first
+                                                    otherEntriesToCheck
+                                            then
+                                                Err
+                                                    { entryRange = entry.entryRange
+                                                    , keyRange = Node.range entry.first
+                                                    , nextEntryRange = nextEntry.entryRange
+                                                    }
 
-                                                    else
-                                                        Ok (otherEntriesToCheck |> List.drop 1)
+                                            else
+                                                allDifferentHelp nextEntry (otherEntriesToCheck |> List.drop 1)
 
-                                                [] ->
-                                                    -- entry is the last element
-                                                    -- so it can't be equal to any other key
-                                                    Ok []
+                                        [] ->
+                                            -- entry is the last element
+                                            -- so it can't be equal to any other key
+                                            Ok []
                             in
                             case allDifferent of
                                 Ok _ ->
