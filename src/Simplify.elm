@@ -6185,21 +6185,20 @@ dictFromListChecks =
                                             )
 
                                 allDifferent :
-                                    Result
+                                    Maybe
                                         { entryRange : Range
                                         , keyRange : Range
                                         , nextEntryRange : Range
                                         }
-                                        (List { entryRange : Range, first : Node Expression })
                                 allDifferent =
                                     case knownEntryTuples of
                                         [] ->
-                                            Ok []
+                                            Nothing
 
                                         first :: rest ->
                                             allDifferentHelp first rest
 
-                                allDifferentHelp : { entryRange : Range, first : Node Expression } -> List { entryRange : Range, first : Node Expression } -> Result { entryRange : Range, keyRange : Range, nextEntryRange : Range } (List { entryRange : Range, first : Node Expression })
+                                allDifferentHelp : { entryRange : Range, first : Node Expression } -> List { entryRange : Range, first : Node Expression } -> Maybe { entryRange : Range, keyRange : Range, nextEntryRange : Range }
                                 allDifferentHelp entry otherEntriesToCheck =
                                     case otherEntriesToCheck of
                                         nextEntry :: _ ->
@@ -6209,7 +6208,7 @@ dictFromListChecks =
                                                     .first
                                                     otherEntriesToCheck
                                             then
-                                                Err
+                                                Just
                                                     { entryRange = entry.entryRange
                                                     , keyRange = Node.range entry.first
                                                     , nextEntryRange = nextEntry.entryRange
@@ -6221,13 +6220,13 @@ dictFromListChecks =
                                         [] ->
                                             -- entry is the last element
                                             -- so it can't be equal to any other key
-                                            Ok []
+                                            Nothing
                             in
                             case allDifferent of
-                                Ok _ ->
+                                Nothing ->
                                     Nothing
 
-                                Err firstDuplicateKey ->
+                                Just firstDuplicateKey ->
                                     Just
                                         (Rule.errorWithFix
                                             { message =
