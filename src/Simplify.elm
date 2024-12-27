@@ -6184,22 +6184,8 @@ dictFromListChecks =
                                                             }
                                             )
 
-                                allDifferent :
-                                    Maybe
-                                        { entryRange : Range
-                                        , keyRange : Range
-                                        , nextEntryRange : Range
-                                        }
-                                allDifferent =
-                                    case knownEntryTuples of
-                                        [] ->
-                                            Nothing
-
-                                        first :: rest ->
-                                            allDifferentHelp first rest
-
-                                allDifferentHelp : { entryRange : Range, first : Node Expression } -> List { entryRange : Range, first : Node Expression } -> Maybe { entryRange : Range, keyRange : Range, nextEntryRange : Range }
-                                allDifferentHelp entry otherEntriesToCheck =
+                                allDifferent : { entryRange : Range, first : Node Expression } -> List { entryRange : Range, first : Node Expression } -> Maybe { entryRange : Range, keyRange : Range, nextEntryRange : Range }
+                                allDifferent entry otherEntriesToCheck =
                                     case otherEntriesToCheck of
                                         nextEntry :: restOfEntries ->
                                             if
@@ -6215,32 +6201,37 @@ dictFromListChecks =
                                                     }
 
                                             else
-                                                allDifferentHelp nextEntry restOfEntries
+                                                allDifferent nextEntry restOfEntries
 
                                         [] ->
                                             -- entry is the last element
                                             -- so it can't be equal to any other key
                                             Nothing
                             in
-                            case allDifferent of
-                                Nothing ->
+                            case knownEntryTuples of
+                                [] ->
                                     Nothing
 
-                                Just firstDuplicateKey ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message =
-                                                "Dict.fromList on entries with a duplicate key will only keep the last entry"
-                                            , details =
-                                                [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
-                                            }
-                                            firstDuplicateKey.keyRange
-                                            [ Fix.removeRange
-                                                { start = firstDuplicateKey.entryRange.start
-                                                , end = firstDuplicateKey.nextEntryRange.start
-                                                }
-                                            ]
-                                        )
+                                first :: rest ->
+                                    case allDifferent first rest of
+                                        Nothing ->
+                                            Nothing
+
+                                        Just firstDuplicateKey ->
+                                            Just
+                                                (Rule.errorWithFix
+                                                    { message =
+                                                        "Dict.fromList on entries with a duplicate key will only keep the last entry"
+                                                    , details =
+                                                        [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                                                    }
+                                                    firstDuplicateKey.keyRange
+                                                    [ Fix.removeRange
+                                                        { start = firstDuplicateKey.entryRange.start
+                                                        , end = firstDuplicateKey.nextEntryRange.start
+                                                        }
+                                                    ]
+                                                )
 
                         _ ->
                             Nothing
