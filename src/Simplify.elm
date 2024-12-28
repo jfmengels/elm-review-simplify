@@ -6013,15 +6013,25 @@ setFromListChecks =
                     case Node.value checkInfo.firstArg of
                         Expression.ListExpr elements ->
                             let
-                                allDifferent : Node Expression -> List (Node Expression) -> Maybe { keyRange : Range, nextKeyRange : Range }
-                                allDifferent key otherKeysToCheck =
+                                allDifferent : Node Expression -> List (Node Expression) -> Maybe (Error {})
+                                allDifferent (Node keyRange keyValue) otherKeysToCheck =
                                     case otherKeysToCheck of
                                         first :: rest ->
-                                            if List.any (\(Node _ otherKey) -> otherKey == Node.value key) otherKeysToCheck then
+                                            if List.any (\(Node _ otherKey) -> otherKey == keyValue) otherKeysToCheck then
                                                 Just
-                                                    { keyRange = Node.range key
-                                                    , nextKeyRange = Node.range first
-                                                    }
+                                                    (Rule.errorWithFix
+                                                        { message =
+                                                            "Set.fromList on a list with a duplicate key will only keep one of them"
+                                                        , details =
+                                                            [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                                                        }
+                                                        keyRange
+                                                        [ Fix.removeRange
+                                                            { start = keyRange.start
+                                                            , end = (Node.range first).start
+                                                            }
+                                                        ]
+                                                    )
 
                                             else
                                                 allDifferent first rest
@@ -6036,25 +6046,7 @@ setFromListChecks =
                                     Nothing
 
                                 first :: rest ->
-                                    case allDifferent first rest of
-                                        Nothing ->
-                                            Nothing
-
-                                        Just firstDuplicateKey ->
-                                            Just
-                                                (Rule.errorWithFix
-                                                    { message =
-                                                        "Set.fromList on a list with a duplicate key will only keep one of them"
-                                                    , details =
-                                                        [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
-                                                    }
-                                                    firstDuplicateKey.keyRange
-                                                    [ Fix.removeRange
-                                                        { start = firstDuplicateKey.keyRange.start
-                                                        , end = firstDuplicateKey.nextKeyRange.start
-                                                        }
-                                                    ]
-                                                )
+                                    allDifferent first rest
 
                         _ ->
                             Nothing
