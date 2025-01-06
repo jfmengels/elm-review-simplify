@@ -6163,51 +6163,52 @@ dictFromListChecks =
                                                         |> Maybe.map (\tuple -> Normalize.normalizeButKeepRange checkInfo tuple.first)
                                                 }
                                             )
-
-                                allDifferent : { entryRange : Range, first : Maybe (Node Expression) } -> List { entryRange : Range, first : Maybe (Node Expression) } -> Maybe (Error {})
-                                allDifferent entry otherEntriesToCheck =
-                                    case otherEntriesToCheck of
-                                        nextEntry :: restOfEntries ->
-                                            case entry.first of
-                                                Just firstKey ->
-                                                    if isAnyTheSameAsBy firstKey otherEntriesToCheck then
-                                                        Just
-                                                            (Rule.errorWithFix
-                                                                { message =
-                                                                    "Dict.fromList on entries with a duplicate key will only keep the last entry"
-                                                                , details =
-                                                                    [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
-                                                                }
-                                                                (Node.range firstKey)
-                                                                [ Fix.removeRange
-                                                                    { start = entry.entryRange.start
-                                                                    , end = nextEntry.entryRange.start
-                                                                    }
-                                                                ]
-                                                            )
-
-                                                    else
-                                                        allDifferent nextEntry restOfEntries
-
-                                                Nothing ->
-                                                    allDifferent nextEntry restOfEntries
-
-                                        [] ->
-                                            -- entry is the last element
-                                            -- so it can't be equal to any other key
-                                            Nothing
                             in
                             case knownEntryTuples of
                                 [] ->
                                     Nothing
 
                                 first :: rest ->
-                                    allDifferent first rest
+                                    allKeysDifferent first rest
 
                         _ ->
                             Nothing
             )
         ]
+
+
+allKeysDifferent : { entryRange : Range, first : Maybe (Node Expression) } -> List { entryRange : Range, first : Maybe (Node Expression) } -> Maybe (Error {})
+allKeysDifferent entry otherEntriesToCheck =
+    case otherEntriesToCheck of
+        nextEntry :: restOfEntries ->
+            case entry.first of
+                Just firstKey ->
+                    if isAnyTheSameAsBy firstKey otherEntriesToCheck then
+                        Just
+                            (Rule.errorWithFix
+                                { message =
+                                    "Dict.fromList on entries with a duplicate key will only keep the last entry"
+                                , details =
+                                    [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                                }
+                                (Node.range firstKey)
+                                [ Fix.removeRange
+                                    { start = entry.entryRange.start
+                                    , end = nextEntry.entryRange.start
+                                    }
+                                ]
+                            )
+
+                    else
+                        allKeysDifferent nextEntry restOfEntries
+
+                Nothing ->
+                    allKeysDifferent nextEntry restOfEntries
+
+        [] ->
+            -- entry is the last element
+            -- so it can't be equal to any other key
+            Nothing
 
 
 isAnyTheSameAsBy : Node Expression -> List { a | first : Maybe (Node Expression) } -> Bool
