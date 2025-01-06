@@ -6160,17 +6160,13 @@ dictFromListChecks =
                                         AstHelpers.getTuple2 checkInfo.lookupTable entry
                                             |> Maybe.map (\tuple -> Normalize.normalizeButKeepRange checkInfo tuple.first)
                                     }
-
-                                knownEntryTuples : List { entryRange : Range, first : Maybe (Node Expression) }
-                                knownEntryTuples =
-                                    List.map toEntry elements
                             in
-                            case knownEntryTuples of
+                            case elements of
                                 [] ->
                                     Nothing
 
                                 first :: rest ->
-                                    allKeysDifferent first rest
+                                    allKeysDifferent (toEntry first) (List.map toEntry rest)
 
                         _ ->
                             Nothing
