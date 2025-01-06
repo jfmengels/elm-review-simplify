@@ -1357,6 +1357,25 @@ import Set
 a = Set.fromList [ ( 1, "", [ 'a' ] ) ]
 """
                         ]
+        , test "should replace Set.fromList [ 'a', thing, 'a' ] by Set.fromList [ thing, 'a' ]" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList [ 'a', thing, 'a' ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.fromList on a list with a duplicate key will only keep one of them"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                            , under = "'a'"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 20 }, end = { row = 3, column = 23 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList [ thing, 'a' ]
+"""
+                        ]
         ]
 
 
