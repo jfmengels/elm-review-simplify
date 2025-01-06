@@ -6197,7 +6197,10 @@ allKeysDifferent expectingNaN entry otherEntriesToCheck =
         nextEntry :: restOfEntries ->
             case entry.first of
                 Just firstKey ->
-                    if (not expectingNaN || not (AstHelpers.canEqualOrContainNaN firstKey)) && isAnyTheSameAsBy firstKey otherEntriesToCheck then
+                    if
+                        (not expectingNaN || not (AstHelpers.canEqualOrContainNaN firstKey))
+                            && isAnyTheSameAsBy firstKey otherEntriesToCheck
+                    then
                         Just
                             (Rule.errorWithFix
                                 { message =
