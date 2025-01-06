@@ -13,6 +13,7 @@ module Simplify.AstHelpers exposing
     , moduleNameFromString, qualifiedName, qualifiedModuleName, qualifiedToString
     , declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
     , nameOfExpose
+    , canEqualOrContainNaN
     )
 
 {-|
@@ -58,6 +59,7 @@ module Simplify.AstHelpers exposing
 
 @docs declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
 @docs nameOfExpose
+@docs canEqualOrContainNaN
 
 -}
 
@@ -947,6 +949,74 @@ isSpecificUnappliedBinaryOperation symbol checkInfo expression =
 
         -- not a known simple operator function
         _ ->
+            False
+
+
+canEqualOrContainNaN : Node Expression -> Bool
+canEqualOrContainNaN node =
+    canEqualOrContainNaNHelp [ node ]
+
+
+canEqualOrContainNaNHelp : List (Node Expression) -> Bool
+canEqualOrContainNaNHelp nodes =
+    case nodes of
+        first :: rest ->
+            case Node.value first of
+                Expression.IfBlock condition thenBranch elseBranch ->
+                    canEqualOrContainNaNHelp (condition :: thenBranch :: elseBranch :: rest)
+
+                Expression.TupledExpression newNodes ->
+                    canEqualOrContainNaNHelp (newNodes ++ rest)
+
+                Expression.ParenthesizedExpression newNode ->
+                    canEqualOrContainNaNHelp (newNode :: rest)
+
+                Expression.ListExpr newNodes ->
+                    canEqualOrContainNaNHelp (newNodes ++ rest)
+
+                Expression.Application _ ->
+                    True
+
+                Expression.OperatorApplication operator _ _ _ ->
+                    -- If the operator can lead to a number being returned, then it's possible the expression
+                    -- evaluates to NaN.
+                    if
+                        (operator == "+")
+                            || (operator == "-")
+                            || (operator == "*")
+                            || (operator == "/")
+                            || (operator == "^")
+                    then
+                        True
+
+                    else
+                        canEqualOrContainNaNHelp rest
+
+                Expression.FunctionOrValue _ _ ->
+                    True
+
+                Expression.RecordAccess _ _ ->
+                    True
+
+                Expression.RecordUpdateExpression _ _ ->
+                    True
+
+                Expression.LetExpression _ ->
+                    True
+
+                Expression.CaseExpression _ ->
+                    True
+
+                Expression.LambdaExpression _ ->
+                    True
+
+                Expression.RecordExpr _ ->
+                    True
+
+                _ ->
+                    canEqualOrContainNaNHelp rest
+
+        [] ->
             False
 
 
