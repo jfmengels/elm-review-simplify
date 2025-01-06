@@ -6193,7 +6193,7 @@ dictFromListChecks =
 
 allKeysDifferent : Bool -> { entryRange : Range, first : Maybe (Node Expression) } -> List { entryRange : Range, first : Maybe (Node Expression) } -> Maybe (Error {})
 allKeysDifferent expectingNaN entry otherEntriesToCheck =
-    if expectingNaN then
+    if False then
         Nothing
 
     else
@@ -6201,7 +6201,7 @@ allKeysDifferent expectingNaN entry otherEntriesToCheck =
             nextEntry :: restOfEntries ->
                 case entry.first of
                     Just firstKey ->
-                        if isAnyTheSameAsBy firstKey otherEntriesToCheck then
+                        if (not expectingNaN || not (AstHelpers.canEqualOrContainNaN firstKey)) && isAnyTheSameAsBy firstKey otherEntriesToCheck then
                             Just
                                 (Rule.errorWithFix
                                     { message =

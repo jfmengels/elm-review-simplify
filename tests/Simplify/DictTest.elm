@@ -343,7 +343,15 @@ a = (f >> g)
                 """module A exposing (..)
 import Dict
 a = Dict.fromList [ ( key, v0 ), ( key, v1 ) ]
-b = Dict.fromList [ ( ( 1, "", [ 'a' ] ), v0 ), ( ( 1, "", [ 'a' ] ), v1 ) ]
+b = Dict.fromList [ ( ( 1, "", [ 'a', b ] ), v0 ), ( ( 1, "", [ 'a', b ] ), v1 ) ]
+"""
+                    |> Review.Test.run TestHelpers.ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should not replace Dict.fromList [ x, x ] when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.fromList [ x, x ]
 """
                     |> Review.Test.run TestHelpers.ruleExpectingNaN
                     |> Review.Test.expectNoErrors
@@ -365,6 +373,26 @@ a = Dict.fromList [ ( key, v0 ), ( key, v1 ) ]
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = Dict.fromList [ ( key, v1 ) ]
+"""
+                        ]
+        , test "should replace Dict.fromList [ ( 0, v0 ), ( 0, v1 ) ] by Dict.fromList [ ( 0, v1 ) ] when expecting NaN because keys are literals" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.fromList [ ( 0, v0 ), ( 0, v1 ) ]
+"""
+                    |> Review.Test.run TestHelpers.ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.fromList on entries with a duplicate key will only keep the last entry"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                            , under = "0"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 23 }, end = { row = 3, column = 24 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.fromList [ ( 0, v1 ) ]
 """
                         ]
         , test "should replace Dict.fromList [ ( key, v0 ), thing, ( key, v1 ) ] by Dict.fromList [ thing, ( key, v1 ) ]" <|
