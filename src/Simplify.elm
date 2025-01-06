@@ -6009,27 +6009,23 @@ setFromListChecks =
         , onSpecificFnCallReturnsItsLastArgCheck Fn.Set.toList
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                if False then
-                    Nothing
+                case Node.value checkInfo.firstArg of
+                    Expression.ListExpr elements ->
+                        case List.map (Normalize.normalizeButKeepRange checkInfo) elements of
+                            [] ->
+                                Nothing
 
-                else
-                    case Node.value checkInfo.firstArg of
-                        Expression.ListExpr elements ->
-                            case List.map (Normalize.normalizeButKeepRange checkInfo) elements of
-                                [] ->
-                                    Nothing
+                            first :: rest ->
+                                allValuesDifferent
+                                    checkInfo.expectNaN
+                                    { message = "Set.fromList on a list with a duplicate key will only keep one of them"
+                                    , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                                    }
+                                    first
+                                    rest
 
-                                first :: rest ->
-                                    allValuesDifferent
-                                        checkInfo.expectNaN
-                                        { message = "Set.fromList on a list with a duplicate key will only keep one of them"
-                                        , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
-                                        }
-                                        first
-                                        rest
-
-                        _ ->
-                            Nothing
+                    _ ->
+                        Nothing
             )
         ]
 
