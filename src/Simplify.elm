@@ -6017,7 +6017,12 @@ setFromListChecks =
                                     Nothing
 
                                 first :: rest ->
-                                    allValuesDifferent first rest
+                                    allValuesDifferent
+                                        { message = "Set.fromList on a list with a duplicate key will only keep one of them"
+                                        , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                                        }
+                                        first
+                                        rest
 
                         _ ->
                             Nothing
@@ -6025,18 +6030,14 @@ setFromListChecks =
         ]
 
 
-allValuesDifferent : Node Expression -> List (Node Expression) -> Maybe (Error {})
-allValuesDifferent (Node keyRange keyValue) otherKeysToCheck =
+allValuesDifferent : { message : String, details : List String } -> Node Expression -> List (Node Expression) -> Maybe (Error {})
+allValuesDifferent errorDetails (Node keyRange keyValue) otherKeysToCheck =
     case otherKeysToCheck of
         first :: rest ->
             if List.any (\(Node _ otherKey) -> otherKey == keyValue) otherKeysToCheck then
                 Just
                     (Rule.errorWithFix
-                        { message =
-                            "Set.fromList on a list with a duplicate key will only keep one of them"
-                        , details =
-                            [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
-                        }
+                        errorDetails
                         keyRange
                         [ Fix.removeRange
                             { start = keyRange.start
@@ -6046,7 +6047,7 @@ allValuesDifferent (Node keyRange keyValue) otherKeysToCheck =
                     )
 
             else
-                allValuesDifferent first rest
+                allValuesDifferent errorDetails first rest
 
         [] ->
             -- key is the last element
