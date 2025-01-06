@@ -6149,44 +6149,48 @@ dictFromListChecks =
         , onSpecificFnCallReturnsItsLastArgCheck Fn.Dict.toList
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                if checkInfo.expectNaN then
-                    Nothing
+                case Node.value checkInfo.firstArg of
+                    Expression.ListExpr elements ->
+                        case elements of
+                            [] ->
+                                Nothing
 
-                else
-                    case Node.value checkInfo.firstArg of
-                        Expression.ListExpr elements ->
-                            case elements of
-                                [] ->
-                                    Nothing
+                            [ _ ] ->
+                                Nothing
 
-                                [ _ ] ->
-                                    Nothing
+                            first :: rest ->
+                                firstThatConstructsJust
+                                    [ \() ->
+                                        if checkInfo.expectNaN then
+                                            Nothing
 
-                                first :: rest ->
-                                    firstThatConstructsJust
-                                        [ \() ->
+                                        else
                                             allValuesDifferent
                                                 { message = "Dict.fromList on a list with a duplicate entry will only keep one of them"
                                                 , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
                                                 }
                                                 first
                                                 rest
-                                        , \() ->
-                                            let
-                                                toEntry : Node Expression -> { entryRange : Range, first : Maybe (Node Expression) }
-                                                toEntry entry =
-                                                    { entryRange = Node.range entry
-                                                    , first =
-                                                        AstHelpers.getTuple2 checkInfo.lookupTable entry
-                                                            |> Maybe.map (\tuple -> Normalize.normalizeButKeepRange checkInfo tuple.first)
-                                                    }
-                                            in
-                                            allKeysDifferent (toEntry first) (List.map toEntry rest)
-                                        ]
-                                        ()
+                                    , \() ->
+                                        let
+                                            toEntry : Node Expression -> { entryRange : Range, first : Maybe (Node Expression) }
+                                            toEntry entry =
+                                                { entryRange = Node.range entry
+                                                , first =
+                                                    AstHelpers.getTuple2 checkInfo.lookupTable entry
+                                                        |> Maybe.map (\tuple -> Normalize.normalizeButKeepRange checkInfo tuple.first)
+                                                }
+                                        in
+                                        if checkInfo.expectNaN then
+                                            Nothing
 
-                        _ ->
-                            Nothing
+                                        else
+                                            allKeysDifferent (toEntry first) (List.map toEntry rest)
+                                    ]
+                                    ()
+
+                    _ ->
+                        Nothing
             )
         ]
 
