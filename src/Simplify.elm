@@ -6165,6 +6165,9 @@ dictFromListChecks =
                                 [] ->
                                     Nothing
 
+                                [ _ ] ->
+                                    Nothing
+
                                 first :: rest ->
                                     allKeysDifferent (toEntry first) (List.map toEntry rest)
 
