@@ -6163,18 +6163,15 @@ dictFromListChecks =
                                     Nothing
 
                                 first :: rest ->
-                                    case
-                                        allValuesDifferent
-                                            { message = "Dict.fromList on a list with a duplicate entry will only keep one of them"
-                                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
-                                            }
-                                            first
-                                            rest
-                                    of
-                                        Just duplicateEntryError ->
-                                            Just duplicateEntryError
-
-                                        Nothing ->
+                                    firstThatConstructsJust
+                                        [ \() ->
+                                            allValuesDifferent
+                                                { message = "Dict.fromList on a list with a duplicate entry will only keep one of them"
+                                                , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                                                }
+                                                first
+                                                rest
+                                        , \() ->
                                             let
                                                 toEntry : Node Expression -> { entryRange : Range, first : Maybe (Node Expression) }
                                                 toEntry entry =
@@ -6185,6 +6182,8 @@ dictFromListChecks =
                                                     }
                                             in
                                             allKeysDifferent (toEntry first) (List.map toEntry rest)
+                                        ]
+                                        ()
 
                         _ ->
                             Nothing
