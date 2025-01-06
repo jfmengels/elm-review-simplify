@@ -6193,40 +6193,36 @@ dictFromListChecks =
 
 allKeysDifferent : Bool -> { entryRange : Range, first : Maybe (Node Expression) } -> List { entryRange : Range, first : Maybe (Node Expression) } -> Maybe (Error {})
 allKeysDifferent expectingNaN entry otherEntriesToCheck =
-    if False then
-        Nothing
-
-    else
-        case otherEntriesToCheck of
-            nextEntry :: restOfEntries ->
-                case entry.first of
-                    Just firstKey ->
-                        if (not expectingNaN || not (AstHelpers.canEqualOrContainNaN firstKey)) && isAnyTheSameAsBy firstKey otherEntriesToCheck then
-                            Just
-                                (Rule.errorWithFix
-                                    { message =
-                                        "Dict.fromList on entries with a duplicate key will only keep the last entry"
-                                    , details =
-                                        [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+    case otherEntriesToCheck of
+        nextEntry :: restOfEntries ->
+            case entry.first of
+                Just firstKey ->
+                    if (not expectingNaN || not (AstHelpers.canEqualOrContainNaN firstKey)) && isAnyTheSameAsBy firstKey otherEntriesToCheck then
+                        Just
+                            (Rule.errorWithFix
+                                { message =
+                                    "Dict.fromList on entries with a duplicate key will only keep the last entry"
+                                , details =
+                                    [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                                }
+                                (Node.range firstKey)
+                                [ Fix.removeRange
+                                    { start = entry.entryRange.start
+                                    , end = nextEntry.entryRange.start
                                     }
-                                    (Node.range firstKey)
-                                    [ Fix.removeRange
-                                        { start = entry.entryRange.start
-                                        , end = nextEntry.entryRange.start
-                                        }
-                                    ]
-                                )
+                                ]
+                            )
 
-                        else
-                            allKeysDifferent expectingNaN nextEntry restOfEntries
-
-                    Nothing ->
+                    else
                         allKeysDifferent expectingNaN nextEntry restOfEntries
 
-            [] ->
-                -- entry is the last element
-                -- so it can't be equal to any other key
-                Nothing
+                Nothing ->
+                    allKeysDifferent expectingNaN nextEntry restOfEntries
+
+        [] ->
+            -- entry is the last element
+            -- so it can't be equal to any other key
+            Nothing
 
 
 isAnyTheSameAsBy : Node Expression -> List { a | first : Maybe (Node Expression) } -> Bool
