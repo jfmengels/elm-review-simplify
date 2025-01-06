@@ -1100,6 +1100,9 @@ Destructuring using case expressions
     Dict.fromList (Dict.toList dict)
     --> dict
 
+    Dict.fromList [ a, a ]
+    --> Dict.fromList [ a ]
+
     Dict.fromList [ ( key, a ), ( key, b ) ]
     --> Dict.fromList [ ( key, b ) ]
 
@@ -6152,15 +6155,6 @@ dictFromListChecks =
                 else
                     case Node.value checkInfo.firstArg of
                         Expression.ListExpr elements ->
-                            let
-                                toEntry : Node Expression -> { entryRange : Range, first : Maybe (Node Expression) }
-                                toEntry entry =
-                                    { entryRange = Node.range entry
-                                    , first =
-                                        AstHelpers.getTuple2 checkInfo.lookupTable entry
-                                            |> Maybe.map (\tuple -> Normalize.normalizeButKeepRange checkInfo tuple.first)
-                                    }
-                            in
                             case elements of
                                 [] ->
                                     Nothing
@@ -6169,7 +6163,28 @@ dictFromListChecks =
                                     Nothing
 
                                 first :: rest ->
-                                    allKeysDifferent (toEntry first) (List.map toEntry rest)
+                                    case
+                                        allValuesDifferent
+                                            { message = "Dict.fromList on a list with a duplicate entry will only keep one of them"
+                                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                                            }
+                                            first
+                                            rest
+                                    of
+                                        Just duplicateEntryError ->
+                                            Just duplicateEntryError
+
+                                        Nothing ->
+                                            let
+                                                toEntry : Node Expression -> { entryRange : Range, first : Maybe (Node Expression) }
+                                                toEntry entry =
+                                                    { entryRange = Node.range entry
+                                                    , first =
+                                                        AstHelpers.getTuple2 checkInfo.lookupTable entry
+                                                            |> Maybe.map (\tuple -> Normalize.normalizeButKeepRange checkInfo tuple.first)
+                                                    }
+                                            in
+                                            allKeysDifferent (toEntry first) (List.map toEntry rest)
 
                         _ ->
                             Nothing

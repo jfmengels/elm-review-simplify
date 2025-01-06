@@ -407,6 +407,25 @@ import Dict
 a = Dict.fromList [ ( ( 1, "", [ 'a' ] ), v1 ) ]
 """
                         ]
+        , test "should replace Dict.fromList [ x, x ] by Dict.fromList [ x ]" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.fromList [ x, x ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.fromList on a list with a duplicate entry will only keep one of them"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                            , under = "x"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 21 }, end = { row = 3, column = 22 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.fromList [ x ]
+"""
+                        ]
         ]
 
 

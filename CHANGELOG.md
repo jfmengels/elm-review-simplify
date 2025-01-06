@@ -4,6 +4,7 @@
 
 The rule also simplifies:
 - `Set.fromList [ a, a ]` to `Set.fromList [ a ]`
+- `Dict.fromList [ a, a ]` to `Dict.fromList [ a ]`
 - `Dict.fromList [ ( a, v0 ), ( a, v1 ) ]` to `Dict.fromList [ ( a, v1 ) ]`
 
 ## [2.1.5] - 2024-06-28
