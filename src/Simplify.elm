@@ -6009,7 +6009,7 @@ setFromListChecks =
         , onSpecificFnCallReturnsItsLastArgCheck Fn.Set.toList
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                if checkInfo.expectNaN then
+                if False then
                     Nothing
 
                 else
@@ -6038,7 +6038,10 @@ allValuesDifferent : Bool -> { message : String, details : List String } -> Node
 allValuesDifferent expectingNaN errorDetails (Node keyRange keyValue) otherKeysToCheck =
     case otherKeysToCheck of
         first :: rest ->
-            if List.any (\(Node _ otherKey) -> otherKey == keyValue) otherKeysToCheck then
+            if
+                (not expectingNaN || not (AstHelpers.canEqualOrContainNaN first))
+                    && List.any (\(Node _ otherKey) -> otherKey == keyValue) otherKeysToCheck
+            then
                 Just
                     (Rule.errorWithFix
                         errorDetails

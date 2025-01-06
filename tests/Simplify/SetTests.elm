@@ -1313,7 +1313,7 @@ a = []
                 """module A exposing (..)
 import Set
 a = Set.fromList [ key, key ]
-b = Set.fromList [ ( 1, "", [ 'a' ] ), ( 1, "", [ 'a' ] ) ]
+b = Set.fromList [ ( 1, "", [ 'a', b ] ), ( 1, "", [ 'a', b ] ) ]
 """
                     |> Review.Test.run TestHelpers.ruleExpectingNaN
                     |> Review.Test.expectNoErrors
@@ -1335,6 +1335,26 @@ a = Set.fromList [ key, key ]
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
 a = Set.fromList [ key ]
+"""
+                        ]
+        , test "should replace Set.fromList [ 0, 0 ] by Set.fromList [ 0 ] when expecting NaN because keys are literals" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList [ 0, 0 ]
+"""
+                    |> Review.Test.run TestHelpers.ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.fromList on a list with a duplicate key will only keep one of them"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
+                            , under = "0"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 20 }, end = { row = 3, column = 21 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList [ 0 ]
 """
                         ]
         , test "should replace Set.fromList [ ( 1, \"\", [ 'a' ] ), ( 1, \"\", [ 'a' ] ) ] by Set.fromList [ ( 1, \"\", [ 'a' ] ) ]" <|
