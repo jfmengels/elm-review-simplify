@@ -6021,6 +6021,7 @@ setFromListChecks =
 
                                 first :: rest ->
                                     allValuesDifferent
+                                        checkInfo.expectNaN
                                         { message = "Set.fromList on a list with a duplicate key will only keep one of them"
                                         , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
                                         }
@@ -6033,8 +6034,8 @@ setFromListChecks =
         ]
 
 
-allValuesDifferent : { message : String, details : List String } -> Node Expression -> List (Node Expression) -> Maybe (Error {})
-allValuesDifferent errorDetails (Node keyRange keyValue) otherKeysToCheck =
+allValuesDifferent : Bool -> { message : String, details : List String } -> Node Expression -> List (Node Expression) -> Maybe (Error {})
+allValuesDifferent expectingNaN errorDetails (Node keyRange keyValue) otherKeysToCheck =
     case otherKeysToCheck of
         first :: rest ->
             if List.any (\(Node _ otherKey) -> otherKey == keyValue) otherKeysToCheck then
@@ -6050,7 +6051,7 @@ allValuesDifferent errorDetails (Node keyRange keyValue) otherKeysToCheck =
                     )
 
             else
-                allValuesDifferent errorDetails first rest
+                allValuesDifferent expectingNaN errorDetails first rest
 
         [] ->
             -- key is the last element
@@ -6166,6 +6167,7 @@ dictFromListChecks =
 
                                         else
                                             allValuesDifferent
+                                                False
                                                 { message = "Dict.fromList on a list with a duplicate entry will only keep one of them"
                                                 , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
                                                 }
