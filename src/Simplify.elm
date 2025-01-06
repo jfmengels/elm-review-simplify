@@ -6153,17 +6153,17 @@ dictFromListChecks =
                     case Node.value checkInfo.firstArg of
                         Expression.ListExpr elements ->
                             let
+                                toEntry : Node Expression -> { entryRange : Range, first : Maybe (Node Expression) }
+                                toEntry entry =
+                                    { entryRange = Node.range entry
+                                    , first =
+                                        AstHelpers.getTuple2 checkInfo.lookupTable entry
+                                            |> Maybe.map (\tuple -> Normalize.normalizeButKeepRange checkInfo tuple.first)
+                                    }
+
                                 knownEntryTuples : List { entryRange : Range, first : Maybe (Node Expression) }
                                 knownEntryTuples =
-                                    elements
-                                        |> List.map
-                                            (\entry ->
-                                                { entryRange = Node.range entry
-                                                , first =
-                                                    AstHelpers.getTuple2 checkInfo.lookupTable entry
-                                                        |> Maybe.map (\tuple -> Normalize.normalizeButKeepRange checkInfo tuple.first)
-                                                }
-                                            )
+                                    List.map toEntry elements
                             in
                             case knownEntryTuples of
                                 [] ->
