@@ -1013,7 +1013,37 @@ canEqualOrContainNaNHelp nodes =
                 Expression.RecordExpr _ ->
                     True
 
-                _ ->
+                Expression.UnitExpr ->
+                    canEqualOrContainNaNHelp rest
+
+                Expression.PrefixOperator _ ->
+                    canEqualOrContainNaNHelp rest
+
+                Expression.Operator _ ->
+                    canEqualOrContainNaNHelp rest
+
+                Expression.Integer _ ->
+                    canEqualOrContainNaNHelp rest
+
+                Expression.Hex _ ->
+                    canEqualOrContainNaNHelp rest
+
+                Expression.Floatable _ ->
+                    canEqualOrContainNaNHelp rest
+
+                Expression.Negation _ ->
+                    canEqualOrContainNaNHelp rest
+
+                Expression.Literal _ ->
+                    canEqualOrContainNaNHelp rest
+
+                Expression.CharLiteral _ ->
+                    canEqualOrContainNaNHelp rest
+
+                Expression.RecordAccessFunction _ ->
+                    canEqualOrContainNaNHelp rest
+
+                Expression.GLSLExpression _ ->
                     canEqualOrContainNaNHelp rest
 
         [] ->
