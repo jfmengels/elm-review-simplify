@@ -981,11 +981,7 @@ canEqualOrContainNaNHelp nodes =
                     -- If the operator can lead to a number being returned, then it's possible the expression
                     -- evaluates to NaN.
                     if
-                        (operator == "+")
-                            || (operator == "-")
-                            || (operator == "*")
-                            || (operator == "/")
-                            || (operator == "^")
+                        (operator == "/")
                             || (operator == "|>")
                             || (operator == "<|")
                     then
