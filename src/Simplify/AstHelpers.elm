@@ -977,7 +977,7 @@ canEqualOrContainNaNHelp nodes =
                 Expression.Application _ ->
                     True
 
-                Expression.OperatorApplication operator _ _ _ ->
+                Expression.OperatorApplication operator _ left right ->
                     -- If the operator can lead to a number being returned, then it's possible the expression
                     -- evaluates to NaN.
                     if
@@ -986,11 +986,13 @@ canEqualOrContainNaNHelp nodes =
                             || (operator == "*")
                             || (operator == "/")
                             || (operator == "^")
+                            || (operator == "|>")
+                            || (operator == "<|")
                     then
                         True
 
                     else
-                        canEqualOrContainNaNHelp rest
+                        canEqualOrContainNaNHelp (left :: right :: rest)
 
                 Expression.FunctionOrValue _ _ ->
                     True
