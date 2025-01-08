@@ -1029,8 +1029,8 @@ canEqualOrContainNaNHelp nodes =
                 Expression.Floatable _ ->
                     canEqualOrContainNaNHelp rest
 
-                Expression.Negation _ ->
-                    canEqualOrContainNaNHelp rest
+                Expression.Negation node ->
+                    canEqualOrContainNaNHelp (node :: rest)
 
                 Expression.Literal _ ->
                     canEqualOrContainNaNHelp rest
