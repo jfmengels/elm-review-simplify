@@ -13,7 +13,7 @@ module Simplify.AstHelpers exposing
     , moduleNameFromString, qualifiedName, qualifiedModuleName, qualifiedToString
     , declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
     , nameOfExpose
-    , canEqualOrContainNaN
+    , isPotentialNaNKey
     )
 
 {-|
@@ -59,7 +59,7 @@ module Simplify.AstHelpers exposing
 
 @docs declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
 @docs nameOfExpose
-@docs canEqualOrContainNaN
+@docs isPotentialNaNKey
 
 -}
 
@@ -952,27 +952,32 @@ isSpecificUnappliedBinaryOperation symbol checkInfo expression =
             False
 
 
-canEqualOrContainNaN : Node Expression -> Bool
-canEqualOrContainNaN node =
-    canEqualOrContainNaNHelp [ node ]
+{-| Indicates whether this value is potentially NaN in the context of a Dict key or Set value, meaning that it could return `False` when `==` with itself.
+
+This will return `False` for expressions that are known to not be `comparable` (e.g. records) nor `numbers`.
+
+-}
+isPotentialNaNKey : Node Expression -> Bool
+isPotentialNaNKey node =
+    isPotentialNaNKeyHelp [ node ]
 
 
-canEqualOrContainNaNHelp : List (Node Expression) -> Bool
-canEqualOrContainNaNHelp nodes =
+isPotentialNaNKeyHelp : List (Node Expression) -> Bool
+isPotentialNaNKeyHelp nodes =
     case nodes of
         first :: rest ->
             case Node.value first of
                 Expression.IfBlock condition thenBranch elseBranch ->
-                    canEqualOrContainNaNHelp (condition :: thenBranch :: elseBranch :: rest)
+                    isPotentialNaNKeyHelp (condition :: thenBranch :: elseBranch :: rest)
 
                 Expression.TupledExpression newNodes ->
-                    canEqualOrContainNaNHelp (newNodes ++ rest)
+                    isPotentialNaNKeyHelp (newNodes ++ rest)
 
                 Expression.ParenthesizedExpression newNode ->
-                    canEqualOrContainNaNHelp (newNode :: rest)
+                    isPotentialNaNKeyHelp (newNode :: rest)
 
                 Expression.ListExpr newNodes ->
-                    canEqualOrContainNaNHelp (newNodes ++ rest)
+                    isPotentialNaNKeyHelp (newNodes ++ rest)
 
                 Expression.Application _ ->
                     True
@@ -988,7 +993,7 @@ canEqualOrContainNaNHelp nodes =
                         True
 
                     else
-                        canEqualOrContainNaNHelp (left :: right :: rest)
+                        isPotentialNaNKeyHelp (left :: right :: rest)
 
                 Expression.FunctionOrValue _ _ ->
                     True
@@ -1012,37 +1017,37 @@ canEqualOrContainNaNHelp nodes =
                     True
 
                 Expression.UnitExpr ->
-                    canEqualOrContainNaNHelp rest
+                    isPotentialNaNKeyHelp rest
 
                 Expression.PrefixOperator _ ->
-                    canEqualOrContainNaNHelp rest
+                    isPotentialNaNKeyHelp rest
 
                 Expression.Operator _ ->
-                    canEqualOrContainNaNHelp rest
+                    isPotentialNaNKeyHelp rest
 
                 Expression.Integer _ ->
-                    canEqualOrContainNaNHelp rest
+                    isPotentialNaNKeyHelp rest
 
                 Expression.Hex _ ->
-                    canEqualOrContainNaNHelp rest
+                    isPotentialNaNKeyHelp rest
 
                 Expression.Floatable _ ->
-                    canEqualOrContainNaNHelp rest
+                    isPotentialNaNKeyHelp rest
 
                 Expression.Negation node ->
-                    canEqualOrContainNaNHelp (node :: rest)
+                    isPotentialNaNKeyHelp (node :: rest)
 
                 Expression.Literal _ ->
-                    canEqualOrContainNaNHelp rest
+                    isPotentialNaNKeyHelp rest
 
                 Expression.CharLiteral _ ->
-                    canEqualOrContainNaNHelp rest
+                    isPotentialNaNKeyHelp rest
 
                 Expression.RecordAccessFunction _ ->
-                    canEqualOrContainNaNHelp rest
+                    isPotentialNaNKeyHelp rest
 
                 Expression.GLSLExpression _ ->
-                    canEqualOrContainNaNHelp rest
+                    isPotentialNaNKeyHelp rest
 
         [] ->
             False

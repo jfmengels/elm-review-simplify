@@ -10,78 +10,78 @@ import Test exposing (Test, describe, test)
 
 all : Test
 all =
-    describe "AstHelpers.canEqualOrContainNaN"
+    describe "AstHelpers.isPotentialNaNKey"
         [ test "String literals don't contain NaN" <|
             \() ->
                 "\"a\""
-                    |> canEqualOrContainNaN False
+                    |> isPotentialNaNKey False
         , test "Char literals don't contain NaN" <|
             \() ->
                 "'a'"
-                    |> canEqualOrContainNaN False
+                    |> isPotentialNaNKey False
         , test "Integer literals don't contain NaN" <|
             \() ->
                 "0"
-                    |> canEqualOrContainNaN False
+                    |> isPotentialNaNKey False
         , test "Float literals don't contain NaN" <|
             \() ->
                 "0.0"
-                    |> canEqualOrContainNaN False
+                    |> isPotentialNaNKey False
         , test "Number addition don't contain literals if all sub-expression can't contain NaN" <|
             \() ->
                 "0.0 + 0"
-                    |> canEqualOrContainNaN False
+                    |> isPotentialNaNKey False
         , test "Float division can contain NaN" <|
             \() ->
                 "0 / 0"
-                    |> canEqualOrContainNaN True
+                    |> isPotentialNaNKey True
         , test "Float division can't contain NaN" <|
             \() ->
                 "0 // 0"
-                    |> canEqualOrContainNaN False
+                    |> isPotentialNaNKey False
         , test "References can contain NaN" <|
             \() ->
                 "reference"
-                    |> canEqualOrContainNaN True
+                    |> isPotentialNaNKey True
         , test "Lists with only non-NaN can't contain NaN" <|
             \() ->
                 "[ 0, 1, 2 ]"
-                    |> canEqualOrContainNaN False
+                    |> isPotentialNaNKey False
         , test "Lists with only potential NaN can contain NaN" <|
             \() ->
                 "[ 0, reference, 2 ]"
-                    |> canEqualOrContainNaN True
+                    |> isPotentialNaNKey True
         , test "Function calls can return NaN" <|
             \() ->
                 "fn 0"
-                    |> canEqualOrContainNaN True
+                    |> isPotentialNaNKey True
         , test "Function calls with <| can return NaN" <|
             \() ->
                 "fn <| 0"
-                    |> canEqualOrContainNaN True
+                    |> isPotentialNaNKey True
         , test "Function calls with |> can return NaN" <|
             \() ->
                 "0 |> fn"
-                    |> canEqualOrContainNaN True
+                    |> isPotentialNaNKey True
         , test "Record access functions can't return NaN" <|
             \() ->
                 ".field"
-                    |> canEqualOrContainNaN False
+                    |> isPotentialNaNKey False
         , test "Record access can return NaN" <|
             \() ->
                 "record.field"
-                    |> canEqualOrContainNaN True
+                    |> isPotentialNaNKey True
         ]
 
 
-canEqualOrContainNaN : Bool -> String -> Expectation
-canEqualOrContainNaN expected source =
+isPotentialNaNKey : Bool -> String -> Expectation
+isPotentialNaNKey expected source =
     case Elm.Parser.parseToFile (wrapSource source) of
         Ok ast ->
             case List.head ast.declarations of
                 Just (Node _ (Elm.Syntax.Declaration.FunctionDeclaration { declaration })) ->
                     (Node.value declaration).expression
-                        |> AstHelpers.canEqualOrContainNaN
+                        |> AstHelpers.isPotentialNaNKey
                         |> Expect.equal expected
 
                 _ ->

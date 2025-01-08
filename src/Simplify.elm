@@ -6035,7 +6035,7 @@ allValuesDifferent expectingNaN errorDetails (Node keyRange keyValue) otherKeysT
     case otherKeysToCheck of
         first :: rest ->
             if
-                (not expectingNaN || not (AstHelpers.canEqualOrContainNaN first))
+                (not expectingNaN || not (AstHelpers.isPotentialNaNKey first))
                     && List.any (\(Node _ otherKey) -> otherKey == keyValue) otherKeysToCheck
             then
                 Just
@@ -6199,7 +6199,7 @@ allKeysDifferent expectingNaN entry otherEntriesToCheck =
             case entry.first of
                 Just firstKey ->
                     if
-                        (not expectingNaN || not (AstHelpers.canEqualOrContainNaN firstKey))
+                        (not expectingNaN || not (AstHelpers.isPotentialNaNKey firstKey))
                             && isAnyTheSameAsBy firstKey otherEntriesToCheck
                     then
                         Just
