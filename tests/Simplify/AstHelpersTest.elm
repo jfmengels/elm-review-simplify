@@ -39,6 +39,26 @@ all =
             \() ->
                 "0 // 0"
                     |> isPotentialNaNKey False
+        , test "Applied || can't contain NaN" <|
+            \() ->
+                "a || b"
+                    |> isPotentialNaNKey False
+        , test "Applied && can't contain NaN" <|
+            \() ->
+                "a && b"
+                    |> isPotentialNaNKey False
+        , test "Applied ++ with string literals can't contain NaN" <|
+            \() ->
+                "\"a\" ++ \"b\""
+                    |> isPotentialNaNKey False
+        , test "Applied ++ with unknown values can contain NaN" <|
+            \() ->
+                "a ++ b"
+                    |> isPotentialNaNKey True
+        , test "Applied <?> can't contain NaN" <|
+            \() ->
+                "a <?> b"
+                    |> isPotentialNaNKey False
         , test "References can contain NaN" <|
             \() ->
                 "reference"
@@ -70,6 +90,14 @@ all =
         , test "Record access can return NaN" <|
             \() ->
                 "record.field"
+                    |> isPotentialNaNKey True
+        , test "let expression checks for the `in` value (literal)" <|
+            \() ->
+                "let _ = 1 in 0"
+                    |> isPotentialNaNKey False
+        , test "let expression checks for the `in` value (reference)" <|
+            \() ->
+                "let _ = 1 in reference"
                     |> isPotentialNaNKey True
         ]
 

@@ -985,15 +985,74 @@ isPotentialNaNKeyHelp nodes =
                 Expression.OperatorApplication operator _ left right ->
                     -- If the operator can lead to a number being returned, then it's possible the expression
                     -- evaluates to NaN.
-                    if
-                        (operator == "/")
-                            || (operator == "|>")
-                            || (operator == "<|")
-                    then
-                        True
+                    case operator of
+                        -- Number operators
+                        "/" ->
+                            True
 
-                    else
-                        isPotentialNaNKeyHelp (left :: right :: rest)
+                        "//" ->
+                            -- Can't result in NaN (even `NaN // NaN` can't seem to result in `NaN`).
+                            isPotentialNaNKeyHelp rest
+
+                        "+" ->
+                            isPotentialNaNKeyHelp (left :: right :: rest)
+
+                        "-" ->
+                            isPotentialNaNKeyHelp (left :: right :: rest)
+
+                        "*" ->
+                            isPotentialNaNKeyHelp (left :: right :: rest)
+
+                        "^" ->
+                            isPotentialNaNKeyHelp (left :: right :: rest)
+
+                        -- Similar to a function application
+                        "<|" ->
+                            True
+
+                        "|>" ->
+                            True
+
+                        -- Operators that return functions
+                        "<<" ->
+                            isPotentialNaNKeyHelp rest
+
+                        ">>" ->
+                            isPotentialNaNKeyHelp rest
+
+                        -- Operators that return booleans
+                        "||" ->
+                            isPotentialNaNKeyHelp rest
+
+                        "&&" ->
+                            isPotentialNaNKeyHelp rest
+
+                        "==" ->
+                            isPotentialNaNKeyHelp rest
+
+                        "/=" ->
+                            isPotentialNaNKeyHelp rest
+
+                        "<" ->
+                            isPotentialNaNKeyHelp rest
+
+                        ">" ->
+                            isPotentialNaNKeyHelp rest
+
+                        "<=" ->
+                            isPotentialNaNKeyHelp rest
+
+                        ">=" ->
+                            isPotentialNaNKeyHelp rest
+
+                        "++" ->
+                            -- Can return either a string or a list potentially containing Nan.
+                            -- Further improvement: If we notice this works on strings, then we can return False right away.
+                            isPotentialNaNKeyHelp (left :: right :: rest)
+
+                        _ ->
+                            -- There are more operators but they don't deal with numbers
+                            isPotentialNaNKeyHelp rest
 
                 Expression.FunctionOrValue _ _ ->
                     True
@@ -1004,8 +1063,8 @@ isPotentialNaNKeyHelp nodes =
                 Expression.RecordUpdateExpression _ _ ->
                     True
 
-                Expression.LetExpression _ ->
-                    True
+                Expression.LetExpression { expression } ->
+                    isPotentialNaNKeyHelp (expression :: rest)
 
                 Expression.CaseExpression _ ->
                     True
