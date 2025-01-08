@@ -1066,14 +1066,17 @@ isPotentialNaNKeyHelp nodes =
                 Expression.LetExpression { expression } ->
                     isPotentialNaNKeyHelp (expression :: rest)
 
-                Expression.CaseExpression _ ->
-                    True
+                Expression.CaseExpression { cases } ->
+                    isPotentialNaNKeyHelp (List.map Tuple.second cases ++ rest)
+
+                Expression.Negation node ->
+                    isPotentialNaNKeyHelp (node :: rest)
 
                 Expression.LambdaExpression _ ->
-                    True
+                    isPotentialNaNKeyHelp rest
 
                 Expression.RecordExpr _ ->
-                    True
+                    isPotentialNaNKeyHelp rest
 
                 Expression.UnitExpr ->
                     isPotentialNaNKeyHelp rest
@@ -1092,9 +1095,6 @@ isPotentialNaNKeyHelp nodes =
 
                 Expression.Floatable _ ->
                     isPotentialNaNKeyHelp rest
-
-                Expression.Negation node ->
-                    isPotentialNaNKeyHelp (node :: rest)
 
                 Expression.Literal _ ->
                     isPotentialNaNKeyHelp rest
