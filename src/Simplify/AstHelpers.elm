@@ -1061,7 +1061,7 @@ isPotentialNaNKeyHelp nodes =
                     True
 
                 Expression.RecordUpdateExpression _ _ ->
-                    True
+                    isPotentialNaNKeyHelp rest
 
                 Expression.LetExpression { expression } ->
                     isPotentialNaNKeyHelp (expression :: rest)
