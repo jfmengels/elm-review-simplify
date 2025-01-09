@@ -2,7 +2,7 @@ module Simplify.SetTests exposing (all)
 
 import Review.Test
 import Test exposing (Test, describe, test)
-import TestHelpers exposing (ruleWithDefaults)
+import TestHelpers exposing (ruleExpectingNaN, ruleWithDefaults)
 
 
 all : Test
@@ -1621,6 +1621,96 @@ a = Set.member x Set.empty
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Set.member on Set.empty will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Set.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = False
+"""
+                        ]
+        , test "should replace Set.member b (Set.singleton c) by b == c" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.member b (Set.singleton c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.member on a singleton set is the same as directly checking for equality"
+                            , details = [ "You can replace this call by checking whether the member to find and the value inside the singleton set are equal." ]
+                            , under = "Set.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = b == c
+"""
+                        ]
+        , test "should replace Set.member 1 (Set.fromList [ 0, 1, 2 ]) by True" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.member 1 (Set.fromList [ 0, 1, 2 ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.member on a set which contains the given element will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "Set.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = True
+"""
+                        ]
+        , test "should replace Set.member 1 (Set.fromList [ 0, 1, 2 ]) by True when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.member 1 (Set.fromList [ 0, 1, 2 ])
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.member on a set which contains the given element will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "Set.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = True
+"""
+                        ]
+        , test "should replace Set.member 0 (Set.fromList [ 2, 3, 1 ]) by False" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.member 0 (Set.fromList [ 2, 3, 1 ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.member on a set which does not contain the given element will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Set.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = False
+"""
+                        ]
+        , test "should replace Set.member 0 (Set.fromList [ 2, 3, 1 ]) by False when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.member 0 (Set.fromList [ 2, 3, 1 ])
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.member on a set which does not contain the given element will result in False"
                             , details = [ "You can replace this call by False." ]
                             , under = "Set.member"
                             }

@@ -1631,6 +1631,38 @@ a = List.member e (b :: c :: d :: eToZ)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should replace List.member 0 [ 2, 3, 1 ] by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.member 0 [ 2, 3, 1 ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.member on a list which does not contain the given element will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace List.member 0 [ 2, 3, 1 ] by False when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+a = List.member 0 [ 2, 3, 1 ]
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.member on a list which does not contain the given element will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
         ]
 
 

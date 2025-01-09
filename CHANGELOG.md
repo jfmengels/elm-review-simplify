@@ -4,8 +4,14 @@
 
 The rule also simplifies:
 - `Set.fromList [ a, a ]` to `Set.fromList [ a ]`
+- `Set.member x (Set.singleton y)` to `x == y`
+- `Set.member x (Set.fromList [ y, x ])` to `True`
+- `Set.member -999 (Set.fromList [ 0, 1 ])` to `False`
 - `Dict.fromList [ a, a ]` to `Dict.fromList [ a ]`
 - `Dict.fromList [ ( a, v0 ), ( a, v1 ) ]` to `Dict.fromList [ ( a, v1 ) ]`
+- `Dict.member x [ ( y, v0 ), ( x, v1 ) ]` to `True`
+- `Dict.member -999 [ ( 0, v0 ), ( 1, v1 ) ]` to `False`
+- `List.member -999 [ 0, 1 ]` to `False`
 
 Other improvements:
 - When having `expectNaN` enabled, we now still check expressions we know can't contain NaN like literal numbers. For example `List.member 0 [ 0, 1 ]` would previously not have been reported when expecting NaN, now it is.
