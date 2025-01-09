@@ -10,106 +10,106 @@ import Test exposing (Test, describe, test)
 
 all : Test
 all =
-    describe "AstHelpers.isPotentialNaNKey"
+    describe "AstHelpers.couldBeValueContainingNaN"
         [ test "String literals don't contain NaN" <|
             \() ->
                 "\"a\""
-                    |> isPotentialNaNKey False
+                    |> couldBeValueContainingNaN False
         , test "Char literals don't contain NaN" <|
             \() ->
                 "'a'"
-                    |> isPotentialNaNKey False
+                    |> couldBeValueContainingNaN False
         , test "Integer literals don't contain NaN" <|
             \() ->
                 "0"
-                    |> isPotentialNaNKey False
+                    |> couldBeValueContainingNaN False
         , test "Float literals don't contain NaN" <|
             \() ->
                 "0.0"
-                    |> isPotentialNaNKey False
+                    |> couldBeValueContainingNaN False
         , test "Number addition don't contain literals if all sub-expression can't contain NaN" <|
             \() ->
                 "0.0 + 0"
-                    |> isPotentialNaNKey False
+                    |> couldBeValueContainingNaN False
         , test "Float division can contain NaN" <|
             \() ->
                 "0 / 0"
-                    |> isPotentialNaNKey True
+                    |> couldBeValueContainingNaN True
         , test "Float division can't contain NaN" <|
             \() ->
                 "0 // 0"
-                    |> isPotentialNaNKey False
+                    |> couldBeValueContainingNaN False
         , test "Applied || can't contain NaN" <|
             \() ->
                 "a || b"
-                    |> isPotentialNaNKey False
+                    |> couldBeValueContainingNaN False
         , test "Applied && can't contain NaN" <|
             \() ->
                 "a && b"
-                    |> isPotentialNaNKey False
+                    |> couldBeValueContainingNaN False
         , test "Applied ++ with string literals can't contain NaN" <|
             \() ->
                 "\"a\" ++ \"b\""
-                    |> isPotentialNaNKey False
+                    |> couldBeValueContainingNaN False
         , test "Applied ++ with unknown values can contain NaN" <|
             \() ->
                 "a ++ b"
-                    |> isPotentialNaNKey True
+                    |> couldBeValueContainingNaN True
         , test "Applied <?> can't contain NaN" <|
             \() ->
                 "a <?> b"
-                    |> isPotentialNaNKey False
+                    |> couldBeValueContainingNaN False
         , test "References can contain NaN" <|
             \() ->
                 "reference"
-                    |> isPotentialNaNKey True
+                    |> couldBeValueContainingNaN True
         , test "Lists with only non-NaN can't contain NaN" <|
             \() ->
                 "[ 0, 1, 2 ]"
-                    |> isPotentialNaNKey False
+                    |> couldBeValueContainingNaN False
         , test "Lists with only potential NaN can contain NaN" <|
             \() ->
                 "[ 0, reference, 2 ]"
-                    |> isPotentialNaNKey True
+                    |> couldBeValueContainingNaN True
         , test "Function calls can return NaN" <|
             \() ->
                 "fn 0"
-                    |> isPotentialNaNKey True
+                    |> couldBeValueContainingNaN True
         , test "Function calls with <| can return NaN" <|
             \() ->
                 "fn <| 0"
-                    |> isPotentialNaNKey True
+                    |> couldBeValueContainingNaN True
         , test "Function calls with |> can return NaN" <|
             \() ->
                 "0 |> fn"
-                    |> isPotentialNaNKey True
+                    |> couldBeValueContainingNaN True
         , test "Record access functions can't return NaN" <|
             \() ->
                 ".field"
-                    |> isPotentialNaNKey False
+                    |> couldBeValueContainingNaN False
         , test "Record access can return NaN" <|
             \() ->
                 "record.field"
-                    |> isPotentialNaNKey True
+                    |> couldBeValueContainingNaN True
         , test "let expression checks for the `in` value (literal)" <|
             \() ->
                 "let _ = 1 in 0"
-                    |> isPotentialNaNKey False
+                    |> couldBeValueContainingNaN False
         , test "let expression checks for the `in` value (reference)" <|
             \() ->
                 "let _ = 1 in reference"
-                    |> isPotentialNaNKey True
+                    |> couldBeValueContainingNaN True
         ]
 
 
-isPotentialNaNKey : Bool -> String -> Expectation
-isPotentialNaNKey expected source =
+couldBeValueContainingNaN : Bool -> String -> Expectation
+couldBeValueContainingNaN expected source =
     case Elm.Parser.parseToFile (wrapSource source) of
         Ok ast ->
             case List.head ast.declarations of
                 Just (Node _ (Elm.Syntax.Declaration.FunctionDeclaration { declaration })) ->
                     (Node.value declaration).expression
-                        |> AstHelpers.isPotentialNaNKey
+                        |> AstHelpers.couldBeValueContainingNaN
                         |> Expect.equal expected
 
                 _ ->
