@@ -3468,7 +3468,12 @@ addingZeroCheck checkInfo =
 
 addingOppositesCheck : OperatorApplicationCheckInfo -> Maybe (Error {})
 addingOppositesCheck checkInfo =
-    if checkInfo.expectNaN then
+    if
+        checkInfo.expectNaN
+            && (AstHelpers.isPotentialNaNKey checkInfo.left
+                    || AstHelpers.isPotentialNaNKey checkInfo.right
+               )
+    then
         Nothing
 
     else
@@ -3520,7 +3525,12 @@ minusChecks checkInfo =
 
 checkIfMinusResultsInZero : OperatorApplicationCheckInfo -> Maybe (Error {})
 checkIfMinusResultsInZero checkInfo =
-    if checkInfo.expectNaN then
+    if
+        checkInfo.expectNaN
+            && (AstHelpers.isPotentialNaNKey checkInfo.left
+                    || AstHelpers.isPotentialNaNKey checkInfo.right
+               )
+    then
         Nothing
 
     else
@@ -3563,7 +3573,10 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
                                     ]
                                 }
                                 (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
-                                (if checkInfo.expectNaN then
+                                (if
+                                    checkInfo.expectNaN
+                                        && AstHelpers.isPotentialNaNKey side.otherNode
+                                 then
                                     []
 
                                  else
@@ -3602,20 +3615,30 @@ divisionChecks checkInfo =
                 (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.left })
             )
 
-    else if not checkInfo.expectNaN && (AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0) then
+    else if AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0 then
         if maybeDivisorNumber == Just 0 then
-            Just
-                (Rule.error
-                    { message = "0 / 0 is NaN but the configuration option expectNaN is not enabled"
-                    , details =
-                        [ "Dividing 0 by 0 is the simplest way to obtain a NaN value in elm. NaN is a special Float value that signifies a failure of a mathematical operation and tends to spread through code."
-                        , "By default, Simplify assumes that your code does not expect NaN values so it can enable a few more checks. If creating NaN here was not your intention, replace this division by a more fitting number like 0."
-                        , "If you do want to use NaN here, please add expectNaN to your Simplify configuration to let it know NaN is a possible value in your code."
-                        , "expectNaN: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify#expectNaN"
-                        ]
-                    }
-                    checkInfo.operatorRange
-                )
+            if checkInfo.expectNaN then
+                Nothing
+
+            else
+                Just
+                    (Rule.error
+                        { message = "0 / 0 is NaN but the configuration option expectNaN is not enabled"
+                        , details =
+                            [ "Dividing 0 by 0 is the simplest way to obtain a NaN value in elm. NaN is a special Float value that signifies a failure of a mathematical operation and tends to spread through code."
+                            , "By default, Simplify assumes that your code does not expect NaN values so it can enable a few more checks. If creating NaN here was not your intention, replace this division by a more fitting number like 0."
+                            , "If you do want to use NaN here, please add expectNaN to your Simplify configuration to let it know NaN is a possible value in your code."
+                            , "expectNaN: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify#expectNaN"
+                            ]
+                        }
+                        checkInfo.operatorRange
+                    )
+
+        else if
+            checkInfo.expectNaN
+                && AstHelpers.isPotentialNaNKey checkInfo.right
+        then
+            Nothing
 
         else
             Just
@@ -3909,7 +3932,12 @@ equalityChecks isEqual =
             in
             case Normalize.compareWithoutNormalization normalizedLeft normalizedRight of
                 Normalize.ConfirmedEquality ->
-                    if checkInfo.expectNaN then
+                    if
+                        checkInfo.expectNaN
+                            && (AstHelpers.isPotentialNaNKey checkInfo.left
+                                    || AstHelpers.isPotentialNaNKey checkInfo.right
+                               )
+                    then
                         Nothing
 
                     else
@@ -5294,7 +5322,11 @@ listProductChecks =
                         ( listCollection, numberForMultiplyProperties )
                         checkInfo
                 , \checkInfo ->
-                    if checkInfo.expectNaN then
+                    if
+                        checkInfo.expectNaN
+                            && List.any AstHelpers.isPotentialNaNKey
+                                (checkInfo.firstArg :: checkInfo.argsAfterFirst)
+                    then
                         callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn)
                             ( listCollection, numberForMultiplyProperties )
                             checkInfo
@@ -6035,7 +6067,7 @@ allValuesDifferent expectingNaN errorDetails (Node keyRange keyValue) otherKeysT
     case otherKeysToCheck of
         first :: rest ->
             if
-                (not expectingNaN || not (AstHelpers.isPotentialNaNKey first))
+                not (expectingNaN && AstHelpers.isPotentialNaNKey first)
                     && List.any (\(Node _ otherKey) -> otherKey == keyValue) otherKeysToCheck
             then
                 Just
@@ -6161,18 +6193,6 @@ dictFromListChecks =
                             first :: rest ->
                                 firstThatConstructsJust
                                     [ \() ->
-                                        if checkInfo.expectNaN then
-                                            Nothing
-
-                                        else
-                                            allValuesDifferent
-                                                False
-                                                { message = "Dict.fromList on a list with a duplicate entry will only keep one of them"
-                                                , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
-                                                }
-                                                first
-                                                rest
-                                    , \() ->
                                         let
                                             toEntry : Node Expression -> { entryRange : Range, first : Maybe (Node Expression) }
                                             toEntry entry =
@@ -6183,6 +6203,14 @@ dictFromListChecks =
                                                 }
                                         in
                                         allKeysDifferent checkInfo.expectNaN (toEntry first) (List.map toEntry rest)
+                                    , \() ->
+                                        allValuesDifferent
+                                            checkInfo.expectNaN
+                                            { message = "Dict.fromList on a list with a duplicate entry will only keep one of them"
+                                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                                            }
+                                            (Normalize.normalizeButKeepRange checkInfo first)
+                                            (List.map (Normalize.normalizeButKeepRange checkInfo) rest)
                                     ]
                                     ()
 
@@ -8976,19 +9004,28 @@ wrapperMemberChecks wrapper checkInfo =
 
 knownMemberChecks : TypeProperties (CollectionProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 knownMemberChecks collection checkInfo =
-    if checkInfo.expectNaN then
-        Nothing
+    case fullyAppliedLastArg checkInfo of
+        Just collectionArg ->
+            case collection.elements.get (extractInferResources checkInfo) collectionArg of
+                Just collectionElements ->
+                    let
+                        needleArg : Node Expression
+                        needleArg =
+                            checkInfo.firstArg
+                    in
+                    if
+                        checkInfo.expectNaN
+                            && (not collectionElements.allKnown
+                                    || (AstHelpers.isPotentialNaNKey needleArg
+                                            || List.any AstHelpers.isPotentialNaNKey
+                                                collectionElements.known
+                                       )
+                               )
+                    then
+                        Nothing
 
-    else
-        case fullyAppliedLastArg checkInfo of
-            Just collectionArg ->
-                case collection.elements.get (extractInferResources checkInfo) collectionArg of
-                    Just collectionElements ->
+                    else
                         let
-                            needleArg : Node Expression
-                            needleArg =
-                                checkInfo.firstArg
-
                             needleArgNormalized : Node Expression
                             needleArgNormalized =
                                 Normalize.normalize checkInfo needleArg
@@ -9011,11 +9048,11 @@ knownMemberChecks collection checkInfo =
                         else
                             Nothing
 
-                    Nothing ->
-                        Nothing
+                Nothing ->
+                    Nothing
 
-            Nothing ->
-                Nothing
+        Nothing ->
+            Nothing
 
 
 {-| Replace a call on a collection containing an absorbing element to the absorbing element.

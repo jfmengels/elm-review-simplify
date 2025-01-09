@@ -1383,6 +1383,16 @@ d = List.member g (List.filter f list)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not report List.member used with okay arguments when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+a = List.member 0 (0 :: 1 :: unknown)
+b = List.member g [ 0, 1 ]
+c = List.member 0 list
+d = List.member 0 [ 0, 1, 2, g ]
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
         , test "should replace List.member a [] by False" <|
             \() ->
                 """module A exposing (..)
@@ -1533,6 +1543,22 @@ a = b == c
 a = List.member d [ b, c, d ]
 """
                     |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.member on a list which contains the given element will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace List.member 0 [ 2, 0, 1 ] by True when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+a = List.member 0 [ 2, 0, 1 ]
+"""
+                    |> Review.Test.run ruleExpectingNaN
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.member on a list which contains the given element will result in True"
