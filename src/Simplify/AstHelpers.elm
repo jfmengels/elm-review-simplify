@@ -65,7 +65,7 @@ module Simplify.AstHelpers exposing
 
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Exposing as Exposing
-import Elm.Syntax.Expression as Expression exposing (Expression)
+import Elm.Syntax.Expression as Expression exposing (Expression(..))
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
@@ -1064,8 +1064,13 @@ couldBeValueContainingNaNHelp nodes =
                 Expression.RecordAccess _ _ ->
                     True
 
-                Expression.RecordUpdateExpression _ _ ->
-                    couldBeValueContainingNaNHelp rest
+                Expression.RecordUpdateExpression (Node recordRange record) fields ->
+                    couldBeValueContainingNaNHelp
+                        (Node recordRange (FunctionOrValue [] record)
+                            :: (List.map (\(Node _ ( _, value )) -> value) fields
+                                    ++ rest
+                               )
+                        )
 
                 Expression.LetExpression { expression } ->
                     couldBeValueContainingNaNHelp (expression :: rest)
@@ -1079,8 +1084,11 @@ couldBeValueContainingNaNHelp nodes =
                 Expression.LambdaExpression _ ->
                     couldBeValueContainingNaNHelp rest
 
-                Expression.RecordExpr _ ->
-                    couldBeValueContainingNaNHelp rest
+                Expression.RecordExpr fields ->
+                    couldBeValueContainingNaNHelp
+                        (List.map (\(Node _ ( _, value )) -> value) fields
+                            ++ rest
+                        )
 
                 Expression.UnitExpr ->
                     couldBeValueContainingNaNHelp rest
