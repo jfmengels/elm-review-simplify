@@ -956,9 +956,8 @@ isSpecificUnappliedBinaryOperation symbol checkInfo expression =
 meaning that it could return `False` when `==` with itself.
 
 This will return `False` for expressions that are known to
-only contain literals (e.g. [ ( 0, { name = "string" } ) ]),
-are known operations that never produce NaN (e.g. `a ++ b`),
-or aren't values at all (e.g. `(++)`).
+only contain literals (e.g. `[ ( 0, { name = "a" ++ "b" } ) ]`)
+or functions (e.g. `(++)`).
 
 -}
 couldBeValueContainingNaN : Node Expression -> Bool
