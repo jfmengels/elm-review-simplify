@@ -952,9 +952,13 @@ isSpecificUnappliedBinaryOperation symbol checkInfo expression =
             False
 
 
-{-| Indicates whether this value is potentially NaN in the context of a Dict key or Set value, meaning that it could return `False` when `==` with itself.
+{-| Indicates whether this value is potentially NaN,
+meaning that it could return `False` when `==` with itself.
 
-This will return `False` for expressions that are known to not be `comparable` (e.g. records) nor `numbers`.
+This will return `False` for expressions that are known to
+only contain literals (e.g. [ ( 0, { name = "string" } ) ]),
+are known operations that never produce NaN (e.g. `a ++ b`),
+or aren't values at all (e.g. `(++)`).
 
 -}
 isPotentialNaNKey : Node Expression -> Bool
