@@ -3470,8 +3470,8 @@ addingOppositesCheck : OperatorApplicationCheckInfo -> Maybe (Error {})
 addingOppositesCheck checkInfo =
     if
         checkInfo.expectNaN
-            && (AstHelpers.isPotentialNaNKey checkInfo.left
-                    || AstHelpers.isPotentialNaNKey checkInfo.right
+            && (AstHelpers.couldBeValueContainingNaN checkInfo.left
+                    || AstHelpers.couldBeValueContainingNaN checkInfo.right
                )
     then
         Nothing
@@ -3527,8 +3527,8 @@ checkIfMinusResultsInZero : OperatorApplicationCheckInfo -> Maybe (Error {})
 checkIfMinusResultsInZero checkInfo =
     if
         checkInfo.expectNaN
-            && (AstHelpers.isPotentialNaNKey checkInfo.left
-                    || AstHelpers.isPotentialNaNKey checkInfo.right
+            && (AstHelpers.couldBeValueContainingNaN checkInfo.left
+                    || AstHelpers.couldBeValueContainingNaN checkInfo.right
                )
     then
         Nothing
@@ -3575,7 +3575,7 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
                                 (Range.combine [ checkInfo.operatorRange, Node.range side.node ])
                                 (if
                                     checkInfo.expectNaN
-                                        && AstHelpers.isPotentialNaNKey side.otherNode
+                                        && AstHelpers.couldBeValueContainingNaN side.otherNode
                                  then
                                     []
 
@@ -3636,7 +3636,7 @@ divisionChecks checkInfo =
 
         else if
             checkInfo.expectNaN
-                && AstHelpers.isPotentialNaNKey checkInfo.right
+                && AstHelpers.couldBeValueContainingNaN checkInfo.right
         then
             Nothing
 
@@ -3934,8 +3934,8 @@ equalityChecks isEqual =
                 Normalize.ConfirmedEquality ->
                     if
                         checkInfo.expectNaN
-                            && (AstHelpers.isPotentialNaNKey checkInfo.left
-                                    || AstHelpers.isPotentialNaNKey checkInfo.right
+                            && (AstHelpers.couldBeValueContainingNaN checkInfo.left
+                                    || AstHelpers.couldBeValueContainingNaN checkInfo.right
                                )
                     then
                         Nothing
@@ -5324,7 +5324,7 @@ listProductChecks =
                 , \checkInfo ->
                     if
                         checkInfo.expectNaN
-                            && List.any AstHelpers.isPotentialNaNKey
+                            && List.any AstHelpers.couldBeValueContainingNaN
                                 (checkInfo.firstArg :: checkInfo.argsAfterFirst)
                     then
                         callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn)
@@ -6067,7 +6067,7 @@ allValuesDifferent expectingNaN errorDetails (Node keyRange keyValue) otherKeysT
     case otherKeysToCheck of
         first :: rest ->
             if
-                not (expectingNaN && AstHelpers.isPotentialNaNKey first)
+                not (expectingNaN && AstHelpers.couldBeValueContainingNaN first)
                     && List.any (\(Node _ otherKey) -> otherKey == keyValue) otherKeysToCheck
             then
                 Just
@@ -6227,7 +6227,7 @@ allKeysDifferent expectingNaN entry otherEntriesToCheck =
             case entry.first of
                 Just firstKey ->
                     if
-                        (not expectingNaN || not (AstHelpers.isPotentialNaNKey firstKey))
+                        (not expectingNaN || not (AstHelpers.couldBeValueContainingNaN firstKey))
                             && isAnyTheSameAsBy firstKey otherEntriesToCheck
                     then
                         Just
@@ -9016,8 +9016,8 @@ knownMemberChecks collection checkInfo =
                     if
                         checkInfo.expectNaN
                             && (not collectionElements.allKnown
-                                    || (AstHelpers.isPotentialNaNKey needleArg
-                                            || List.any AstHelpers.isPotentialNaNKey
+                                    || (AstHelpers.couldBeValueContainingNaN needleArg
+                                            || List.any AstHelpers.couldBeValueContainingNaN
                                                 collectionElements.known
                                        )
                                )

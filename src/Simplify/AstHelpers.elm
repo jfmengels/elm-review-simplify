@@ -13,7 +13,7 @@ module Simplify.AstHelpers exposing
     , moduleNameFromString, qualifiedName, qualifiedModuleName, qualifiedToString
     , declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
     , nameOfExpose
-    , isPotentialNaNKey
+    , couldBeValueContainingNaN
     )
 
 {-|
@@ -59,7 +59,7 @@ module Simplify.AstHelpers exposing
 
 @docs declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
 @docs nameOfExpose
-@docs isPotentialNaNKey
+@docs couldBeValueContainingNaN
 
 -}
 
@@ -961,27 +961,27 @@ are known operations that never produce NaN (e.g. `a ++ b`),
 or aren't values at all (e.g. `(++)`).
 
 -}
-isPotentialNaNKey : Node Expression -> Bool
-isPotentialNaNKey node =
-    isPotentialNaNKeyHelp [ node ]
+couldBeValueContainingNaN : Node Expression -> Bool
+couldBeValueContainingNaN node =
+    couldBeValueContainingNaNHelp [ node ]
 
 
-isPotentialNaNKeyHelp : List (Node Expression) -> Bool
-isPotentialNaNKeyHelp nodes =
+couldBeValueContainingNaNHelp : List (Node Expression) -> Bool
+couldBeValueContainingNaNHelp nodes =
     case nodes of
         first :: rest ->
             case Node.value first of
                 Expression.IfBlock condition thenBranch elseBranch ->
-                    isPotentialNaNKeyHelp (condition :: thenBranch :: elseBranch :: rest)
+                    couldBeValueContainingNaNHelp (condition :: thenBranch :: elseBranch :: rest)
 
                 Expression.TupledExpression newNodes ->
-                    isPotentialNaNKeyHelp (newNodes ++ rest)
+                    couldBeValueContainingNaNHelp (newNodes ++ rest)
 
                 Expression.ParenthesizedExpression newNode ->
-                    isPotentialNaNKeyHelp (newNode :: rest)
+                    couldBeValueContainingNaNHelp (newNode :: rest)
 
                 Expression.ListExpr newNodes ->
-                    isPotentialNaNKeyHelp (newNodes ++ rest)
+                    couldBeValueContainingNaNHelp (newNodes ++ rest)
 
                 Expression.Application _ ->
                     True
@@ -996,19 +996,19 @@ isPotentialNaNKeyHelp nodes =
 
                         "//" ->
                             -- Can't result in NaN (even `NaN // NaN` can't seem to result in `NaN`).
-                            isPotentialNaNKeyHelp rest
+                            couldBeValueContainingNaNHelp rest
 
                         "+" ->
-                            isPotentialNaNKeyHelp (left :: right :: rest)
+                            couldBeValueContainingNaNHelp (left :: right :: rest)
 
                         "-" ->
-                            isPotentialNaNKeyHelp (left :: right :: rest)
+                            couldBeValueContainingNaNHelp (left :: right :: rest)
 
                         "*" ->
-                            isPotentialNaNKeyHelp (left :: right :: rest)
+                            couldBeValueContainingNaNHelp (left :: right :: rest)
 
                         "^" ->
-                            isPotentialNaNKeyHelp (left :: right :: rest)
+                            couldBeValueContainingNaNHelp (left :: right :: rest)
 
                         -- Similar to a function application
                         "<|" ->
@@ -1019,44 +1019,44 @@ isPotentialNaNKeyHelp nodes =
 
                         -- Operators that return functions
                         "<<" ->
-                            isPotentialNaNKeyHelp rest
+                            couldBeValueContainingNaNHelp rest
 
                         ">>" ->
-                            isPotentialNaNKeyHelp rest
+                            couldBeValueContainingNaNHelp rest
 
                         -- Operators that return booleans
                         "||" ->
-                            isPotentialNaNKeyHelp rest
+                            couldBeValueContainingNaNHelp rest
 
                         "&&" ->
-                            isPotentialNaNKeyHelp rest
+                            couldBeValueContainingNaNHelp rest
 
                         "==" ->
-                            isPotentialNaNKeyHelp rest
+                            couldBeValueContainingNaNHelp rest
 
                         "/=" ->
-                            isPotentialNaNKeyHelp rest
+                            couldBeValueContainingNaNHelp rest
 
                         "<" ->
-                            isPotentialNaNKeyHelp rest
+                            couldBeValueContainingNaNHelp rest
 
                         ">" ->
-                            isPotentialNaNKeyHelp rest
+                            couldBeValueContainingNaNHelp rest
 
                         "<=" ->
-                            isPotentialNaNKeyHelp rest
+                            couldBeValueContainingNaNHelp rest
 
                         ">=" ->
-                            isPotentialNaNKeyHelp rest
+                            couldBeValueContainingNaNHelp rest
 
                         "++" ->
                             -- Can return either a string or a list potentially containing Nan.
                             -- Further improvement: If we notice this works on strings, then we can return False right away.
-                            isPotentialNaNKeyHelp (left :: right :: rest)
+                            couldBeValueContainingNaNHelp (left :: right :: rest)
 
                         _ ->
                             -- There are more operators but they don't deal with numbers
-                            isPotentialNaNKeyHelp rest
+                            couldBeValueContainingNaNHelp rest
 
                 Expression.FunctionOrValue _ _ ->
                     True
@@ -1065,52 +1065,52 @@ isPotentialNaNKeyHelp nodes =
                     True
 
                 Expression.RecordUpdateExpression _ _ ->
-                    isPotentialNaNKeyHelp rest
+                    couldBeValueContainingNaNHelp rest
 
                 Expression.LetExpression { expression } ->
-                    isPotentialNaNKeyHelp (expression :: rest)
+                    couldBeValueContainingNaNHelp (expression :: rest)
 
                 Expression.CaseExpression { cases } ->
-                    isPotentialNaNKeyHelp (List.map Tuple.second cases ++ rest)
+                    couldBeValueContainingNaNHelp (List.map Tuple.second cases ++ rest)
 
                 Expression.Negation node ->
-                    isPotentialNaNKeyHelp (node :: rest)
+                    couldBeValueContainingNaNHelp (node :: rest)
 
                 Expression.LambdaExpression _ ->
-                    isPotentialNaNKeyHelp rest
+                    couldBeValueContainingNaNHelp rest
 
                 Expression.RecordExpr _ ->
-                    isPotentialNaNKeyHelp rest
+                    couldBeValueContainingNaNHelp rest
 
                 Expression.UnitExpr ->
-                    isPotentialNaNKeyHelp rest
+                    couldBeValueContainingNaNHelp rest
 
                 Expression.PrefixOperator _ ->
-                    isPotentialNaNKeyHelp rest
+                    couldBeValueContainingNaNHelp rest
 
                 Expression.Operator _ ->
-                    isPotentialNaNKeyHelp rest
+                    couldBeValueContainingNaNHelp rest
 
                 Expression.Integer _ ->
-                    isPotentialNaNKeyHelp rest
+                    couldBeValueContainingNaNHelp rest
 
                 Expression.Hex _ ->
-                    isPotentialNaNKeyHelp rest
+                    couldBeValueContainingNaNHelp rest
 
                 Expression.Floatable _ ->
-                    isPotentialNaNKeyHelp rest
+                    couldBeValueContainingNaNHelp rest
 
                 Expression.Literal _ ->
-                    isPotentialNaNKeyHelp rest
+                    couldBeValueContainingNaNHelp rest
 
                 Expression.CharLiteral _ ->
-                    isPotentialNaNKeyHelp rest
+                    couldBeValueContainingNaNHelp rest
 
                 Expression.RecordAccessFunction _ ->
-                    isPotentialNaNKeyHelp rest
+                    couldBeValueContainingNaNHelp rest
 
                 Expression.GLSLExpression _ ->
-                    isPotentialNaNKeyHelp rest
+                    couldBeValueContainingNaNHelp rest
 
         [] ->
             False
