@@ -7,6 +7,9 @@ The rule also simplifies:
 - `Dict.fromList [ a, a ]` to `Dict.fromList [ a ]`
 - `Dict.fromList [ ( a, v0 ), ( a, v1 ) ]` to `Dict.fromList [ ( a, v1 ) ]`
 
+Other improvements:
+- When having `expectNaN` enabled, we now still check expressions we know can't contain NaN like literal numbers. For example `List.member 0 [ 0, 1 ]` would previously not have been reported when expecting NaN, now it is.
+
 ## [2.1.5] - 2024-06-28
 
 The rule also simplifies (thanks to [@morteako]):

@@ -2,7 +2,7 @@ module Simplify.DictTest exposing (all)
 
 import Review.Test
 import Test exposing (Test, describe, test)
-import TestHelpers exposing (ruleWithDefaults)
+import TestHelpers exposing (ruleExpectingNaN, ruleWithDefaults)
 
 
 all : Test
@@ -452,6 +452,27 @@ a = Dict.fromList [ x, x ]
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = Dict.fromList [ x ]
+"""
+                        ]
+        , test "should replace Dict.fromList [ let a = 0 in ( 0, 0 ), let a = 0 in ( 0, 0 ) ] by Dict.fromList [ let a = 0 in ( 0, 0 ) ] even when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.fromList [ let a = 0 in ( 0, 0 ), let a = 0 in ( 0, 0 ) ]
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.fromList on a list with a duplicate entry will only keep one of them"
+                            , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
+                            , under = "let a = 0 in ( 0, 0 )"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 3, column = 21 }, end = { row = 3, column = 42 } }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+import Dict
+a = Dict.fromList [ let a = 0 in ( 0, 0 ) ]
 """
                         ]
         ]
