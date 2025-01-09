@@ -587,6 +587,9 @@ Destructuring using case expressions
     List.member a [ b ]
     --> a == b
 
+    List.member -999 [ 0, 1 ]
+    --> False
+
     List.map f [] -- same for most List functions like List.filter, List.filterMap, ...
     --> []
 
@@ -853,7 +856,6 @@ Destructuring using case expressions
     List.sort [ a ]
     --> [ a ]
 
-
     -- same for up to List.map5 when any list is empty
     List.map2 f xs []
     --> []
@@ -1029,6 +1031,15 @@ Destructuring using case expressions
     Set.member x Set.empty
     --> False
 
+    Set.member x (Set.singleton y)
+    --> x == y
+
+    Set.member x (Set.fromList [ y, x ])
+    --> True
+
+    Set.member -999 (Set.fromList [ 0, 1 ])
+    --> False
+
     Set.toList Set.empty
     --> []
 
@@ -1116,6 +1127,12 @@ Destructuring using case expressions
     --> 0
 
     Dict.member x Dict.empty
+    --> False
+
+    Dict.member x [ ( y, v0 ), ( x, v1 ) ]
+    --> True
+
+    Dict.member -999 [ ( 0, v0 ), ( 1, v1 ) ]
     --> False
 
     Dict.remove k Dict.empty
@@ -6109,7 +6126,15 @@ setSizeChecks =
 
 setMemberChecks : IntoFnCheck
 setMemberChecks =
-    intoFnCheckOnlyCall (collectionMemberChecks setCollection)
+    intoFnCheckOnlyCall
+        (firstThatConstructsJust
+            [ callOnEmptyReturnsCheck
+                { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
+                setCollection
+            , knownMemberChecks setCollection
+            , wrapperMemberChecks setCollection
+            ]
+        )
 
 
 setInsertChecks : IntoFnCheck
@@ -6290,7 +6315,22 @@ dictSizeChecks =
 
 dictMemberChecks : IntoFnCheck
 dictMemberChecks =
-    intoFnCheckOnlyCall (collectionMemberChecks dictCollection)
+    intoFnCheckOnlyCall
+        (firstThatConstructsJust
+            [ callOnEmptyReturnsCheck
+                { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
+                dictCollection
+            , knownMemberChecks
+                { represents = "dict"
+                , elements =
+                    { countDescription = "size"
+                    , elementDescription = "key"
+                    , determineCount = dictDetermineSize
+                    , get = dictGetKeys
+                    }
+                }
+            ]
+        )
 
 
 dictRemoveChecks : IntoFnCheck
@@ -6707,6 +6747,7 @@ type alias CollectionProperties otherProperties =
     { otherProperties
         | elements :
             { countDescription : String
+            , elementDescription : String
             , determineCount : Infer.Resources {} -> Node Expression -> Maybe CollectionSize
             , get :
                 Infer.Resources {}
@@ -7230,6 +7271,7 @@ listCollection =
     , empty = { specific = listEmptyConstantSpecific, kind = Constant }
     , elements =
         { get = listGetElements
+        , elementDescription = "element"
         , countDescription = "length"
         , determineCount = listDetermineLength
         }
@@ -7357,6 +7399,7 @@ stringCollection =
     , empty = { specific = stringEmptyConstantSpecific, kind = Constant }
     , elements =
         { countDescription = "length"
+        , elementDescription = "character"
         , determineCount = stringDetermineLength
         , get = stringGetElements
         }
@@ -7440,6 +7483,7 @@ arrayCollection =
     , empty = { specific = constantFnProperties Fn.Array.empty, kind = Constant }
     , elements =
         { countDescription = "length"
+        , elementDescription = "element"
         , determineCount = arrayDetermineLength
         , get = arrayGetElements
         }
@@ -7517,6 +7561,7 @@ setCollection =
     , empty = { specific = constantFnProperties Fn.Set.empty, kind = Constant }
     , elements =
         { countDescription = "size"
+        , elementDescription = "element"
         , determineCount = setDetermineSize
         , get = setGetElements
         }
@@ -7630,6 +7675,7 @@ dictCollection =
     , empty = { specific = constantFnProperties Fn.Dict.empty, kind = Constant }
     , elements =
         { countDescription = "size"
+        , elementDescription = "value"
         , determineCount = dictDetermineSize
         , get = dictGetValues
         }
@@ -7742,19 +7788,74 @@ dictGetValues resources =
         ]
 
 
-getTupleWithComparableFirst : ModuleNameLookupTable -> Node Expression -> Maybe { comparableFirst : List Expression, second : Node Expression }
+getTupleWithComparableFirst :
+    ModuleNameLookupTable
+    -> Node Expression
+    ->
+        Maybe
+            { comparableFirst : List Expression
+            , first : Node Expression
+            , second : Node Expression
+            }
 getTupleWithComparableFirst lookupTable expressionNode =
     case AstHelpers.getTuple2 lookupTable expressionNode of
         Just tuple ->
             case getComparableExpression tuple.first of
                 Just comparableFirst ->
-                    Just { comparableFirst = comparableFirst, second = tuple.second }
+                    Just
+                        { comparableFirst = comparableFirst
+                        , first = tuple.first
+                        , second = tuple.second
+                        }
 
                 Nothing ->
                     Nothing
 
         Nothing ->
             Nothing
+
+
+dictGetKeys : Infer.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
+dictGetKeys resources =
+    firstThatConstructsJust
+        [ \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificValueOrFn Fn.Dict.empty resources.lookupTable
+                |> Maybe.map (\_ -> { known = [], allKnown = True })
+        , \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificFnCall Fn.Dict.singleton resources.lookupTable
+                |> Maybe.map
+                    (\singletonCall ->
+                        { known = [ singletonCall.firstArg ], allKnown = True }
+                    )
+        , \expressionNode ->
+            expressionNode
+                |> AstHelpers.getSpecificFnCall Fn.Dict.fromList resources.lookupTable
+                |> Maybe.andThen
+                    (\fromListCall ->
+                        case listGetElements resources fromListCall.firstArg of
+                            Just listElements ->
+                                if listElements.allKnown then
+                                    case traverse (getTupleWithComparableFirst resources.lookupTable) listElements.known of
+                                        Just tuplesWithComparableKey ->
+                                            Just
+                                                { known =
+                                                    uniqueBy .comparableFirst tuplesWithComparableKey
+                                                        |> List.map .first
+                                                , allKnown = True
+                                                }
+
+                                        Nothing ->
+                                            Nothing
+
+                                else
+                                    Nothing
+
+                            Nothing ->
+                                Nothing
+                    )
+        ]
 
 
 cmdCollection : TypeProperties (EmptiableProperties ConstantProperties {})
@@ -9030,18 +9131,46 @@ knownMemberChecks collection checkInfo =
                             needleArgNormalized =
                                 Normalize.normalize checkInfo needleArg
 
-                            isNeedle : Node Expression -> Bool
-                            isNeedle element =
-                                Normalize.compareWithoutNormalization
-                                    (Normalize.normalize checkInfo element)
-                                    needleArgNormalized
-                                    == Normalize.ConfirmedEquality
+                            elementEqualitiesToNeedle : List Normalize.Comparison
+                            elementEqualitiesToNeedle =
+                                collectionElements.known
+                                    |> List.map
+                                        (\element ->
+                                            Normalize.compareWithoutNormalization
+                                                (Normalize.normalize checkInfo element)
+                                                needleArgNormalized
+                                        )
                         in
-                        if List.any isNeedle collectionElements.known then
+                        if List.member Normalize.ConfirmedEquality elementEqualitiesToNeedle then
                             Just
                                 (resultsInConstantError
-                                    (qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " which contains the given element")
+                                    (qualifiedToString checkInfo.fn
+                                        ++ " on a "
+                                        ++ collection.represents
+                                        ++ " which contains the given "
+                                        ++ collection.elements.elementDescription
+                                    )
                                     (\res -> qualifiedToString (qualify Fn.Basics.trueVariant res))
+                                    checkInfo
+                                )
+
+                        else if
+                            collectionElements.allKnown
+                                && List.all
+                                    (\elementEqualityToNeedle ->
+                                        elementEqualityToNeedle == Normalize.ConfirmedInequality
+                                    )
+                                    elementEqualitiesToNeedle
+                        then
+                            Just
+                                (resultsInConstantError
+                                    (qualifiedToString checkInfo.fn
+                                        ++ " on a "
+                                        ++ collection.represents
+                                        ++ " which does not contain the given "
+                                        ++ collection.elements.elementDescription
+                                    )
+                                    (\res -> qualifiedToString (qualify Fn.Basics.falseVariant res))
                                     checkInfo
                                 )
 
@@ -11783,13 +11912,6 @@ collectionInsertChecks collection checkInfo =
 
         Nothing ->
             Nothing
-
-
-collectionMemberChecks : CollectionProperties (EmptiableProperties empty otherProperties) -> CallCheckInfo -> Maybe (Error {})
-collectionMemberChecks collection =
-    callOnEmptyReturnsCheck
-        { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
-        collection
 
 
 collectionIsEmptyChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> CallCheckInfo -> Maybe (Error {})

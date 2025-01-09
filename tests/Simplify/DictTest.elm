@@ -773,6 +773,78 @@ import Dict
 a = Dict.empty
 """
                         ]
+        , test "should replace Dict.member 1 (Dict.fromList [ ( 0, () ), ( 1, () ), ( 2, () ) ]) by True" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.member 1 (Dict.fromList [ ( 0, () ), ( 1, () ), ( 2, () ) ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.member on a dict which contains the given key will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "Dict.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = True
+"""
+                        ]
+        , test "should replace Dict.member 1 (Dict.fromList [ ( 0, () ), ( 1, () ), ( 2, () ) ]) by True when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.member 1 (Dict.fromList [ ( 0, () ), ( 1, () ), ( 2, () ) ])
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.member on a dict which contains the given key will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "Dict.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = True
+"""
+                        ]
+        , test "should replace Dict.member 0 (Dict.fromList [ ( 2, () ), ( 3, () ), ( 1, () ) ]) by False" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.member 0 (Dict.fromList [ ( 2, () ), ( 3, () ), ( 1, () ) ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.member on a dict which does not contain the given key will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Dict.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = False
+"""
+                        ]
+        , test "should replace Dict.member 0 (Dict.fromList [ ( 2, () ), ( 3, () ), ( 1, () ) ]) by False when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.member 0 (Dict.fromList [ ( 2, () ), ( 3, () ), ( 1, () ) ])
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.member on a dict which does not contain the given key will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "Dict.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = False
+"""
+                        ]
         ]
 
 
