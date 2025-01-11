@@ -811,6 +811,22 @@ import Dict
 a = False
 """
                         ]
+        , test "should not simplify Dict.member 0 (Dict.fromList [ ( 2, () ), ( 3, () ), ( reference, () ) ]) because some references are unknown" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.member 0 (Dict.fromList [ ( 2, () ), ( 3, () ), ( reference, () ) ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not simplify Dict.member reference (Dict.fromList [ ( 2, () ), ( 3, () ), ( reference, () ) ]) when expecting NaN" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.member reference (Dict.fromList [ ( 2, () ), ( 3, () ), ( reference, () ) ])
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
         ]
 
 
