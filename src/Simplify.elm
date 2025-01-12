@@ -4024,20 +4024,25 @@ lengthOrSizeEqualityChecks isEqual checkInfo =
                                 ]
 
                              else
+                                let
+                                    notFn : String
+                                    notFn =
+                                        qualifiedToString (qualify Fn.Basics.not checkInfo)
+                                in
                                 case pipeline of
                                     AstHelpers.NoPipe ->
-                                        [ Fix.replaceRangeBy fnRange ("not (" ++ newFunction)
+                                        [ Fix.replaceRangeBy fnRange (notFn ++ " (" ++ newFunction)
                                         , removeComparison
                                         , Fix.insertAt checkInfo.parentRange.end ")"
                                         ]
 
                                     AstHelpers.PipeRight ->
-                                        [ Fix.replaceRangeBy fnRange (newFunction ++ " |> not")
+                                        [ Fix.replaceRangeBy fnRange (newFunction ++ " |> " ++ notFn)
                                         , removeComparison
                                         ]
 
                                     AstHelpers.PipeLeft ->
-                                        [ Fix.replaceRangeBy fnRange ("not <| " ++ newFunction)
+                                        [ Fix.replaceRangeBy fnRange (notFn ++ " <| " ++ newFunction)
                                         , removeComparison
                                         ]
                             )

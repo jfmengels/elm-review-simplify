@@ -1090,6 +1090,26 @@ a = 0 /= (l |> List.length)
 a = (l |> List.isEmpty |> not)
 """
                         ]
+        , test "should replace List.length l /= 0 with Basics.not (List.isEmpty l) when not needs to be qualified" <|
+            \() ->
+                """module A exposing (..)
+a = List.length l /= 0
+not = False
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "This can be replaced with a call to `List.isEmpty` and `not`"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
+                                ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Basics.not (List.isEmpty l)
+not = False
+"""
+                        ]
         ]
 
 
