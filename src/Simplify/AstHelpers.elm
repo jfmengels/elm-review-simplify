@@ -67,7 +67,7 @@ module Simplify.AstHelpers exposing
 
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Exposing as Exposing
-import Elm.Syntax.Expression as Expression exposing (Expression(..))
+import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
@@ -77,6 +77,7 @@ import Fn.List
 import Fn.Tuple
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Set exposing (Set)
+import Simplify.CallStyle as CallStyle exposing (FunctionCallStyle)
 import Simplify.Infer as Infer
 import Simplify.Normalize as Normalize
 
@@ -1085,7 +1086,7 @@ couldBeValueContainingNaNHelp nodes =
 
                 Expression.RecordUpdateExpression (Node recordRange record) fields ->
                     couldBeValueContainingNaNHelp
-                        (Node recordRange (FunctionOrValue [] record)
+                        (Node recordRange (Expression.FunctionOrValue [] record)
                             :: (List.map (\(Node _ ( _, value )) -> value) fields
                                     ++ rest
                                )

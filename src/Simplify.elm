@@ -1464,6 +1464,7 @@ import Review.Project.Dependency as Dependency exposing (Dependency)
 import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
 import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, qualifiedToString)
+import Simplify.CallStyle as CallStyle exposing (FunctionCallStyle)
 import Simplify.Evaluate as Evaluate
 import Simplify.Infer as Infer
 import Simplify.Match exposing (Match(..))
@@ -2482,15 +2483,15 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             -- Too many arguments!
                             -- We'll update the range to drop the extra ones and force the call style to application
                             ( case checkInfo.callStyle of
-                                Application ->
+                                CallStyle.Application ->
                                     { start = checkInfo.fnRange.start, end = (Node.range lastExpectedArg).end }
 
-                                Pipe LeftToRight ->
+                                CallStyle.Pipe CallStyle.LeftToRight ->
                                     { start = checkInfo.fnRange.start, end = (Node.range lastExpectedArg).end }
 
-                                Pipe RightToLeft ->
+                                CallStyle.Pipe CallStyle.RightToLeft ->
                                     { start = (Node.range checkInfo.firstArg).start, end = (Node.range checkInfo.firstArg).end }
-                            , Application
+                            , CallStyle.Application
                             )
 
                         -- [] | _ :: [] ->
@@ -2570,7 +2571,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , argCount = argCount
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsAfterFirst
-                                                , callStyle = Application
+                                                , callStyle = CallStyle.Application
                                                 }
                                             )
 
@@ -2638,7 +2639,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , argCount = argCount
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
-                                                , callStyle = Pipe RightToLeft
+                                                , callStyle = CallStyle.Pipe CallStyle.RightToLeft
                                                 }
                                             )
 
@@ -2662,7 +2663,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , fn = ( moduleName, fnName )
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
-                                                , callStyle = Pipe RightToLeft
+                                                , callStyle = CallStyle.Pipe CallStyle.RightToLeft
                                                 }
                                             )
                                         )
@@ -2679,7 +2680,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                         (pipelineChecks
                             { commentRanges = context.commentRanges
                             , extractSourceCode = context.extractSourceCode
-                            , direction = RightToLeft
+                            , direction = CallStyle.RightToLeft
                             , nodeRange = expressionRange
                             , pipedInto = pipedIntoOther
                             , arg = lastArg
@@ -2707,7 +2708,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , argCount = argCount
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
-                                                , callStyle = Pipe LeftToRight
+                                                , callStyle = CallStyle.Pipe CallStyle.LeftToRight
                                                 }
                                             )
 
@@ -2731,7 +2732,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , argCount = argCount
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
-                                                , callStyle = Pipe LeftToRight
+                                                , callStyle = CallStyle.Pipe CallStyle.LeftToRight
                                                 }
                                             )
                                         )
@@ -2748,7 +2749,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                         (pipelineChecks
                             { commentRanges = context.commentRanges
                             , extractSourceCode = context.extractSourceCode
-                            , direction = LeftToRight
+                            , direction = CallStyle.LeftToRight
                             , nodeRange = expressionRange
                             , pipedInto = pipedIntoOther
                             , arg = lastArg
@@ -3042,23 +3043,6 @@ type alias CallCheckInfo =
     , secondArg : Maybe (Node Expression)
     , thirdArg : Maybe (Node Expression)
     }
-
-
-{-| How an argument is given as input to a function:
-
-  - `Pipe RightToLeft`: `function <| argument`
-  - `Pipe LeftToRight`: `argument |> function`
-  - `Application`: `function argument`
-
--}
-type FunctionCallStyle
-    = Application
-    | Pipe LeftOrRightDirection
-
-
-type LeftOrRightDirection
-    = RightToLeft
-    | LeftToRight
 
 
 secondArg : CallCheckInfo -> Maybe (Node Expression)
@@ -5391,18 +5375,18 @@ listMapOnSingletonCheck =
                                             (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range listArg }
                                                 ++ parenthesizeIfNeededFix wrapped.element
                                                 ++ (case checkInfo.callStyle of
-                                                        Pipe LeftToRight ->
+                                                        CallStyle.Pipe CallStyle.LeftToRight ->
                                                             [ Fix.insertAt mappedValueRange.start "("
                                                             , Fix.insertAt mappedValueRange.end
                                                                 (" |> " ++ checkInfo.extractSourceCode mappingArgRange ++ ")")
                                                             ]
 
-                                                        Pipe RightToLeft ->
+                                                        CallStyle.Pipe CallStyle.RightToLeft ->
                                                             [ Fix.insertAt mappedValueRange.start ("(" ++ checkInfo.extractSourceCode mappingArgRange ++ " <| ")
                                                             , Fix.insertAt mappedValueRange.end ")"
                                                             ]
 
-                                                        Application ->
+                                                        CallStyle.Application ->
                                                             [ Fix.insertAt mappedValueRange.start ("(" ++ checkInfo.extractSourceCode mappingArgRange ++ " ")
                                                             , Fix.insertAt mappedValueRange.end ")"
                                                             ]
@@ -5596,7 +5580,7 @@ listFoldAnyDirectionChecks =
 
                                         Just _ ->
                                             case checkInfo.callStyle of
-                                                Pipe LeftToRight ->
+                                                CallStyle.Pipe CallStyle.LeftToRight ->
                                                     -- list |> fold op initial --> ((list |> List.op) op initial)
                                                     Just
                                                         (fixWith
@@ -5611,7 +5595,7 @@ listFoldAnyDirectionChecks =
                                                             ]
                                                         )
 
-                                                -- Pipe RightToLeft | Application ->
+                                                -- CallStyle.Pipe CallStyle.RightToLeft | CallStyle.Application ->
                                                 _ ->
                                                     -- fold op initial list --> (initial op (List.op list))
                                                     Just
@@ -8330,18 +8314,18 @@ mapOnWrappedChecks wrapper =
                                             (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range wrapperArg }
                                                 ++ parenthesizeIfNeededFix wrappedValue
                                                 ++ (case checkInfo.callStyle of
-                                                        Pipe LeftToRight ->
+                                                        CallStyle.Pipe CallStyle.LeftToRight ->
                                                             [ Fix.insertAt mappedValueRange.start "("
                                                             , Fix.insertAt mappedValueRange.end
                                                                 (" |> " ++ checkInfo.extractSourceCode mappingArgRange ++ ")")
                                                             ]
 
-                                                        Pipe RightToLeft ->
+                                                        CallStyle.Pipe CallStyle.RightToLeft ->
                                                             [ Fix.insertAt mappedValueRange.start ("(" ++ checkInfo.extractSourceCode mappingArgRange ++ " <| ")
                                                             , Fix.insertAt mappedValueRange.end ")"
                                                             ]
 
-                                                        Application ->
+                                                        CallStyle.Application ->
                                                             [ Fix.insertAt mappedValueRange.start ("(" ++ checkInfo.extractSourceCode mappingArgRange ++ " ")
                                                             , Fix.insertAt mappedValueRange.end ")"
                                                             ]
@@ -8375,20 +8359,20 @@ mapOnWrappedChecks wrapper =
                                             (mapWrapErrorInfo checkInfo.fn wrapper)
                                             checkInfo.fnRange
                                             (case checkInfo.callStyle of
-                                                Pipe LeftToRight ->
+                                                CallStyle.Pipe CallStyle.LeftToRight ->
                                                     [ Fix.removeRange { start = checkInfo.fnRange.start, end = mappingArgRange.start }
                                                     , Fix.insertAt mappingArgRange.end
                                                         (" |> " ++ qualifiedToString (qualify wrapper.wrap.fn checkInfo))
                                                     ]
                                                         ++ removeWrapCalls
 
-                                                Pipe RightToLeft ->
+                                                CallStyle.Pipe CallStyle.RightToLeft ->
                                                     Fix.replaceRangeBy
                                                         { start = checkInfo.parentRange.start, end = mappingArgRange.start }
                                                         (qualifiedToString (qualify wrapper.wrap.fn checkInfo) ++ " <| ")
                                                         :: removeWrapCalls
 
-                                                Application ->
+                                                CallStyle.Application ->
                                                     [ Fix.replaceRangeBy
                                                         { start = checkInfo.parentRange.start, end = mappingArgRange.start }
                                                         (qualifiedToString (qualify wrapper.wrap.fn checkInfo) ++ " (")
@@ -10543,17 +10527,17 @@ wrapperMapNChecks wrapper checkInfo =
                             }
                             ++ List.concatMap (\wrap -> replaceBySubExpressionFix wrap.nodeRange wrap.value) wraps
                             ++ (case checkInfo.callStyle of
-                                    Pipe LeftToRight ->
+                                    CallStyle.Pipe CallStyle.LeftToRight ->
                                         [ Fix.insertAt checkInfo.parentRange.end
                                             (" |> " ++ qualifiedToString (qualify wrapper.wrap.fn checkInfo))
                                         ]
 
-                                    Pipe RightToLeft ->
+                                    CallStyle.Pipe CallStyle.RightToLeft ->
                                         [ Fix.insertAt checkInfo.parentRange.start
                                             (qualifiedToString (qualify wrapper.wrap.fn checkInfo) ++ " <| ")
                                         ]
 
-                                    Application ->
+                                    CallStyle.Application ->
                                         [ Fix.insertAt checkInfo.parentRange.end ")"
                                         , Fix.insertAt checkInfo.parentRange.start (qualifiedToString (qualify wrapper.wrap.fn checkInfo) ++ " (")
                                         ]
@@ -11038,7 +11022,7 @@ pipelineChecks :
     , nodeRange : Range
     , pipedInto : Node Expression
     , arg : Node Expression
-    , direction : LeftOrRightDirection
+    , direction : CallStyle.LeftOrRightDirection
     , importRecordTypeAliases : Dict ModuleName (Dict String (List String))
     , moduleRecordTypeAliases : Dict String (List String)
     , lookupTable : ModuleNameLookupTable
@@ -11091,17 +11075,17 @@ fullyAppliedLambdaInPipelineChecks checkInfo =
 
 pipingIntoCompositionChecks :
     { commentRanges : List Range, extractSourceCode : Range -> String }
-    -> LeftOrRightDirection
+    -> CallStyle.LeftOrRightDirection
     -> Node Expression
     -> Maybe (Error {})
 pipingIntoCompositionChecks context compositionDirection expressionNode =
     let
         ( opToFind, replacement ) =
             case compositionDirection of
-                RightToLeft ->
+                CallStyle.RightToLeft ->
                     ( "<<", "<|" )
 
-                LeftToRight ->
+                CallStyle.LeftToRight ->
                     ( ">>", "|>" )
 
         pipingIntoCompositionChecksHelp : Node Expression -> Maybe { opToReplaceRange : Range, fixes : List Fix, firstStepIsComposition : Bool }
@@ -11131,10 +11115,10 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                         continuedSearch : Maybe { opToReplaceRange : Range, fixes : List Fix, firstStepIsComposition : Bool }
                         continuedSearch =
                             case compositionDirection of
-                                RightToLeft ->
+                                CallStyle.RightToLeft ->
                                     pipingIntoCompositionChecksHelp left
 
-                                LeftToRight ->
+                                CallStyle.LeftToRight ->
                                     pipingIntoCompositionChecksHelp right
                     in
                     if symbol == replacement then
@@ -11186,10 +11170,10 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                         , "To make it more idiomatic in Elm and generally easier to read, please use " ++ replacement ++ " instead. You may need to remove some parentheses to do this."
                         , "Here is an example:"
                             ++ (case compositionDirection of
-                                    RightToLeft ->
+                                    CallStyle.RightToLeft ->
                                         leftPipeExample
 
-                                    LeftToRight ->
+                                    CallStyle.LeftToRight ->
                                         rightPipeExample
                                )
                         ]
