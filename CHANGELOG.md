@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.1.6] - 2025-01-12
+
 The rule now simplifies:
 - `Set.fromList [ a, a ]` to `Set.fromList [ a ]`
 - `Set.member x (Set.singleton y)` to `x == y`
@@ -655,7 +657,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.5...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.6...HEAD
+[2.1.6]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.6
 [2.1.5]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.5
 [2.1.4]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.4
 [2.1.3]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.3
