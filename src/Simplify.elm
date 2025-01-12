@@ -4088,7 +4088,7 @@ compareWithZeroChecks checkInfo isEqual node =
                         let
                             newFunction : String
                             newFunction =
-                                qualifiedToString (qualify newFn checkInfo)
+                                qualifiedToString (qualify newFn defaultQualifyResources)
 
                             replacementDescription : String
                             replacementDescription =
@@ -4111,7 +4111,7 @@ compareWithZeroChecks checkInfo isEqual node =
                                 ]
                             , fnRange = call.fnRange
                             , pipeline = call.pipeline
-                            , newFunction = newFunction
+                            , newFunction = qualifiedToString (qualify newFn checkInfo)
                             }
 
                     Nothing ->
