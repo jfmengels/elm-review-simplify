@@ -870,7 +870,7 @@ Destructuring using case expressions
     --> List.isEmpty l
 
     List.length l /= 0
-    --> (not << List.isEmpty) l
+    --> not (List.isEmpty l)
 
 
 ### Arrays
@@ -1011,7 +1011,7 @@ Destructuring using case expressions
     --> Array.isEmpty a
 
     Array.length a /= 0
-    --> (not << Array.isEmpty) a
+    --> not (Array.isEmpty a)
 
 
 ### Sets
@@ -1118,7 +1118,7 @@ Destructuring using case expressions
     --> Set.isEmpty set
 
     Set.size set /= 0
-    --> (not << Set.isEmpty) set
+    --> not (Set.isEmpty set)
 
 
 ### Dict
@@ -1229,7 +1229,7 @@ Destructuring using case expressions
     --> Dict.isEmpty dict
 
     Dict.size dict /= 0
-    --> (not << Dict.isEmpty) dict
+    --> not (Dict.isEmpty dict)
 
 
 ### Cmd / Sub
