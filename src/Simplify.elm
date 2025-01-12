@@ -3996,8 +3996,8 @@ equalityChecks isEqual =
 lengthOrSizeEqualityChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
 lengthOrSizeEqualityChecks isEqual checkInfo =
     let
-        handle : Node Expression -> Node Expression -> Maybe (Error {})
-        handle thisNode thatNode =
+        lengthOrSizeToEmptyChecks : Node Expression -> Node Expression -> Maybe (Error {})
+        lengthOrSizeToEmptyChecks thisNode thatNode =
             case compareWithZeroChecks checkInfo isEqual thisNode of
                 Just { message, details, fnRange, pipeline, newFunction } ->
                     let
@@ -4056,10 +4056,10 @@ lengthOrSizeEqualityChecks isEqual checkInfo =
             Nothing
 
         ( Expression.Integer 0, _ ) ->
-            handle checkInfo.right checkInfo.left
+            lengthOrSizeToEmptyChecks checkInfo.right checkInfo.left
 
         ( _, Expression.Integer 0 ) ->
-            handle checkInfo.left checkInfo.right
+            lengthOrSizeToEmptyChecks checkInfo.left checkInfo.right
 
         _ ->
             Nothing
