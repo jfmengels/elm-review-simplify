@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-The rule also simplifies:
+The rule now simplifies:
 - `Set.fromList [ a, a ]` to `Set.fromList [ a ]`
 - `Set.member x (Set.singleton y)` to `x == y`
 - `Set.member x (Set.fromList [ y, x ])` to `True`
@@ -13,12 +13,17 @@ The rule also simplifies:
 - `Dict.member -999 [ ( 0, v0 ), ( 1, v1 ) ]` to `False`
 - `List.member -999 [ 0, 1 ]` to `False`
 
+The rule also simplifies (thanks to [@perkee] and [@mfonism]):
+- `List.length l == 0` to `List.isEmpty l`
+- `List.length l /= 0` to `not (List.isEmpty l)`
+- ...and the same thing for `Array.length`, `Set.size` and `Dict.size`
+
 Other improvements:
 - When having `expectNaN` enabled, we now still check expressions we know can't contain NaN like literal numbers. For example `List.member 0 [ 0, 1 ]` would previously not have been reported when expecting NaN, now it is.
 
 ## [2.1.5] - 2024-06-28
 
-The rule also simplifies (thanks to [@morteako]):
+The rule now simplifies (thanks to [@morteako]):
 - `Set.isEmpty (Set.fromList list)` to `List.isEmpty list`
 - `Dict.isEmpty (Dict.fromList list)` to `List.isEmpty list`
 - `Array.isEmpty (Array.fromList list)` to `List.isEmpty list`
@@ -692,5 +697,7 @@ Help would be appreciated to fill the blanks!
 [@lue-bird]: https://github.com/lue-bird
 [@morteako]: https://github.com/morteako
 [@w0rm]: https://github.com/w0rm
+[@perkee]: https://github.com/perkee
+[@mfonism]: https://github.com/mfonism
 
 [`expectNaN`]: https://package.elm-lang.org/packages/jfmengels/elm-review-simplify/latest/Simplify#expectNaN
