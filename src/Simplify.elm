@@ -3912,13 +3912,10 @@ equalityChecks isEqual =
                 handle thisNode thatNode =
                     case compareWithZeroChecks checkInfo isEqual thisNode of
                         Just { message, details, fnRange, newFunction } ->
-                            Just
-                                (Rule.errorWithFix { message = message, details = details }
-                                    fnRange
-                                    [ Fix.replaceRangeBy
-                                        fnRange
-                                        newFunction
-                                    , Fix.removeRange <|
+                            let
+                                removeComparison : Fix
+                                removeComparison =
+                                    Fix.removeRange <|
                                         case Range.compare (Node.range thisNode) (Node.range thatNode) of
                                             LT ->
                                                 { start = (Node.range thisNode).end
@@ -3929,6 +3926,14 @@ equalityChecks isEqual =
                                                 { start = (Node.range thatNode).start
                                                 , end = (Node.range thisNode).start
                                                 }
+                            in
+                            Just
+                                (Rule.errorWithFix { message = message, details = details }
+                                    fnRange
+                                    [ Fix.replaceRangeBy
+                                        fnRange
+                                        newFunction
+                                    , removeComparison
                                     ]
                                 )
 
