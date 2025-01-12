@@ -1026,7 +1026,7 @@ a : Bool
 a = (l |> List.isEmpty)
 """
                         ]
-        , test "should replace List.length l /= 0 with (not << List.isEmpty)" <|
+        , test "should replace List.length l /= 0 with not (List.isEmpty l)" <|
             \() ->
                 """module A exposing (..)
 a : Bool
@@ -1043,7 +1043,7 @@ a = List.length l /= 0
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a : Bool
-a = (not << List.isEmpty) l
+a = not (List.isEmpty l)
 """
                         ]
         , test "should replace 0 /= List.length l with (not << List.isEmpty)" <|
