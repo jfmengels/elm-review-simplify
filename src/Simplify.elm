@@ -3930,11 +3930,17 @@ equalityChecks isEqual =
                             Just
                                 (Rule.errorWithFix { message = message, details = details }
                                     fnRange
-                                    [ Fix.replaceRangeBy
-                                        fnRange
-                                        newFunction
-                                    , removeComparison
-                                    ]
+                                    (if isEqual then
+                                        [ Fix.replaceRangeBy fnRange newFunction
+                                        , removeComparison
+                                        ]
+
+                                     else
+                                        [ Fix.replaceRangeBy fnRange ("not (" ++ newFunction)
+                                        , removeComparison
+                                        , Fix.insertAt checkInfo.parentRange.end ")"
+                                        ]
+                                    )
                                 )
 
                         Nothing ->
