@@ -4066,6 +4066,14 @@ compareWithZeroChecks checkInfo isEqual node =
                             newName =
                                 qualifiedToString (qualify newFn checkInfo)
 
+                            replacementDescription : String
+                            replacementDescription =
+                                if isEqual then
+                                    newName
+
+                                else
+                                    newName ++ " and not"
+
                             replacement : String
                             replacement =
                                 if isEqual then
@@ -4075,7 +4083,7 @@ compareWithZeroChecks checkInfo isEqual node =
                                     "(not << " ++ newName ++ ")"
                         in
                         Just
-                            { message = "This can be replaced with a call to " ++ replacement
+                            { message = "This can be replaced with a call to " ++ replacementDescription
                             , details =
                                 [ "Whereas "
                                     ++ qualifiedToString (qualify oldFn checkInfo)
