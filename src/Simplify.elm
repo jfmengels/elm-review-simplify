@@ -3911,13 +3911,13 @@ equalityChecks isEqual =
                 handle : Node Expression -> Node Expression -> Maybe (Error {})
                 handle thisNode thatNode =
                     case compareWithZeroChecks checkInfo isEqual thisNode of
-                        Just { message, details, fnRange, replacement } ->
+                        Just { message, details, fnRange, newFunction } ->
                             Just
                                 (Rule.errorWithFix { message = message, details = details }
                                     fnRange
                                     [ Fix.replaceRangeBy
                                         fnRange
-                                        replacement
+                                        newFunction
                                     , Fix.removeRange <|
                                         case Range.compare (Node.range thisNode) (Node.range thatNode) of
                                             LT ->
@@ -4042,7 +4042,7 @@ compareWithZeroChecks :
             { message : String
             , details : List String
             , fnRange : Range
-            , replacement : String
+            , newFunction : String
             }
 compareWithZeroChecks checkInfo isEqual node =
     [ ( Fn.List.isEmpty, Fn.List.length, "List" )
@@ -4062,25 +4062,17 @@ compareWithZeroChecks checkInfo isEqual node =
                 of
                     Just call ->
                         let
-                            newName : String
-                            newName =
+                            newFunction : String
+                            newFunction =
                                 qualifiedToString (qualify newFn checkInfo)
 
                             replacementDescription : String
                             replacementDescription =
                                 if isEqual then
-                                    newName
+                                    newFunction
 
                                 else
-                                    newName ++ " and not"
-
-                            replacement : String
-                            replacement =
-                                if isEqual then
-                                    newName
-
-                                else
-                                    "(not << " ++ newName ++ ")"
+                                    newFunction ++ " and not"
                         in
                         Just
                             { message = "This can be replaced with a call to " ++ replacementDescription
@@ -4090,11 +4082,11 @@ compareWithZeroChecks checkInfo isEqual node =
                                     ++ " takes as long to run as the number of elements in the "
                                     ++ structName
                                     ++ ", "
-                                    ++ newName
+                                    ++ newFunction
                                     ++ " runs in constant time."
                                 ]
                             , fnRange = call.fnRange
-                            , replacement = replacement
+                            , newFunction = newFunction
                             }
 
                     Nothing ->
