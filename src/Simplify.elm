@@ -3911,7 +3911,7 @@ equalityChecks isEqual =
                 handle : Node Expression -> Node Expression -> Maybe (Error {})
                 handle thisNode thatNode =
                     case compareWithZeroChecks checkInfo isEqual thisNode of
-                        Just { message, details, fnRange, newFunction } ->
+                        Just { message, details, fnRange, pipeline, newFunction } ->
                             let
                                 removeComparison : Fix
                                 removeComparison =
@@ -3936,10 +3936,22 @@ equalityChecks isEqual =
                                         ]
 
                                      else
-                                        [ Fix.replaceRangeBy fnRange ("not (" ++ newFunction)
-                                        , removeComparison
-                                        , Fix.insertAt checkInfo.parentRange.end ")"
-                                        ]
+                                        case pipeline of
+                                            AstHelpers.NoPipe ->
+                                                [ Fix.replaceRangeBy fnRange ("not (" ++ newFunction)
+                                                , removeComparison
+                                                , Fix.insertAt checkInfo.parentRange.end ")"
+                                                ]
+
+                                            AstHelpers.PipeRight ->
+                                                [ Fix.replaceRangeBy fnRange (newFunction ++ " |> not")
+                                                , removeComparison
+                                                ]
+
+                                            AstHelpers.PipeLeft ->
+                                                [ Fix.replaceRangeBy fnRange ("not <| " ++ newFunction)
+                                                , removeComparison
+                                                ]
                                     )
                                 )
 
@@ -4053,6 +4065,7 @@ compareWithZeroChecks :
             { message : String
             , details : List String
             , fnRange : Range
+            , pipeline : AstHelpers.Pipeline
             , newFunction : String
             }
 compareWithZeroChecks checkInfo isEqual node =
@@ -4097,6 +4110,7 @@ compareWithZeroChecks checkInfo isEqual node =
                                     ++ " runs in constant time."
                                 ]
                             , fnRange = call.fnRange
+                            , pipeline = call.pipeline
                             , newFunction = newFunction
                             }
 
