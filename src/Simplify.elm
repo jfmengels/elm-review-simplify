@@ -3906,70 +3906,7 @@ consChecks =
 equalityChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
 equalityChecks isEqual =
     firstThatConstructsJust
-        [ \checkInfo ->
-            let
-                handle : Node Expression -> Node Expression -> Maybe (Error {})
-                handle thisNode thatNode =
-                    case compareWithZeroChecks checkInfo isEqual thisNode of
-                        Just { message, details, fnRange, pipeline, newFunction } ->
-                            let
-                                removeComparison : Fix
-                                removeComparison =
-                                    Fix.removeRange <|
-                                        case Range.compare (Node.range thisNode) (Node.range thatNode) of
-                                            LT ->
-                                                { start = (Node.range thisNode).end
-                                                , end = (Node.range thatNode).end
-                                                }
-
-                                            _ ->
-                                                { start = (Node.range thatNode).start
-                                                , end = (Node.range thisNode).start
-                                                }
-                            in
-                            Just
-                                (Rule.errorWithFix { message = message, details = details }
-                                    fnRange
-                                    (if isEqual then
-                                        [ Fix.replaceRangeBy fnRange newFunction
-                                        , removeComparison
-                                        ]
-
-                                     else
-                                        case pipeline of
-                                            AstHelpers.NoPipe ->
-                                                [ Fix.replaceRangeBy fnRange ("not (" ++ newFunction)
-                                                , removeComparison
-                                                , Fix.insertAt checkInfo.parentRange.end ")"
-                                                ]
-
-                                            AstHelpers.PipeRight ->
-                                                [ Fix.replaceRangeBy fnRange (newFunction ++ " |> not")
-                                                , removeComparison
-                                                ]
-
-                                            AstHelpers.PipeLeft ->
-                                                [ Fix.replaceRangeBy fnRange ("not <| " ++ newFunction)
-                                                , removeComparison
-                                                ]
-                                    )
-                                )
-
-                        Nothing ->
-                            Nothing
-            in
-            case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
-                ( Expression.Integer _, Expression.Integer _ ) ->
-                    Nothing
-
-                ( Expression.Integer 0, _ ) ->
-                    handle checkInfo.right checkInfo.left
-
-                ( _, Expression.Integer 0 ) ->
-                    handle checkInfo.left checkInfo.right
-
-                _ ->
-                    Nothing
+        [ lengthOrSizeEqualityChecks isEqual
         , \checkInfo ->
             findMap
                 (\side ->
@@ -4054,6 +3991,73 @@ equalityChecks isEqual =
                 Normalize.Unconfirmed ->
                     Nothing
         ]
+
+
+lengthOrSizeEqualityChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
+lengthOrSizeEqualityChecks isEqual checkInfo =
+    let
+        handle : Node Expression -> Node Expression -> Maybe (Error {})
+        handle thisNode thatNode =
+            case compareWithZeroChecks checkInfo isEqual thisNode of
+                Just { message, details, fnRange, pipeline, newFunction } ->
+                    let
+                        removeComparison : Fix
+                        removeComparison =
+                            Fix.removeRange <|
+                                case Range.compare (Node.range thisNode) (Node.range thatNode) of
+                                    LT ->
+                                        { start = (Node.range thisNode).end
+                                        , end = (Node.range thatNode).end
+                                        }
+
+                                    _ ->
+                                        { start = (Node.range thatNode).start
+                                        , end = (Node.range thisNode).start
+                                        }
+                    in
+                    Just
+                        (Rule.errorWithFix { message = message, details = details }
+                            fnRange
+                            (if isEqual then
+                                [ Fix.replaceRangeBy fnRange newFunction
+                                , removeComparison
+                                ]
+
+                             else
+                                case pipeline of
+                                    AstHelpers.NoPipe ->
+                                        [ Fix.replaceRangeBy fnRange ("not (" ++ newFunction)
+                                        , removeComparison
+                                        , Fix.insertAt checkInfo.parentRange.end ")"
+                                        ]
+
+                                    AstHelpers.PipeRight ->
+                                        [ Fix.replaceRangeBy fnRange (newFunction ++ " |> not")
+                                        , removeComparison
+                                        ]
+
+                                    AstHelpers.PipeLeft ->
+                                        [ Fix.replaceRangeBy fnRange ("not <| " ++ newFunction)
+                                        , removeComparison
+                                        ]
+                            )
+                        )
+
+                Nothing ->
+                    Nothing
+    in
+    case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
+        ( Expression.Integer _, Expression.Integer _ ) ->
+            Nothing
+
+        ( Expression.Integer 0, _ ) ->
+            handle checkInfo.right checkInfo.left
+
+        ( _, Expression.Integer 0 ) ->
+            handle checkInfo.left checkInfo.right
+
+        _ ->
+            Nothing
 
 
 compareWithZeroChecks :
