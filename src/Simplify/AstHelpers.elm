@@ -3,7 +3,6 @@ module Simplify.AstHelpers exposing
     , removeParens, removeParensFromPattern
     , getValueOrFnOrFnCall
     , getSpecificFnCall, getSpecificValueOrFn
-    , Pipeline(..)
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
     , getAccessingRecord, getRecordAccessFunction
@@ -34,7 +33,6 @@ module Simplify.AstHelpers exposing
 
 @docs getValueOrFnOrFnCall
 @docs getSpecificFnCall, getSpecificValueOrFn
-@docs Pipeline
 
 
 ### certain kind
@@ -235,7 +233,7 @@ getSpecificFnCall :
             , fnRange : Range
             , firstArg : Node Expression
             , argsAfterFirst : List (Node Expression)
-            , pipeline : Pipeline
+            , callStyle : FunctionCallStyle
             }
 getSpecificFnCall ( moduleName, name ) lookupTable expressionNode =
     case getValueOrFnOrFnCall expressionNode of
@@ -254,7 +252,7 @@ getSpecificFnCall ( moduleName, name ) lookupTable expressionNode =
                             , fnRange = call.fnRange
                             , firstArg = firstArg
                             , argsAfterFirst = argsAfterFirst
-                            , pipeline = call.pipeline
+                            , callStyle = call.callStyle
                             }
 
                 [] ->
@@ -274,7 +272,7 @@ getValueOrFnOrFnCall :
             , fnName : String
             , fnRange : Range
             , args : List (Node Expression)
-            , pipeline : Pipeline
+            , callStyle : FunctionCallStyle
             }
 getValueOrFnOrFnCall expressionNode =
     case getCollapsedUnreducedValueOrFunctionCall expressionNode of
@@ -290,7 +288,7 @@ getValueOrFnOrFnCall expressionNode =
                                 { nodeRange = reducedLambda.nodeRange
                                 , fnName = reducedLambda.fnName
                                 , fnRange = reducedLambda.fnRange
-                                , pipeline = reducedLambda.pipeline
+                                , callStyle = reducedLambda.callStyle
                                 , args = args
                                 }
 
@@ -347,12 +345,6 @@ getValueOrFunction expressionNode =
                     Nothing
 
 
-type Pipeline
-    = {- Application or direct reference -} NoPipe
-    | {- |> -} PipeRight
-    | {- <| -} PipeLeft
-
-
 getCollapsedUnreducedValueOrFunctionCall :
     Node Expression
     ->
@@ -361,13 +353,13 @@ getCollapsedUnreducedValueOrFunctionCall :
             , fnName : String
             , fnRange : Range
             , args : List (Node Expression)
-            , pipeline : Pipeline
+            , callStyle : FunctionCallStyle
             }
 getCollapsedUnreducedValueOrFunctionCall baseNode =
     let
         step :
-            { firstArg : Node Expression, argsAfterFirst : List (Node Expression), fed : Node Expression, pipeline : Pipeline }
-            -> Maybe { nodeRange : Range, fnRange : Range, fnName : String, args : List (Node Expression), pipeline : Pipeline }
+            { firstArg : Node Expression, argsAfterFirst : List (Node Expression), fed : Node Expression, callStyle : FunctionCallStyle }
+            -> Maybe { nodeRange : Range, fnRange : Range, fnName : String, args : List (Node Expression), callStyle : FunctionCallStyle }
         step layer =
             Maybe.map
                 (\fed ->
@@ -375,7 +367,7 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
                     , fnRange = fed.fnRange
                     , fnName = fed.fnName
                     , args = fed.args ++ (layer.firstArg :: layer.argsAfterFirst)
-                    , pipeline = layer.pipeline
+                    , callStyle = layer.callStyle
                     }
                 )
                 (getCollapsedUnreducedValueOrFunctionCall layer.fed)
@@ -387,7 +379,7 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
                 , fnRange = fnRange
                 , fnName = fnName
                 , args = []
-                , pipeline = NoPipe
+                , callStyle = CallStyle.Application
                 }
 
         Node _ (Expression.Application (fed :: firstArg :: argsAfterFirst)) ->
@@ -395,7 +387,7 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
                 { fed = fed
                 , firstArg = firstArg
                 , argsAfterFirst = argsAfterFirst
-                , pipeline = NoPipe
+                , callStyle = CallStyle.Application
                 }
 
         Node _ (Expression.OperatorApplication "|>" _ firstArg fed) ->
@@ -403,7 +395,7 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
                 { fed = fed
                 , firstArg = firstArg
                 , argsAfterFirst = []
-                , pipeline = PipeRight
+                , callStyle = CallStyle.Pipe CallStyle.LeftToRight
                 }
 
         Node _ (Expression.OperatorApplication "<|" _ fed firstArg) ->
@@ -411,7 +403,7 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
                 { fed = fed
                 , firstArg = firstArg
                 , argsAfterFirst = []
-                , pipeline = PipeLeft
+                , callStyle = CallStyle.Pipe CallStyle.RightToLeft
                 }
 
         _ ->
@@ -598,7 +590,7 @@ getReducedLambda :
             , fnRange : Range
             , callArguments : List (Node Expression)
             , lambdaPatterns : List (Node Pattern)
-            , pipeline : Pipeline
+            , callStyle : FunctionCallStyle
             }
 getReducedLambda expressionNode =
     -- maybe a version of this is better located in Normalize?
@@ -620,7 +612,7 @@ getReducedLambda expressionNode =
                         , fnRange = call.fnRange
                         , callArguments = reducedCallArguments
                         , lambdaPatterns = reducedLambdaPatterns
-                        , pipeline = call.pipeline
+                        , callStyle = call.callStyle
                         }
 
                 Nothing ->

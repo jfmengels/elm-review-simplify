@@ -3996,7 +3996,7 @@ lengthOrSizeEqualityChecks isEqual checkInfo =
 lengthOrSizeToEmptyChecks : Bool -> OperatorApplicationCheckInfo -> Node Expression -> Node Expression -> Maybe (Error {})
 lengthOrSizeToEmptyChecks isEqual checkInfo thisNode thatNode =
     case compareWithZeroChecks checkInfo isEqual thisNode of
-        Just { message, details, fnRange, pipeline, newFunction } ->
+        Just { message, details, fnRange, callStyle, newFunction } ->
             let
                 removeComparison : Fix
                 removeComparison =
@@ -4026,19 +4026,19 @@ lengthOrSizeToEmptyChecks isEqual checkInfo thisNode thatNode =
                             notFn =
                                 qualifiedToString (qualify Fn.Basics.not checkInfo)
                         in
-                        case pipeline of
-                            AstHelpers.NoPipe ->
+                        case callStyle of
+                            CallStyle.Application ->
                                 [ Fix.replaceRangeBy fnRange (notFn ++ " (" ++ newFunction)
                                 , removeComparison
                                 , Fix.insertAt checkInfo.parentRange.end ")"
                                 ]
 
-                            AstHelpers.PipeRight ->
+                            CallStyle.Pipe CallStyle.LeftToRight ->
                                 [ Fix.replaceRangeBy fnRange (newFunction ++ " |> " ++ notFn)
                                 , removeComparison
                                 ]
 
-                            AstHelpers.PipeLeft ->
+                            CallStyle.Pipe CallStyle.RightToLeft ->
                                 [ Fix.replaceRangeBy fnRange (notFn ++ " <| " ++ newFunction)
                                 , removeComparison
                                 ]
@@ -4058,7 +4058,7 @@ compareWithZeroChecks :
             { message : String
             , details : List String
             , fnRange : Range
-            , pipeline : AstHelpers.Pipeline
+            , callStyle : FunctionCallStyle
             , newFunction : String
             }
 compareWithZeroChecks checkInfo isEqual node =
@@ -4103,7 +4103,7 @@ compareWithZeroChecks checkInfo isEqual node =
                                     ++ " runs in constant time."
                                 ]
                             , fnRange = call.fnRange
-                            , pipeline = call.pipeline
+                            , callStyle = call.callStyle
                             , newFunction = qualifiedToString (qualify newFn checkInfo)
                             }
 
@@ -6126,7 +6126,7 @@ arrayGetChecks =
 arrayLengthOnArrayRepeatOrInitializeChecks : CallCheckInfo -> Maybe (Error {})
 arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
     let
-        maybeCall : Maybe ( String, { nodeRange : Range, fnRange : Range, firstArg : Node Expression, argsAfterFirst : List (Node Expression), pipeline : AstHelpers.Pipeline } )
+        maybeCall : Maybe ( String, { nodeRange : Range, fnRange : Range, firstArg : Node Expression, argsAfterFirst : List (Node Expression), callStyle : FunctionCallStyle } )
         maybeCall =
             firstThatConstructsJust
                 [ \() ->
