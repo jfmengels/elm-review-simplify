@@ -945,7 +945,7 @@ a = 1 == ({ a = 1 }).b
 
 listIsEmptyTests : Test
 listIsEmptyTests =
-    describe "List.length should be List.isEmpty"
+    describe "List.length should be `List.isEmpty`"
         [ test "should replace List.length l == 0 with List.isEmpty l" <|
             \() ->
                 """module A exposing (..)
@@ -955,7 +955,7 @@ a = List.length l == 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to List.isEmpty"
+                            { message = "This can be replaced with a call to `List.isEmpty`"
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
@@ -975,7 +975,7 @@ a = 0 == List.length l
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to List.isEmpty"
+                            { message = "This can be replaced with a call to `List.isEmpty`"
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
@@ -995,7 +995,7 @@ a = (l |> List.length) == 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to List.isEmpty"
+                            { message = "This can be replaced with a call to `List.isEmpty`"
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
@@ -1015,7 +1015,7 @@ a = 0 == (l |> List.length)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to List.isEmpty"
+                            { message = "This can be replaced with a call to `List.isEmpty`"
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
@@ -1035,7 +1035,7 @@ a = List.length l /= 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to List.isEmpty and not"
+                            { message = "This can be replaced with a call to `List.isEmpty` and `not`"
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
@@ -1055,7 +1055,7 @@ a = 0 /= List.length l
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to List.isEmpty and not"
+                            { message = "This can be replaced with a call to `List.isEmpty` and `not`"
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
@@ -1075,7 +1075,7 @@ a = (l |> List.length) /= 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to List.isEmpty and not"
+                            { message = "This can be replaced with a call to `List.isEmpty` and `not`"
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
@@ -1095,7 +1095,7 @@ a = 0 /= (l |> List.length)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to List.isEmpty and not"
+                            { message = "This can be replaced with a call to `List.isEmpty` and `not`"
                             , details =
                                 [ "Whereas List.length takes as long to run as the number of elements in the List, List.isEmpty runs in constant time."
                                 ]
@@ -1111,7 +1111,7 @@ a = (l |> (not << List.isEmpty))
 
 setIsEmptyTests : Test
 setIsEmptyTests =
-    describe "Set.size should be Set.isEmpty"
+    describe "Set.size should be `Set.isEmpty`"
         [ test "should replace Set.size s == 0 with Set.isEmpty s" <|
             \() ->
                 """module A exposing (..)
@@ -1122,7 +1122,7 @@ a = Set.size s == 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Set.isEmpty"
+                            { message = "This can be replaced with a call to `Set.isEmpty`"
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
@@ -1144,7 +1144,7 @@ a = CoreSet.size s == 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to CoreSet.isEmpty"
+                            { message = "This can be replaced with a call to `CoreSet.isEmpty`"
                             , details =
                                 [ "Whereas CoreSet.size takes as long to run as the number of elements in the Set, CoreSet.isEmpty runs in constant time."
                                 ]
@@ -1188,7 +1188,7 @@ a = 0 == Set.size s
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Set.isEmpty"
+                            { message = "This can be replaced with a call to `Set.isEmpty`"
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
@@ -1210,7 +1210,7 @@ a = (s |> Set.size) == 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Set.isEmpty"
+                            { message = "This can be replaced with a call to `Set.isEmpty`"
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
@@ -1232,7 +1232,7 @@ a = 0 == (s |> Set.size)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Set.isEmpty"
+                            { message = "This can be replaced with a call to `Set.isEmpty`"
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
@@ -1254,7 +1254,7 @@ a = Set.size s /= 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Set.isEmpty and not"
+                            { message = "This can be replaced with a call to `Set.isEmpty` and `not`"
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
@@ -1276,7 +1276,7 @@ a = 0 /= Set.size s
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Set.isEmpty and not"
+                            { message = "This can be replaced with a call to `Set.isEmpty` and `not`"
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
@@ -1298,7 +1298,7 @@ a = (s |> Set.size) /= 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Set.isEmpty and not"
+                            { message = "This can be replaced with a call to `Set.isEmpty` and `not`"
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
@@ -1320,7 +1320,7 @@ a = 0 /= (s |> Set.size)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Set.isEmpty and not"
+                            { message = "This can be replaced with a call to `Set.isEmpty` and `not`"
                             , details =
                                 [ "Whereas Set.size takes as long to run as the number of elements in the Set, Set.isEmpty runs in constant time."
                                 ]
@@ -1337,7 +1337,7 @@ a = (s |> (not << Set.isEmpty))
 
 dictIsEmptyTests : Test
 dictIsEmptyTests =
-    describe "Dict.size should be Dict.isEmpty"
+    describe "Dict.size should be `Dict.isEmpty`"
         [ test "should replace Dict.size d == 0 with Dict.isEmpty d" <|
             \() ->
                 """module A exposing (..)
@@ -1348,7 +1348,7 @@ a = Dict.size d == 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Dict.isEmpty"
+                            { message = "This can be replaced with a call to `Dict.isEmpty`"
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
@@ -1396,7 +1396,7 @@ a = 0 == Dict.size d
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Dict.isEmpty"
+                            { message = "This can be replaced with a call to `Dict.isEmpty`"
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
@@ -1418,7 +1418,7 @@ a = (d |> Dict.size) == 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Dict.isEmpty"
+                            { message = "This can be replaced with a call to `Dict.isEmpty`"
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
@@ -1440,7 +1440,7 @@ a = 0 == (d |> Dict.size)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Dict.isEmpty"
+                            { message = "This can be replaced with a call to `Dict.isEmpty`"
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
@@ -1462,7 +1462,7 @@ a = Dict.size d /= 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Dict.isEmpty and not"
+                            { message = "This can be replaced with a call to `Dict.isEmpty` and `not`"
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
@@ -1484,7 +1484,7 @@ a = 0 /= Dict.size d
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Dict.isEmpty and not"
+                            { message = "This can be replaced with a call to `Dict.isEmpty` and `not`"
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
@@ -1506,7 +1506,7 @@ a = (d |> Dict.size) /= 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Dict.isEmpty and not"
+                            { message = "This can be replaced with a call to `Dict.isEmpty` and `not`"
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
@@ -1528,7 +1528,7 @@ a = 0 /= (d |> Dict.size)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Dict.isEmpty and not"
+                            { message = "This can be replaced with a call to `Dict.isEmpty` and `not`"
                             , details =
                                 [ "Whereas Dict.size takes as long to run as the number of elements in the Dict, Dict.isEmpty runs in constant time."
                                 ]
@@ -1545,7 +1545,7 @@ a = (d |> (not << Dict.isEmpty))
 
 arrayIsEmptyTests : Test
 arrayIsEmptyTests =
-    describe "Array.length should be Arraya.isEmpty"
+    describe "Array.length should be `Arraya.isEmpty`"
         [ test "should replace Array.length array == 0 with Array.isEmpty array" <|
             \() ->
                 """module A exposing (..)
@@ -1556,7 +1556,7 @@ a = Array.length array == 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Array.isEmpty"
+                            { message = "This can be replaced with a call to `Array.isEmpty`"
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
@@ -1604,7 +1604,7 @@ a = 0 == Array.length array
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Array.isEmpty"
+                            { message = "This can be replaced with a call to `Array.isEmpty`"
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
@@ -1626,7 +1626,7 @@ a = (array |> Array.length) == 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Array.isEmpty"
+                            { message = "This can be replaced with a call to `Array.isEmpty`"
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
@@ -1648,7 +1648,7 @@ a = 0 == (array |> Array.length)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Array.isEmpty"
+                            { message = "This can be replaced with a call to `Array.isEmpty`"
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
@@ -1670,7 +1670,7 @@ a = Array.length array /= 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Array.isEmpty and not"
+                            { message = "This can be replaced with a call to `Array.isEmpty` and `not`"
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
@@ -1692,7 +1692,7 @@ a = 0 /= Array.length array
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Array.isEmpty and not"
+                            { message = "This can be replaced with a call to `Array.isEmpty` and `not`"
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
@@ -1714,7 +1714,7 @@ a = (array |> Array.length) /= 0
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Array.isEmpty and not"
+                            { message = "This can be replaced with a call to `Array.isEmpty` and `not`"
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]
@@ -1736,7 +1736,7 @@ a = 0 /= (array |> Array.length)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "This can be replaced with a call to Array.isEmpty and not"
+                            { message = "This can be replaced with a call to `Array.isEmpty` and `not`"
                             , details =
                                 [ "Whereas Array.length takes as long to run as the number of elements in the Array, Array.isEmpty runs in constant time."
                                 ]

@@ -4080,10 +4080,10 @@ compareWithZeroChecks checkInfo isEqual node =
                             replacementDescription : String
                             replacementDescription =
                                 if isEqual then
-                                    newFunction
+                                    "`" ++ newFunction ++ "`"
 
                                 else
-                                    newFunction ++ " and not"
+                                    "`" ++ newFunction ++ "` and `not`"
                         in
                         Just
                             { message = "This can be replaced with a call to " ++ replacementDescription
