@@ -6119,7 +6119,7 @@ arrayGetChecks =
 arrayLengthOnArrayRepeatOrInitializeChecks : CallCheckInfo -> Maybe (Error {})
 arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
     let
-        maybeCall : Maybe ( String, { nodeRange : Range, fnRange : Range, firstArg : Node Expression, argsAfterFirst : List (Node Expression) } )
+        maybeCall : Maybe ( String, { nodeRange : Range, fnRange : Range, firstArg : Node Expression, argsAfterFirst : List (Node Expression), pipeline : AstHelpers.Pipeline } )
         maybeCall =
             firstThatConstructsJust
                 [ \() ->
