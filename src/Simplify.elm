@@ -3995,73 +3995,73 @@ equalityChecks isEqual =
 
 lengthOrSizeEqualityChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
 lengthOrSizeEqualityChecks isEqual checkInfo =
-    let
-        lengthOrSizeToEmptyChecks : Node Expression -> Node Expression -> Maybe (Error {})
-        lengthOrSizeToEmptyChecks thisNode thatNode =
-            case compareWithZeroChecks checkInfo isEqual thisNode of
-                Just { message, details, fnRange, pipeline, newFunction } ->
-                    let
-                        removeComparison : Fix
-                        removeComparison =
-                            Fix.removeRange <|
-                                case Range.compare (Node.range thisNode) (Node.range thatNode) of
-                                    LT ->
-                                        { start = (Node.range thisNode).end
-                                        , end = (Node.range thatNode).end
-                                        }
-
-                                    _ ->
-                                        { start = (Node.range thatNode).start
-                                        , end = (Node.range thisNode).start
-                                        }
-                    in
-                    Just
-                        (Rule.errorWithFix { message = message, details = details }
-                            fnRange
-                            (if isEqual then
-                                [ Fix.replaceRangeBy fnRange newFunction
-                                , removeComparison
-                                ]
-
-                             else
-                                let
-                                    notFn : String
-                                    notFn =
-                                        qualifiedToString (qualify Fn.Basics.not checkInfo)
-                                in
-                                case pipeline of
-                                    AstHelpers.NoPipe ->
-                                        [ Fix.replaceRangeBy fnRange (notFn ++ " (" ++ newFunction)
-                                        , removeComparison
-                                        , Fix.insertAt checkInfo.parentRange.end ")"
-                                        ]
-
-                                    AstHelpers.PipeRight ->
-                                        [ Fix.replaceRangeBy fnRange (newFunction ++ " |> " ++ notFn)
-                                        , removeComparison
-                                        ]
-
-                                    AstHelpers.PipeLeft ->
-                                        [ Fix.replaceRangeBy fnRange (notFn ++ " <| " ++ newFunction)
-                                        , removeComparison
-                                        ]
-                            )
-                        )
-
-                Nothing ->
-                    Nothing
-    in
     case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
         ( Expression.Integer _, Expression.Integer _ ) ->
             Nothing
 
         ( Expression.Integer 0, _ ) ->
-            lengthOrSizeToEmptyChecks checkInfo.right checkInfo.left
+            lengthOrSizeToEmptyChecks isEqual checkInfo checkInfo.right checkInfo.left
 
         ( _, Expression.Integer 0 ) ->
-            lengthOrSizeToEmptyChecks checkInfo.left checkInfo.right
+            lengthOrSizeToEmptyChecks isEqual checkInfo checkInfo.left checkInfo.right
 
         _ ->
+            Nothing
+
+
+lengthOrSizeToEmptyChecks : Bool -> OperatorApplicationCheckInfo -> Node Expression -> Node Expression -> Maybe (Error {})
+lengthOrSizeToEmptyChecks isEqual checkInfo thisNode thatNode =
+    case compareWithZeroChecks checkInfo isEqual thisNode of
+        Just { message, details, fnRange, pipeline, newFunction } ->
+            let
+                removeComparison : Fix
+                removeComparison =
+                    Fix.removeRange <|
+                        case Range.compare (Node.range thisNode) (Node.range thatNode) of
+                            LT ->
+                                { start = (Node.range thisNode).end
+                                , end = (Node.range thatNode).end
+                                }
+
+                            _ ->
+                                { start = (Node.range thatNode).start
+                                , end = (Node.range thisNode).start
+                                }
+            in
+            Just
+                (Rule.errorWithFix { message = message, details = details }
+                    fnRange
+                    (if isEqual then
+                        [ Fix.replaceRangeBy fnRange newFunction
+                        , removeComparison
+                        ]
+
+                     else
+                        let
+                            notFn : String
+                            notFn =
+                                qualifiedToString (qualify Fn.Basics.not checkInfo)
+                        in
+                        case pipeline of
+                            AstHelpers.NoPipe ->
+                                [ Fix.replaceRangeBy fnRange (notFn ++ " (" ++ newFunction)
+                                , removeComparison
+                                , Fix.insertAt checkInfo.parentRange.end ")"
+                                ]
+
+                            AstHelpers.PipeRight ->
+                                [ Fix.replaceRangeBy fnRange (newFunction ++ " |> " ++ notFn)
+                                , removeComparison
+                                ]
+
+                            AstHelpers.PipeLeft ->
+                                [ Fix.replaceRangeBy fnRange (notFn ++ " <| " ++ newFunction)
+                                , removeComparison
+                                ]
+                    )
+                )
+
+        Nothing ->
             Nothing
 
 
