@@ -763,7 +763,7 @@ Destructuring using case expressions
     --> List.all not [ a, b ]
 
     List.any f []
-    --> True
+    --> False
 
     List.any (always False) list
     --> False
