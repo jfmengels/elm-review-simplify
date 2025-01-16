@@ -565,6 +565,9 @@ Destructuring using case expressions
     List.head []
     --> Nothing
 
+    List.head [ a, b, c ]
+    --> Just a
+
     List.head (a :: bToZ)
     --> Just a
 
