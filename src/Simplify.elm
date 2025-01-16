@@ -92,14 +92,13 @@ Below is the list of all kinds of simplifications this rule applies.
     if condition then False else True
     --> not condition
 
-    a =
-        if condition then
-            if not condition then
-                1
-            else
-                2
+    if condition then
+        if not condition then
+            1
         else
-            3
+            2
+    else
+        3
     --> if condition then 2 else 3
 
 
