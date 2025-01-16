@@ -1064,7 +1064,7 @@ a = List.head []
 a = Nothing
 """
                         ]
-        , test "should replace List.head (List.singleton a) by Just a" <|
+        , test "should replace List.head (List.singleton b) by Just b" <|
             \() ->
                 """module A exposing (..)
 a = List.head (List.singleton b)
@@ -1080,7 +1080,7 @@ a = List.head (List.singleton b)
 a = Just b
 """
                         ]
-        , test "should replace List.head <| List.singleton a by Just <| a" <|
+        , test "should replace List.head <| List.singleton b by Just <| b" <|
             \() ->
                 """module A exposing (..)
 a = List.head <| List.singleton b
@@ -1096,7 +1096,7 @@ a = List.head <| List.singleton b
 a = Just <| b
 """
                         ]
-        , test "should replace List.singleton a |> List.head by a |> Just" <|
+        , test "should replace List.singleton b |> List.head by b |> Just" <|
             \() ->
                 """module A exposing (..)
 a = List.singleton b |> List.head
@@ -1112,7 +1112,7 @@ a = List.singleton b |> List.head
 a = b |> Just
 """
                         ]
-        , test "should replace List.head [ a ] by Just a" <|
+        , test "should replace List.head [ b ] by Just b" <|
             \() ->
                 """module A exposing (..)
 a = List.head [ b ]
@@ -1128,7 +1128,7 @@ a = List.head [ b ]
 a = Just b
 """
                         ]
-        , test "should replace List.head [ f a ] by Just (f a)" <|
+        , test "should replace List.head [ f b ] by Just (f b)" <|
             \() ->
                 """module A exposing (..)
 a = List.head [ f b ]
@@ -1144,7 +1144,7 @@ a = List.head [ f b ]
 a = Just (f b)
 """
                         ]
-        , test "should replace List.head [ a, b, c ] by Just a" <|
+        , test "should replace List.head [ b, c, d ] by Just b" <|
             \() ->
                 """module A exposing (..)
 a = List.head [ b, c, d ]
@@ -1160,7 +1160,7 @@ a = List.head [ b, c, d ]
 a = Just b
 """
                         ]
-        , test "should replace List.head [ f a, b, c ] by Just (f a)" <|
+        , test "should replace List.head [ f b, c, d ] by Just (f b)" <|
             \() ->
                 """module A exposing (..)
 a = List.head [ f b, c, d ]
@@ -1176,7 +1176,7 @@ a = List.head [ f b, c, d ]
 a = Just (f b)
 """
                         ]
-        , test "should replace List.head (a :: bToZ) by Just a" <|
+        , test "should replace List.head (b :: bToZ) by Just b" <|
             \() ->
                 """module A exposing (..)
 a = List.head (b :: cToZ)
@@ -1271,7 +1271,7 @@ a = List.tail []
 a = Nothing
 """
                         ]
-        , test "should replace List.tail (List.singleton a) by Just []" <|
+        , test "should replace List.tail (List.singleton b) by Just []" <|
             \() ->
                 """module A exposing (..)
 a = List.tail (List.singleton b)
@@ -1287,7 +1287,7 @@ a = List.tail (List.singleton b)
 a = Just []
 """
                         ]
-        , test "should replace List.tail <| List.singleton a by Just <| []" <|
+        , test "should replace List.tail <| List.singleton b by Just <| []" <|
             \() ->
                 """module A exposing (..)
 a = List.tail <| List.singleton b
@@ -1303,7 +1303,7 @@ a = List.tail <| List.singleton b
 a = Just <| []
 """
                         ]
-        , test "should replace List.singleton a |> List.tail by [] |> Just" <|
+        , test "should replace List.singleton b |> List.tail by [] |> Just" <|
             \() ->
                 """module A exposing (..)
 a = List.singleton b |> List.tail
@@ -1319,7 +1319,7 @@ a = List.singleton b |> List.tail
 a = [] |> Just
 """
                         ]
-        , test "should replace List.tail [ a ] by Just []" <|
+        , test "should replace List.tail [ b ] by Just []" <|
             \() ->
                 """module A exposing (..)
 a = List.tail [ b ]
@@ -1335,7 +1335,7 @@ a = List.tail [ b ]
 a = Just []
 """
                         ]
-        , test "should replace List.tail [ a, b, c ] by Just [ b, c ]" <|
+        , test "should replace List.tail [ b, c, d ] by Just [ c, d ]" <|
             \() ->
                 """module A exposing (..)
 a = List.tail [ b, c, d ]
@@ -1351,7 +1351,7 @@ a = List.tail [ b, c, d ]
 a = Just [ c, d ]
 """
                         ]
-        , test "should replace List.tail (a :: bToZ) by Just bToZ" <|
+        , test "should replace List.tail (b :: bToZ) by Just bToZ" <|
             \() ->
                 """module A exposing (..)
 a = List.tail (b :: cToZ)
