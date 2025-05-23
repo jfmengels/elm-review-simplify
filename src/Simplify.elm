@@ -1191,6 +1191,9 @@ Destructuring using case expressions
     Dict.union dict dict
     --> dict
 
+    Dict.union (Dict.singleton k v) dict
+    --> Dict.insert k v dict
+
     Dict.union (Dict.fromList [ a, b ]) (Dict.fromList [ c, d ])
     --> Dict.fromList [ c, d, a, b ]
 
@@ -6514,6 +6517,12 @@ dictUnionChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = False } dictCollection)
         , withTwoEqualArgumentsReturnsLastCheck
+        , unionWithFirstArgWrappedCanBeCombinedInto
+            { combinedFn = Fn.Dict.insert
+            , wrapFn = Fn.Dict.singleton
+            , articleWrapperName = "a dict singleton"
+            , wrapFnArgumentsDescription = "key and value"
+            }
         ]
 
 
@@ -11980,6 +11989,56 @@ constructionFromListOnLiteralDescription fromListConstruction =
             qualifiedToString fn ++ " call"
 
 
+{-| The union check
+
+    unionFn (wrapFn wrappedArguments)
+    --> (combinedFn wrappedArguments)
+
+-}
+unionWithFirstArgWrappedCanBeCombinedInto :
+    { wrapFn : ( ModuleName, String )
+    , articleWrapperName : String
+    , wrapFnArgumentsDescription : String
+    , combinedFn : ( ModuleName, String )
+    }
+    -> IntoFnCheck
+unionWithFirstArgWrappedCanBeCombinedInto config =
+    intoFnCheckOnlyCall
+        (\checkInfo ->
+            AstHelpers.getSpecificFnCall config.wrapFn checkInfo.lookupTable checkInfo.firstArg
+                |> Maybe.map
+                    (\wrapCall ->
+                        Rule.errorWithFix
+                            { message =
+                                qualifiedToString checkInfo.fn
+                                    ++ " with "
+                                    ++ config.articleWrapperName
+                                    ++ " can be combined into "
+                                    ++ qualifiedToString config.combinedFn
+                            , details =
+                                [ "You can replace this call by "
+                                    ++ qualifiedToString config.combinedFn
+                                    ++ " with the same "
+                                    ++ config.wrapFnArgumentsDescription
+                                    ++ " given to "
+                                    ++ qualifiedToString config.wrapFn
+                                    ++ " which is meant for this exact purpose."
+                                ]
+                            }
+                            checkInfo.fnRange
+                            [ Fix.replaceRangeBy wrapCall.fnRange
+                                (qualifiedToString (qualify config.combinedFn checkInfo))
+                            , Fix.removeRange
+                                (rangeFromInclusiveToExclusive
+                                    { fromInclusive = checkInfo.fnRange
+                                    , toExclusive = Node.range checkInfo.firstArg
+                                    }
+                                )
+                            ]
+                    )
+        )
+
+
 collectionUnionWithLiteralsChecks :
     { leftElementsStayOnTheLeft : Bool }
     ->
@@ -14111,6 +14170,23 @@ rangeBetweenExclusive ( aRange, bRange ) =
         -- EQ | LT
         _ ->
             { start = aRange.end, end = bRange.start }
+
+
+{-| Create a new range that fully includes `fromInclusive`
+and stops just before `toExclusive`.
+
+Useful if you want to for example strip away the function name and everything up until the first argument.
+
+-}
+rangeFromInclusiveToExclusive : { fromInclusive : Range, toExclusive : Range } -> Range
+rangeFromInclusiveToExclusive ranges =
+    case Range.compareLocations ranges.fromInclusive.start ranges.toExclusive.start of
+        GT ->
+            { start = ranges.toExclusive.end, end = ranges.fromInclusive.end }
+
+        -- EQ | LT
+        _ ->
+            { start = ranges.fromInclusive.start, end = ranges.toExclusive.start }
 
 
 {-| Takes the ranges of two neighboring elements and
