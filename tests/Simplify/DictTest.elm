@@ -1811,6 +1811,98 @@ import Dict
 a = value.field
 """
                         ]
+        , test "should replace Dict.union (Dict.singleton k v) dict by (Dict.insert k v)" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.union (Dict.singleton k v)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            , details = [ "You can replace this call by Dict.insert with the same key and value given to Dict.singleton which is meant for this exact purpose." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.insert k v)
+"""
+                        ]
+        , test "should replace Dict.union (Dict.singleton k v) <| dict by (Dict.insert k v) <| dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.union (Dict.singleton k v) <| dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            , details = [ "You can replace this call by Dict.insert with the same key and value given to Dict.singleton which is meant for this exact purpose." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.insert k v) <| dict
+"""
+                        ]
+        , test "should replace dict |> Dict.union (Dict.singleton k v) by dict |> (Dict.insert k v)" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = dict |> Dict.union (Dict.singleton k v)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            , details = [ "You can replace this call by Dict.insert with the same key and value given to Dict.singleton which is meant for this exact purpose." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict |> (Dict.insert k v)
+"""
+                        ]
+        , test "should replace dict |> Dict.union (Dict.singleton k <| v) by dict |> (Dict.insert k <| v)" <|
+            \() ->
+                -- note that the parenthesis are mandatory
+                """module A exposing (..)
+import Dict
+a = dict |> Dict.union (Dict.singleton k <| v)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            , details = [ "You can replace this call by Dict.insert with the same key and value given to Dict.singleton which is meant for this exact purpose." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict |> (Dict.insert k <| v)
+"""
+                        ]
+        , test "should replace dict |> (Dict.union <| Dict.singleton k <| v) by dict |> (Dict.insert k <| v)" <|
+            \() ->
+                -- note that the parenthesis are mandatory
+                """module A exposing (..)
+import Dict
+a = dict |> (Dict.union <| Dict.singleton k <| v)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            , details = [ "You can replace this call by Dict.insert with the same key and value given to Dict.singleton which is meant for this exact purpose." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict |> (Dict.insert k <| v)
+"""
+                        ]
         ]
 
 
