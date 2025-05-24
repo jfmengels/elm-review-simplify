@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+The rule now simplifies:
+- `Set.union (Set.singleton a) set` to `Set.insert a set`
+- `Set.union set (Set.singleton a)` to `Set.insert set a`
+- `Dict.union (Dict.singleton k v) dict` to `Dict.insert k v dict`
+
 ## [2.1.6] - 2025-01-12
 
 The rule now simplifies:
