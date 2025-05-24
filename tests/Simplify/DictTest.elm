@@ -1903,6 +1903,63 @@ import Dict
 a = dict |> (Dict.insert k <| v)
 """
                         ]
+        , test "should replace Dict.union << Dict.singleton k by Dict.insert k" <|
+            \() ->
+                -- note that the parenthesis are mandatory
+                """module A exposing (..)
+import Dict
+a = Dict.union << Dict.singleton k
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            , details = [ "You can replace this composition by Dict.insert with the same argument given to Dict.singleton which is meant for this exact purpose." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.insert k
+"""
+                        ]
+        , test "should replace Dict.union << (Dict.singleton <| k) by (Dict.insert <| k)" <|
+            \() ->
+                -- note that the parenthesis are mandatory
+                """module A exposing (..)
+import Dict
+a = Dict.union << (Dict.singleton <| k)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            , details = [ "You can replace this composition by Dict.insert with the same argument given to Dict.singleton which is meant for this exact purpose." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.insert <| k)
+"""
+                        ]
+        , test "should replace Dict.union << (k |> Dict.singleton) by (k |> Dict.insert)" <|
+            \() ->
+                -- note that the parenthesis are mandatory
+                """module A exposing (..)
+import Dict
+a = Dict.union << (k |> Dict.singleton)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            , details = [ "You can replace this composition by Dict.insert with the same argument given to Dict.singleton which is meant for this exact purpose." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (k |> Dict.insert)
+"""
+                        ]
         ]
 
 

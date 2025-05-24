@@ -1079,7 +1079,7 @@ Destructuring using case expressions
     --> set
 
     Set.union (Set.fromList [ a, b ]) (Set.fromList [ c, d ])
-    --> Set.fromList [ a, b, c, d]
+    --> Set.fromList [ a, b, c, d ]
 
     Set.insert x Set.empty
     --> Set.singleton x
@@ -6520,6 +6520,7 @@ dictUnionChecks =
         , unionWithFirstArgWrappedCanBeCombinedInto
             { combinedFn = Fn.Dict.insert
             , wrapFn = Fn.Dict.singleton
+            , wrapFnArgCount = 2
             , articleWrapperName = "a dict singleton"
             , wrapFnArgumentsDescription = "key and value"
             }
@@ -11994,17 +11995,21 @@ constructionFromListOnLiteralDescription fromListConstruction =
     unionFn (wrapFn wrappedArguments)
     --> (combinedFn wrappedArguments)
 
+    unionFn << wrapFn wrappedArgumentsExceptTheLast
+    --> combinedFn wrappedArgumentsExceptTheLast
+
 -}
 unionWithFirstArgWrappedCanBeCombinedInto :
     { wrapFn : ( ModuleName, String )
+    , wrapFnArgCount : Int
     , articleWrapperName : String
     , wrapFnArgumentsDescription : String
     , combinedFn : ( ModuleName, String )
     }
     -> IntoFnCheck
 unionWithFirstArgWrappedCanBeCombinedInto config =
-    intoFnCheckOnlyCall
-        (\checkInfo ->
+    { call =
+        \checkInfo ->
             AstHelpers.getSpecificFnCall config.wrapFn checkInfo.lookupTable checkInfo.firstArg
                 |> Maybe.map
                     (\wrapCall ->
@@ -12036,7 +12041,50 @@ unionWithFirstArgWrappedCanBeCombinedInto config =
                                 )
                             ]
                     )
-        )
+    , composition =
+        \checkInfo ->
+            if
+                List.isEmpty checkInfo.later.args
+                    && (checkInfo.earlier.fn == config.wrapFn)
+                    && (List.length checkInfo.earlier.args == config.wrapFnArgCount - 1)
+            then
+                Just
+                    { info =
+                        { message =
+                            qualifiedToString checkInfo.later.fn
+                                ++ " with "
+                                ++ config.articleWrapperName
+                                ++ " can be combined into "
+                                ++ qualifiedToString config.combinedFn
+                        , details =
+                            [ "You can replace this composition by "
+                                ++ qualifiedToString config.combinedFn
+                                ++ (case config.wrapFnArgCount of
+                                        1 ->
+                                            ""
+
+                                        2 ->
+                                            " with the same argument given to "
+                                                ++ qualifiedToString config.wrapFn
+
+                                        _ ->
+                                            " with the same arguments given to "
+                                                ++ qualifiedToString config.wrapFn
+                                   )
+                                ++ " which is meant for this exact purpose."
+                            ]
+                        }
+                    , fix =
+                        [ Fix.replaceRangeBy checkInfo.earlier.fnRange
+                            (qualifiedToString (qualify config.combinedFn checkInfo))
+                        , Fix.removeRange
+                            checkInfo.later.removeRange
+                        ]
+                    }
+
+            else
+                Nothing
+    }
 
 
 collectionUnionWithLiteralsChecks :
