@@ -1078,6 +1078,12 @@ Destructuring using case expressions
     Set.union set set
     --> set
 
+    Set.union (Set.singleton a) set
+    --> Set.insert a set
+
+    Set.union set (Set.singleton a)
+    --> Set.insert a set
+
     Set.union (Set.fromList [ a, b ]) (Set.fromList [ c, d ])
     --> Set.fromList [ a, b, c, d ]
 
@@ -6321,6 +6327,78 @@ setUnionChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = True } setCollection)
         , withTwoEqualArgumentsReturnsLastCheck
+        , unionWithFirstArgWrappedCanBeCombinedInto
+            { combinedFn = Fn.Set.insert
+            , wrapFn = Fn.Set.singleton
+            , wrapFnArgCount = 1
+            , articleWrapperName = "a singleton set"
+            , wrapFnArgumentsDescription = "element"
+            }
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case secondArg checkInfo of
+                    Nothing ->
+                        Nothing
+
+                    Just secondSetArg ->
+                        AstHelpers.getSpecificFnCall Fn.Set.singleton
+                            checkInfo.lookupTable
+                            secondSetArg
+                            |> Maybe.map
+                                (\setSingletonCall ->
+                                    let
+                                        insertedElementRange : Range
+                                        insertedElementRange =
+                                            Node.range setSingletonCall.firstArg
+                                    in
+                                    Rule.errorWithFix
+                                        { message =
+                                            qualifiedToString checkInfo.fn
+                                                ++ " with a singleton set can be combined into "
+                                                ++ qualifiedToString Fn.Set.insert
+                                        , details =
+                                            [ "You can replace this call by "
+                                                ++ qualifiedToString Fn.Set.insert
+                                                ++ " with the same element given to "
+                                                ++ qualifiedToString Fn.Set.singleton
+                                                ++ " which is meant for this exact purpose."
+                                            ]
+                                        }
+                                        checkInfo.fnRange
+                                        (keepOnlyFix
+                                            { parentRange = checkInfo.parentRange
+                                            , keep =
+                                                Range.combine
+                                                    [ checkInfo.fnRange
+                                                    , Node.range checkInfo.firstArg
+                                                    ]
+                                            }
+                                            ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                                    (qualifiedToString (qualify Fn.Set.insert checkInfo)
+                                                        ++ (if insertedElementRange.start.row == insertedElementRange.end.row then
+                                                                " "
+
+                                                            else
+                                                                "\n"
+                                                                    ++ String.repeat
+                                                                        (insertedElementRange.start.column - 2)
+                                                                        " "
+                                                           )
+                                                        ++ (if needsParens (Node.value setSingletonCall.firstArg) then
+                                                                "("
+                                                                    ++ checkInfo.extractSourceCode
+                                                                        insertedElementRange
+                                                                    ++ ")"
+
+                                                            else
+                                                                checkInfo.extractSourceCode
+                                                                    insertedElementRange
+                                                           )
+                                                    )
+                                               ]
+                                        )
+                                )
+            )
         ]
 
 

@@ -2177,6 +2177,194 @@ import Set
 a = value.field
 """
                         ]
+        , test "should replace Set.union (Set.singleton k) set by (Set.insert k)" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.union (Set.singleton k)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union with a singleton set can be combined into Set.insert"
+                            , details = [ "You can replace this call by Set.insert with the same element given to Set.singleton which is meant for this exact purpose." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = (Set.insert k)
+"""
+                        ]
+        , test "should replace Set.union (Set.singleton k) <| set by (Set.insert k) <| set" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.union (Set.singleton k) <| set
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union with a singleton set can be combined into Set.insert"
+                            , details = [ "You can replace this call by Set.insert with the same element given to Set.singleton which is meant for this exact purpose." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = (Set.insert k) <| set
+"""
+                        ]
+        , test "should replace set |> Set.union (Set.singleton k) by set |> (Set.insert k)" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = set |> Set.union (Set.singleton k)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union with a singleton set can be combined into Set.insert"
+                            , details = [ "You can replace this call by Set.insert with the same element given to Set.singleton which is meant for this exact purpose." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = set |> (Set.insert k)
+"""
+                        ]
+        , test "should replace set |> Set.union (Set.singleton <| k) by set |> (Set.insert <| k)" <|
+            \() ->
+                -- note that the parenthesis are mandatory
+                """module A exposing (..)
+import Set
+a = set |> Set.union (Set.singleton <| k)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union with a singleton set can be combined into Set.insert"
+                            , details = [ "You can replace this call by Set.insert with the same element given to Set.singleton which is meant for this exact purpose." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = set |> (Set.insert <| k)
+"""
+                        ]
+        , test "should replace set |> (Set.union <| Set.singleton <| k) by set |> (Set.insert <| k)" <|
+            \() ->
+                -- note that the parenthesis are mandatory
+                """module A exposing (..)
+import Set
+a = set |> (Set.union <| Set.singleton <| k)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union with a singleton set can be combined into Set.insert"
+                            , details = [ "You can replace this call by Set.insert with the same element given to Set.singleton which is meant for this exact purpose." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = set |> (Set.insert <| k)
+"""
+                        ]
+        , test "should replace Set.union set (Set.singleton k) by Set.insert k set" <|
+            \() ->
+                -- note that the parenthesis are mandatory
+                """module A exposing (..)
+import Set
+a = Set.union set (Set.singleton k)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union with a singleton set can be combined into Set.insert"
+                            , details = [ "You can replace this call by Set.insert with the same element given to Set.singleton which is meant for this exact purpose." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.insert k set
+"""
+                        ]
+        , test "should replace Set.union set (Set.singleton <| ..multiline..) by Set.insert (..multiline with original indent preserved..) set" <|
+            \() ->
+                -- note that the parenthesis are mandatory
+                """module A exposing (..)
+import Set
+a = Set.union set (Set.singleton <| let _ = 0
+                                        _ = 1 in k)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union with a singleton set can be combined into Set.insert"
+                            , details = [ "You can replace this call by Set.insert with the same element given to Set.singleton which is meant for this exact purpose." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.insert
+                                   (let _ = 0
+                                        _ = 1 in k) set
+"""
+                        ]
+        , test "should replace Set.union set <| Set.singleton <| k by Set.insert k set" <|
+            \() ->
+                -- note that the parenthesis are mandatory
+                """module A exposing (..)
+import Set
+a = Set.union set <| Set.singleton <| k
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union with a singleton set can be combined into Set.insert"
+                            , details = [ "You can replace this call by Set.insert with the same element given to Set.singleton which is meant for this exact purpose." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.insert k set
+"""
+                        ]
+        , test "should replace Set.union << Set.singleton by Set.insert" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.union << Set.singleton
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union with a singleton set can be combined into Set.insert"
+                            , details = [ "You can replace this composition by Set.insert which is meant for this exact purpose." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.insert
+"""
+                        ]
+        , test "should replace Set.singleton >> Set.union by Set.insert" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.singleton >> Set.union
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.union with a singleton set can be combined into Set.insert"
+                            , details = [ "You can replace this composition by Set.insert which is meant for this exact purpose." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.insert
+"""
+                        ]
         ]
 
 
