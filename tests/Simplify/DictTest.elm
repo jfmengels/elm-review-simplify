@@ -1820,7 +1820,7 @@ a = Dict.union (Dict.singleton k v)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            { message = "Dict.union with a singleton dict can be combined into Dict.insert"
                             , details = [ "You can replace this call by Dict.insert with the same key and value given to Dict.singleton which is meant for this exact purpose." ]
                             , under = "Dict.union"
                             }
@@ -1838,7 +1838,7 @@ a = Dict.union (Dict.singleton k v) <| dict
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            { message = "Dict.union with a singleton dict can be combined into Dict.insert"
                             , details = [ "You can replace this call by Dict.insert with the same key and value given to Dict.singleton which is meant for this exact purpose." ]
                             , under = "Dict.union"
                             }
@@ -1856,7 +1856,7 @@ a = dict |> Dict.union (Dict.singleton k v)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            { message = "Dict.union with a singleton dict can be combined into Dict.insert"
                             , details = [ "You can replace this call by Dict.insert with the same key and value given to Dict.singleton which is meant for this exact purpose." ]
                             , under = "Dict.union"
                             }
@@ -1875,7 +1875,7 @@ a = dict |> Dict.union (Dict.singleton k <| v)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            { message = "Dict.union with a singleton dict can be combined into Dict.insert"
                             , details = [ "You can replace this call by Dict.insert with the same key and value given to Dict.singleton which is meant for this exact purpose." ]
                             , under = "Dict.union"
                             }
@@ -1894,7 +1894,7 @@ a = dict |> (Dict.union <| Dict.singleton k <| v)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            { message = "Dict.union with a singleton dict can be combined into Dict.insert"
                             , details = [ "You can replace this call by Dict.insert with the same key and value given to Dict.singleton which is meant for this exact purpose." ]
                             , under = "Dict.union"
                             }
@@ -1913,7 +1913,7 @@ a = Dict.union << Dict.singleton k
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            { message = "Dict.union with a singleton dict can be combined into Dict.insert"
                             , details = [ "You can replace this composition by Dict.insert with the same argument given to Dict.singleton which is meant for this exact purpose." ]
                             , under = "Dict.union"
                             }
@@ -1932,7 +1932,7 @@ a = Dict.union << (Dict.singleton <| k)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            { message = "Dict.union with a singleton dict can be combined into Dict.insert"
                             , details = [ "You can replace this composition by Dict.insert with the same argument given to Dict.singleton which is meant for this exact purpose." ]
                             , under = "Dict.union"
                             }
@@ -1951,7 +1951,7 @@ a = Dict.union << (k |> Dict.singleton)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union with a dict singleton can be combined into Dict.insert"
+                            { message = "Dict.union with a singleton dict can be combined into Dict.insert"
                             , details = [ "You can replace this composition by Dict.insert with the same argument given to Dict.singleton which is meant for this exact purpose." ]
                             , under = "Dict.union"
                             }

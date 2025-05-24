@@ -6599,7 +6599,7 @@ dictUnionChecks =
             { combinedFn = Fn.Dict.insert
             , wrapFn = Fn.Dict.singleton
             , wrapFnArgCount = 2
-            , articleWrapperName = "a dict singleton"
+            , articleWrapperName = "a singleton dict"
             , wrapFnArgumentsDescription = "key and value"
             }
         ]
