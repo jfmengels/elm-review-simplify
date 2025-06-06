@@ -3989,25 +3989,35 @@ equalityChecks isEqual =
             let
                 surroundWith : Node Expression -> ( String, String )
                 surroundWith (Node _ expr) =
+                    let
+                        fnName : String
+                        fnName =
+                            qualifiedToString (qualify Fn.List.isEmpty checkInfo)
+                    in
                     if isEqual then
                         if needsParens expr then
-                            ( "List.isEmpty (", ")" )
+                            ( fnName ++ " (", ")" )
 
                         else
-                            ( "List.isEmpty ", "" )
+                            ( fnName ++ " ", "" )
 
                     else if needsParens expr then
-                        ( "not (List.isEmpty (", "))" )
+                        ( "not (" ++ fnName ++ " (", "))" )
 
                     else
-                        ( "not (List.isEmpty ", ")" )
+                        ( "not (" ++ fnName ++ " ", ")" )
             in
             case ( checkInfo.left, checkInfo.right ) of
                 ( _, Node _ (Expression.ListExpr []) ) ->
+                    let
+                        listIsEmpty : String
+                        listIsEmpty =
+                            qualifiedToString (qualify Fn.List.isEmpty defaultQualifyResources)
+                    in
                     Just
                         (Rule.errorWithFix
-                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
-                            , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
+                            { message = "Comparison with the empty list can be replaced by a call to " ++ listIsEmpty
+                            , details = [ "You can replace this comparison to an empty list with a call to " ++ listIsEmpty ++ ", which is more efficient." ]
                             }
                             (Range.combine [ checkInfo.operatorRange, checkInfo.rightRange ])
                             (let
@@ -4025,10 +4035,15 @@ equalityChecks isEqual =
                         )
 
                 ( Node _ (Expression.ListExpr []), _ ) ->
+                    let
+                        listIsEmpty : String
+                        listIsEmpty =
+                            qualifiedToString (qualify Fn.List.isEmpty defaultQualifyResources)
+                    in
                     Just
                         (Rule.errorWithFix
-                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
-                            , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
+                            { message = "Comparison with the empty list can be replaced by a call to " ++ listIsEmpty
+                            , details = [ "You can replace this comparison to an empty list with a call to " ++ listIsEmpty ++ ", which is more efficient." ]
                             }
                             (Range.combine [ checkInfo.leftRange, checkInfo.operatorRange ])
                             (let
