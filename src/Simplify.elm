@@ -3985,6 +3985,68 @@ equalityChecks isEqual =
 
                 Normalize.Unconfirmed ->
                     Nothing
+        , \checkInfo ->
+            let
+                surroundWith : Node Expression -> ( String, String )
+                surroundWith (Node _ expr) =
+                    if isEqual then
+                        if needsParens expr then
+                            ( "List.isEmpty (", ")" )
+
+                        else
+                            ( "List.isEmpty ", "" )
+
+                    else if needsParens expr then
+                        ( "not (List.isEmpty (", "))" )
+
+                    else
+                        ( "not (List.isEmpty ", ")" )
+            in
+            case ( checkInfo.left, checkInfo.right ) of
+                ( _, Node _ (Expression.ListExpr []) ) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
+                            }
+                            (Range.combine [ checkInfo.operatorRange, checkInfo.rightRange ])
+                            (let
+                                ( left, right ) =
+                                    surroundWith checkInfo.left
+                             in
+                             [ Fix.insertAt checkInfo.leftRange.start left
+                             , Fix.replaceRangeBy
+                                { start = checkInfo.leftRange.end
+                                , end = checkInfo.rightRange.end
+                                }
+                                right
+                             ]
+                            )
+                        )
+
+                ( Node _ (Expression.ListExpr []), _ ) ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
+                            }
+                            (Range.combine [ checkInfo.leftRange, checkInfo.operatorRange ])
+                            (let
+                                ( left, right ) =
+                                    surroundWith checkInfo.right
+                             in
+                             [ Fix.replaceRangeBy
+                                { start = checkInfo.leftRange.start
+                                , end = checkInfo.rightRange.start
+                                }
+                                left
+                             , Fix.insertAt checkInfo.rightRange.end right
+                             ]
+                            )
+                        )
+
+                _ ->
+                    Nothing
         ]
 
 

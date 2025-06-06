@@ -6431,6 +6431,134 @@ import Array
 a = Array.length array
 """
                         ]
+        , test "should replace comparisons to the empty list with List.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+
+a = x == []"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
+                            , under = "== []"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = List.isEmpty x"""
+                        ]
+        , test "should replace comparisons to the empty list with List.isEmpty (reverse order)" <|
+            \() ->
+                """module A exposing (..)
+
+a = [] == x"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
+                            , under = "[] =="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = List.isEmpty x"""
+                        ]
+        , test "should replace comparisons to the empty list with List.isEmpty (negated)" <|
+            \() ->
+                """module A exposing (..)
+
+a = x /= []"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
+                            , under = "/= []"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = not (List.isEmpty x)"""
+                        ]
+        , test "should replace comparisons to the empty list with List.isEmpty (negated, reverse order)" <|
+            \() ->
+                """module A exposing (..)
+
+a = [] /= x"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
+                            , under = "[] /="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = not (List.isEmpty x)"""
+                        ]
+        , test "should replace comparisons to the empty list with List.isEmpty (needs parentheses)" <|
+            \() ->
+                """module A exposing (..)
+
+a = x ++ y == []"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
+                            , under = "== []"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = List.isEmpty (x ++ y)"""
+                        ]
+        , test "should replace comparisons to the empty list with List.isEmpty (needs parentheses, reverse order)" <|
+            \() ->
+                """module A exposing (..)
+
+a = [] == x ++ y"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
+                            , under = "[] =="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = List.isEmpty (x ++ y)"""
+                        ]
+        , test "should replace comparisons to the empty list with List.isEmpty (needs parentheses, negated)" <|
+            \() ->
+                """module A exposing (..)
+
+a = x ++ y /= []"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
+                            , under = "/= []"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = not (List.isEmpty (x ++ y))"""
+                        ]
+        , test "should replace comparisons to the empty list with List.isEmpty (needs parentheses, negated, reverse order)" <|
+            \() ->
+                """module A exposing (..)
+
+a = [] /= x ++ y"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
+                            , under = "[] /="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = not (List.isEmpty (x ++ y))"""
+                        ]
         ]
 
 
