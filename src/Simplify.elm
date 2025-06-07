@@ -4127,12 +4127,12 @@ compareWithZeroChecks checkInfo isEqual node =
 comparisonWithEmptyChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
 comparisonWithEmptyChecks isEqual checkInfo =
     let
-        surroundWith : Node Expression -> ( String, String )
-        surroundWith (Node _ expr) =
+        surroundWith : ModuleName -> Node Expression -> ( String, String )
+        surroundWith modName (Node _ expr) =
             let
                 fnName : String
                 fnName =
-                    qualifiedToString (qualify Fn.List.isEmpty checkInfo)
+                    qualifiedToString (qualify ( modName, "isEmpty" ) checkInfo)
             in
             if isEqual then
                 if needsParens expr then
@@ -4146,62 +4146,78 @@ comparisonWithEmptyChecks isEqual checkInfo =
 
             else
                 ( "not (" ++ fnName ++ " ", ")" )
-    in
-    case ( checkInfo.left, checkInfo.right ) of
-        ( _, Node _ (Expression.ListExpr []) ) ->
+
+        isEmpty : Node Expression -> Maybe ModuleName
+        isEmpty node =
+            case node of
+                Node _ (Expression.ListExpr []) ->
+                    Just [ "List" ]
+
+                Node range (Expression.FunctionOrValue _ "empty") ->
+                    case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable range of
+                        Just modName ->
+                            if List.member modName [ [ "Array" ], [ "Set" ], [ "Dict" ] ] then
+                                Just modName
+
+                            else
+                                Nothing
+
+                        Nothing ->
+                            Nothing
+
+                _ ->
+                    Nothing
+
+        toMessage : ModuleName -> { message : String, details : List String }
+        toMessage modName =
             let
-                listIsEmpty : String
-                listIsEmpty =
-                    qualifiedToString (qualify Fn.List.isEmpty defaultQualifyResources)
+                modIsEmpty : String
+                modIsEmpty =
+                    qualifiedToString (qualify ( modName, "isEmpty" ) defaultQualifyResources)
+            in
+            { message = "Comparison with an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " can be replaced by a call to " ++ modIsEmpty
+            , details = [ "You can replace this comparison to an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " with a call to " ++ modIsEmpty ++ ", which is more efficient." ]
+            }
+    in
+    case isEmpty checkInfo.right of
+        Just modName ->
+            let
+                ( left, right ) =
+                    surroundWith modName checkInfo.left
             in
             Just
-                (Rule.errorWithFix
-                    { message = "Comparison with the empty list can be replaced by a call to " ++ listIsEmpty
-                    , details = [ "You can replace this comparison to an empty list with a call to " ++ listIsEmpty ++ ", which is more efficient." ]
-                    }
+                (Rule.errorWithFix (toMessage modName)
                     (Range.combine [ checkInfo.operatorRange, checkInfo.rightRange ])
-                    (let
-                        ( left, right ) =
-                            surroundWith checkInfo.left
-                     in
-                     [ Fix.insertAt checkInfo.leftRange.start left
-                     , Fix.replaceRangeBy
+                    [ Fix.insertAt checkInfo.leftRange.start left
+                    , Fix.replaceRangeBy
                         { start = checkInfo.leftRange.end
                         , end = checkInfo.rightRange.end
                         }
                         right
-                     ]
-                    )
+                    ]
                 )
 
-        ( Node _ (Expression.ListExpr []), _ ) ->
-            let
-                listIsEmpty : String
-                listIsEmpty =
-                    qualifiedToString (qualify Fn.List.isEmpty defaultQualifyResources)
-            in
-            Just
-                (Rule.errorWithFix
-                    { message = "Comparison with the empty list can be replaced by a call to " ++ listIsEmpty
-                    , details = [ "You can replace this comparison to an empty list with a call to " ++ listIsEmpty ++ ", which is more efficient." ]
-                    }
-                    (Range.combine [ checkInfo.leftRange, checkInfo.operatorRange ])
-                    (let
+        Nothing ->
+            case isEmpty checkInfo.left of
+                Just modName ->
+                    let
                         ( left, right ) =
-                            surroundWith checkInfo.right
-                     in
-                     [ Fix.replaceRangeBy
-                        { start = checkInfo.leftRange.start
-                        , end = checkInfo.rightRange.start
-                        }
-                        left
-                     , Fix.insertAt checkInfo.rightRange.end right
-                     ]
-                    )
-                )
+                            surroundWith modName checkInfo.right
+                    in
+                    Just
+                        (Rule.errorWithFix (toMessage modName)
+                            (Range.combine [ checkInfo.leftRange, checkInfo.operatorRange ])
+                            [ Fix.replaceRangeBy
+                                { start = checkInfo.leftRange.start
+                                , end = checkInfo.rightRange.start
+                                }
+                                left
+                            , Fix.insertAt checkInfo.rightRange.end right
+                            ]
+                        )
 
-        _ ->
-            Nothing
+                Nothing ->
+                    Nothing
 
 
 

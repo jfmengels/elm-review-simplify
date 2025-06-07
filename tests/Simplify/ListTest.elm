@@ -6439,7 +6439,7 @@ a = x == []"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            { message = "Comparison with an empty list can be replaced by a call to List.isEmpty"
                             , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
                             , under = "== []"
                             }
@@ -6455,7 +6455,7 @@ a = [] == x"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            { message = "Comparison with an empty list can be replaced by a call to List.isEmpty"
                             , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
                             , under = "[] =="
                             }
@@ -6471,7 +6471,7 @@ a = x /= []"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            { message = "Comparison with an empty list can be replaced by a call to List.isEmpty"
                             , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
                             , under = "/= []"
                             }
@@ -6487,7 +6487,7 @@ a = [] /= x"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            { message = "Comparison with an empty list can be replaced by a call to List.isEmpty"
                             , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
                             , under = "[] /="
                             }
@@ -6503,7 +6503,7 @@ a = x ++ y == []"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            { message = "Comparison with an empty list can be replaced by a call to List.isEmpty"
                             , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
                             , under = "== []"
                             }
@@ -6519,7 +6519,7 @@ a = [] == x ++ y"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            { message = "Comparison with an empty list can be replaced by a call to List.isEmpty"
                             , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
                             , under = "[] =="
                             }
@@ -6535,7 +6535,7 @@ a = x ++ y /= []"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            { message = "Comparison with an empty list can be replaced by a call to List.isEmpty"
                             , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
                             , under = "/= []"
                             }
@@ -6551,7 +6551,7 @@ a = [] /= x ++ y"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Comparison with the empty list can be replaced by a call to List.isEmpty"
+                            { message = "Comparison with an empty list can be replaced by a call to List.isEmpty"
                             , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
                             , under = "[] /="
                             }
