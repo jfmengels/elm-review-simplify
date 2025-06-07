@@ -1242,6 +1242,134 @@ a = Array.isEmpty (Array.initialize n f)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should replace comparisons to the empty array with Array.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+
+a = x == Array.empty"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty array can be replaced by a call to Array.isEmpty"
+                            , details = [ "You can replace this comparison to an empty array with a call to Array.isEmpty, which is more efficient." ]
+                            , under = "== Array.empty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = Array.isEmpty x"""
+                        ]
+        , test "should replace comparisons to the empty array with Array.isEmpty (reverse order)" <|
+            \() ->
+                """module A exposing (..)
+
+a = Array.empty == x"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty array can be replaced by a call to Array.isEmpty"
+                            , details = [ "You can replace this comparison to an empty array with a call to Array.isEmpty, which is more efficient." ]
+                            , under = "Array.empty =="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = Array.isEmpty x"""
+                        ]
+        , test "should replace comparisons to the empty array with Array.isEmpty (negated)" <|
+            \() ->
+                """module A exposing (..)
+
+a = x /= Array.empty"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty array can be replaced by a call to Array.isEmpty"
+                            , details = [ "You can replace this comparison to an empty array with a call to Array.isEmpty, which is more efficient." ]
+                            , under = "/= Array.empty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = not (Array.isEmpty x)"""
+                        ]
+        , test "should replace comparisons to the empty array with Array.isEmpty (negated, reverse order)" <|
+            \() ->
+                """module A exposing (..)
+
+a = Array.empty /= x"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty array can be replaced by a call to Array.isEmpty"
+                            , details = [ "You can replace this comparison to an empty array with a call to Array.isEmpty, which is more efficient." ]
+                            , under = "Array.empty /="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = not (Array.isEmpty x)"""
+                        ]
+        , test "should replace comparisons to the empty array with Array.isEmpty (needs parentheses)" <|
+            \() ->
+                """module A exposing (..)
+
+a = x ++ y == Array.empty"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty array can be replaced by a call to Array.isEmpty"
+                            , details = [ "You can replace this comparison to an empty array with a call to Array.isEmpty, which is more efficient." ]
+                            , under = "== Array.empty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = Array.isEmpty (x ++ y)"""
+                        ]
+        , test "should replace comparisons to the empty array with Array.isEmpty (needs parentheses, reverse order)" <|
+            \() ->
+                """module A exposing (..)
+
+a = Array.empty == x ++ y"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty array can be replaced by a call to Array.isEmpty"
+                            , details = [ "You can replace this comparison to an empty array with a call to Array.isEmpty, which is more efficient." ]
+                            , under = "Array.empty =="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = Array.isEmpty (x ++ y)"""
+                        ]
+        , test "should replace comparisons to the empty array with Array.isEmpty (needs parentheses, negated)" <|
+            \() ->
+                """module A exposing (..)
+
+a = x ++ y /= Array.empty"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty array can be replaced by a call to Array.isEmpty"
+                            , details = [ "You can replace this comparison to an empty array with a call to Array.isEmpty, which is more efficient." ]
+                            , under = "/= Array.empty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = not (Array.isEmpty (x ++ y))"""
+                        ]
+        , test "should replace comparisons to the empty array with Array.isEmpty (needs parentheses, negated, reverse order)" <|
+            \() ->
+                """module A exposing (..)
+
+a = Array.empty /= x ++ y"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty array can be replaced by a call to Array.isEmpty"
+                            , details = [ "You can replace this comparison to an empty array with a call to Array.isEmpty, which is more efficient." ]
+                            , under = "Array.empty /="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = not (Array.isEmpty (x ++ y))"""
+                        ]
         ]
 
 

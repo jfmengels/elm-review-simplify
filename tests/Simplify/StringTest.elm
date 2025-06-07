@@ -71,6 +71,118 @@ a = String.isEmpty "a"
 a = False
 """
                         ]
+        , test "should replace comparisons to the empty string with String.isEmpty (reverse order)" <|
+            \() ->
+                """module A exposing (..)
+
+a = "" == x"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty string can be replaced by a call to String.isEmpty"
+                            , details = [ "You can replace this comparison to an empty string with a call to String.isEmpty, which is more efficient." ]
+                            , under = "\"\" =="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = String.isEmpty x"""
+                        ]
+        , test "should replace comparisons to the empty string with String.isEmpty (negated)" <|
+            \() ->
+                """module A exposing (..)
+
+a = x /= \"\""""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty string can be replaced by a call to String.isEmpty"
+                            , details = [ "You can replace this comparison to an empty string with a call to String.isEmpty, which is more efficient." ]
+                            , under = "/= \"\""
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = not (String.isEmpty x)"""
+                        ]
+        , test "should replace comparisons to the empty string with String.isEmpty (negated, reverse order)" <|
+            \() ->
+                """module A exposing (..)
+
+a = "" /= x"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty string can be replaced by a call to String.isEmpty"
+                            , details = [ "You can replace this comparison to an empty string with a call to String.isEmpty, which is more efficient." ]
+                            , under = "\"\" /="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = not (String.isEmpty x)"""
+                        ]
+        , test "should replace comparisons to the empty string with String.isEmpty (needs parentheses)" <|
+            \() ->
+                """module A exposing (..)
+
+a = x ++ y == \"\""""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty string can be replaced by a call to String.isEmpty"
+                            , details = [ "You can replace this comparison to an empty string with a call to String.isEmpty, which is more efficient." ]
+                            , under = "== \"\""
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = String.isEmpty (x ++ y)"""
+                        ]
+        , test "should replace comparisons to the empty string with String.isEmpty (needs parentheses, reverse order)" <|
+            \() ->
+                """module A exposing (..)
+
+a = "" == x ++ y"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty string can be replaced by a call to String.isEmpty"
+                            , details = [ "You can replace this comparison to an empty string with a call to String.isEmpty, which is more efficient." ]
+                            , under = "\"\" =="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = String.isEmpty (x ++ y)"""
+                        ]
+        , test "should replace comparisons to the empty string with String.isEmpty (needs parentheses, negated)" <|
+            \() ->
+                """module A exposing (..)
+
+a = x ++ y /= \"\""""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty string can be replaced by a call to String.isEmpty"
+                            , details = [ "You can replace this comparison to an empty string with a call to String.isEmpty, which is more efficient." ]
+                            , under = "/= \"\""
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = not (String.isEmpty (x ++ y))"""
+                        ]
+        , test "should replace comparisons to the empty string with String.isEmpty (needs parentheses, negated, reverse order)" <|
+            \() ->
+                """module A exposing (..)
+
+a = "" /= x ++ y"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty string can be replaced by a call to String.isEmpty"
+                            , details = [ "You can replace this comparison to an empty string with a call to String.isEmpty, which is more efficient." ]
+                            , under = "\"\" /="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = not (String.isEmpty (x ++ y))"""
+                        ]
         ]
 
 
