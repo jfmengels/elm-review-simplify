@@ -3985,83 +3985,7 @@ equalityChecks isEqual =
 
                 Normalize.Unconfirmed ->
                     Nothing
-        , \checkInfo ->
-            let
-                surroundWith : Node Expression -> ( String, String )
-                surroundWith (Node _ expr) =
-                    let
-                        fnName : String
-                        fnName =
-                            qualifiedToString (qualify Fn.List.isEmpty checkInfo)
-                    in
-                    if isEqual then
-                        if needsParens expr then
-                            ( fnName ++ " (", ")" )
-
-                        else
-                            ( fnName ++ " ", "" )
-
-                    else if needsParens expr then
-                        ( "not (" ++ fnName ++ " (", "))" )
-
-                    else
-                        ( "not (" ++ fnName ++ " ", ")" )
-            in
-            case ( checkInfo.left, checkInfo.right ) of
-                ( _, Node _ (Expression.ListExpr []) ) ->
-                    let
-                        listIsEmpty : String
-                        listIsEmpty =
-                            qualifiedToString (qualify Fn.List.isEmpty defaultQualifyResources)
-                    in
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Comparison with the empty list can be replaced by a call to " ++ listIsEmpty
-                            , details = [ "You can replace this comparison to an empty list with a call to " ++ listIsEmpty ++ ", which is more efficient." ]
-                            }
-                            (Range.combine [ checkInfo.operatorRange, checkInfo.rightRange ])
-                            (let
-                                ( left, right ) =
-                                    surroundWith checkInfo.left
-                             in
-                             [ Fix.insertAt checkInfo.leftRange.start left
-                             , Fix.replaceRangeBy
-                                { start = checkInfo.leftRange.end
-                                , end = checkInfo.rightRange.end
-                                }
-                                right
-                             ]
-                            )
-                        )
-
-                ( Node _ (Expression.ListExpr []), _ ) ->
-                    let
-                        listIsEmpty : String
-                        listIsEmpty =
-                            qualifiedToString (qualify Fn.List.isEmpty defaultQualifyResources)
-                    in
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Comparison with the empty list can be replaced by a call to " ++ listIsEmpty
-                            , details = [ "You can replace this comparison to an empty list with a call to " ++ listIsEmpty ++ ", which is more efficient." ]
-                            }
-                            (Range.combine [ checkInfo.leftRange, checkInfo.operatorRange ])
-                            (let
-                                ( left, right ) =
-                                    surroundWith checkInfo.right
-                             in
-                             [ Fix.replaceRangeBy
-                                { start = checkInfo.leftRange.start
-                                , end = checkInfo.rightRange.start
-                                }
-                                left
-                             , Fix.insertAt checkInfo.rightRange.end right
-                             ]
-                            )
-                        )
-
-                _ ->
-                    Nothing
+        , comparisonWithEmptyChecks isEqual
         ]
 
 
@@ -4198,6 +4122,86 @@ compareWithZeroChecks checkInfo isEqual node =
                     Nothing ->
                         Nothing
             )
+
+
+comparisonWithEmptyChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
+comparisonWithEmptyChecks isEqual checkInfo =
+    let
+        surroundWith : Node Expression -> ( String, String )
+        surroundWith (Node _ expr) =
+            let
+                fnName : String
+                fnName =
+                    qualifiedToString (qualify Fn.List.isEmpty checkInfo)
+            in
+            if isEqual then
+                if needsParens expr then
+                    ( fnName ++ " (", ")" )
+
+                else
+                    ( fnName ++ " ", "" )
+
+            else if needsParens expr then
+                ( "not (" ++ fnName ++ " (", "))" )
+
+            else
+                ( "not (" ++ fnName ++ " ", ")" )
+    in
+    case ( checkInfo.left, checkInfo.right ) of
+        ( _, Node _ (Expression.ListExpr []) ) ->
+            let
+                listIsEmpty : String
+                listIsEmpty =
+                    qualifiedToString (qualify Fn.List.isEmpty defaultQualifyResources)
+            in
+            Just
+                (Rule.errorWithFix
+                    { message = "Comparison with the empty list can be replaced by a call to " ++ listIsEmpty
+                    , details = [ "You can replace this comparison to an empty list with a call to " ++ listIsEmpty ++ ", which is more efficient." ]
+                    }
+                    (Range.combine [ checkInfo.operatorRange, checkInfo.rightRange ])
+                    (let
+                        ( left, right ) =
+                            surroundWith checkInfo.left
+                     in
+                     [ Fix.insertAt checkInfo.leftRange.start left
+                     , Fix.replaceRangeBy
+                        { start = checkInfo.leftRange.end
+                        , end = checkInfo.rightRange.end
+                        }
+                        right
+                     ]
+                    )
+                )
+
+        ( Node _ (Expression.ListExpr []), _ ) ->
+            let
+                listIsEmpty : String
+                listIsEmpty =
+                    qualifiedToString (qualify Fn.List.isEmpty defaultQualifyResources)
+            in
+            Just
+                (Rule.errorWithFix
+                    { message = "Comparison with the empty list can be replaced by a call to " ++ listIsEmpty
+                    , details = [ "You can replace this comparison to an empty list with a call to " ++ listIsEmpty ++ ", which is more efficient." ]
+                    }
+                    (Range.combine [ checkInfo.leftRange, checkInfo.operatorRange ])
+                    (let
+                        ( left, right ) =
+                            surroundWith checkInfo.right
+                     in
+                     [ Fix.replaceRangeBy
+                        { start = checkInfo.leftRange.start
+                        , end = checkInfo.rightRange.start
+                        }
+                        left
+                     , Fix.insertAt checkInfo.rightRange.end right
+                     ]
+                    )
+                )
+
+        _ ->
+            Nothing
 
 
 
