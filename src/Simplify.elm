@@ -4153,6 +4153,9 @@ comparisonWithEmptyChecks isEqual checkInfo =
                 Node _ (Expression.ListExpr []) ->
                     Just [ "List" ]
 
+                Node _ (Expression.Literal "") ->
+                    Just [ "String" ]
+
                 Node range (Expression.FunctionOrValue _ "empty") ->
                     case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable range of
                         Just modName ->
