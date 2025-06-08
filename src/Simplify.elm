@@ -1439,7 +1439,6 @@ All of these also apply for `Sub`.
 
 import Dict exposing (Dict)
 import Elm.Docs
-import Elm.Project exposing (Exposed)
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Exposing as Exposing
 import Elm.Syntax.Expression as Expression exposing (Expression)
@@ -2600,28 +2599,17 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             }
 
                     Node operatorRange (Expression.PrefixOperator operator) ->
-                        case ( operator == "==", isEmpty context.lookupTable firstArg ) of
-                            ( True, Just modName ) ->
-                                let
-                                    modIsEmpty : String
-                                    modIsEmpty =
-                                        qualifiedToString (qualify ( modName, "isEmpty" ) defaultQualifyResources)
-                                in
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = "Comparison with an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " can be replaced by a call to " ++ modIsEmpty
-                                        , details = [ "You can replace this comparison to an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " with a call to " ++ modIsEmpty ++ ", which is more efficient." ]
-                                        }
-                                        (Range.combine [ operatorRange, Node.range firstArg ])
-                                        [ Fix.replaceRangeBy
-                                            { start = operatorRange.start
-                                            , end = (Node.range firstArg).end
-                                            }
-                                            modIsEmpty
-                                        ]
-                                    )
+                        firstThatConstructsJust
+                            [ \() ->
+                                if operator == "==" then
+                                    comparisonWithEmptyCheckInPrefixOperator
+                                        context.lookupTable
+                                        operatorRange
+                                        firstArg
 
-                            _ ->
+                                else
+                                    Nothing
+                            , \() ->
                                 case argsAfterFirst of
                                     right :: [] ->
                                         Just
@@ -2635,6 +2623,8 @@ expressionVisitorHelp (Node expressionRange expression) config context =
 
                                     _ ->
                                         Nothing
+                            ]
+                            ()
 
                     otherApplied ->
                         case AstHelpers.getRecordAccessFunction otherApplied of
@@ -4219,6 +4209,33 @@ comparisonWithEmptyChecks isEqual checkInfo =
 
                 Nothing ->
                     Nothing
+
+
+comparisonWithEmptyCheckInPrefixOperator : ModuleNameLookupTable -> Range -> Node Expression -> Maybe (Error {})
+comparisonWithEmptyCheckInPrefixOperator lookupTable operatorRange arg =
+    case isEmpty lookupTable arg of
+        Just modName ->
+            let
+                modIsEmpty : String
+                modIsEmpty =
+                    qualifiedToString (qualify ( modName, "isEmpty" ) defaultQualifyResources)
+            in
+            Just
+                (Rule.errorWithFix
+                    { message = "Comparison with an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " can be replaced by a call to " ++ modIsEmpty
+                    , details = [ "You can replace this comparison to an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " with a call to " ++ modIsEmpty ++ ", which is more efficient." ]
+                    }
+                    (Range.combine [ operatorRange, Node.range arg ])
+                    [ Fix.replaceRangeBy
+                        { start = operatorRange.start
+                        , end = (Node.range arg).end
+                        }
+                        modIsEmpty
+                    ]
+                )
+
+        Nothing ->
+            Nothing
 
 
 {-| If the expression is [], Array.empty, Set.empty or Dict.empty, return the module name.
