@@ -6559,6 +6559,22 @@ a = [] /= x ++ y"""
 
 a = not (List.isEmpty (x ++ y))"""
                         ]
+        , test "should replace comparisons to the empty list with List.isEmpty (infix)" <|
+            \() ->
+                """module A exposing (..)
+
+a = x |> (==) []"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty list can be replaced by a call to List.isEmpty"
+                            , details = [ "You can replace this comparison to an empty list with a call to List.isEmpty, which is more efficient." ]
+                            , under = "(==) []"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = x |> List.isEmpty"""
+                        ]
         ]
 
 

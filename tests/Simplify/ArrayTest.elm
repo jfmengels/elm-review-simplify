@@ -1370,6 +1370,22 @@ a = Array.empty /= x ++ y"""
 
 a = not (Array.isEmpty (x ++ y))"""
                         ]
+        , test "should replace comparisons to the empty array with Array.isEmpty (infix)" <|
+            \() ->
+                """module A exposing (..)
+
+a = x |> (==) Array.empty"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Comparison with an empty array can be replaced by a call to Array.isEmpty"
+                            , details = [ "You can replace this comparison to an empty array with a call to Array.isEmpty, which is more efficient." ]
+                            , under = "(==) Array.empty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+
+a = x |> Array.isEmpty"""
+                        ]
         ]
 
 

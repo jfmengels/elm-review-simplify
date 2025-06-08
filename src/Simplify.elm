@@ -2600,19 +2600,41 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             }
 
                     Node operatorRange (Expression.PrefixOperator operator) ->
-                        case argsAfterFirst of
-                            right :: [] ->
+                        case ( operator == "==", isEmpty context.lookupTable firstArg ) of
+                            ( True, Just modName ) ->
+                                let
+                                    modIsEmpty : String
+                                    modIsEmpty =
+                                        qualifiedToString (qualify ( modName, "isEmpty" ) defaultQualifyResources)
+                                in
                                 Just
-                                    (fullyAppliedPrefixOperatorError
-                                        { operator = operator
-                                        , operatorRange = operatorRange
-                                        , left = firstArg
-                                        , right = right
+                                    (Rule.errorWithFix
+                                        { message = "Comparison with an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " can be replaced by a call to " ++ modIsEmpty
+                                        , details = [ "You can replace this comparison to an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " with a call to " ++ modIsEmpty ++ ", which is more efficient." ]
                                         }
+                                        (Range.combine [ operatorRange, Node.range firstArg ])
+                                        [ Fix.replaceRangeBy
+                                            { start = operatorRange.start
+                                            , end = (Node.range firstArg).end
+                                            }
+                                            modIsEmpty
+                                        ]
                                     )
 
                             _ ->
-                                Nothing
+                                case argsAfterFirst of
+                                    right :: [] ->
+                                        Just
+                                            (fullyAppliedPrefixOperatorError
+                                                { operator = operator
+                                                , operatorRange = operatorRange
+                                                , left = firstArg
+                                                , right = right
+                                                }
+                                            )
+
+                                    _ ->
+                                        Nothing
 
                     otherApplied ->
                         case AstHelpers.getRecordAccessFunction otherApplied of
