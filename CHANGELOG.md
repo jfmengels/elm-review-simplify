@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+The rule now simplifies (thanks to [@miniBill]):
+- `x == []` to `List.isEmpty`
+- `x == Array.empty` to `Array.isEmpty x` (same for `Dict` and `Set`)
+
+
+## [2.1.7] - 2025-06-06
+
 The rule now simplifies:
 - `Set.union (Set.singleton a) set` to `Set.insert a set`
 - `Set.union set (Set.singleton a)` to `Set.insert set a`
@@ -662,7 +669,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.6...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.7...HEAD
+[2.1.7]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.7
 [2.1.6]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.6
 [2.1.5]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.5
 [2.1.4]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.4
