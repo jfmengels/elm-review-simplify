@@ -74,6 +74,15 @@ Below is the list of all kinds of simplifications this rule applies.
     { r | a = 1 } == { r | a = 2 }
     --> False
 
+    x == []
+    --> List.isEmpty x
+
+    x /= []
+    --> not (List.isEmpty x)
+
+    x == Array.empty -- same for Dict or Set
+    --> Array.isEmpty x
+
 
 ### If expressions
 

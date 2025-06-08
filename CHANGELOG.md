@@ -5,7 +5,7 @@
 ## [2.1.8] - 2025-06-08
 
 The rule now simplifies (thanks to [@miniBill]):
-- `x == []` to `List.isEmpty`
+- `x == []` to `List.isEmpty x`
 - `x == Array.empty` to `Array.isEmpty x` (same for `Dict` and `Set`)
 
 ## [2.1.7] - 2025-06-06
