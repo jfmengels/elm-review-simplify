@@ -4242,7 +4242,7 @@ comparisonWithEmptyCheckInPrefixOperator lookupTable operatorRange arg =
 -}
 isEmpty : ModuleNameLookupTable -> Node Expression -> Maybe ModuleName
 isEmpty lookupTable node =
-    case node of
+    case AstHelpers.removeParens node of
         Node _ (Expression.ListExpr []) ->
             Just [ "List" ]
 
