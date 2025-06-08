@@ -2,10 +2,11 @@
 
 ## [Unreleased]
 
+## [2.1.8] - 2025-06-08
+
 The rule now simplifies (thanks to [@miniBill]):
 - `x == []` to `List.isEmpty`
 - `x == Array.empty` to `Array.isEmpty x` (same for `Dict` and `Set`)
-
 
 ## [2.1.7] - 2025-06-06
 
@@ -669,7 +670,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.7...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.8...HEAD
+[2.1.8]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.8
 [2.1.7]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.7
 [2.1.6]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.6
 [2.1.5]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.5

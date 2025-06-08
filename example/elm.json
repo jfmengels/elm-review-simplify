@@ -11,7 +11,7 @@
             "jfmengels/elm-review": "2.13.1",
             "pzp1997/assoc-list": "1.0.0",
             "stil4m/elm-syntax": "7.3.1",
-            "jfmengels/elm-review-simplify": "2.1.7"
+            "jfmengels/elm-review-simplify": "2.1.8"
         },
         "indirect": {
             "elm/bytes": "1.0.8",
