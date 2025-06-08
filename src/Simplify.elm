@@ -4147,27 +4147,6 @@ comparisonWithEmptyChecks isEqual checkInfo =
             else
                 ( "not (" ++ fnName ++ " ", ")" )
 
-        isEmpty : Node Expression -> Maybe ModuleName
-        isEmpty node =
-            case node of
-                Node _ (Expression.ListExpr []) ->
-                    Just [ "List" ]
-
-                Node range (Expression.FunctionOrValue _ "empty") ->
-                    case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable range of
-                        Just modName ->
-                            if List.member modName [ [ "Array" ], [ "Set" ], [ "Dict" ] ] then
-                                Just modName
-
-                            else
-                                Nothing
-
-                        Nothing ->
-                            Nothing
-
-                _ ->
-                    Nothing
-
         toMessage : ModuleName -> { message : String, details : List String }
         toMessage modName =
             let
@@ -4179,7 +4158,7 @@ comparisonWithEmptyChecks isEqual checkInfo =
             , details = [ "You can replace this comparison to an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " with a call to " ++ modIsEmpty ++ ", which is more efficient." ]
             }
     in
-    case isEmpty checkInfo.right of
+    case isEmpty checkInfo.lookupTable checkInfo.right of
         Just modName ->
             let
                 ( left, right ) =
@@ -4198,7 +4177,7 @@ comparisonWithEmptyChecks isEqual checkInfo =
                 )
 
         Nothing ->
-            case isEmpty checkInfo.left of
+            case isEmpty checkInfo.lookupTable checkInfo.left of
                 Just modName ->
                     let
                         ( left, right ) =
@@ -4218,6 +4197,30 @@ comparisonWithEmptyChecks isEqual checkInfo =
 
                 Nothing ->
                     Nothing
+
+
+{-| If the expression is [], Array.empty, Set.empty or Dict.empty, return the module name.
+-}
+isEmpty : ModuleNameLookupTable -> Node Expression -> Maybe ModuleName
+isEmpty lookupTable node =
+    case node of
+        Node _ (Expression.ListExpr []) ->
+            Just [ "List" ]
+
+        Node range (Expression.FunctionOrValue _ "empty") ->
+            case ModuleNameLookupTable.moduleNameAt lookupTable range of
+                Just modName ->
+                    if List.member modName [ [ "Array" ], [ "Set" ], [ "Dict" ] ] then
+                        Just modName
+
+                    else
+                        Nothing
+
+                Nothing ->
+                    Nothing
+
+        _ ->
+            Nothing
 
 
 
