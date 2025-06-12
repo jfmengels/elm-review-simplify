@@ -4828,6 +4828,111 @@ a = list |> List.foldl (*) initial
 a = ((list |> List.product) * initial)
 """
                         ]
+
+        , test "should replace List.foldl with conditional Set.insert by List.filterMap and Set.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.foldl (\\x acc -> if x > 0 then Set.insert x acc else acc) Set.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldl can be replaced by List.filterMap and Set.fromList"
+                            , details = [ "Using List.filterMap and Set.fromList is clearer and often more efficient than using a fold to conditionally build a Set." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = list |> List.filterMap (\\x -> if x > 0 then Just x else Nothing) |> Set.fromList
+"""
+                        ]
+        , test "should replace List.foldl with conditional Set.insert (false branch) by List.filterMap and Set.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.foldl (\\x acc -> if x <= 0 then acc else Set.insert x acc) Set.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldl can be replaced by List.filterMap and Set.fromList"
+                            , details = [ "Using List.filterMap and Set.fromList is clearer and often more efficient than using a fold to conditionally build a Set." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = list |> List.filterMap (\\x -> if x <= 0 then Nothing else Just x) |> Set.fromList
+"""
+                        ]
+        , test "should replace List.foldl with conditional Dict.insert by List.filterMap and Dict.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.foldl (\\(k, v) acc -> if v > 0 then Dict.insert k v acc else acc) Dict.empty pairs
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldl can be replaced by List.filterMap and Dict.fromList"
+                            , details = [ "Using List.filterMap and Dict.fromList is clearer and often more efficient than using a fold to conditionally build a Dict." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = pairs |> List.filterMap (\\(k, v) -> if v > 0 then Just (k, v) else Nothing) |> Dict.fromList
+"""
+                        ]
+        , test "should replace List.foldl with conditional list cons by List.filterMap" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (\\x acc -> if x > 0 then x :: acc else acc) [] list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldl can be replaced by List.filterMap"
+                            , details = [ "Using List.filterMap is clearer and often more efficient than using a fold to conditionally build a list." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list |> List.filterMap (\\x -> if x > 0 then Just x else Nothing)
+"""
+                        ]
+        , test "should replace List.foldl with conditional Array.push by List.filterMap and Array.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = List.foldl (\\x acc -> if x > 0 then Array.push x acc else acc) Array.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldl can be replaced by List.filterMap and Array.fromList"
+                            , details = [ "Using List.filterMap and Array.fromList is clearer and often more efficient than using a fold to conditionally build a Array." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = list |> List.filterMap (\\x -> if x > 0 then Just x else Nothing) |> Array.fromList
+"""
+                        ]
+        , test "should not report List.foldl with conditional insert when initial is not empty" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.foldl (\\x acc -> if x > 0 then Set.insert x acc else acc) someSet list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.foldl with conditional when both branches modify accumulator" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.foldl (\\x acc -> if x > 0 then Set.insert x acc else Set.remove x acc) Set.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
@@ -4841,10 +4946,10 @@ a = List.foldr (\\el soFar -> soFar - el) 20 list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should replace List.foldr fn x [] by x" <|
+        , test "should replace foldr f x [] by x" <|
             \() ->
                 """module A exposing (..)
-a = List.foldr fn x []
+a = List.foldr f x []
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -4857,6 +4962,110 @@ a = List.foldr fn x []
 a = x
 """
                         ]
+        , test "should replace List.foldr with conditional Set.insert by List.filterMap and Set.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.foldr (\\x acc -> if x > 0 then Set.insert x acc else acc) Set.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr can be replaced by List.filterMap and Set.fromList"
+                            , details = [ "Using List.filterMap and Set.fromList is clearer and often more efficient than using a fold to conditionally build a Set." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = list |> List.filterMap (\\x -> if x > 0 then Just x else Nothing) |> Set.fromList
+"""
+                        ]
+        , test "should replace List.foldr with conditional Set.insert (false branch) by List.filterMap and Set.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.foldr (\\x acc -> if x <= 0 then acc else Set.insert x acc) Set.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr can be replaced by List.filterMap and Set.fromList"
+                            , details = [ "Using List.filterMap and Set.fromList is clearer and often more efficient than using a fold to conditionally build a Set." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = list |> List.filterMap (\\x -> if x <= 0 then Nothing else Just x) |> Set.fromList
+"""
+                        ]
+        , test "should replace List.foldr with conditional Dict.insert by List.filterMap and Dict.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.foldr (\\(k, v) acc -> if v > 0 then Dict.insert k v acc else acc) Dict.empty pairs
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr can be replaced by List.filterMap and Dict.fromList"
+                            , details = [ "Using List.filterMap and Dict.fromList is clearer and often more efficient than using a fold to conditionally build a Dict." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = pairs |> List.filterMap (\\(k, v) -> if v > 0 then Just (k, v) else Nothing) |> Dict.fromList
+"""
+                        ]
+        , test "should replace List.foldr with conditional list cons by List.filterMap" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\x acc -> if x > 0 then x :: acc else acc) [] list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr can be replaced by List.filterMap"
+                            , details = [ "Using List.filterMap is clearer and often more efficient than using a fold to conditionally build a list." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list |> List.filterMap (\\x -> if x > 0 then Just x else Nothing)
+"""
+                        ]
+        , test "should replace List.foldr with conditional Array.push by List.filterMap and Array.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = List.foldr (\\x acc -> if x > 0 then Array.push x acc else acc) Array.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr can be replaced by List.filterMap and Array.fromList"
+                            , details = [ "Using List.filterMap and Array.fromList is clearer and often more efficient than using a fold to conditionally build a Array." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = list |> List.filterMap (\\x -> if x > 0 then Just x else Nothing) |> Array.fromList
+"""
+                        ]
+        , test "should not report List.foldr with conditional insert when initial is not empty" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.foldr (\\x acc -> if x > 0 then Set.insert x acc else acc) someSet list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.foldr with conditional when both branches modify accumulator" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.foldr (\\x acc -> if x > 0 then Set.insert x acc else Set.remove x acc) Set.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should replace List.foldr (always identity) x list by x" <|
             \() ->
                 """module A exposing (..)

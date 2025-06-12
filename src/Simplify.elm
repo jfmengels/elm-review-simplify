@@ -5691,7 +5691,8 @@ listFoldrChecks =
 listFoldAnyDirectionChecks : IntoFnCheck
 listFoldAnyDirectionChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall (emptiableFoldChecks listCollection)
+        [ intoFnCheckOnlyCall conditionalFoldIntoCollectionCheck
+        , intoFnCheckOnlyCall (emptiableFoldChecks listCollection)
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 case secondArg checkInfo of
@@ -5880,6 +5881,330 @@ listFoldAnyDirectionChecks =
                             Nothing
           }
         ]
+
+
+conditionalFoldIntoCollectionCheck : CallCheckInfo -> Maybe (Error {})
+conditionalFoldIntoCollectionCheck checkInfo =
+    case ( getLambdaExpression checkInfo.firstArg, secondArg checkInfo, thirdArg checkInfo ) of
+        ( Just ( fnRange, lambda ), Just initialArg, Just listArg ) ->
+            case lambda.args of
+                elementPattern :: accPattern :: [] ->
+                    case lambda.expression of
+                        Node _ (Expression.IfBlock condition trueBranch falseBranch) ->
+                            let
+                                checkBranches : { insertBranch : Node Expression, unchangedBranch : Node Expression, isInsertInTrueBranch : Bool } -> Maybe (Error {})
+                                checkBranches branches =
+                                    case ( getAccumulatorPattern accPattern, branches.insertBranch ) of
+                                        ( Just accName, Node _ insertExpr ) ->
+                                            if isUnchangedAccumulator accName checkInfo branches.unchangedBranch then
+                                                checkCollectionInsert
+                                                    { checkInfo = checkInfo
+                                                    , elementPattern = elementPattern
+                                                    , accName = accName
+                                                    , condition = condition
+                                                    , insertExpr = insertExpr
+                                                    , insertBranch = branches.insertBranch
+                                                    , unchangedBranch = branches.unchangedBranch
+                                                    , isInsertInTrueBranch = branches.isInsertInTrueBranch
+                                                    , initialArg = initialArg
+                                                    , listArg = listArg
+                                                    , fnRange = fnRange
+                                                    }
+
+                                            else
+                                                Nothing
+
+                                        _ ->
+                                            Nothing
+                            in
+                            firstThatConstructsJust
+                                [ \() -> checkBranches { insertBranch = trueBranch, unchangedBranch = falseBranch, isInsertInTrueBranch = True }
+                                , \() -> checkBranches { insertBranch = falseBranch, unchangedBranch = trueBranch, isInsertInTrueBranch = False }
+                                ]
+                                ()
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
+getLambdaExpression : Node Expression -> Maybe ( Range, Expression.Lambda )
+getLambdaExpression (Node range expr) =
+    case expr of
+        Expression.LambdaExpression lambda ->
+            Just ( range, lambda )
+
+        Expression.ParenthesizedExpression innerExpr ->
+            getLambdaExpression innerExpr
+
+        _ ->
+            Nothing
+
+
+getAccumulatorPattern : Node Pattern -> Maybe String
+getAccumulatorPattern (Node _ pattern) =
+    case pattern of
+        Pattern.VarPattern name ->
+            Just name
+
+        _ ->
+            Nothing
+
+
+isUnchangedAccumulator : String -> CallCheckInfo -> Node Expression -> Bool
+isUnchangedAccumulator accName checkInfo (Node _ expr) =
+    case expr of
+        Expression.FunctionOrValue [] name ->
+            name == accName
+
+        Expression.ParenthesizedExpression innerExpr ->
+            isUnchangedAccumulator accName checkInfo innerExpr
+
+        _ ->
+            False
+
+
+checkCollectionInsert :
+    { checkInfo : CallCheckInfo
+    , elementPattern : Node Pattern
+    , accName : String
+    , condition : Node Expression
+    , insertExpr : Expression
+    , insertBranch : Node Expression
+    , unchangedBranch : Node Expression
+    , isInsertInTrueBranch : Bool
+    , initialArg : Node Expression
+    , listArg : Node Expression
+    , fnRange : Range
+    }
+    -> Maybe (Error {})
+checkCollectionInsert config =
+    let
+        checkSpecificCollection :
+            { insertFn : ( ModuleName, String )
+            , emptyValue : ( ModuleName, String )
+            , fromListFn : ( ModuleName, String )
+            , collectionName : String
+            }
+            -> Maybe (Error {})
+        checkSpecificCollection collection =
+            case ( getCollectionInsertCall collection.insertFn config.accName config.checkInfo config.insertExpr, isEmptyCollection collection.emptyValue config.checkInfo config.initialArg ) of
+                ( Just insertedValue, True ) ->
+                    let
+                        elementPatternStr : String
+                        elementPatternStr =
+                            config.checkInfo.extractSourceCode (Node.range config.elementPattern)
+
+                        insertedValueStr : String
+                        insertedValueStr =
+                            case collection.insertFn of
+                                ( [ "Dict" ], "insert" ) ->
+                                    -- For Dict.insert, we need to construct the tuple manually
+                                    case AstHelpers.getSpecificFnCall collection.insertFn config.checkInfo.lookupTable (Node Range.emptyRange config.insertExpr) of
+                                        Just call ->
+                                            case call.argsAfterFirst of
+                                                valueArg :: _ ->
+                                                    "(" ++ config.checkInfo.extractSourceCode (Node.range call.firstArg) ++ ", " ++ config.checkInfo.extractSourceCode (Node.range valueArg) ++ ")"
+
+                                                _ ->
+                                                    config.checkInfo.extractSourceCode (Node.range insertedValue)
+
+                                        _ ->
+                                            config.checkInfo.extractSourceCode (Node.range insertedValue)
+
+                                _ ->
+                                    config.checkInfo.extractSourceCode (Node.range insertedValue)
+
+                        filterMapLambda : String
+                        filterMapLambda =
+                            if config.isInsertInTrueBranch then
+                                -- true branch is the insert
+                                "(\\" ++ elementPatternStr ++ " -> if " ++ config.checkInfo.extractSourceCode (Node.range config.condition) ++ " then Just " ++ insertedValueStr ++ " else Nothing)"
+
+                            else
+                                -- false branch is the insert
+                                "(\\" ++ elementPatternStr ++ " -> if " ++ config.checkInfo.extractSourceCode (Node.range config.condition) ++ " then Nothing else Just " ++ insertedValueStr ++ ")"
+                    in
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString config.checkInfo.fn ++ " can be replaced by List.filterMap and " ++ qualifiedToString collection.fromListFn
+                            , details = [ "Using List.filterMap and " ++ qualifiedToString collection.fromListFn ++ " is clearer and often more efficient than using a fold to conditionally build a " ++ collection.collectionName ++ "." ]
+                            }
+                            config.checkInfo.fnRange
+                            [ Fix.replaceRangeBy config.checkInfo.parentRange
+                                (config.checkInfo.extractSourceCode (Node.range config.listArg)
+                                    ++ " |> "
+                                    ++ qualifiedToString (qualify ( [ "List" ], "filterMap" ) config.checkInfo)
+                                    ++ " "
+                                    ++ filterMapLambda
+                                    ++ " |> "
+                                    ++ qualifiedToString (qualify collection.fromListFn config.checkInfo)
+                                )
+                            ]
+                        )
+
+                _ ->
+                    Nothing
+    in
+    firstThatConstructsJust
+        [ \() ->
+            checkSpecificCollection
+                { insertFn = ( [ "Set" ], "insert" )
+                , emptyValue = ( [ "Set" ], "empty" )
+                , fromListFn = ( [ "Set" ], "fromList" )
+                , collectionName = "Set"
+                }
+        , \() ->
+            checkSpecificCollection
+                { insertFn = ( [ "Dict" ], "insert" )
+                , emptyValue = ( [ "Dict" ], "empty" )
+                , fromListFn = ( [ "Dict" ], "fromList" )
+                , collectionName = "Dict"
+                }
+        , \() ->
+            checkListCollection config
+        , \() ->
+            checkSpecificCollection
+                { insertFn = ( [ "Array" ], "push" )
+                , emptyValue = ( [ "Array" ], "empty" )
+                , fromListFn = ( [ "Array" ], "fromList" )
+                , collectionName = "Array"
+                }
+        ]
+        ()
+
+
+checkListCollection :
+    { checkInfo : CallCheckInfo
+    , elementPattern : Node Pattern
+    , accName : String
+    , condition : Node Expression
+    , insertExpr : Expression
+    , insertBranch : Node Expression
+    , unchangedBranch : Node Expression
+    , isInsertInTrueBranch : Bool
+    , initialArg : Node Expression
+    , listArg : Node Expression
+    , fnRange : Range
+    }
+    -> Maybe (Error {})
+checkListCollection config =
+    case ( getListConsCall config.accName config.checkInfo config.insertExpr, isEmptyList config.checkInfo config.initialArg ) of
+        ( Just insertedValue, True ) ->
+            let
+                elementPatternStr : String
+                elementPatternStr =
+                    config.checkInfo.extractSourceCode (Node.range config.elementPattern)
+
+                filterMapLambda : String
+                filterMapLambda =
+                    if config.isInsertInTrueBranch then
+                        -- true branch is the insert
+                        "(\\" ++ elementPatternStr ++ " -> if " ++ config.checkInfo.extractSourceCode (Node.range config.condition) ++ " then Just " ++ config.checkInfo.extractSourceCode (Node.range insertedValue) ++ " else Nothing)"
+
+                    else
+                        -- false branch is the insert
+                        "(\\" ++ elementPatternStr ++ " -> if " ++ config.checkInfo.extractSourceCode (Node.range config.condition) ++ " then Nothing else Just " ++ config.checkInfo.extractSourceCode (Node.range insertedValue) ++ ")"
+            in
+            Just
+                (Rule.errorWithFix
+                    { message = qualifiedToString config.checkInfo.fn ++ " can be replaced by List.filterMap"
+                    , details = [ "Using List.filterMap is clearer and often more efficient than using a fold to conditionally build a list." ]
+                    }
+                    config.checkInfo.fnRange
+                    [ Fix.replaceRangeBy config.checkInfo.parentRange
+                        (config.checkInfo.extractSourceCode (Node.range config.listArg)
+                            ++ " |> "
+                            ++ qualifiedToString (qualify ( [ "List" ], "filterMap" ) config.checkInfo)
+                            ++ " "
+                            ++ filterMapLambda
+                        )
+                    ]
+                )
+
+        _ ->
+            Nothing
+
+
+getListConsCall : String -> CallCheckInfo -> Expression -> Maybe (Node Expression)
+getListConsCall accName checkInfo expr =
+    case expr of
+        Expression.OperatorApplication "::" _ left (Node _ (Expression.FunctionOrValue [] name)) ->
+            if name == accName then
+                Just left
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
+
+
+isEmptyList : CallCheckInfo -> Node Expression -> Bool
+isEmptyList checkInfo (Node _ expr) =
+    case expr of
+        Expression.ListExpr [] ->
+            True
+
+        _ ->
+            False
+
+
+getCollectionInsertCall : ( ModuleName, String ) -> String -> CallCheckInfo -> Expression -> Maybe (Node Expression)
+getCollectionInsertCall insertFn accName checkInfo expr =
+    case AstHelpers.getSpecificFnCall insertFn checkInfo.lookupTable (Node Range.emptyRange expr) of
+        Just call ->
+            case insertFn of
+                ( [ "Dict" ], "insert" ) ->
+                    -- Dict.insert key value acc
+                    case call.argsAfterFirst of
+                        valueArg :: [ Node _ (Expression.FunctionOrValue [] name) ] ->
+                            if name == accName then
+                                -- For Dict, we just return the first arg (key) as a marker
+                                -- The actual tuple will be constructed in checkSpecificCollection
+                                Just call.firstArg
+
+                            else
+                                Nothing
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    -- Other collections: insert element acc
+                    case call.argsAfterFirst of
+                        [ Node _ (Expression.FunctionOrValue [] name) ] ->
+                            if name == accName then
+                                Just call.firstArg
+
+                            else
+                                Nothing
+
+                        _ ->
+                            Nothing
+
+        Nothing ->
+            Nothing
+
+
+isEmptyCollection : ( ModuleName, String ) -> CallCheckInfo -> Node Expression -> Bool
+isEmptyCollection emptyValue checkInfo (Node _ expr) =
+    case expr of
+        Expression.FunctionOrValue moduleName name ->
+            case ModuleNameLookupTable.moduleNameFor checkInfo.lookupTable (Node Range.emptyRange expr) of
+                Just actualModuleName ->
+                    ( actualModuleName, name ) == emptyValue
+
+                Nothing ->
+                    ( moduleName, name ) == emptyValue
+
+        _ ->
+            False
 
 
 listIsEmptyChecks : IntoFnCheck
