@@ -4917,6 +4917,42 @@ import Array
 a = list |> List.filterMap (\\x -> if x > 0 then Just x else Nothing) |> Array.fromList
 """
                         ]
+        , test "should replace List.foldl Set.insert Set.empty by Set.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.foldl Set.insert Set.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldl Set.insert Set.empty is the same as Set.fromList"
+                            , details = [ "Using Set.fromList is clearer and more efficient than using a fold to build a Set from a list." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList list
+"""
+                        ]
+        , test "should replace List.foldl Dict.insert Dict.empty by Dict.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.foldl Dict.insert Dict.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldl Dict.insert Dict.empty is the same as Dict.fromList"
+                            , details = [ "Using Dict.fromList is clearer and more efficient than using a fold to build a Dict from a list." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.fromList list
+"""
+                        ]
         , test "should not report List.foldl with conditional insert when initial is not empty" <|
             \() ->
                 """module A exposing (..)
@@ -5066,6 +5102,42 @@ a = List.foldr (\\x acc -> if x > 0 then Set.insert x acc else Set.remove x acc)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should replace List.foldr Set.insert Set.empty by Set.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.foldr Set.insert Set.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr Set.insert Set.empty is the same as Set.fromList"
+                            , details = [ "Using Set.fromList is clearer and more efficient than using a fold to build a Set from a list." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList list
+"""
+                        ]
+        , test "should replace List.foldr Dict.insert Dict.empty by Dict.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.foldr Dict.insert Dict.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr Dict.insert Dict.empty is the same as Dict.fromList"
+                            , details = [ "Using Dict.fromList is clearer and more efficient than using a fold to build a Dict from a list." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.fromList list
+"""
+                        ]
         , test "should replace List.foldr (always identity) x list by x" <|
             \() ->
                 """module A exposing (..)

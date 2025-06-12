@@ -5691,7 +5691,8 @@ listFoldrChecks =
 listFoldAnyDirectionChecks : IntoFnCheck
 listFoldAnyDirectionChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall conditionalFoldIntoCollectionCheck
+        [ intoFnCheckOnlyCall simpleFoldIntoCollectionCheck
+        , intoFnCheckOnlyCall conditionalFoldIntoCollectionCheck
         , intoFnCheckOnlyCall (emptiableFoldChecks listCollection)
         , intoFnCheckOnlyCall
             (\checkInfo ->
@@ -5881,6 +5882,60 @@ listFoldAnyDirectionChecks =
                             Nothing
           }
         ]
+
+
+simpleFoldIntoCollectionCheck : CallCheckInfo -> Maybe (Error {})
+simpleFoldIntoCollectionCheck checkInfo =
+    case ( checkInfo.firstArg, secondArg checkInfo, thirdArg checkInfo ) of
+        ( firstArgNode, Just initialArg, Just listArg ) ->
+            let
+                checkSpecificCollection :
+                    { insertFn : ( ModuleName, String )
+                    , emptyValue : ( ModuleName, String )
+                    , fromListFn : ( ModuleName, String )
+                    , collectionName : String
+                    }
+                    -> Maybe (Error {})
+                checkSpecificCollection collection =
+                    case ( AstHelpers.getSpecificValueOrFn collection.insertFn checkInfo.lookupTable firstArgNode, isEmptyCollection collection.emptyValue checkInfo initialArg ) of
+                        ( Just _, True ) ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString checkInfo.fn ++ " " ++ qualifiedToString collection.insertFn ++ " " ++ qualifiedToString collection.emptyValue ++ " is the same as " ++ qualifiedToString collection.fromListFn
+                                    , details = [ "Using " ++ qualifiedToString collection.fromListFn ++ " is clearer and more efficient than using a fold to build a " ++ collection.collectionName ++ " from a list." ]
+                                    }
+                                    checkInfo.fnRange
+                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                        (qualifiedToString (qualify collection.fromListFn checkInfo)
+                                            ++ " "
+                                            ++ checkInfo.extractSourceCode (Node.range listArg)
+                                        )
+                                    ]
+                                )
+
+                        _ ->
+                            Nothing
+            in
+            firstThatConstructsJust
+                [ \() ->
+                    checkSpecificCollection
+                        { insertFn = ( [ "Set" ], "insert" )
+                        , emptyValue = ( [ "Set" ], "empty" )
+                        , fromListFn = ( [ "Set" ], "fromList" )
+                        , collectionName = "Set"
+                        }
+                , \() ->
+                    checkSpecificCollection
+                        { insertFn = ( [ "Dict" ], "insert" )
+                        , emptyValue = ( [ "Dict" ], "empty" )
+                        , fromListFn = ( [ "Dict" ], "fromList" )
+                        , collectionName = "Dict"
+                        }
+                ]
+                ()
+
+        _ ->
+            Nothing
 
 
 conditionalFoldIntoCollectionCheck : CallCheckInfo -> Maybe (Error {})
