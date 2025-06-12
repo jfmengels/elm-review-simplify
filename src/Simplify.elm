@@ -2250,26 +2250,24 @@ expressionVisitor node config context =
 
                         --
                         , inferredConstants = contextWithInferredConstants.inferredConstants
-
-                        --
-                        , lookupTable = context.lookupTable
-                        , moduleName = context.moduleName
-                        , exposed = context.exposed
-                        , commentRanges = context.commentRanges
-                        , importRecordTypeAliases = context.importRecordTypeAliases
-                        , moduleRecordTypeAliases = context.moduleRecordTypeAliases
-                        , importCustomTypes = context.importCustomTypes
-                        , moduleCustomTypes = context.moduleCustomTypes
-                        , moduleBindings = context.moduleBindings
-                        , rangesToIgnore = context.rangesToIgnore
-                        , rightSidesOfPlusPlus = context.rightSidesOfPlusPlus
-                        , customTypesToReportInCases = context.customTypesToReportInCases
-                        , localIgnoredCustomTypes = context.localIgnoredCustomTypes
-                        , constructorsToIgnore = context.constructorsToIgnore
-                        , inferredConstantsDict = context.inferredConstantsDict
-                        , extractSourceCode = context.extractSourceCode
-                        , exposedVariants = context.exposedVariants
-                        , importLookup = context.importLookup
+                        , lookupTable = contextWithInferredConstants.lookupTable
+                        , moduleName = contextWithInferredConstants.moduleName
+                        , exposed = contextWithInferredConstants.exposed
+                        , commentRanges = contextWithInferredConstants.commentRanges
+                        , importRecordTypeAliases = contextWithInferredConstants.importRecordTypeAliases
+                        , moduleRecordTypeAliases = contextWithInferredConstants.moduleRecordTypeAliases
+                        , importCustomTypes = contextWithInferredConstants.importCustomTypes
+                        , moduleCustomTypes = contextWithInferredConstants.moduleCustomTypes
+                        , moduleBindings = contextWithInferredConstants.moduleBindings
+                        , rangesToIgnore = contextWithInferredConstants.rangesToIgnore
+                        , rightSidesOfPlusPlus = contextWithInferredConstants.rightSidesOfPlusPlus
+                        , customTypesToReportInCases = contextWithInferredConstants.customTypesToReportInCases
+                        , localIgnoredCustomTypes = contextWithInferredConstants.localIgnoredCustomTypes
+                        , constructorsToIgnore = contextWithInferredConstants.constructorsToIgnore
+                        , inferredConstantsDict = contextWithInferredConstants.inferredConstantsDict
+                        , extractSourceCode = contextWithInferredConstants.extractSourceCode
+                        , exposedVariants = contextWithInferredConstants.exposedVariants
+                        , importLookup = contextWithInferredConstants.importLookup
                         }
 
                     Just currentBranchLocalBindings ->
@@ -2280,26 +2278,24 @@ expressionVisitor node config context =
 
                         --
                         , inferredConstants = contextWithInferredConstants.inferredConstants
-
-                        --
-                        , lookupTable = context.lookupTable
-                        , moduleName = context.moduleName
-                        , exposed = context.exposed
-                        , commentRanges = context.commentRanges
-                        , importRecordTypeAliases = context.importRecordTypeAliases
-                        , moduleRecordTypeAliases = context.moduleRecordTypeAliases
-                        , importCustomTypes = context.importCustomTypes
-                        , moduleCustomTypes = context.moduleCustomTypes
-                        , moduleBindings = context.moduleBindings
-                        , rangesToIgnore = context.rangesToIgnore
-                        , rightSidesOfPlusPlus = context.rightSidesOfPlusPlus
-                        , customTypesToReportInCases = context.customTypesToReportInCases
-                        , localIgnoredCustomTypes = context.localIgnoredCustomTypes
-                        , constructorsToIgnore = context.constructorsToIgnore
-                        , inferredConstantsDict = context.inferredConstantsDict
-                        , extractSourceCode = context.extractSourceCode
-                        , exposedVariants = context.exposedVariants
-                        , importLookup = context.importLookup
+                        , lookupTable = contextWithInferredConstants.lookupTable
+                        , moduleName = contextWithInferredConstants.moduleName
+                        , exposed = contextWithInferredConstants.exposed
+                        , commentRanges = contextWithInferredConstants.commentRanges
+                        , importRecordTypeAliases = contextWithInferredConstants.importRecordTypeAliases
+                        , moduleRecordTypeAliases = contextWithInferredConstants.moduleRecordTypeAliases
+                        , importCustomTypes = contextWithInferredConstants.importCustomTypes
+                        , moduleCustomTypes = contextWithInferredConstants.moduleCustomTypes
+                        , moduleBindings = contextWithInferredConstants.moduleBindings
+                        , rangesToIgnore = contextWithInferredConstants.rangesToIgnore
+                        , rightSidesOfPlusPlus = contextWithInferredConstants.rightSidesOfPlusPlus
+                        , customTypesToReportInCases = contextWithInferredConstants.customTypesToReportInCases
+                        , localIgnoredCustomTypes = contextWithInferredConstants.localIgnoredCustomTypes
+                        , constructorsToIgnore = contextWithInferredConstants.constructorsToIgnore
+                        , inferredConstantsDict = contextWithInferredConstants.inferredConstantsDict
+                        , extractSourceCode = contextWithInferredConstants.extractSourceCode
+                        , exposedVariants = contextWithInferredConstants.exposedVariants
+                        , importLookup = contextWithInferredConstants.importLookup
                         }
 
             expressionChecked : { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
@@ -2318,23 +2314,21 @@ expressionVisitor node config context =
           , localBindings = contextWithInferredConstantsAndLocalBindings.localBindings
           , branchLocalBindings = contextWithInferredConstantsAndLocalBindings.branchLocalBindings
           , inferredConstants = contextWithInferredConstantsAndLocalBindings.inferredConstants
-
-          --
-          , lookupTable = context.lookupTable
-          , moduleName = context.moduleName
-          , exposed = context.exposed
-          , commentRanges = context.commentRanges
-          , importRecordTypeAliases = context.importRecordTypeAliases
-          , moduleRecordTypeAliases = context.moduleRecordTypeAliases
-          , importCustomTypes = context.importCustomTypes
-          , moduleCustomTypes = context.moduleCustomTypes
-          , moduleBindings = context.moduleBindings
-          , customTypesToReportInCases = context.customTypesToReportInCases
-          , localIgnoredCustomTypes = context.localIgnoredCustomTypes
-          , constructorsToIgnore = context.constructorsToIgnore
-          , extractSourceCode = context.extractSourceCode
-          , exposedVariants = context.exposedVariants
-          , importLookup = context.importLookup
+          , lookupTable = contextWithInferredConstantsAndLocalBindings.lookupTable
+          , moduleName = contextWithInferredConstantsAndLocalBindings.moduleName
+          , exposed = contextWithInferredConstantsAndLocalBindings.exposed
+          , commentRanges = contextWithInferredConstantsAndLocalBindings.commentRanges
+          , importRecordTypeAliases = contextWithInferredConstantsAndLocalBindings.importRecordTypeAliases
+          , moduleRecordTypeAliases = contextWithInferredConstantsAndLocalBindings.moduleRecordTypeAliases
+          , importCustomTypes = contextWithInferredConstantsAndLocalBindings.importCustomTypes
+          , moduleCustomTypes = contextWithInferredConstantsAndLocalBindings.moduleCustomTypes
+          , moduleBindings = contextWithInferredConstantsAndLocalBindings.moduleBindings
+          , customTypesToReportInCases = contextWithInferredConstantsAndLocalBindings.customTypesToReportInCases
+          , localIgnoredCustomTypes = contextWithInferredConstantsAndLocalBindings.localIgnoredCustomTypes
+          , constructorsToIgnore = contextWithInferredConstantsAndLocalBindings.constructorsToIgnore
+          , extractSourceCode = contextWithInferredConstantsAndLocalBindings.extractSourceCode
+          , exposedVariants = contextWithInferredConstantsAndLocalBindings.exposedVariants
+          , importLookup = contextWithInferredConstantsAndLocalBindings.importLookup
           }
         )
 
