@@ -5824,6 +5824,7 @@ listFoldAnyDirectionChecks : IntoFnCheck
 listFoldAnyDirectionChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (emptiableFoldChecks listCollection)
+        , intoFnCheckOnlyCall foldIntoCollectionCheck
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 case secondArg checkInfo of
@@ -6012,6 +6013,134 @@ listFoldAnyDirectionChecks =
                             Nothing
           }
         ]
+
+
+foldIntoCollectionCheck : CallCheckInfo -> Maybe (Error {})
+foldIntoCollectionCheck checkInfo =
+    case ( checkInfo.firstArg, secondArg checkInfo, thirdArg checkInfo ) of
+        ( firstArgNode, Just initialArg, Just listArg ) ->
+            let
+                isLambdaApplyingInsert : ( ModuleName, String ) -> Node Expression -> Bool
+                isLambdaApplyingInsert insertFn lambdaNode =
+                    case getLambdaExpression lambdaNode of
+                        Just ( _, lambda ) ->
+                            case lambda.args of
+                                -- Check for patterns like \(k, v) -> Dict.insert k v or \(k, v) acc -> Dict.insert k v acc
+                                elementPattern :: _ ->
+                                    case AstHelpers.removeParens lambda.expression of
+                                        Node _ (Expression.Application (insertCall :: _)) ->
+                                            case AstHelpers.getSpecificValueOrFn insertFn checkInfo.lookupTable insertCall of
+                                                Just _ ->
+                                                    -- For Dict.insert, check if the pattern is a tuple
+                                                    case insertFn of
+                                                        ( [ "Dict" ], "insert" ) ->
+                                                            case elementPattern of
+                                                                Node _ (Pattern.TuplePattern [ _, _ ]) ->
+                                                                    True
+
+                                                                _ ->
+                                                                    False
+
+                                                        _ ->
+                                                            True
+
+                                                Nothing ->
+                                                    False
+
+                                        _ ->
+                                            False
+
+                                _ ->
+                                    False
+
+                        Nothing ->
+                            False
+
+                checkSpecificCollection :
+                    { insertFn : ( ModuleName, String )
+                    , emptyValue : ( ModuleName, String )
+                    , fromListFn : ( ModuleName, String )
+                    , collectionName : String
+                    }
+                    -> Maybe (Error {})
+                checkSpecificCollection collection =
+                    let
+                        isInsertFunction : Bool
+                        isInsertFunction =
+                            case AstHelpers.getSpecificValueOrFn collection.insertFn checkInfo.lookupTable firstArgNode of
+                                Just _ ->
+                                    True
+
+                                Nothing ->
+                                    isLambdaApplyingInsert collection.insertFn firstArgNode
+                    in
+                    case ( isInsertFunction, isEmptyCollection collection.emptyValue checkInfo initialArg ) of
+                        ( True, True ) ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString checkInfo.fn ++ " " ++ qualifiedToString collection.insertFn ++ " " ++ qualifiedToString collection.emptyValue ++ " is the same as " ++ qualifiedToString collection.fromListFn
+                                    , details = [ "Using " ++ qualifiedToString collection.fromListFn ++ " is clearer and more efficient than using a fold to build a " ++ collection.collectionName ++ " from a list." ]
+                                    }
+                                    checkInfo.fnRange
+                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                        (qualifiedToString (qualify collection.fromListFn checkInfo)
+                                            ++ " "
+                                            ++ checkInfo.extractSourceCode (Node.range listArg)
+                                        )
+                                    ]
+                                )
+
+                        _ ->
+                            Nothing
+            in
+            firstThatConstructsJust
+                [ \() ->
+                    checkSpecificCollection
+                        { insertFn = Fn.Set.insert
+                        , emptyValue = Fn.Set.empty
+                        , fromListFn = Fn.Set.fromList
+                        , collectionName = "Set"
+                        }
+                , \() ->
+                    checkSpecificCollection
+                        { insertFn = Fn.Dict.insert
+                        , emptyValue = Fn.Dict.empty
+                        , fromListFn = Fn.Dict.fromList
+                        , collectionName = "Dict"
+                        }
+                ]
+                ()
+
+        _ ->
+            Nothing
+
+
+getLambdaExpression : Node Expression -> Maybe ( Range, Expression.Lambda )
+getLambdaExpression (Node range expr) =
+    case expr of
+        Expression.LambdaExpression lambda ->
+            Just ( range, lambda )
+
+        Expression.ParenthesizedExpression innerExpr ->
+            getLambdaExpression innerExpr
+
+        _ ->
+            Nothing
+
+
+isEmptyCollection : ( ModuleName, String ) -> CallCheckInfo -> Node Expression -> Bool
+isEmptyCollection emptyValue checkInfo (Node _ expr) =
+    case expr of
+        Expression.FunctionOrValue moduleName name ->
+            case ModuleNameLookupTable.moduleNameFor checkInfo.lookupTable (Node Range.emptyRange expr) of
+                Just actualModuleName ->
+                    ( actualModuleName, name ) == emptyValue
+
+                Nothing ->
+                    ( moduleName, name ) == emptyValue
+
+        _ ->
+            False
 
 
 listIsEmptyChecks : IntoFnCheck
