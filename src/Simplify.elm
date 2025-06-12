@@ -2525,9 +2525,28 @@ expressionExitVisitor (Node expressionRange _) context =
                 context
 
             else
-                updateLocalBindings
-                    (RangeDict.remove expressionRange context.localBindings)
-                    context
+                { lookupTable = context.lookupTable
+                , moduleName = context.moduleName
+                , exposed = context.exposed
+                , commentRanges = context.commentRanges
+                , importRecordTypeAliases = context.importRecordTypeAliases
+                , moduleRecordTypeAliases = context.moduleRecordTypeAliases
+                , importCustomTypes = context.importCustomTypes
+                , moduleCustomTypes = context.moduleCustomTypes
+                , moduleBindings = context.moduleBindings
+                , localBindings = RangeDict.remove expressionRange context.localBindings
+                , branchLocalBindings = context.branchLocalBindings
+                , rangesToIgnore = context.rangesToIgnore
+                , rightSidesOfPlusPlus = context.rightSidesOfPlusPlus
+                , customTypesToReportInCases = context.customTypesToReportInCases
+                , localIgnoredCustomTypes = context.localIgnoredCustomTypes
+                , constructorsToIgnore = context.constructorsToIgnore
+                , inferredConstantsDict = context.inferredConstantsDict
+                , inferredConstants = context.inferredConstants
+                , extractSourceCode = context.extractSourceCode
+                , exposedVariants = context.exposedVariants
+                , importLookup = context.importLookup
+                }
     in
     if RangeDict.member expressionRange context.inferredConstantsDict then
         case Tuple.second context.inferredConstants of
@@ -2563,32 +2582,6 @@ expressionExitVisitor (Node expressionRange _) context =
 
     else
         contextWithUpdatedLocalBindings
-
-
-updateLocalBindings : RangeDict (Set String) -> ModuleContext -> ModuleContext
-updateLocalBindings localBindings context =
-    { lookupTable = context.lookupTable
-    , moduleName = context.moduleName
-    , exposed = context.exposed
-    , commentRanges = context.commentRanges
-    , importRecordTypeAliases = context.importRecordTypeAliases
-    , moduleRecordTypeAliases = context.moduleRecordTypeAliases
-    , importCustomTypes = context.importCustomTypes
-    , moduleCustomTypes = context.moduleCustomTypes
-    , moduleBindings = context.moduleBindings
-    , localBindings = localBindings
-    , branchLocalBindings = context.branchLocalBindings
-    , rangesToIgnore = context.rangesToIgnore
-    , rightSidesOfPlusPlus = context.rightSidesOfPlusPlus
-    , customTypesToReportInCases = context.customTypesToReportInCases
-    , localIgnoredCustomTypes = context.localIgnoredCustomTypes
-    , constructorsToIgnore = context.constructorsToIgnore
-    , inferredConstantsDict = context.inferredConstantsDict
-    , inferredConstants = context.inferredConstants
-    , extractSourceCode = context.extractSourceCode
-    , exposedVariants = context.exposedVariants
-    , importLookup = context.importLookup
-    }
 
 
 maybeErrorAndRangesToIgnore : Maybe (Error {}) -> RangeDict () -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
