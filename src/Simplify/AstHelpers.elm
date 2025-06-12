@@ -688,7 +688,9 @@ getCollapsedLambda expressionNode =
 patternListBindings : List (Node Pattern) -> Set String
 patternListBindings patterns =
     List.foldl
-        (\(Node _ pattern) soFar -> Set.union soFar (patternBindings pattern))
+        (\(Node _ pattern) soFar ->
+            Set.union (patternBindings pattern) soFar
+        )
         Set.empty
         patterns
 
@@ -746,9 +748,12 @@ patternBindings pattern =
 
 declarationListBindings : List (Node Declaration) -> Set String
 declarationListBindings declarationList =
-    declarationList
-        |> List.map (\(Node _ declaration) -> declarationBindings declaration)
-        |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
+    List.foldl
+        (\(Node _ declaration) soFar ->
+            Set.union (declarationBindings declaration) soFar
+        )
+        Set.empty
+        declarationList
 
 
 declarationBindings : Declaration -> Set String
@@ -780,10 +785,12 @@ letDeclarationBindings letDeclaration =
 
 letDeclarationListBindings : List (Node Expression.LetDeclaration) -> Set String
 letDeclarationListBindings letDeclarationList =
-    letDeclarationList
-        |> List.map
-            (\(Node _ declaration) -> letDeclarationBindings declaration)
-        |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
+    List.foldl
+        (\(Node _ declaration) soFar ->
+            Set.union (letDeclarationBindings declaration) soFar
+        )
+        Set.empty
+        letDeclarationList
 
 
 getListLiteral : Node Expression -> Maybe (List (Node Expression))
