@@ -1446,7 +1446,6 @@ All of these also apply for `Sub`.
 
 -}
 
-import AssocList
 import Dict exposing (Dict)
 import Elm.Docs
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
@@ -1460,6 +1459,7 @@ import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range exposing (Location, Range)
 import Elm.Syntax.TypeAnnotation as TypeAnnotation
 import Elm.Type
+import ExpressionDict exposing (ExpressionDict)
 import Fn.Array
 import Fn.Basics
 import Fn.Dict
@@ -6520,7 +6520,7 @@ allValuesDifferent expectingNaN errorDetails firstKeyToCheck otherKeysToCheck =
     findWithAccAndLookahead
         (\((Node keyRange keyValue) as current) next set ->
             let
-                continue : () -> FindResult (AssocList.Dict Expression ( Range, Range )) (Error {})
+                continue : () -> FindResult (ExpressionDict ( Range, Range )) (Error {})
                 continue () =
                     case next of
                         Nothing ->
@@ -6529,7 +6529,7 @@ allValuesDifferent expectingNaN errorDetails firstKeyToCheck otherKeysToCheck =
 
                         Just (Node nextRange _) ->
                             NotFound
-                                (AssocList.insert keyValue
+                                (ExpressionDict.insert keyValue
                                     ( keyRange
                                     , { start = keyRange.start
                                       , end = nextRange.start
@@ -6539,7 +6539,7 @@ allValuesDifferent expectingNaN errorDetails firstKeyToCheck otherKeysToCheck =
                                 )
             in
             if not (expectingNaN && AstHelpers.couldBeValueContainingNaN current) then
-                case AssocList.get keyValue set of
+                case ExpressionDict.get keyValue set of
                     Just ( found, extended ) ->
                         Found
                             (Rule.errorWithFix
@@ -6554,7 +6554,7 @@ allValuesDifferent expectingNaN errorDetails firstKeyToCheck otherKeysToCheck =
             else
                 continue ()
         )
-        AssocList.empty
+        ExpressionDict.empty
         (firstKeyToCheck :: otherKeysToCheck)
 
 
