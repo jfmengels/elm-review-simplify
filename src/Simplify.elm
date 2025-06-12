@@ -1459,6 +1459,7 @@ import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range as Range exposing (Location, Range)
 import Elm.Syntax.TypeAnnotation as TypeAnnotation
 import Elm.Type
+import ExpressionDict exposing (ExpressionDict)
 import Fn.Array
 import Fn.Basics
 import Fn.Dict
@@ -6515,31 +6516,66 @@ setFromListChecks =
 
 
 allValuesDifferent : Bool -> { message : String, details : List String } -> Node Expression -> List (Node Expression) -> Maybe (Error {})
-allValuesDifferent expectingNaN errorDetails (Node keyRange keyValue) otherKeysToCheck =
-    case otherKeysToCheck of
-        first :: rest ->
-            if
-                not (expectingNaN && AstHelpers.couldBeValueContainingNaN first)
-                    && List.any (\(Node _ otherKey) -> otherKey == keyValue) otherKeysToCheck
-            then
-                Just
-                    (Rule.errorWithFix
-                        errorDetails
-                        keyRange
-                        [ Fix.removeRange
-                            { start = keyRange.start
-                            , end = (Node.range first).start
-                            }
-                        ]
-                    )
+allValuesDifferent expectingNaN errorDetails firstKeyToCheck otherKeysToCheck =
+    findWithAccAndLookahead
+        (\((Node keyRange keyValue) as current) next set ->
+            let
+                continue : () -> FindResult (ExpressionDict ( Range, Range )) (Error {})
+                continue () =
+                    case next of
+                        Nothing ->
+                            -- This is the last element, we won't find a duplicate
+                            NotFound set
+
+                        Just (Node nextRange _) ->
+                            NotFound
+                                (ExpressionDict.insert keyValue
+                                    ( keyRange
+                                    , { start = keyRange.start
+                                      , end = nextRange.start
+                                      }
+                                    )
+                                    set
+                                )
+            in
+            if not (expectingNaN && AstHelpers.couldBeValueContainingNaN current) then
+                case ExpressionDict.get keyValue set of
+                    Just ( found, extended ) ->
+                        Found
+                            (Rule.errorWithFix
+                                errorDetails
+                                found
+                                [ Fix.removeRange extended ]
+                            )
+
+                    Nothing ->
+                        continue ()
 
             else
-                allValuesDifferent expectingNaN errorDetails first rest
+                continue ()
+        )
+        ExpressionDict.empty
+        (firstKeyToCheck :: otherKeysToCheck)
 
+
+type FindResult acc r
+    = NotFound acc
+    | Found r
+
+
+findWithAccAndLookahead : (a -> Maybe a -> acc -> FindResult acc r) -> acc -> List a -> Maybe r
+findWithAccAndLookahead f acc list =
+    case list of
         [] ->
-            -- key is the last element
-            -- so it can't be equal to any other key
             Nothing
+
+        head :: tail ->
+            case f head (List.head tail) acc of
+                Found r ->
+                    Just r
+
+                NotFound newAcc ->
+                    findWithAccAndLookahead f newAcc tail
 
 
 setIsEmptyChecks : IntoFnCheck
