@@ -5919,16 +5919,16 @@ simpleFoldIntoCollectionCheck checkInfo =
             firstThatConstructsJust
                 [ \() ->
                     checkSpecificCollection
-                        { insertFn = ( [ "Set" ], "insert" )
-                        , emptyValue = ( [ "Set" ], "empty" )
-                        , fromListFn = ( [ "Set" ], "fromList" )
+                        { insertFn = Fn.Set.insert
+                        , emptyValue = Fn.Set.empty
+                        , fromListFn = Fn.Set.fromList
                         , collectionName = "Set"
                         }
                 , \() ->
                     checkSpecificCollection
-                        { insertFn = ( [ "Dict" ], "insert" )
-                        , emptyValue = ( [ "Dict" ], "empty" )
-                        , fromListFn = ( [ "Dict" ], "fromList" )
+                        { insertFn = Fn.Dict.insert
+                        , emptyValue = Fn.Dict.empty
+                        , fromListFn = Fn.Dict.fromList
                         , collectionName = "Dict"
                         }
                 ]
@@ -5951,7 +5951,7 @@ conditionalFoldIntoCollectionCheck checkInfo =
                                 checkBranches branches =
                                     case ( getAccumulatorPattern accPattern, branches.insertBranch ) of
                                         ( Just accName, Node _ insertExpr ) ->
-                                            if isUnchangedAccumulator accName checkInfo branches.unchangedBranch then
+                                            if isUnchangedAccumulator accName branches.unchangedBranch then
                                                 checkCollectionInsert
                                                     { checkInfo = checkInfo
                                                     , elementPattern = elementPattern
@@ -6011,14 +6011,14 @@ getAccumulatorPattern (Node _ pattern) =
             Nothing
 
 
-isUnchangedAccumulator : String -> CallCheckInfo -> Node Expression -> Bool
-isUnchangedAccumulator accName checkInfo (Node _ expr) =
+isUnchangedAccumulator : String -> Node Expression -> Bool
+isUnchangedAccumulator accName (Node _ expr) =
     case expr of
         Expression.FunctionOrValue [] name ->
             name == accName
 
         Expression.ParenthesizedExpression innerExpr ->
-            isUnchangedAccumulator accName checkInfo innerExpr
+            isUnchangedAccumulator accName innerExpr
 
         _ ->
             False
@@ -6094,7 +6094,7 @@ checkCollectionInsert config =
                             [ Fix.replaceRangeBy config.checkInfo.parentRange
                                 (config.checkInfo.extractSourceCode (Node.range config.listArg)
                                     ++ " |> "
-                                    ++ qualifiedToString (qualify ( [ "List" ], "filterMap" ) config.checkInfo)
+                                    ++ qualifiedToString (qualify Fn.List.filterMap config.checkInfo)
                                     ++ " "
                                     ++ filterMapLambda
                                     ++ " |> "
@@ -6109,25 +6109,25 @@ checkCollectionInsert config =
     firstThatConstructsJust
         [ \() ->
             checkSpecificCollection
-                { insertFn = ( [ "Set" ], "insert" )
-                , emptyValue = ( [ "Set" ], "empty" )
-                , fromListFn = ( [ "Set" ], "fromList" )
+                { insertFn = Fn.Set.insert
+                , emptyValue = Fn.Set.empty
+                , fromListFn = Fn.Set.fromList
                 , collectionName = "Set"
                 }
         , \() ->
             checkSpecificCollection
-                { insertFn = ( [ "Dict" ], "insert" )
-                , emptyValue = ( [ "Dict" ], "empty" )
-                , fromListFn = ( [ "Dict" ], "fromList" )
+                { insertFn = Fn.Dict.insert
+                , emptyValue = Fn.Dict.empty
+                , fromListFn = Fn.Dict.fromList
                 , collectionName = "Dict"
                 }
         , \() ->
             checkListCollection config
         , \() ->
             checkSpecificCollection
-                { insertFn = ( [ "Array" ], "push" )
-                , emptyValue = ( [ "Array" ], "empty" )
-                , fromListFn = ( [ "Array" ], "fromList" )
+                { insertFn = Fn.Array.push
+                , emptyValue = Fn.Array.empty
+                , fromListFn = Fn.Array.fromList
                 , collectionName = "Array"
                 }
         ]
@@ -6149,7 +6149,7 @@ checkListCollection :
     }
     -> Maybe (Error {})
 checkListCollection config =
-    case ( getListConsCall config.accName config.checkInfo config.insertExpr, isEmptyList config.checkInfo config.initialArg ) of
+    case ( getListConsCall config.accName config.insertExpr, isEmptyList config.initialArg ) of
         ( Just insertedValue, True ) ->
             let
                 elementPatternStr : String
@@ -6175,7 +6175,7 @@ checkListCollection config =
                     [ Fix.replaceRangeBy config.checkInfo.parentRange
                         (config.checkInfo.extractSourceCode (Node.range config.listArg)
                             ++ " |> "
-                            ++ qualifiedToString (qualify ( [ "List" ], "filterMap" ) config.checkInfo)
+                            ++ qualifiedToString (qualify Fn.List.filterMap config.checkInfo)
                             ++ " "
                             ++ filterMapLambda
                         )
@@ -6186,8 +6186,8 @@ checkListCollection config =
             Nothing
 
 
-getListConsCall : String -> CallCheckInfo -> Expression -> Maybe (Node Expression)
-getListConsCall accName checkInfo expr =
+getListConsCall : String -> Expression -> Maybe (Node Expression)
+getListConsCall accName expr =
     case expr of
         Expression.OperatorApplication "::" _ left (Node _ (Expression.FunctionOrValue [] name)) ->
             if name == accName then
@@ -6200,8 +6200,8 @@ getListConsCall accName checkInfo expr =
             Nothing
 
 
-isEmptyList : CallCheckInfo -> Node Expression -> Bool
-isEmptyList checkInfo (Node _ expr) =
+isEmptyList : Node Expression -> Bool
+isEmptyList (Node _ expr) =
     case expr of
         Expression.ListExpr [] ->
             True
@@ -6218,7 +6218,7 @@ getCollectionInsertCall insertFn accName checkInfo expr =
                 ( [ "Dict" ], "insert" ) ->
                     -- Dict.insert key value acc
                     case call.argsAfterFirst of
-                        valueArg :: [ Node _ (Expression.FunctionOrValue [] name) ] ->
+                        _ :: [ Node _ (Expression.FunctionOrValue [] name) ] ->
                             if name == accName then
                                 -- For Dict, we just return the first arg (key) as a marker
                                 -- The actual tuple will be constructed in checkSpecificCollection
