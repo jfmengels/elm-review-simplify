@@ -1478,6 +1478,7 @@ import Fn.String
 import Fn.Task
 import Fn.Test
 import Fn.Tuple
+import Json.Encode
 import Review.Fix as Fix exposing (Fix)
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Project.Dependency as Dependency exposing (Dependency)
@@ -6518,28 +6519,32 @@ setFromListChecks =
 allValuesDifferent : CallCheckInfo -> { message : String, details : List String } -> Node Expression -> List (Node Expression) -> Maybe (Error {})
 allValuesDifferent checkInfo errorDetails firstKeyToCheck otherKeysToCheck =
     findWithAccAndLookahead
-        (\((Node keyRange keyValue) as current) next set ->
+        (\((Node keyRange _) as current) next dict ->
             let
-                continue : () -> FindResult (AssocList.Dict Expression ( Range, Range )) (Error {})
+                key : String
+                key =
+                    hashExpression checkInfo current
+
+                continue : () -> FindResult (AssocList.Dict String ( Range, Range )) (Error {})
                 continue () =
                     case next of
                         Nothing ->
                             -- This is the last element, we won't find a duplicate
-                            NotFound set
+                            NotFound dict
 
                         Just (Node nextRange _) ->
                             NotFound
-                                (AssocList.insert keyValue
+                                (AssocList.insert key
                                     ( keyRange
                                     , { start = keyRange.start
                                       , end = nextRange.start
                                       }
                                     )
-                                    set
+                                    dict
                                 )
             in
             if not (checkInfo.expectNaN && AstHelpers.couldBeValueContainingNaN current) then
-                case AssocList.get keyValue set of
+                case AssocList.get key dict of
                     Just ( found, extended ) ->
                         Found
                             (Rule.errorWithFix
@@ -6556,6 +6561,15 @@ allValuesDifferent checkInfo errorDetails firstKeyToCheck otherKeysToCheck =
         )
         AssocList.empty
         (firstKeyToCheck :: otherKeysToCheck)
+
+
+hashExpression : Infer.Resources a -> Node Expression -> String
+hashExpression resources expression =
+    expression
+        |> Normalize.normalize resources
+        |> Node.value
+        |> Expression.encode
+        |> Json.Encode.encode 0
 
 
 type FindResult acc r
