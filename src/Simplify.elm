@@ -1446,7 +1446,6 @@ All of these also apply for `Sub`.
 
 -}
 
-import AssocList
 import Dict exposing (Dict)
 import Elm.Docs
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
@@ -6525,7 +6524,7 @@ allValuesDifferent checkInfo errorDetails firstKeyToCheck otherKeysToCheck =
                 key =
                     hashExpression checkInfo current
 
-                continue : () -> FindResult (AssocList.Dict String ( Range, Range )) (Error {})
+                continue : () -> FindResult (Dict String ( Range, Range )) (Error {})
                 continue () =
                     case next of
                         Nothing ->
@@ -6534,7 +6533,7 @@ allValuesDifferent checkInfo errorDetails firstKeyToCheck otherKeysToCheck =
 
                         Just (Node nextRange _) ->
                             NotFound
-                                (AssocList.insert key
+                                (Dict.insert key
                                     ( keyRange
                                     , { start = keyRange.start
                                       , end = nextRange.start
@@ -6544,7 +6543,7 @@ allValuesDifferent checkInfo errorDetails firstKeyToCheck otherKeysToCheck =
                                 )
             in
             if not (checkInfo.expectNaN && AstHelpers.couldBeValueContainingNaN current) then
-                case AssocList.get key dict of
+                case Dict.get key dict of
                     Just ( found, extended ) ->
                         Found
                             (Rule.errorWithFix
@@ -6559,7 +6558,7 @@ allValuesDifferent checkInfo errorDetails firstKeyToCheck otherKeysToCheck =
             else
                 continue ()
         )
-        AssocList.empty
+        Dict.empty
         (firstKeyToCheck :: otherKeysToCheck)
 
 
