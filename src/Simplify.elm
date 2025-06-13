@@ -6522,7 +6522,7 @@ allValuesDifferent checkInfo errorDetails firstKeyToCheck otherKeysToCheck =
             let
                 key : String
                 key =
-                    hashExpression checkInfo current
+                    hashExpression current
 
                 continue : () -> FindResult (Dict String ( Range, Range )) (Error {})
                 continue () =
@@ -6562,10 +6562,9 @@ allValuesDifferent checkInfo errorDetails firstKeyToCheck otherKeysToCheck =
         (firstKeyToCheck :: otherKeysToCheck)
 
 
-hashExpression : Infer.Resources a -> Node Expression -> String
-hashExpression resources expression =
+hashExpression : Node Expression -> String
+hashExpression expression =
     expression
-        |> Normalize.normalize resources
         |> Node.value
         |> Expression.encode
         |> Json.Encode.encode 0
