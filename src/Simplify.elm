@@ -6502,7 +6502,7 @@ setFromListChecks =
 
                             first :: rest ->
                                 allValuesDifferent
-                                    checkInfo.expectNaN
+                                    checkInfo
                                     { message = "Set.fromList on a list with a duplicate key will only keep one of them"
                                     , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
                                     }
@@ -6515,8 +6515,8 @@ setFromListChecks =
         ]
 
 
-allValuesDifferent : Bool -> { message : String, details : List String } -> Node Expression -> List (Node Expression) -> Maybe (Error {})
-allValuesDifferent expectingNaN errorDetails firstKeyToCheck otherKeysToCheck =
+allValuesDifferent : CallCheckInfo -> { message : String, details : List String } -> Node Expression -> List (Node Expression) -> Maybe (Error {})
+allValuesDifferent checkInfo errorDetails firstKeyToCheck otherKeysToCheck =
     findWithAccAndLookahead
         (\((Node keyRange keyValue) as current) next set ->
             let
@@ -6538,7 +6538,7 @@ allValuesDifferent expectingNaN errorDetails firstKeyToCheck otherKeysToCheck =
                                     set
                                 )
             in
-            if not (expectingNaN && AstHelpers.couldBeValueContainingNaN current) then
+            if not (checkInfo.expectNaN && AstHelpers.couldBeValueContainingNaN current) then
                 case AssocList.get keyValue set of
                     Just ( found, extended ) ->
                         Found
@@ -6773,7 +6773,7 @@ dictFromListChecks =
                                         allKeysDifferent checkInfo.expectNaN (toEntry first) (List.map toEntry rest)
                                     , \() ->
                                         allValuesDifferent
-                                            checkInfo.expectNaN
+                                            checkInfo
                                             { message = "Dict.fromList on a list with a duplicate entry will only keep one of them"
                                             , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
                                             }
