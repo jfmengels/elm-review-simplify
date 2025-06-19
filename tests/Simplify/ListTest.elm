@@ -4828,7 +4828,7 @@ a = list |> List.foldl (*) initial
 a = ((list |> List.product) * initial)
 """
                         ]
-        , test "should replace List.foldl Set.insert Set.empty by Set.fromList" <|
+        , test "should replace List.foldl Set.insert Set.empty list by Set.fromList list" <|
             \() ->
                 """module A exposing (..)
 import Set
@@ -4846,7 +4846,7 @@ import Set
 a = Set.fromList list
 """
                         ]
-        , test "should replace List.foldl (\\x -> Set.insert x) Set.empty by Set.fromList" <|
+        , test "should replace List.foldl (\\x -> Set.insert x) Set.empty list by Set.fromList list" <|
             \() ->
                 """module A exposing (..)
 import Set
@@ -4864,7 +4864,15 @@ import Set
 a = Set.fromList list
 """
                         ]
-        , test "should replace List.foldl (\\x acc -> Set.insert x acc) Set.empty by Set.fromList" <|
+        , test "should not replace List.foldl (\\x -> Set.insert other) Set.empty list" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.foldl (\\x -> Set.insert other) Set.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.foldl (\\x acc -> Set.insert x acc) Set.empty list by Set.fromList list" <|
             \() ->
                 """module A exposing (..)
 import Set
@@ -4882,7 +4890,15 @@ import Set
 a = Set.fromList list
 """
                         ]
-        , test "should replace List.foldl (\\(k, v) -> Dict.insert k v) Dict.empty by Dict.fromList" <|
+        , test "should not replace List.foldl (\\x acc -> Set.insert x other) Set.empty list" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.foldl (\\x acc -> Set.insert x other) Set.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.foldl (\\(k, v) -> Dict.insert k v) Dict.empty list by Dict.fromList" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -5035,6 +5051,22 @@ import Dict
 a = Dict.fromList list
 """
                         ]
+        , test "should not replace List.foldr (\\(k, v) -> Dict.insert otherKey v) Dict.empty" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.foldr (\\(k, v) -> Dict.insert otherKey v) Dict.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not replace List.foldr (\\(k, v) -> Dict.insert k otherValue) Dict.empty" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.foldr (\\(k, v) -> Dict.insert k otherValue) Dict.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should replace List.foldr (\\(k, v) acc -> Dict.insert k v acc) Dict.empty by Dict.fromList" <|
             \() ->
                 """module A exposing (..)
@@ -5053,6 +5085,14 @@ import Dict
 a = Dict.fromList list
 """
                         ]
+        , test "should not replace List.foldr (\\(k, v) acc -> Dict.insert k v oTHER)" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = List.foldr (\\(k, v) acc -> Dict.insert k v oTHER) Dict.empty list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should not report List.foldr into Set when initial is not empty" <|
             \() ->
                 """module A exposing (..)
