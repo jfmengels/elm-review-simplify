@@ -1048,7 +1048,7 @@ Destructuring using case expressions
     Set.isEmpty Set.empty
     --> True
 
-    Set.isEmpty (Set.fromList ([a] ++ list)
+    Set.isEmpty (Set.fromList ([a] ++ list))
     --> False
 
     Set.member x Set.empty
