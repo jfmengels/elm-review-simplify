@@ -1066,7 +1066,7 @@ Destructuring using case expressions
     Set.toList Set.empty
     --> []
 
-    Set.length Set.empty
+    Set.size Set.empty
     --> 0
 
     Set.intersect Set.empty set
