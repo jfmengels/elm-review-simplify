@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [2.1.9] - 2025-06-29
+
+The rule now runs at least 20% faster, shaving off a few seconds in larger projects (thanks to [@miniBill])
+
 ## [2.1.8] - 2025-06-08
 
 The rule now simplifies (thanks to [@miniBill]):
@@ -670,7 +674,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.8...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.9...HEAD
+[2.1.9]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.9
 [2.1.8]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.8
 [2.1.7]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.7
 [2.1.6]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.6
