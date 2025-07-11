@@ -5128,6 +5128,7 @@ stringFromIntChecks =
             case Node.value checkInfo.firstArg of
                 Expression.Integer i ->
                     let
+                        str : String
                         str =
                             "\"" ++ String.fromInt i ++ "\""
                     in
@@ -5151,6 +5152,7 @@ stringFromFloatChecks =
             case Node.value checkInfo.firstArg of
                 Expression.Floatable f ->
                     let
+                        str : String
                         str =
                             "\"" ++ String.fromFloat f ++ "\""
                     in
