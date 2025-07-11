@@ -452,6 +452,9 @@ Destructuring using case expressions
     String.fromInt 123
     --> "123"
 
+    String.fromFloat 1.23
+    --> "1.23"
+
 
 ### Maybes
 
@@ -3414,6 +3417,7 @@ intoFnChecks =
         , ( Fn.String.toList, ( 1, stringToListChecks ) )
         , ( Fn.String.fromList, ( 1, stringFromListChecks ) )
         , ( Fn.String.fromInt, ( 1, stringFromIntChecks ) )
+        , ( Fn.String.fromFloat, ( 1, stringFromFloatChecks ) )
         , ( Fn.String.isEmpty, ( 1, stringIsEmptyChecks ) )
         , ( Fn.String.concat, ( 1, stringConcatChecks ) )
         , ( Fn.String.join, ( 2, stringJoinChecks ) )
@@ -5129,6 +5133,29 @@ stringFromIntChecks =
                     in
                     Rule.errorWithFix
                         { message = "String.fromInt on " ++ String.fromInt i ++ " will result in " ++ str
+                        , details = [ "You can replace this call by " ++ str ++ "." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange str ]
+                        |> Just
+
+                _ ->
+                    Nothing
+        )
+
+
+stringFromFloatChecks : IntoFnCheck
+stringFromFloatChecks =
+    intoFnCheckOnlyCall
+        (\checkInfo ->
+            case Node.value checkInfo.firstArg of
+                Expression.Floatable f ->
+                    let
+                        str =
+                            "\"" ++ String.fromFloat f ++ "\""
+                    in
+                    Rule.errorWithFix
+                        { message = "String.fromFloat on " ++ String.fromFloat f ++ " will result in " ++ str
                         , details = [ "You can replace this call by " ++ str ++ "." ]
                         }
                         checkInfo.fnRange

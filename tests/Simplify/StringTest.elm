@@ -11,6 +11,7 @@ all =
         [ stringToListTests
         , stringFromListTests
         , stringFromIntTests
+        , stringFromFloatTests
         , stringIsEmptyTests
         , stringLengthTests
         , stringConcatTests
@@ -1185,6 +1186,36 @@ a = String.fromInt 123
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = "123"
+"""
+                        ]
+        ]
+
+
+stringFromFloatTests : Test
+stringFromFloatTests =
+    describe "String.fromFloat"
+        [ test "should not report String.fromFloat that contains a variable" <|
+            \() ->
+                """module A exposing (..)
+a = String.fromFloat
+b = String.fromFloat q
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.fromFloat 1.23 by \"1.23\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.fromFloat 1.23
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromFloat on 1.23 will result in \"1.23\""
+                            , details = [ "You can replace this call by \"1.23\"." ]
+                            , under = "String.fromFloat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = "1.23"
 """
                         ]
         ]

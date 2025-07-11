@@ -4,6 +4,7 @@
 
 The rule now simplifies (thanks to [@miniBill]):
 - `String.fromInt 123` to `"123"`
+- `String.fromFloat 1.23` to `"1.23"`
 
 ## [2.1.9] - 2025-06-29
 
