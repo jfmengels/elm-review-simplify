@@ -10,6 +10,7 @@ all =
     describe "String"
         [ stringToListTests
         , stringFromListTests
+        , stringFromIntTests
         , stringIsEmptyTests
         , stringLengthTests
         , stringConcatTests
@@ -1154,6 +1155,36 @@ a = (String.fromList >> f >> g) << String.toList
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (f >> g)
+"""
+                        ]
+        ]
+
+
+stringFromIntTests : Test
+stringFromIntTests =
+    describe "String.fromInt"
+        [ test "should not report String.fromInt that contains a variable" <|
+            \() ->
+                """module A exposing (..)
+a = String.fromInt
+b = String.fromInt q
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.fromInt 123 by \"123\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.fromInt 123
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromInt on 123 will result in \"123\""
+                            , details = [ "You can replace this call by \"123\"." ]
+                            , under = "String.fromInt"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = "123"
 """
                         ]
         ]

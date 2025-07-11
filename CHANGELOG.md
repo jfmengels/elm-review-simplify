@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+The rule now simplifies (thanks to [@miniBill]):
+- `String.fromInt 123` to `"123"`
+
 ## [2.1.9] - 2025-06-29
 
 The rule now runs at least 20% faster, shaving off a few seconds in larger projects (thanks to [@miniBill])
