@@ -373,6 +373,9 @@ Destructuring using case expressions
     String.join "" list
     --> String.concat list
 
+    String.join "," [ var ]
+    --> var
+
     String.length "abc"
     --> 3
 
@@ -5305,6 +5308,7 @@ stringJoinChecks =
     intoFnCheckOnlyCall
         (firstThatConstructsJust
             [ callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.specific.asString } listCollection
+            , callOnSingleItemReturnsIt
             , flatIntersperseWithEmptySeparatorIsEquivalentToFnCheck stringCollection Fn.String.concat
             ]
         )
@@ -11973,6 +11977,36 @@ callOnEmptyReturnsCheck config collection checkInfo =
 
             else
                 Nothing
+
+        Nothing ->
+            Nothing
+
+
+callOnSingleItemReturnsIt : CallCheckInfo -> Maybe (Error {})
+callOnSingleItemReturnsIt checkInfo =
+    case fullyAppliedLastArg checkInfo of
+        Just lastArg ->
+            case Node.value lastArg of
+                Expression.ListExpr [ Node singleRange _ ] ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " on a singleton list will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the singleton list." ]
+                            }
+                            checkInfo.fnRange
+                            [ Fix.removeRange
+                                { start = checkInfo.parentRange.start
+                                , end = singleRange.start
+                                }
+                            , Fix.removeRange
+                                { start = singleRange.end
+                                , end = checkInfo.parentRange.end
+                                }
+                            ]
+                        )
+
+                _ ->
+                    Nothing
 
         Nothing ->
             Nothing
