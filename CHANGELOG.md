@@ -678,7 +678,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/v2.1.9...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/2.1.10...HEAD
+[2.1.10]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.10
 [2.1.9]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.9
 [2.1.8]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.8
 [2.1.7]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.7
