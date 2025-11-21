@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.1.10] - 2025-11-21
+
 The rule now simplifies (thanks to [@miniBill]):
 - `String.fromInt 123` to `"123"`
 - `String.fromFloat 1.23` to `"1.23"`
