@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+The rule now simplifies:
+- `Maybe.withDefault Nothing (Maybe.map f maybe)` to `Maybe.andThen f maybe`
+
 ## [2.1.10] - 2025-11-21
 
 The rule now simplifies (thanks to [@miniBill]):
