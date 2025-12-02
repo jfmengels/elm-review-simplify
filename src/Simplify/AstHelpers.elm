@@ -2,7 +2,7 @@ module Simplify.AstHelpers exposing
     ( subExpressions
     , removeParens, removeParensFromPattern
     , getValueOrFnOrFnCall
-    , getSpecificFnCall, getSpecificValueOrFn
+    , getSpecificFnCall, getSpecificValueOrFn, isSpecificValueReference
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
     , getAccessingRecord, getRecordAccessFunction
@@ -32,7 +32,7 @@ module Simplify.AstHelpers exposing
 ### value/function/function call/composition
 
 @docs getValueOrFnOrFnCall
-@docs getSpecificFnCall, getSpecificValueOrFn
+@docs getSpecificFnCall, getSpecificValueOrFn, isSpecificValueReference
 
 
 ### certain kind
@@ -343,6 +343,31 @@ getValueOrFunction expressionNode =
 
                 Nothing ->
                     Nothing
+
+
+{-| Specialized, more performant version of `getSpecificValueOrFn`
+that only works for variables holding a value that cannot be applied,
+like `True`, `Basics.e` or `Nothing`.
+-}
+isSpecificValueReference :
+    ModuleNameLookupTable
+    -> ( ModuleName, String )
+    -> Node Expression
+    -> Bool
+isSpecificValueReference lookupTable ( moduleOriginToCheckFor, nameToCheckFor ) baseNode =
+    case removeParens baseNode of
+        Node fnRange (Expression.FunctionOrValue _ name) ->
+            (name == nameToCheckFor)
+                && (case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
+                        Nothing ->
+                            False
+
+                        Just moduleOrigin ->
+                            moduleOrigin == moduleOriginToCheckFor
+                   )
+
+        _ ->
+            False
 
 
 getCollapsedUnreducedValueOrFunctionCall :

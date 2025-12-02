@@ -495,6 +495,9 @@ Destructuring using case expressions
     Maybe.withDefault x (Just y)
     --> y
 
+    Maybe.withDefault Nothing (Maybe.map f maybe)
+    --> Maybe.andThen f maybe
+
 
 ### Results
 
@@ -5374,7 +5377,14 @@ maybeAndThenChecks =
 
 maybeWithDefaultChecks : IntoFnCheck
 maybeWithDefaultChecks =
-    withDefaultChecks maybeWithJustAsWrap
+    intoFnChecksFirstThatConstructsError
+        [ withDefaultChecks maybeWithJustAsWrap
+        , onSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Maybe.map
+            , args = [ maybeNothingProperties ]
+            , combinedFn = Fn.Maybe.andThen
+            }
+        ]
 
 
 
@@ -11244,6 +11254,18 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
         ]
 
 
+maybeNothingProperties :
+    { description : String
+    , is : Infer.Resources {} -> Node Expression -> Bool
+    }
+maybeNothingProperties =
+    { description = "Nothing"
+    , is =
+        \res expr ->
+            AstHelpers.isSpecificValueReference res.lookupTable Fn.Maybe.nothingVariant expr
+    }
+
+
 identityFunctionProperties :
     { description : String
     , is : Infer.Resources {} -> Node Expression -> Bool
@@ -11315,7 +11337,6 @@ Examples:
   - `List.filterMap identity (List.map f list) --> List.filterMap f list`
   - `List.filterMap identity << List.map f --> List.filterMap f`
   - `traverse identity (map f a) --> traverse f a`
-  - those listed in `onSpecificFnCallCanBeCombinedCheck`
 
 -}
 onSpecificFnCallCanBeCombinedCheck :
