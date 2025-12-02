@@ -764,6 +764,17 @@ maybeWithDefaultTests =
                 """module A exposing (..)
 a = Maybe.withDefault x y
 b = Maybe.withDefault << Just
+c = Maybe.withDefault Nothing << Maybe.andThen f
+d = Maybe.withDefault nothing << Maybe.map f
+e = Maybe.withDefault NotFromMaybe.Nothing << Maybe.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report Maybe.withDefault with local Nothing on Maybe.map" <|
+            \() ->
+                """module A exposing (..)
+type LocalNothing = Nothing
+a = Maybe.withDefault Nothing << Maybe.map f
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -909,6 +920,40 @@ a = Maybe.withDefault Nothing (Maybe.map f maybe)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (Maybe.andThen f maybe)
+"""
+                        ]
+        , test "should replace Maybe.withDefault Maybe.Nothing (Maybe.map f maybe) maybe by Maybe.andThen f maybe" <|
+            \() ->
+                """module A exposing (..)
+a = Maybe.withDefault Maybe.Nothing (Maybe.map f maybe)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Maybe.map, then Maybe.withDefault with Nothing can be combined into Maybe.andThen"
+                            , details = [ "You can replace this call by Maybe.andThen with the same arguments given to Maybe.map which is meant for this exact purpose." ]
+                            , under = "Maybe.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Maybe.andThen f maybe)
+"""
+                        ]
+        , test "should replace Maybe.withDefault <import alias for Maybe>.Nothing (Maybe.map f maybe) maybe by <import alias for Maybe>.andThen f maybe" <|
+            \() ->
+                """module A exposing (..)
+import Maybe as M
+a = M.withDefault M.Nothing (M.map f maybe)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Maybe.map, then Maybe.withDefault with Nothing can be combined into Maybe.andThen"
+                            , details = [ "You can replace this call by Maybe.andThen with the same arguments given to Maybe.map which is meant for this exact purpose." ]
+                            , under = "M.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Maybe as M
+a = (M.andThen f maybe)
 """
                         ]
         , test "should replace Maybe.withDefault Nothing << Maybe.map f by Maybe.andThen f" <|
