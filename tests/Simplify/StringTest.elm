@@ -372,6 +372,22 @@ a = String.join b []
 a = ""
 """
                         ]
+        , test "should report String.join with a single item" <|
+            \() ->
+                """module A exposing (..)
+a = [ string ] |> String.join ", "
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.join on a singleton list will result in the value inside"
+                            , details = [ "You can replace this call by the value inside the singleton list." ]
+                            , under = "String.join"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = string
+"""
+                        ]
         , test """should replace String.join "" list by String.concat list""" <|
             \() ->
                 """module A exposing (..)
