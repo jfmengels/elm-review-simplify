@@ -6824,8 +6824,14 @@ listSortByTests =
 a = List.sortBy fn
 b = List.sortBy fn list
 c = List.sortBy << List.sortBy fn
-c = List.sortBy f << List.sortWith g
-c = List.sortBy f << List.sort
+d = List.sortBy fn << List.sortWith gn
+e = List.sortBy fn << List.sort
+f = List.sortBy (\\(x,y) -> (y,x))
+g = List.sortBy (\\{x,y} -> {x=x,y=y}) -- because {x,y} can match e.g. {x,y,z} values
+h = List.sortBy (\\({x,y} as r) -> {r|y=y})
+i = List.sortBy (\\({x,y} as r) -> {r|x=y,y=x})
+j = List.sortBy (\\Basics.EQ -> EQ)
+k = List.sortBy (\\(Variant x y) -> Variant x y) -- because it could change phantom types
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -6949,10 +6955,146 @@ a = List.sortBy identity
 a = List.sort
 """
                         ]
+        , test "should replace List.sortBy (\\() -> ()) by List.sort" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (\\() -> ())
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sortBy with an identity function is the same as List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort
+"""
+                        ]
         , test "should replace List.sortBy (\\a -> a) by List.sort" <|
             \() ->
                 """module A exposing (..)
 a = List.sortBy (\\b -> b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sortBy with an identity function is the same as List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort
+"""
+                        ]
+        , test "should replace List.sortBy (\\(((a))) -> ((((a))))) by List.sort" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (\\(((b))) -> ((((b)))))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sortBy with an identity function is the same as List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort
+"""
+                        ]
+        , test "should replace List.sortBy (\\(a,b,c) -> (a,b,c)) by List.sort" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (\\(a,b,c) -> (a,b,c))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sortBy with an identity function is the same as List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort
+"""
+                        ]
+        , test "should replace List.sortBy (\\(a,(b,c)) -> (a,Tuple.pair b c)) by List.sort" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (\\(b,(c,d)) -> (b,Tuple.pair c d))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sortBy with an identity function is the same as List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort
+"""
+                        , Review.Test.error
+                            { message = "Fully constructed Tuple.pair can be replaced by tuple literal"
+                            , details = [ "You can replace this call by a tuple literal ( _, _ ). Consistently using ( _, _ ) to create a tuple is more idiomatic in elm." ]
+                            , under = "Tuple.pair"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sortBy (\\(b,(c,d)) -> (b,( c, d )))
+"""
+                        ]
+        , test "should replace List.sortBy (\\({a,b} as r) -> {r|a=a,b=b}) by List.sort" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (\\({x,y} as r) -> {r|x=x,y=y})
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sortBy with an identity function is the same as List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort
+"""
+                        ]
+        , test "should replace List.sortBy (\\({b,a} as r) -> {r|a=a,b=b}) by List.sort" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (\\({y,x} as r) -> {r|x=x,y=y})
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sortBy with an identity function is the same as List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort
+"""
+                        ]
+        , test "should replace List.sortBy (\\({a,b} as r) -> {r|b=b,a=a}) by List.sort" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (\\({x,y} as r) -> {r|y=y,x=x})
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sortBy with an identity function is the same as List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort
+"""
+                        ]
+        , test "should replace List.sortBy (\\((b,((c))) as unused, (), ((), _ as d)) -> ((((b)),c), (), ((), d))) by List.sort" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (\\((b,((c))) as unused, (), ((), _ as d)) -> ((((b)),c), (), ((), d)))
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors

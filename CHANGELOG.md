@@ -5,6 +5,10 @@
 The rule now simplifies:
 - `Maybe.withDefault Nothing (Maybe.map f maybe)` to `Maybe.andThen f maybe`
 
+Other improvements:
+- Now recognizes more lambdas as "equivalent to identity",
+  to catch issues like `Maybe.map (\(x, y) -> (x, y))`
+
 ## [2.1.10] - 2025-11-21
 
 The rule now simplifies (thanks to [@miniBill]):
