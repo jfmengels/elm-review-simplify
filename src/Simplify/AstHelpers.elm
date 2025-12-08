@@ -236,7 +236,7 @@ getSpecificFnCall :
             , callStyle : FunctionCallStyle
             }
 getSpecificFnCall ( moduleName, name ) lookupTable expressionNode =
-    case getValueOrFnOrFnCall expressionNode of
+    case getValueOrFnOrFnCall lookupTable expressionNode of
         Just call ->
             case call.args of
                 firstArg :: argsAfterFirst ->
@@ -265,7 +265,8 @@ getSpecificFnCall ( moduleName, name ) lookupTable expressionNode =
 {-| Parse a value or the collapsed function or a lambda fully reduced to a function
 -}
 getValueOrFnOrFnCall :
-    Node Expression
+    ModuleNameLookupTable
+    -> Node Expression
     ->
         Maybe
             { nodeRange : Range
@@ -274,13 +275,13 @@ getValueOrFnOrFnCall :
             , args : List (Node Expression)
             , callStyle : FunctionCallStyle
             }
-getValueOrFnOrFnCall expressionNode =
+getValueOrFnOrFnCall lookupTable expressionNode =
     case getCollapsedUnreducedValueOrFunctionCall expressionNode of
         Just valueOrCall ->
             Just valueOrCall
 
         Nothing ->
-            case getReducedLambda expressionNode of
+            case getReducedLambda lookupTable expressionNode of
                 Just reducedLambda ->
                     case ( reducedLambda.lambdaPatterns, reducedLambda.callArguments ) of
                         ( [], args ) ->
@@ -305,7 +306,7 @@ or a lambda that is reducible to a function with the given name without argument
 -}
 getSpecificValueOrFn : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
 getSpecificValueOrFn ( moduleName, name ) lookupTable expressionNode =
-    case getValueOrFunction expressionNode of
+    case getValueOrFunction lookupTable expressionNode of
         Just normalFn ->
             if
                 (normalFn.name /= name)
@@ -322,14 +323,14 @@ getSpecificValueOrFn ( moduleName, name ) lookupTable expressionNode =
 
 {-| Parses either a value reference, a function reference without arguments or a lambda that is reducible to a function without arguments
 -}
-getValueOrFunction : Node Expression -> Maybe { name : String, range : Range }
-getValueOrFunction expressionNode =
+getValueOrFunction : ModuleNameLookupTable -> Node Expression -> Maybe { name : String, range : Range }
+getValueOrFunction lookupTable expressionNode =
     case removeParens expressionNode of
         Node rangeInParens (Expression.FunctionOrValue _ foundName) ->
             Just { range = rangeInParens, name = foundName }
 
         nonFunctionOrValueNode ->
-            case getReducedLambda nonFunctionOrValueNode of
+            case getReducedLambda lookupTable nonFunctionOrValueNode of
                 Just reducedLambdaToFn ->
                     case ( reducedLambdaToFn.lambdaPatterns, reducedLambdaToFn.callArguments ) of
                         ( [], [] ) ->
@@ -559,7 +560,9 @@ isIdentity lookupTable baseExpressionNode =
                 Node _ (Expression.LambdaExpression lambda) ->
                     case lambda.args of
                         arg :: [] ->
-                            variableMatchesPattern lambda.expression arg
+                            expressionReconstructsIrrefutablePattern lookupTable
+                                lambda.expression
+                                arg
 
                         _ ->
                             False
@@ -607,7 +610,8 @@ getIgnoreFirstLambdaResult expressionNode =
 
 
 getReducedLambda :
-    Node Expression
+    ModuleNameLookupTable
+    -> Node Expression
     ->
         Maybe
             { nodeRange : Range
@@ -617,7 +621,7 @@ getReducedLambda :
             , lambdaPatterns : List (Node Pattern)
             , callStyle : FunctionCallStyle
             }
-getReducedLambda expressionNode =
+getReducedLambda lookupTable expressionNode =
     -- maybe a version of this is better located in Normalize?
     case getCollapsedLambda expressionNode of
         Just lambda ->
@@ -626,7 +630,9 @@ getReducedLambda expressionNode =
                     let
                         ( reducedCallArguments, reducedLambdaPatterns ) =
                             drop2EndingsWhile
-                                (\( argument, pattern ) -> variableMatchesPattern argument pattern)
+                                (\( argument, pattern ) ->
+                                    expressionReconstructsIrrefutablePattern lookupTable argument pattern
+                                )
                                 ( call.args
                                 , lambda.patterns
                                 )
@@ -647,14 +653,206 @@ getReducedLambda expressionNode =
             Nothing
 
 
-variableMatchesPattern : Node Expression -> Node Pattern -> Bool
-variableMatchesPattern expression pattern =
-    case ( removeParensFromPattern pattern, removeParens expression ) of
-        ( Node _ (Pattern.VarPattern patternName), Node _ (Expression.FunctionOrValue [] argumentName) ) ->
-            patternName == argumentName
+{-| Checks if the expression is the exact same value that was pattern-matched on.
+For example in
+
+    \(( (), _ as d ) as unused) -> ( (), d )
+
+what comes out of this lambda will always be the same value that comes in.
+
+An irrefutable pattern is any pattern that exhaustively matches all possible cases.
+E.g. any lambda pattern, any let destructuring pattern, any (let) function declaration pattern or the last `case of`
+case pattern when matching on a value with infinite cases like an `Int` or a `List`.
+
+-}
+expressionReconstructsIrrefutablePattern : ModuleNameLookupTable -> Node Expression -> Node Pattern -> Bool
+expressionReconstructsIrrefutablePattern lookupTable expressionNode patternNode =
+    case Node.value patternNode of
+        Pattern.ParenthesizedPattern patternInParens ->
+            expressionReconstructsIrrefutablePattern lookupTable
+                expressionNode
+                patternInParens
+
+        -- should be covered by ParenthesizedPattern
+        Pattern.TuplePattern [ patternInParens ] ->
+            expressionReconstructsIrrefutablePattern lookupTable
+                expressionNode
+                patternInParens
+
+        Pattern.UnitPattern ->
+            isUnit expressionNode
+
+        -- should be covered by UnitPattern
+        Pattern.TuplePattern [] ->
+            isUnit expressionNode
+
+        Pattern.VarPattern patternName ->
+            case removeParens expressionNode of
+                Node _ (Expression.FunctionOrValue [] argumentName) ->
+                    patternName == argumentName
+
+                _ ->
+                    False
+
+        Pattern.AsPattern aliasedPattern (Node _ patternAliasName) ->
+            case removeParens expressionNode of
+                Node _ (Expression.FunctionOrValue [] expressionReferenceName) ->
+                    patternAliasName == expressionReferenceName
+
+                unparenthesizedExpressionNotLocalReference ->
+                    let
+                        unparenthesizedAliasedPattern : Node Pattern
+                        unparenthesizedAliasedPattern =
+                            removeParensFromPattern aliasedPattern
+
+                        matchesRecordUpdate : Bool
+                        matchesRecordUpdate =
+                            -- checking \({x} as r) -> {r|x=x} match
+                            case unparenthesizedAliasedPattern of
+                                Node _ (Pattern.RecordPattern patternFields) ->
+                                    case removeParens expressionNode of
+                                        Node _ (Expression.RecordUpdateExpression (Node _ updatedRecordReferenceName) expressionFields) ->
+                                            (patternAliasName == updatedRecordReferenceName)
+                                                && list2AreSameLengthAndAll
+                                                    (\(Node _ ( Node _ expressionFieldName, expressionFieldValueNode )) (Node _ patternFieldName) ->
+                                                        (patternFieldName == expressionFieldName)
+                                                            && (case removeParens expressionFieldValueNode of
+                                                                    Node _ (Expression.FunctionOrValue [] expressionFieldValueReferenceName) ->
+                                                                        patternFieldName == expressionFieldValueReferenceName
+
+                                                                    _ ->
+                                                                        False
+                                                               )
+                                                    )
+                                                    (expressionFields
+                                                        |> List.sortBy (\(Node _ ( Node _ fieldName, _ )) -> fieldName)
+                                                    )
+                                                    (patternFields
+                                                        |> List.sortBy Node.value
+                                                    )
+
+                                        _ ->
+                                            False
+
+                                _ ->
+                                    False
+                    in
+                    matchesRecordUpdate
+                        || expressionReconstructsIrrefutablePattern lookupTable
+                            unparenthesizedExpressionNotLocalReference
+                            unparenthesizedAliasedPattern
+
+        Pattern.TuplePattern [ patternPart0, patternPart1 ] ->
+            case getTuple2 lookupTable expressionNode of
+                Nothing ->
+                    False
+
+                Just expressionParts ->
+                    expressionReconstructsIrrefutablePattern lookupTable expressionParts.first patternPart0
+                        && expressionReconstructsIrrefutablePattern lookupTable expressionParts.second patternPart1
+
+        Pattern.TuplePattern [ patternPart0, patternPart1, patternPart2 ] ->
+            case removeParens expressionNode of
+                Node _ (Expression.TupledExpression [ expressionPart0, expressionPart1, expressionPart2 ]) ->
+                    expressionReconstructsIrrefutablePattern lookupTable expressionPart0 patternPart0
+                        && expressionReconstructsIrrefutablePattern lookupTable expressionPart1 patternPart1
+                        && expressionReconstructsIrrefutablePattern lookupTable expressionPart2 patternPart2
+
+                _ ->
+                    False
+
+        Pattern.NamedPattern _ _ ->
+            -- one might think \(Variant x y) -> Variant x y
+            -- is a match but that claim actually requires type inference
+            -- (or for a more limited version: knowledge about choice type phantom type parameters).
+            -- For example:
+            --
+            --     type IntIsNat isNat = Unsafe Int
+            --
+            --     unsafeMarkNat : IntIsNat Never -> IntIsNat ()
+            --     unsafeMarkNat (Unsafe int) = Unsafe int
+            --
+            --     unsafeMap : (Int -> Int) -> IntIsNat isNat -> IntIsNat isNat
+            --
+            --     abs : IntIsNat Never -> IntIsNat ()
+            --     abs integer = integer |> unsafeMap Basics.abs |> unsafeMarkNat
+            --
+            -- Notice how `unsafeMarkNat` has different input and output
+            -- type and is _not equivalent to identity_.
+            -- This specific example is arguably contrived but it does
+            -- occur in real life code!
+            -- So there is nothing we can do here, surprisingly (phantom types suck)
+            False
+
+        Pattern.RecordPattern _ ->
+            -- if we knew the pattern coverers all fields, we could check
+            -- that e.g. \\{b,c} -> {b=b,c=c} is a match, requires type inference
+            False
+
+        Pattern.AllPattern ->
+            -- if we knew it's type was (), unit tuple, unit triple, unit record
+            -- or unit variant (without phantom parameters),
+            -- we could check if the expression matches that unit structure.
+            -- requires type inference
+            False
+
+        -- invalid syntax
+        Pattern.TuplePattern (_ :: _ :: _ :: _ :: _) ->
+            False
+
+        -- all remaining are refutable
+        Pattern.CharPattern _ ->
+            False
+
+        Pattern.StringPattern _ ->
+            False
+
+        Pattern.IntPattern _ ->
+            False
+
+        Pattern.HexPattern _ ->
+            False
+
+        Pattern.FloatPattern _ ->
+            False
+
+        Pattern.UnConsPattern _ _ ->
+            False
+
+        Pattern.ListPattern _ ->
+            False
+
+
+isUnit : Node Expression -> Bool
+isUnit expressionNode =
+    case removeParens expressionNode of
+        Node _ Expression.UnitExpr ->
+            True
+
+        Node _ (Expression.TupledExpression []) ->
+            True
 
         _ ->
             False
+
+
+list2AreSameLengthAndAll : (a -> b -> Bool) -> List a -> List b -> Bool
+list2AreSameLengthAndAll areRegular aList bList =
+    case aList of
+        [] ->
+            List.isEmpty bList
+
+        aHead :: aTail ->
+            case bList of
+                [] ->
+                    False
+
+                bHead :: bTail ->
+                    if areRegular aHead bHead then
+                        list2AreSameLengthAndAll areRegular aTail bTail
+
+                    else
+                        False
 
 
 {-| Remove elements at the end of both given lists, then repeat for the previous elements until a given test returns False

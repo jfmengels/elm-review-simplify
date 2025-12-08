@@ -3503,8 +3503,8 @@ compositionChecks =
     , basicsIdentityCompositionChecks
     , \checkInfo ->
         case
-            ( AstHelpers.getValueOrFnOrFnCall checkInfo.earlier.node
-            , AstHelpers.getValueOrFnOrFnCall checkInfo.later.node
+            ( AstHelpers.getValueOrFnOrFnCall checkInfo.lookupTable checkInfo.earlier.node
+            , AstHelpers.getValueOrFnOrFnCall checkInfo.lookupTable checkInfo.later.node
             )
         of
             ( Just earlierFnOrCall, Just laterFnOrCall ) ->
@@ -13486,7 +13486,7 @@ caseVariantOfWithUnreachableCasesChecks config checkInfo =
                 , cases : List { patternRange : Range, name : String, attachments : List (Node Pattern), expressionNode : Node Expression }
                 }
         maybeVariantCaseOf =
-            case AstHelpers.getValueOrFnOrFnCall config.casedExpressionNode of
+            case AstHelpers.getValueOrFnOrFnCall checkInfo.lookupTable config.casedExpressionNode of
                 Nothing ->
                     Nothing
 
@@ -14585,7 +14585,7 @@ getRecordTypeAliasConstructorCall :
         }
     -> Maybe { nodeRange : Range, args : List (Node Expression), fieldNames : List String }
 getRecordTypeAliasConstructorCall expressionNode checkInfo =
-    case AstHelpers.getValueOrFnOrFnCall expressionNode of
+    case AstHelpers.getValueOrFnOrFnCall checkInfo.lookupTable expressionNode of
         Nothing ->
             Nothing
 
