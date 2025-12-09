@@ -4,6 +4,10 @@
 
 The rule now simplifies:
 - `Maybe.withDefault Nothing (Maybe.map f maybe)` to `Maybe.andThen f maybe`
+- `List.reverse (List.repeat n a)` to `List.repeat n a`
+- `List.sort (List.repeat n a)` to `List.repeat n a`
+- `List.sortBy f (List.repeat n a)` to `List.repeat n a`
+- `List.sortWith f (List.repeat n a)` to `List.repeat n a`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",
