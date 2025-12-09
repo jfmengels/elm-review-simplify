@@ -845,17 +845,26 @@ Destructuring using case expressions
     List.reverse [ a ]
     --> [ a ]
 
+    List.reverse (List.repeat n a)
+    --> List.repeat n a
+
     List.reverse (List.reverse list)
     --> list
 
     List.sort (List.sort list)
     --> List.sort list
 
+    List.sort (List.repeat n a)
+    --> List.repeat n a
+
     List.sortBy (always a) list
     --> list
 
     List.sortBy identity list
     --> List.sort list
+
+    List.sortBy f (List.repeat n a)
+    --> List.repeat n a
 
     List.sortBy f (List.sortBy f list)
     --> List.sortBy f list
@@ -868,6 +877,9 @@ Destructuring using case expressions
 
     List.sortWith (\_ _ -> GT) list
     --> list
+
+    List.sortWith f (List.repeat n a)
+    --> List.repeat n a
 
     -- The following simplifications for List.sort also work for List.sortBy f and List.sortWith f
     List.sort []
@@ -6259,6 +6271,7 @@ listReverseChecks =
     intoFnChecksFirstThatConstructsError
         [ emptiableReverseChecks listCollection
         , unnecessaryOnWrappedCheck listCollection
+        , unnecessaryOnSpecificFnCallCheck Fn.List.repeat
         ]
 
 
@@ -6268,6 +6281,7 @@ listSortChecks =
         [ unnecessaryOnEmptyCheck listCollection
         , unnecessaryOnWrappedCheck listCollection
         , operationDoesNotChangeResultOfOperationCheck
+        , unnecessaryOnSpecificFnCallCheck Fn.List.repeat
         ]
 
 
@@ -6292,6 +6306,7 @@ listSortByChecks =
             )
         , intoFnCheckOnlyCall (operationWithIdentityIsEquivalentToFnCheck Fn.List.sort)
         , operationDoesNotChangeResultOfOperationCheck
+        , unnecessaryOnSpecificFnCallCheck Fn.List.repeat
         ]
 
 
@@ -6338,6 +6353,7 @@ listSortWithChecks =
                     Nothing ->
                         Nothing
             )
+        , unnecessaryOnSpecificFnCallCheck Fn.List.repeat
         ]
 
 
@@ -11875,6 +11891,86 @@ onSpecificFnCallReturnsItsLastArgCheck inverseFn =
             else
                 Nothing
     }
+
+
+unnecessaryOnSpecificFnCallCheck : ( ModuleName, String ) -> IntoFnCheck
+unnecessaryOnSpecificFnCallCheck specificFn =
+    { call = unnecessaryCallOnSpecificFnCallCheck specificFn
+    , composition = unnecessaryCompositionAfterSpecificFnValueOrCallCheck specificFn
+    }
+
+
+unnecessaryCompositionAfterSpecificFnValueOrCallCheck : ( ModuleName, String ) -> CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix
+unnecessaryCompositionAfterSpecificFnValueOrCallCheck specificFn checkInfo =
+    if
+        onlyLastArgIsCurried checkInfo.later
+            && (checkInfo.earlier.fn == specificFn)
+    then
+        Just
+            { info =
+                { message =
+                    "Unnecessary "
+                        ++ qualifiedToString checkInfo.later.fn
+                        ++ " on a "
+                        ++ qualifiedToString specificFn
+                        ++ " call"
+                , details =
+                    [ "You can replace this composition by the given "
+                        ++ qualifiedToString specificFn
+                        ++ (case checkInfo.earlier.args of
+                                [] ->
+                                    " function"
+
+                                _ :: _ ->
+                                    " call"
+                           )
+                        ++ "."
+                    ]
+                }
+            , fix =
+                [ Fix.removeRange checkInfo.later.removeRange ]
+            }
+
+    else
+        Nothing
+
+
+unnecessaryCallOnSpecificFnCallCheck : ( ModuleName, String ) -> CallCheckInfo -> Maybe (Error {})
+unnecessaryCallOnSpecificFnCallCheck specificFn checkInfo =
+    case fullyAppliedLastArg checkInfo of
+        Nothing ->
+            Nothing
+
+        Just fullyAppliedLastArgNode ->
+            case
+                sameInAllBranches
+                    (\node -> AstHelpers.getSpecificFnCall specificFn checkInfo.lookupTable node)
+                    fullyAppliedLastArgNode
+            of
+                Nothing ->
+                    Nothing
+
+                Just _ ->
+                    Just
+                        (Rule.errorWithFix
+                            { message =
+                                "Unnecessary "
+                                    ++ qualifiedToString checkInfo.fn
+                                    ++ " on a "
+                                    ++ qualifiedToString specificFn
+                                    ++ " call"
+                            , details =
+                                [ "You can replace this call by the given "
+                                    ++ qualifiedToString specificFn
+                                    ++ " call."
+                                ]
+                            }
+                            checkInfo.fnRange
+                            (replaceBySubExpressionFix
+                                checkInfo.parentRange
+                                fullyAppliedLastArgNode
+                            )
+                        )
 
 
 {-| The wrapper check

@@ -6812,6 +6812,54 @@ a = List.sort << List.sort
 a = List.sort
 """
                         ]
+        , test "should replace List.sort (List.repeat n a) by List.repeat n a" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort (List.repeat n b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort on a List.repeat call"
+                            , details = [ "You can replace this call by the given List.repeat call." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.repeat n b)
+"""
+                        ]
+        , test "should replace List.sort << List.repeat n by List.repeat n" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort << List.repeat n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort on a List.repeat call"
+                            , details = [ "You can replace this composition by the given List.repeat call." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.repeat n
+"""
+                        ]
+        , test "should replace List.repeat n >> List.sort by List.repeat n" <|
+            \() ->
+                """module A exposing (..)
+a = List.repeat n >> List.sort
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort on a List.repeat call"
+                            , details = [ "You can replace this composition by the given List.repeat call." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.repeat n
+"""
+                        ]
         ]
 
 
@@ -7029,6 +7077,54 @@ a = List.sortBy f << List.sortBy f
                             |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 16 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.sortBy f
+"""
+                        ]
+        , test "should replace List.sortBy f (List.repeat n a) by List.repeat n a" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy f (List.repeat n b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortBy on a List.repeat call"
+                            , details = [ "You can replace this call by the given List.repeat call." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.repeat n b)
+"""
+                        ]
+        , test "should replace List.sortBy f << List.repeat n by List.repeat n" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy f << List.repeat n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortBy on a List.repeat call"
+                            , details = [ "You can replace this composition by the given List.repeat call." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.repeat n
+"""
+                        ]
+        , test "should replace List.repeat n >> List.sortBy f by List.repeat n" <|
+            \() ->
+                """module A exposing (..)
+a = List.repeat n >> List.sortBy f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortBy on a List.repeat call"
+                            , details = [ "You can replace this composition by the given List.repeat call." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.repeat n
 """
                         ]
         ]
@@ -7360,6 +7456,54 @@ a = List.sortWith (always (\\_ -> LT))
 a = List.reverse
 """
                         ]
+        , test "should replace List.sortWith f (List.repeat n a) by List.repeat n a" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith f (List.repeat n b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortWith on a List.repeat call"
+                            , details = [ "You can replace this call by the given List.repeat call." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.repeat n b)
+"""
+                        ]
+        , test "should replace List.sortWith f << List.repeat n by List.repeat n" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortWith f << List.repeat n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortWith on a List.repeat call"
+                            , details = [ "You can replace this composition by the given List.repeat call." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.repeat n
+"""
+                        ]
+        , test "should replace List.repeat n >> List.sortWith f by List.repeat n" <|
+            \() ->
+                """module A exposing (..)
+a = List.repeat n >> List.sortWith f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortWith on a List.repeat call"
+                            , details = [ "You can replace this composition by the given List.repeat call." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.repeat n
+"""
+                        ]
         ]
 
 
@@ -7370,9 +7514,10 @@ listReverseTests =
             \() ->
                 """module A exposing (..)
 a = List.reverse
-b = List.reverse str
+b = List.reverse list
 c = (List.reverse << f) << List.reverse
 d = List.reverse << (f << List.reverse)
+e = List.repeat n (List.reverse list)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -7470,6 +7615,54 @@ a = List.singleton >> List.reverse
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.singleton
+"""
+                        ]
+        , test "should replace List.reverse (List.repeat n a) by List.repeat n a" <|
+            \() ->
+                """module A exposing (..)
+a = List.reverse (List.repeat n b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.reverse on a List.repeat call"
+                            , details = [ "You can replace this call by the given List.repeat call." ]
+                            , under = "List.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.repeat n b)
+"""
+                        ]
+        , test "should replace List.reverse << List.repeat n by List.repeat n" <|
+            \() ->
+                """module A exposing (..)
+a = List.reverse << List.repeat n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.reverse on a List.repeat call"
+                            , details = [ "You can replace this composition by the given List.repeat call." ]
+                            , under = "List.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.repeat n
+"""
+                        ]
+        , test "should replace List.repeat n >> List.reverse by List.repeat n" <|
+            \() ->
+                """module A exposing (..)
+a = List.repeat n >> List.reverse
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.reverse on a List.repeat call"
+                            , details = [ "You can replace this composition by the given List.repeat call." ]
+                            , under = "List.reverse"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.repeat n
 """
                         ]
         , test "should replace List.reverse <| List.reverse <| list by list" <|
