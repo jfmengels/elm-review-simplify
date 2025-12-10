@@ -737,8 +737,12 @@ expressionReconstructsIrrefutablePattern lookupTable expressionNode patternNode 
                                 _ ->
                                     False
                     in
-                    matchesRecordUpdate
-                        || expressionReconstructsIrrefutablePattern lookupTable
+                    -- || split into if to make use of TCO
+                    if matchesRecordUpdate then
+                        True
+
+                    else
+                        expressionReconstructsIrrefutablePattern lookupTable
                             unparenthesizedExpressionNotLocalReference
                             unparenthesizedAliasedPattern
 
@@ -748,15 +752,25 @@ expressionReconstructsIrrefutablePattern lookupTable expressionNode patternNode 
                     False
 
                 Just expressionParts ->
-                    expressionReconstructsIrrefutablePattern lookupTable expressionParts.first patternPart0
-                        && expressionReconstructsIrrefutablePattern lookupTable expressionParts.second patternPart1
+                    -- && split into if to make use of TCO
+                    if expressionReconstructsIrrefutablePattern lookupTable expressionParts.first patternPart0 then
+                        expressionReconstructsIrrefutablePattern lookupTable expressionParts.second patternPart1
+
+                    else
+                        False
 
         Pattern.TuplePattern [ patternPart0, patternPart1, patternPart2 ] ->
             case removeParens expressionNode of
                 Node _ (Expression.TupledExpression [ expressionPart0, expressionPart1, expressionPart2 ]) ->
-                    expressionReconstructsIrrefutablePattern lookupTable expressionPart0 patternPart0
-                        && expressionReconstructsIrrefutablePattern lookupTable expressionPart1 patternPart1
-                        && expressionReconstructsIrrefutablePattern lookupTable expressionPart2 patternPart2
+                    -- && split into if to make use of TCO
+                    if
+                        expressionReconstructsIrrefutablePattern lookupTable expressionPart0 patternPart0
+                            && expressionReconstructsIrrefutablePattern lookupTable expressionPart1 patternPart1
+                    then
+                        expressionReconstructsIrrefutablePattern lookupTable expressionPart2 patternPart2
+
+                    else
+                        False
 
                 _ ->
                     False
