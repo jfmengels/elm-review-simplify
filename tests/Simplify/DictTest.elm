@@ -879,27 +879,10 @@ a3 = Dict.update k f dict
 -- not Dict.update k f dict because e.g. f = Maybe.map ((+) 1)
 a4 = Dict.update k f (Dict.update k f dict)
 a5 = Dict.update k (\\v -> Just (f v)) dict
+a6 = Dict.update k f Dict.empty -- because f could insert by returning Just
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should replace Dict.update k f Dict.empty by Dict.empty" <|
-            \() ->
-                """module A exposing (..)
-import Dict
-a = Dict.update k f Dict.empty
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Dict.update on Dict.empty will result in Dict.empty"
-                            , details = [ "You can replace this call by Dict.empty." ]
-                            , under = "Dict.update"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-import Dict
-a = Dict.empty
-"""
-                        ]
         , test "should replace Dict.update k identity dict by dict" <|
             \() ->
                 """module A exposing (..)

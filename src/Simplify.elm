@@ -1182,9 +1182,6 @@ Destructuring using case expressions
     Dict.remove k Dict.empty
     --> Dict.empty
 
-    Dict.update k f Dict.empty
-    --> Dict.empty
-
     Dict.update k identity dict
     --> dict
 
@@ -6962,108 +6959,105 @@ dictRemoveChecks =
 
 dictUpdateChecks : IntoFnCheck
 dictUpdateChecks =
-    intoFnChecksFirstThatConstructsError
-        [ unnecessaryOnEmptyCheck dictCollection
-        , intoFnCheckOnlyCall
-            (\checkInfo ->
-                case secondArg checkInfo of
-                    Nothing ->
-                        Nothing
+    intoFnCheckOnlyCall
+        (\checkInfo ->
+            case secondArg checkInfo of
+                Nothing ->
+                    Nothing
 
-                    Just updateFunctionArgument ->
-                        if AstHelpers.isIdentity checkInfo.lookupTable updateFunctionArgument then
-                            Just
-                                (alwaysReturnsLastArgError
-                                    (qualifiedToString checkInfo.fn ++ " with an identity update function")
-                                    dictCollection
-                                    checkInfo
-                                )
+                Just updateFunctionArgument ->
+                    if AstHelpers.isIdentity checkInfo.lookupTable updateFunctionArgument then
+                        Just
+                            (alwaysReturnsLastArgError
+                                (qualifiedToString checkInfo.fn ++ " with an identity update function")
+                                dictCollection
+                                checkInfo
+                            )
 
-                        else
-                            case AstHelpers.getAlwaysResult checkInfo.lookupTable updateFunctionArgument of
-                                Nothing ->
-                                    Nothing
+                    else
+                        case AstHelpers.getAlwaysResult checkInfo.lookupTable updateFunctionArgument of
+                            Nothing ->
+                                Nothing
 
-                                Just updateFunctionArgumentAlwaysResult ->
-                                    if
-                                        AstHelpers.isSpecificValueReference checkInfo.lookupTable
-                                            Fn.Maybe.nothingVariant
-                                            updateFunctionArgumentAlwaysResult
-                                    then
-                                        let
-                                            replacementFn : ( ModuleName, String )
-                                            replacementFn =
-                                                Fn.Dict.remove
-                                        in
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message =
-                                                    qualifiedToString checkInfo.fn
-                                                        ++ " with an update function that is always Nothing is the same as "
-                                                        ++ qualifiedToString replacementFn
-                                                , details =
-                                                    [ "You can replace this call by "
-                                                        ++ qualifiedToString replacementFn
-                                                        ++ " with the same given key."
-                                                    ]
-                                                }
+                            Just updateFunctionArgumentAlwaysResult ->
+                                if
+                                    AstHelpers.isSpecificValueReference checkInfo.lookupTable
+                                        Fn.Maybe.nothingVariant
+                                        updateFunctionArgumentAlwaysResult
+                                then
+                                    let
+                                        replacementFn : ( ModuleName, String )
+                                        replacementFn =
+                                            Fn.Dict.remove
+                                    in
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                qualifiedToString checkInfo.fn
+                                                    ++ " with an update function that is always Nothing is the same as "
+                                                    ++ qualifiedToString replacementFn
+                                            , details =
+                                                [ "You can replace this call by "
+                                                    ++ qualifiedToString replacementFn
+                                                    ++ " with the same given key."
+                                                ]
+                                            }
+                                            checkInfo.fnRange
+                                            (Fix.replaceRangeBy
                                                 checkInfo.fnRange
-                                                (Fix.replaceRangeBy
-                                                    checkInfo.fnRange
-                                                    (qualifiedToString (qualify replacementFn checkInfo))
-                                                    :: keepOnlyFix
-                                                        { parentRange =
-                                                            Range.combine
-                                                                [ checkInfo.fnRange
-                                                                , Node.range checkInfo.firstArg
-                                                                , Node.range updateFunctionArgument
-                                                                ]
-                                                        , keep =
-                                                            Range.combine
-                                                                [ checkInfo.fnRange, Node.range checkInfo.firstArg ]
-                                                        }
-                                                )
-                                            )
-
-                                    else
-                                        case
-                                            AstHelpers.getSpecificFnCall Fn.Maybe.justVariant
-                                                checkInfo.lookupTable
-                                                updateFunctionArgumentAlwaysResult
-                                        of
-                                            Nothing ->
-                                                Nothing
-
-                                            Just updateFunctionArgumentAlwaysResultJustCall ->
-                                                let
-                                                    replacementFn : ( ModuleName, String )
-                                                    replacementFn =
-                                                        Fn.Dict.insert
-                                                in
-                                                Just
-                                                    (Rule.errorWithFix
-                                                        { message =
-                                                            qualifiedToString checkInfo.fn
-                                                                ++ " with an update function that is always Just a value is the same as "
-                                                                ++ qualifiedToString replacementFn
-                                                                ++ " with that value"
-                                                        , details =
-                                                            [ "You can replace this call by "
-                                                                ++ qualifiedToString replacementFn
-                                                                ++ " with the same given key and the value inside the Just variant."
+                                                (qualifiedToString (qualify replacementFn checkInfo))
+                                                :: keepOnlyFix
+                                                    { parentRange =
+                                                        Range.combine
+                                                            [ checkInfo.fnRange
+                                                            , Node.range checkInfo.firstArg
+                                                            , Node.range updateFunctionArgument
                                                             ]
-                                                        }
+                                                    , keep =
+                                                        Range.combine
+                                                            [ checkInfo.fnRange, Node.range checkInfo.firstArg ]
+                                                    }
+                                            )
+                                        )
+
+                                else
+                                    case
+                                        AstHelpers.getSpecificFnCall Fn.Maybe.justVariant
+                                            checkInfo.lookupTable
+                                            updateFunctionArgumentAlwaysResult
+                                    of
+                                        Nothing ->
+                                            Nothing
+
+                                        Just updateFunctionArgumentAlwaysResultJustCall ->
+                                            let
+                                                replacementFn : ( ModuleName, String )
+                                                replacementFn =
+                                                    Fn.Dict.insert
+                                            in
+                                            Just
+                                                (Rule.errorWithFix
+                                                    { message =
+                                                        qualifiedToString checkInfo.fn
+                                                            ++ " with an update function that is always Just a value is the same as "
+                                                            ++ qualifiedToString replacementFn
+                                                            ++ " with that value"
+                                                    , details =
+                                                        [ "You can replace this call by "
+                                                            ++ qualifiedToString replacementFn
+                                                            ++ " with the same given key and the value inside the Just variant."
+                                                        ]
+                                                    }
+                                                    checkInfo.fnRange
+                                                    (Fix.replaceRangeBy
                                                         checkInfo.fnRange
-                                                        (Fix.replaceRangeBy
-                                                            checkInfo.fnRange
-                                                            (qualifiedToString (qualify replacementFn checkInfo))
-                                                            :: replaceBySubExpressionFix
-                                                                (Node.range updateFunctionArgument)
-                                                                updateFunctionArgumentAlwaysResultJustCall.firstArg
-                                                        )
+                                                        (qualifiedToString (qualify replacementFn checkInfo))
+                                                        :: replaceBySubExpressionFix
+                                                            (Node.range updateFunctionArgument)
+                                                            updateFunctionArgumentAlwaysResultJustCall.firstArg
                                                     )
-            )
-        ]
+                                                )
+        )
 
 
 dictFilterChecks : IntoFnCheck
