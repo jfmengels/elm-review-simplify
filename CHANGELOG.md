@@ -8,6 +8,9 @@ The rule now simplifies:
 - `List.sort (List.repeat n a)` to `List.repeat n a`
 - `List.sortBy f (List.repeat n a)` to `List.repeat n a`
 - `List.sortWith f (List.repeat n a)` to `List.repeat n a`
+- `Dict.update k identity dict` to `dict`
+- `Dict.update k (\_ -> Nothing) dict` to `Dict.remove k dict`
+- `Dict.update k (\_ -> Just v) dict` to `Dict.insert k v dict`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",

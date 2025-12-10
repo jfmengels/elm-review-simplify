@@ -14,6 +14,7 @@ all =
         , dictSizeTests
         , dictMemberTests
         , dictRemoveTests
+        , dictUpdateTests
         , dictFilterTests
         , dictPartitionTests
         , dictMapTests
@@ -859,6 +860,225 @@ a = Dict.remove k Dict.empty
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = Dict.empty
+"""
+                        ]
+        ]
+
+
+dictUpdateTests : Test
+dictUpdateTests =
+    describe "Dict.update"
+        [ test "should not report Dict.update used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a0 = Dict.update
+a1 = Dict.update k
+a2 = Dict.update k f
+a3 = Dict.update k f dict
+-- not Dict.update k f dict because e.g. f = Maybe.map ((+) 1)
+a4 = Dict.update k f (Dict.update k f dict)
+a5 = Dict.update k (\\v -> Just (f v)) dict
+a6 = Dict.update k f Dict.empty -- because f could insert by returning Just
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.update k identity dict by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.update k identity dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.update with an identity update function will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.update"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace Dict.update k identity by identity" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.update k identity
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.update with an identity update function will always return the same given dict"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Dict.update"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = identity
+"""
+                        ]
+        , test "should replace Dict.update k (\\_ -> Nothing) dict by Dict.remove k dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.update k (\\_ -> Nothing) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.update with an update function that is always Nothing is the same as Dict.remove"
+                            , details = [ "You can replace this call by Dict.remove with the same given key." ]
+                            , under = "Dict.update"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.remove k dict
+"""
+                        ]
+        , test "should replace Dict.update k (\\_ -> Nothing) by Dict.remove k" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.update k (\\_ -> Nothing)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.update with an update function that is always Nothing is the same as Dict.remove"
+                            , details = [ "You can replace this call by Dict.remove with the same given key." ]
+                            , under = "Dict.update"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.remove k
+"""
+                        ]
+        , test "should replace Dict.update k <| (\\_ -> Nothing) by Dict.remove k" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.update k <| (\\_ -> Nothing)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.update with an update function that is always Nothing is the same as Dict.remove"
+                            , details = [ "You can replace this call by Dict.remove with the same given key." ]
+                            , under = "Dict.update"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.remove k
+"""
+                        ]
+        , test "should replace (\\_ -> Nothing) |> Dict.update k by Dict.remove k" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = (\\_ -> Nothing) |> Dict.update k
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.update with an update function that is always Nothing is the same as Dict.remove"
+                            , details = [ "You can replace this call by Dict.remove with the same given key." ]
+                            , under = "Dict.update"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.remove k
+"""
+                        ]
+        , test "should replace Dict.update k (\\_ -> Just v) dict by Dict.insert k v dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.update k (\\_ -> Just v) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.update with an update function that is always Just a value is the same as Dict.insert with that value"
+                            , details = [ "You can replace this call by Dict.insert with the same given key and the value inside the Just variant." ]
+                            , under = "Dict.update"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.insert k v dict
+"""
+                        ]
+        , test "should replace Dict.update k (\\_ -> v |> f |> Just) dict by Dict.insert k (v |> f) dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.update k (\\_ -> v |> f |> Just) dict
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.update with an update function that is always Just a value is the same as Dict.insert with that value"
+                            , details = [ "You can replace this call by Dict.insert with the same given key and the value inside the Just variant." ]
+                            , under = "Dict.update"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.insert k (v |> f) dict
+"""
+                        ]
+        , test "should replace Dict.update k (\\_ -> Just v) by Dict.insert k v" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.update k (\\_ -> Just v)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.update with an update function that is always Just a value is the same as Dict.insert with that value"
+                            , details = [ "You can replace this call by Dict.insert with the same given key and the value inside the Just variant." ]
+                            , under = "Dict.update"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.insert k v
+"""
+                        ]
+        , test "should replace Dict.update k <| (\\_ -> Just v) by Dict.insert k <| v" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.update k <| (\\_ -> Just v)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.update with an update function that is always Just a value is the same as Dict.insert with that value"
+                            , details = [ "You can replace this call by Dict.insert with the same given key and the value inside the Just variant." ]
+                            , under = "Dict.update"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.insert k <| v
+"""
+                        ]
+        , test "should replace (\\_ -> Just v) |> Dict.update k by v |> Dict.insert k" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = (\\_ -> Just v) |> Dict.update k
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.update with an update function that is always Just a value is the same as Dict.insert with that value"
+                            , details = [ "You can replace this call by Dict.insert with the same given key and the value inside the Just variant." ]
+                            , under = "Dict.update"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = v |> Dict.insert k
 """
                         ]
         ]
