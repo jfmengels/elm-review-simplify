@@ -3,7 +3,7 @@ module Simplify.AstHelpers exposing
     , subExpressions
     , removeParens, removeParensFromPattern
     , getValueOrFnOrFnCall
-    , getSpecificFnCall, getSpecificUnreducedFnCall, getSpecificValueOrFn, isSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
+    , getSpecificFnCall, getSpecificUnreducedFnCall, isSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
     , getAccessingRecord, getRecordAccessFunction
@@ -38,7 +38,7 @@ module Simplify.AstHelpers exposing
 ### value/function/function call/composition
 
 @docs getValueOrFnOrFnCall
-@docs getSpecificFnCall, getSpecificUnreducedFnCall, getSpecificValueOrFn, isSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
+@docs getSpecificFnCall, getSpecificUnreducedFnCall, isSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
 
 
 ### certain kind
@@ -391,35 +391,6 @@ getValueOrFnOrFnCall lookupTable expressionNode =
 a function reference with the given name without arguments
 or a lambda that is reducible to a function with the given name without arguments
 -}
-getSpecificValueOrFn :
-    ( ModuleName, String )
-    -> ReduceLambdaResources context
-    -> Node Expression
-    -> Maybe Range
-getSpecificValueOrFn ( specificModuleOrigin, specificName ) context expressionNode =
-    case getValueOrFunction context expressionNode of
-        Just valueOrFn ->
-            if
-                (valueOrFn.name == specificName)
-                    && (case ModuleNameLookupTable.moduleNameAt context.lookupTable valueOrFn.range of
-                            Nothing ->
-                                False
-
-                            Just moduleOrigin ->
-                                moduleOrigin == specificModuleOrigin
-                       )
-            then
-                Just valueOrFn.range
-
-            else
-                Nothing
-
-        Nothing ->
-            Nothing
-
-
-{-| Same as `getSpecificValueOrFn` without returning the range
--}
 isSpecificValueOrFn :
     ( ModuleName, String )
     -> ReduceLambdaResources context
@@ -469,9 +440,10 @@ getValueOrFunction lookupTable expressionNode =
                     Nothing
 
 
-{-| Specialized, more performant version of `getSpecificValueOrFn`
+{-| Specialized, more performant version of `isSpecificValueOrFn`
 that only works for variables holding a value that cannot be applied,
 like `True`, `Basics.e` or `Nothing`.
+Returns the range of the reference.
 -}
 getSpecificValueReference :
     ModuleNameLookupTable
@@ -480,10 +452,10 @@ getSpecificValueReference :
     -> Maybe Range
 getSpecificValueReference lookupTable ( moduleOriginToCheckFor, nameToCheckFor ) baseNode =
     case removeParens baseNode of
-        Node fnRange (Expression.FunctionOrValue _ name) ->
+        Node referenceRange (Expression.FunctionOrValue _ name) ->
             if
                 (name == nameToCheckFor)
-                    && (case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
+                    && (case ModuleNameLookupTable.moduleNameAt lookupTable referenceRange of
                             Nothing ->
                                 False
 
@@ -491,7 +463,7 @@ getSpecificValueReference lookupTable ( moduleOriginToCheckFor, nameToCheckFor )
                                 moduleOrigin == moduleOriginToCheckFor
                        )
             then
-                Just fnRange
+                Just referenceRange
 
             else
                 Nothing
