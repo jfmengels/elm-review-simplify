@@ -1,8 +1,9 @@
 module Simplify.AstHelpers exposing
-    ( subExpressions
+    ( ReduceLambdaResources
+    , subExpressions
     , removeParens, removeParensFromPattern
     , getValueOrFnOrFnCall
-    , getSpecificFnCall, getSpecificValueOrFn, isSpecificValueReference
+    , getSpecificFnCall, getSpecificUnreducedFnCall, getSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
     , getAccessingRecord, getRecordAccessFunction
@@ -11,12 +12,17 @@ module Simplify.AstHelpers exposing
     , getTuple2, getTuple2Literal
     , boolToString, orderToString, emptyStringAsString
     , moduleNameFromString, qualifiedName, qualifiedModuleName, qualifiedToString, moduleNameToString
-    , declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
+    , declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings, typeUsesVariable
     , nameOfExpose
     , couldBeValueContainingNaN
     )
 
 {-|
+
+
+## resources
+
+@docs ReduceLambdaResources
 
 
 ## look deeper
@@ -32,7 +38,7 @@ module Simplify.AstHelpers exposing
 ### value/function/function call/composition
 
 @docs getValueOrFnOrFnCall
-@docs getSpecificFnCall, getSpecificValueOrFn, isSpecificValueReference
+@docs getSpecificFnCall, getSpecificUnreducedFnCall, getSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
 
 
 ### certain kind
@@ -57,12 +63,13 @@ module Simplify.AstHelpers exposing
 
 ### misc
 
-@docs declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings
+@docs declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings, typeUsesVariable
 @docs nameOfExpose
 @docs couldBeValueContainingNaN
 
 -}
 
+import Dict exposing (Dict)
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Exposing as Exposing
 import Elm.Syntax.Expression as Expression exposing (Expression)
@@ -70,6 +77,7 @@ import Elm.Syntax.ModuleName exposing (ModuleName)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern as Pattern exposing (Pattern)
 import Elm.Syntax.Range exposing (Range)
+import Elm.Syntax.TypeAnnotation as TypeAnnotation exposing (TypeAnnotation)
 import Fn.Basics
 import Fn.List
 import Fn.Tuple
@@ -195,10 +203,34 @@ subExpressions expression =
             []
 
 
+type alias ReduceLambdaResources context =
+    { context
+        | lookupTable : ModuleNameLookupTable
+        , importCustomTypes :
+            Dict
+                ModuleName
+                (Dict
+                    String
+                    { variantNames : Set String
+                    , allParametersAreUsedInVariants : Bool
+                    }
+                )
+        , moduleCustomTypes :
+            Dict
+                String
+                { variantNames : Set String
+                , allParametersAreUsedInVariants : Bool
+                }
+    }
+
+
 {-| Parse an expression of type list that contains only a single element.
 Could be a call to `List.singleton` or a list literal with one element: `[ a ]`
 -}
-getListSingleton : ModuleNameLookupTable -> Node Expression -> Maybe { element : Node Expression }
+getListSingleton :
+    ModuleNameLookupTable
+    -> Node Expression
+    -> Maybe { element : Node Expression }
 getListSingleton lookupTable expressionNode =
     case getListLiteral expressionNode of
         Just (element :: []) ->
@@ -208,7 +240,7 @@ getListSingleton lookupTable expressionNode =
             Nothing
 
         Nothing ->
-            case getSpecificFnCall Fn.List.singleton lookupTable expressionNode of
+            case getSpecificUnreducedFnCall Fn.List.singleton lookupTable expressionNode of
                 Just singletonCall ->
                     case singletonCall.argsAfterFirst of
                         [] ->
@@ -221,9 +253,64 @@ getListSingleton lookupTable expressionNode =
                     Nothing
 
 
-{-| Parses calls and lambdas that are reducible to a call of a function with the given name
+{-| Parses calls and lambdas that are reducible to a call of a function with the given name.
+If used for parsing fully applied calls, strongly consider `getSpecificUnreducedFnCall`.
 -}
 getSpecificFnCall :
+    ( ModuleName, String )
+    -> ReduceLambdaResources context
+    -> Node Expression
+    ->
+        Maybe
+            { nodeRange : Range
+            , fnRange : Range
+            , firstArg : Node Expression
+            , argsAfterFirst : List (Node Expression)
+            , callStyle : FunctionCallStyle
+            }
+getSpecificFnCall ( moduleName, name ) context expressionNode =
+    case getValueOrFnOrFnCall context expressionNode of
+        Just call ->
+            case call.args of
+                firstArg :: argsAfterFirst ->
+                    if
+                        (call.fnName /= name)
+                            || (ModuleNameLookupTable.moduleNameAt context.lookupTable call.fnRange
+                                    /= Just moduleName
+                               )
+                    then
+                        Nothing
+
+                    else
+                        Just
+                            { nodeRange = call.nodeRange
+                            , fnRange = call.fnRange
+                            , firstArg = firstArg
+                            , argsAfterFirst = argsAfterFirst
+                            , callStyle = call.callStyle
+                            }
+
+                [] ->
+                    Nothing
+
+        Nothing ->
+            Nothing
+
+
+{-| A simpler and faster version of `getSpecificFnCall` that skips checking for possible reduced lambdas.
+Use when you only care about fully applied calls anyway (which can therefore be reduced), like
+when you want to extract the value in `Just` or `List.singleton` calls
+or the first and second argument of `Tuple.pair` calls.
+Neither of them can ever be found as e.g.
+`\x -> Just value x` or `\third -> Tuple.pair first second third`.
+Basically whenever you know you have a value (e.g. when checking an argument
+of a function you know takes a value at that position, like `List.length` taking a list).
+
+Do _not_ use for functions that can return functions, like `Basics.always`, `Basics.identity`
+or `Tuple.first` (basically anything that returns a type variable directly)
+
+-}
+getSpecificUnreducedFnCall :
     ( ModuleName, String )
     -> ModuleNameLookupTable
     -> Node Expression
@@ -235,14 +322,16 @@ getSpecificFnCall :
             , argsAfterFirst : List (Node Expression)
             , callStyle : FunctionCallStyle
             }
-getSpecificFnCall ( moduleName, name ) lookupTable expressionNode =
-    case getValueOrFnOrFnCall lookupTable expressionNode of
+getSpecificUnreducedFnCall ( moduleName, name ) lookupTable expressionNode =
+    case getCollapsedUnreducedValueOrFunctionCall expressionNode of
         Just call ->
             case call.args of
                 firstArg :: argsAfterFirst ->
                     if
                         (call.fnName /= name)
-                            || (ModuleNameLookupTable.moduleNameAt lookupTable call.fnRange /= Just moduleName)
+                            || (ModuleNameLookupTable.moduleNameAt lookupTable call.fnRange
+                                    /= Just moduleName
+                               )
                     then
                         Nothing
 
@@ -265,7 +354,7 @@ getSpecificFnCall ( moduleName, name ) lookupTable expressionNode =
 {-| Parse a value or the collapsed function or a lambda fully reduced to a function
 -}
 getValueOrFnOrFnCall :
-    ModuleNameLookupTable
+    ReduceLambdaResources context
     -> Node Expression
     ->
         Maybe
@@ -304,13 +393,19 @@ getValueOrFnOrFnCall lookupTable expressionNode =
 a function reference with the given name without arguments
 or a lambda that is reducible to a function with the given name without arguments
 -}
-getSpecificValueOrFn : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Maybe Range
-getSpecificValueOrFn ( moduleName, name ) lookupTable expressionNode =
-    case getValueOrFunction lookupTable expressionNode of
+getSpecificValueOrFn :
+    ( ModuleName, String )
+    -> ReduceLambdaResources context
+    -> Node Expression
+    -> Maybe Range
+getSpecificValueOrFn ( moduleName, name ) context expressionNode =
+    case getValueOrFunction context expressionNode of
         Just normalFn ->
             if
                 (normalFn.name /= name)
-                    || (ModuleNameLookupTable.moduleNameAt lookupTable normalFn.range /= Just moduleName)
+                    || (ModuleNameLookupTable.moduleNameAt context.lookupTable normalFn.range
+                            /= Just moduleName
+                       )
             then
                 Nothing
 
@@ -323,7 +418,10 @@ getSpecificValueOrFn ( moduleName, name ) lookupTable expressionNode =
 
 {-| Parses either a value reference, a function reference without arguments or a lambda that is reducible to a function without arguments
 -}
-getValueOrFunction : ModuleNameLookupTable -> Node Expression -> Maybe { name : String, range : Range }
+getValueOrFunction :
+    ReduceLambdaResources context
+    -> Node Expression
+    -> Maybe { name : String, range : Range }
 getValueOrFunction lookupTable expressionNode =
     case removeParens expressionNode of
         Node rangeInParens (Expression.FunctionOrValue _ foundName) ->
@@ -349,6 +447,35 @@ getValueOrFunction lookupTable expressionNode =
 {-| Specialized, more performant version of `getSpecificValueOrFn`
 that only works for variables holding a value that cannot be applied,
 like `True`, `Basics.e` or `Nothing`.
+-}
+getSpecificValueReference :
+    ModuleNameLookupTable
+    -> ( ModuleName, String )
+    -> Node Expression
+    -> Maybe Range
+getSpecificValueReference lookupTable ( moduleOriginToCheckFor, nameToCheckFor ) baseNode =
+    case removeParens baseNode of
+        Node fnRange (Expression.FunctionOrValue _ name) ->
+            if
+                (name == nameToCheckFor)
+                    && (case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
+                            Nothing ->
+                                False
+
+                            Just moduleOrigin ->
+                                moduleOrigin == moduleOriginToCheckFor
+                       )
+            then
+                Just fnRange
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
+
+
+{-| `getSpecificValueReference` without returning the fn range
 -}
 isSpecificValueReference :
     ModuleNameLookupTable
@@ -439,9 +566,9 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
 {-| Whether it's a function that accesses a tuple's first part.
 Either a function reducible to `Tuple.first` or `\( first, ... ) -> first`.
 -}
-isTupleFirstAccess : ModuleNameLookupTable -> Node Expression -> Bool
-isTupleFirstAccess lookupTable expressionNode =
-    case getSpecificValueOrFn Fn.Tuple.first lookupTable expressionNode of
+isTupleFirstAccess : ReduceLambdaResources context -> Node Expression -> Bool
+isTupleFirstAccess context expressionNode =
+    case getSpecificValueOrFn Fn.Tuple.first context expressionNode of
         Just _ ->
             True
 
@@ -467,9 +594,9 @@ isTupleFirstPatternLambda expressionNode =
 {-| Whether it's a function that accesses a tuple's second part.
 Either a function reducible to `Tuple.second` or `\( ..., second ) -> second`.
 -}
-isTupleSecondAccess : ModuleNameLookupTable -> Node Expression -> Bool
-isTupleSecondAccess lookupTable expressionNode =
-    case getSpecificValueOrFn Fn.Tuple.second lookupTable expressionNode of
+isTupleSecondAccess : ReduceLambdaResources context -> Node Expression -> Bool
+isTupleSecondAccess context expressionNode =
+    case getSpecificValueOrFn Fn.Tuple.second context expressionNode of
         Just _ ->
             True
 
@@ -547,11 +674,11 @@ getUncomputedNumberValue expressionNode =
 
 
 {-| Whether it's a function that returns any given input unchanged.
-Either a function reducible to `Basics.identity` or `\a -> a`.
+Either a function reducible to `Basics.identity` or `\a -> a` (or any other lambda that reconstructs the just-destructured value).
 -}
-isIdentity : ModuleNameLookupTable -> Node Expression -> Bool
-isIdentity lookupTable baseExpressionNode =
-    case getSpecificValueOrFn Fn.Basics.identity lookupTable baseExpressionNode of
+isIdentity : ReduceLambdaResources context -> Node Expression -> Bool
+isIdentity context baseExpressionNode =
+    case getSpecificValueOrFn Fn.Basics.identity context baseExpressionNode of
         Just _ ->
             True
 
@@ -560,7 +687,7 @@ isIdentity lookupTable baseExpressionNode =
                 Node _ (Expression.LambdaExpression lambda) ->
                     case lambda.args of
                         arg :: [] ->
-                            expressionReconstructsIrrefutablePattern lookupTable
+                            expressionReconstructsIrrefutablePattern context
                                 lambda.expression
                                 arg
 
@@ -574,9 +701,12 @@ isIdentity lookupTable baseExpressionNode =
 {-| Parse a function that returns the same for any given input and return the result expression node.
 Either a function reducible to `Basics.always x`, `\_ -> x` or even for example `\_ a -> a x` where the result expression node would be `\a -> a x`.
 -}
-getAlwaysResult : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
-getAlwaysResult lookupTable expressionNode =
-    case getSpecificFnCall Fn.Basics.always lookupTable expressionNode of
+getAlwaysResult :
+    ReduceLambdaResources context
+    -> Node Expression
+    -> Maybe (Node Expression)
+getAlwaysResult context expressionNode =
+    case getSpecificFnCall Fn.Basics.always context expressionNode of
         Just alwaysCall ->
             Just alwaysCall.firstArg
 
@@ -610,7 +740,7 @@ getIgnoreFirstLambdaResult expressionNode =
 
 
 getReducedLambda :
-    ModuleNameLookupTable
+    ReduceLambdaResources context
     -> Node Expression
     ->
         Maybe
@@ -621,7 +751,7 @@ getReducedLambda :
             , lambdaPatterns : List (Node Pattern)
             , callStyle : FunctionCallStyle
             }
-getReducedLambda lookupTable expressionNode =
+getReducedLambda context expressionNode =
     -- maybe a version of this is better located in Normalize?
     case getCollapsedLambda expressionNode of
         Just lambda ->
@@ -631,7 +761,7 @@ getReducedLambda lookupTable expressionNode =
                         ( reducedCallArguments, reducedLambdaPatterns ) =
                             drop2EndingsWhile
                                 (\( argument, pattern ) ->
-                                    expressionReconstructsIrrefutablePattern lookupTable argument pattern
+                                    expressionReconstructsIrrefutablePattern context argument pattern
                                 )
                                 ( call.args
                                 , lambda.patterns
@@ -665,17 +795,21 @@ E.g. any lambda pattern, any let destructuring pattern, any (let) function decla
 case pattern when matching on a value with infinite cases like an `Int` or a `List`.
 
 -}
-expressionReconstructsIrrefutablePattern : ModuleNameLookupTable -> Node Expression -> Node Pattern -> Bool
-expressionReconstructsIrrefutablePattern lookupTable expressionNode patternNode =
+expressionReconstructsIrrefutablePattern :
+    ReduceLambdaResources context
+    -> Node Expression
+    -> Node Pattern
+    -> Bool
+expressionReconstructsIrrefutablePattern context expressionNode patternNode =
     case Node.value patternNode of
         Pattern.ParenthesizedPattern patternInParens ->
-            expressionReconstructsIrrefutablePattern lookupTable
+            expressionReconstructsIrrefutablePattern context
                 expressionNode
                 patternInParens
 
         -- should be covered by ParenthesizedPattern
         Pattern.TuplePattern [ patternInParens ] ->
-            expressionReconstructsIrrefutablePattern lookupTable
+            expressionReconstructsIrrefutablePattern context
                 expressionNode
                 patternInParens
 
@@ -742,19 +876,19 @@ expressionReconstructsIrrefutablePattern lookupTable expressionNode patternNode 
                         True
 
                     else
-                        expressionReconstructsIrrefutablePattern lookupTable
+                        expressionReconstructsIrrefutablePattern context
                             unparenthesizedExpressionNotLocalReference
                             unparenthesizedAliasedPattern
 
         Pattern.TuplePattern [ patternPart0, patternPart1 ] ->
-            case getTuple2 lookupTable expressionNode of
+            case getTuple2 context.lookupTable expressionNode of
                 Nothing ->
                     False
 
                 Just expressionParts ->
                     -- && split into if to make use of TCO
-                    if expressionReconstructsIrrefutablePattern lookupTable expressionParts.first patternPart0 then
-                        expressionReconstructsIrrefutablePattern lookupTable expressionParts.second patternPart1
+                    if expressionReconstructsIrrefutablePattern context expressionParts.first patternPart0 then
+                        expressionReconstructsIrrefutablePattern context expressionParts.second patternPart1
 
                     else
                         False
@@ -764,10 +898,10 @@ expressionReconstructsIrrefutablePattern lookupTable expressionNode patternNode 
                 Node _ (Expression.TupledExpression [ expressionPart0, expressionPart1, expressionPart2 ]) ->
                     -- && split into if to make use of TCO
                     if
-                        expressionReconstructsIrrefutablePattern lookupTable expressionPart0 patternPart0
-                            && expressionReconstructsIrrefutablePattern lookupTable expressionPart1 patternPart1
+                        expressionReconstructsIrrefutablePattern context expressionPart0 patternPart0
+                            && expressionReconstructsIrrefutablePattern context expressionPart1 patternPart1
                     then
-                        expressionReconstructsIrrefutablePattern lookupTable expressionPart2 patternPart2
+                        expressionReconstructsIrrefutablePattern context expressionPart2 patternPart2
 
                     else
                         False
@@ -775,9 +909,9 @@ expressionReconstructsIrrefutablePattern lookupTable expressionNode patternNode 
                 _ ->
                     False
 
-        Pattern.NamedPattern _ _ ->
+        Pattern.NamedPattern patternVariantReference valuePatterns ->
             -- one might think \(Variant x y) -> Variant x y
-            -- is a match but that claim actually requires type inference
+            -- is always a match but that claim actually requires type inference
             -- (or for a more limited version: knowledge about choice type phantom type parameters).
             -- For example:
             --
@@ -795,8 +929,67 @@ expressionReconstructsIrrefutablePattern lookupTable expressionNode patternNode 
             -- type and is _not equivalent to identity_.
             -- This specific example is arguably contrived but it does
             -- occur in real life code!
-            -- So there is nothing we can do here, surprisingly (phantom types suck)
-            False
+            case ModuleNameLookupTable.moduleNameAt context.lookupTable (Node.range patternNode) of
+                Nothing ->
+                    False
+
+                Just patternVariantReferenceModuleOrigin ->
+                    let
+                        maybeOriginChoiceTypeInfo : Maybe { name : String, variantNames : Set String, allParametersAreUsedInVariants : Bool }
+                        maybeOriginChoiceTypeInfo =
+                            case patternVariantReferenceModuleOrigin of
+                                [] ->
+                                    getCustomTypeWithVariant patternVariantReference.name
+                                        context.moduleCustomTypes
+
+                                variantReferenceImportedModuleOrigin ->
+                                    Maybe.andThen
+                                        (\inModule ->
+                                            getCustomTypeWithVariant patternVariantReference.name inModule
+                                        )
+                                        (Dict.get variantReferenceImportedModuleOrigin context.importCustomTypes)
+
+                        reconstructingVariantWillNeverIntroduceNewTypeParameters : Bool
+                        reconstructingVariantWillNeverIntroduceNewTypeParameters =
+                            case maybeOriginChoiceTypeInfo of
+                                Nothing ->
+                                    False
+
+                                Just originChoiceTypeInfo ->
+                                    originChoiceTypeInfo.allParametersAreUsedInVariants
+                    in
+                    if reconstructingVariantWillNeverIntroduceNewTypeParameters then
+                        case valuePatterns of
+                            [] ->
+                                isSpecificValueReference context.lookupTable
+                                    ( patternVariantReferenceModuleOrigin, patternVariantReference.name )
+                                    expressionNode
+
+                            valuePattern0 :: valuePattern1Up ->
+                                case
+                                    getSpecificUnreducedFnCall
+                                        ( patternVariantReferenceModuleOrigin, patternVariantReference.name )
+                                        context.lookupTable
+                                        expressionNode
+                                of
+                                    Nothing ->
+                                        False
+
+                                    Just expressionVariantCall ->
+                                        expressionReconstructsIrrefutablePattern context expressionVariantCall.firstArg valuePattern0
+                                            && -- must be the same length
+                                               -- because e.g. (\(V x y) -> V x)
+                                               -- is valid, compiling elm code
+                                               -- that is not equivalent to identity
+                                               list2AreSameLengthAndAll
+                                                (\valueExpression valuePattern ->
+                                                    expressionReconstructsIrrefutablePattern context valueExpression valuePattern
+                                                )
+                                                expressionVariantCall.argsAfterFirst
+                                                valuePattern1Up
+
+                    else
+                        False
 
         Pattern.RecordPattern _ ->
             -- if we knew the pattern coverers all fields, we could check
@@ -835,6 +1028,32 @@ expressionReconstructsIrrefutablePattern lookupTable expressionNode patternNode 
 
         Pattern.ListPattern _ ->
             False
+
+
+getCustomTypeWithVariant :
+    String
+    -> Dict String { variantNames : Set String, allParametersAreUsedInVariants : Bool }
+    -> Maybe { name : String, variantNames : Set String, allParametersAreUsedInVariants : Bool }
+getCustomTypeWithVariant variantName customTypes =
+    Dict.foldl
+        (\customTypeName customTypeInfo soFar ->
+            case soFar of
+                Just _ ->
+                    soFar
+
+                Nothing ->
+                    if Set.member variantName customTypeInfo.variantNames then
+                        Just
+                            { name = customTypeName
+                            , variantNames = customTypeInfo.variantNames
+                            , allParametersAreUsedInVariants = customTypeInfo.allParametersAreUsedInVariants
+                            }
+
+                    else
+                        Nothing
+        )
+        Nothing
+        customTypes
 
 
 isUnit : Node Expression -> Bool
@@ -1009,6 +1228,49 @@ declarationBindings declaration =
             Set.empty
 
 
+typeUsesVariable : String -> Node TypeAnnotation -> Bool
+typeUsesVariable variableNeedle (Node _ type_) =
+    case type_ of
+        TypeAnnotation.GenericType variable ->
+            variable == variableNeedle
+
+        TypeAnnotation.Typed _ arguments ->
+            List.any (\argument -> typeUsesVariable variableNeedle argument)
+                arguments
+
+        TypeAnnotation.Unit ->
+            False
+
+        TypeAnnotation.Tupled parts ->
+            List.any (\part -> typeUsesVariable variableNeedle part)
+                parts
+
+        TypeAnnotation.Record fields ->
+            List.any
+                (\(Node _ ( _, fieldValue )) ->
+                    typeUsesVariable variableNeedle fieldValue
+                )
+                fields
+
+        TypeAnnotation.GenericRecord (Node _ extendedRecordVariable) (Node _ fields) ->
+            if extendedRecordVariable == variableNeedle then
+                True
+
+            else
+                List.any
+                    (\(Node _ ( _, fieldValue )) ->
+                        typeUsesVariable variableNeedle fieldValue
+                    )
+                    fields
+
+        TypeAnnotation.FunctionTypeAnnotation input output ->
+            if typeUsesVariable variableNeedle input then
+                True
+
+            else
+                typeUsesVariable variableNeedle output
+
+
 letDeclarationBindings : Expression.LetDeclaration -> Set String
 letDeclarationBindings letDeclaration =
     case letDeclaration of
@@ -1062,22 +1324,26 @@ getCollapsedCons expressionNode =
 
 getBool : ModuleNameLookupTable -> Node Expression -> Maybe Bool
 getBool lookupTable expressionNode =
-    case getSpecificBool True lookupTable expressionNode of
-        Just _ ->
-            Just True
+    if isSpecificValueReference lookupTable Fn.Basics.trueVariant expressionNode then
+        Just True
 
-        Nothing ->
-            case getSpecificBool False lookupTable expressionNode of
-                Just _ ->
-                    Just False
+    else if isSpecificValueReference lookupTable Fn.Basics.falseVariant expressionNode then
+        Just False
 
-                Nothing ->
-                    Nothing
+    else
+        Nothing
 
 
 getSpecificBool : Bool -> ModuleNameLookupTable -> Node Expression -> Maybe Range
 getSpecificBool specificBool lookupTable expressionNode =
-    getSpecificValueOrFn ( [ "Basics" ], boolToString specificBool ) lookupTable expressionNode
+    getSpecificValueReference lookupTable
+        (if specificBool then
+            Fn.Basics.trueVariant
+
+         else
+            Fn.Basics.falseVariant
+        )
+        expressionNode
 
 
 getTuple2Literal : Node Expression -> Maybe { range : Range, first : Node Expression, second : Node Expression }
@@ -1097,7 +1363,7 @@ getTuple2 lookupTable expressionNode =
             Just { first = first, second = second }
 
         _ ->
-            case getSpecificFnCall Fn.Tuple.pair lookupTable expressionNode of
+            case getSpecificUnreducedFnCall Fn.Tuple.pair lookupTable expressionNode of
                 Just tuplePairCall ->
                     case tuplePairCall.argsAfterFirst of
                         second :: _ ->
@@ -1138,29 +1404,19 @@ getBoolPattern lookupTable basePatternNode =
             Nothing
 
 
-getSpecificOrder : Order -> ModuleNameLookupTable -> Node Expression -> Maybe Range
-getSpecificOrder specificOrder lookupTable expression =
-    getSpecificValueOrFn ( [ "Basics" ], orderToString specificOrder ) lookupTable expression
-
-
 getOrder : ModuleNameLookupTable -> Node Expression -> Maybe Order
-getOrder lookupTable expression =
-    case getSpecificOrder LT lookupTable expression of
-        Just _ ->
-            Just LT
+getOrder lookupTable expressionNode =
+    if isSpecificValueReference lookupTable Fn.Basics.lTVariant expressionNode then
+        Just LT
 
-        Nothing ->
-            case getSpecificOrder EQ lookupTable expression of
-                Just _ ->
-                    Just EQ
+    else if isSpecificValueReference lookupTable Fn.Basics.eQVariant expressionNode then
+        Just EQ
 
-                Nothing ->
-                    case getSpecificOrder GT lookupTable expression of
-                        Just _ ->
-                            Just GT
+    else if isSpecificValueReference lookupTable Fn.Basics.gTVariant expressionNode then
+        Just GT
 
-                        Nothing ->
-                            Nothing
+    else
+        Nothing
 
 
 {-| Whether a given expression can be called with 2 operands and produces the same result as an operation with a given operator.

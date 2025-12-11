@@ -6869,6 +6869,8 @@ listSortByTests =
         [ test "should not report List.sortBy with a function variable and a list variable" <|
             \() ->
                 """module A exposing (..)
+type ChoiceTypeWithPhantomType unused = Bad Int Int
+type ChoiceTypeWithoutPhantomType used = Good Int used
 a = List.sortBy fn
 b = List.sortBy fn list
 c = List.sortBy << List.sortBy fn
@@ -6878,8 +6880,8 @@ f = List.sortBy (\\(x,y) -> (y,x))
 g = List.sortBy (\\{x,y} -> {x=x,y=y}) -- because {x,y} can match e.g. {x,y,z} values
 h = List.sortBy (\\({x,y} as r) -> {r|y=y})
 i = List.sortBy (\\({x,y} as r) -> {r|x=y,y=x})
-j = List.sortBy (\\Basics.EQ -> EQ)
-k = List.sortBy (\\(Variant x y) -> Variant x y) -- because it could change phantom types
+i = List.sortBy (\\(Good a b) -> Good a) -- not fully constructed
+j = List.sortBy (\\(Bad x y) -> Bad x y) -- because it could change phantom types
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -7091,6 +7093,42 @@ a = List.sort
 a = List.sortBy (\\(b,(c,d)) -> (b,( c, d )))
 """
                         ]
+        , test "should replace List.sortBy (\\Variant -> Variant) by List.sort when origin choice type parameters are all used in variants" <|
+            \() ->
+                """module A exposing (..)
+type ChoiceType = Variant
+a = List.sortBy (\\Variant -> Variant)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sortBy with an identity function is the same as List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+type ChoiceType = Variant
+a = List.sort
+"""
+                        ]
+        , test "should replace List.sortBy (\\(Variant a b) -> Variant a b) by List.sort when origin choice type parameters are all used in variants" <|
+            \() ->
+                """module A exposing (..)
+type ChoiceType = Variant Int Int
+a = List.sortBy (\\(Variant a b) -> Variant a b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sortBy with an identity function is the same as List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+type ChoiceType = Variant Int Int
+a = List.sort
+"""
+                        ]
         , test "should replace List.sortBy (\\({a,b} as r) -> {r|a=a,b=b}) by List.sort" <|
             \() ->
                 """module A exposing (..)
@@ -7139,10 +7177,11 @@ a = List.sortBy (\\({x,y} as r) -> {r|y=y,x=x})
 a = List.sort
 """
                         ]
-        , test "should replace List.sortBy (\\((b,((c))) as unused, (), ((), _ as d)) -> ((((b)),c), (), ((), d))) by List.sort" <|
+        , test "should replace List.sortBy (\\((b,((c))) as unused, (), (Variant, _ as d)) -> ((((b)),c), (), (Variant, d))) by List.sort" <|
             \() ->
                 """module A exposing (..)
-a = List.sortBy (\\((b,((c))) as unused, (), ((), _ as d)) -> ((((b)),c), (), ((), d)))
+type ChoiceType = Variant
+a = List.sortBy (\\((b,((c))) as unused, (), (Variant, _ as d)) -> ((((b)),c), (), (Variant, d)))
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -7152,6 +7191,7 @@ a = List.sortBy (\\((b,((c))) as unused, (), ((), _ as d)) -> ((((b)),c), (), ((
                             , under = "List.sortBy"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+type ChoiceType = Variant
 a = List.sort
 """
                         ]
