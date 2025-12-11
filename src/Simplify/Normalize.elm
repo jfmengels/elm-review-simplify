@@ -1,6 +1,6 @@
 module Simplify.Normalize exposing (Comparison(..), areAllTheSame, compare, compareWithoutNormalization, getNumberValue, normalize, normalizeButKeepRange)
 
-import Dict
+import Dict exposing (Dict)
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Infix as Infix
 import Elm.Syntax.Node as Node exposing (Node(..))
@@ -627,13 +627,23 @@ type RecordFieldComparison
 compareRecords : List (Node Expression.RecordSetter) -> List (Node Expression.RecordSetter) -> Comparison -> Comparison
 compareRecords leftList rightList acc =
     let
-        leftFields : List ( String, Node Expression )
+        leftFields : Dict String (Node Expression)
         leftFields =
-            List.map (Node.value >> Tuple.mapFirst Node.value) leftList
+            List.foldl
+                (\(Node _ ( Node _ fieldName, fieldValue )) soFar ->
+                    Dict.insert fieldName fieldValue soFar
+                )
+                Dict.empty
+                leftList
 
-        rightFields : List ( String, Node Expression )
+        rightFields : Dict String (Node Expression)
         rightFields =
-            List.map (Node.value >> Tuple.mapFirst Node.value) rightList
+            List.foldl
+                (\(Node _ ( Node _ fieldName, fieldValue )) soFar ->
+                    Dict.insert fieldName fieldValue soFar
+                )
+                Dict.empty
+                rightList
 
         recordFieldComparisons : List RecordFieldComparison
         recordFieldComparisons =
@@ -641,8 +651,8 @@ compareRecords leftList rightList acc =
                 (\key _ -> Dict.insert key MissingOtherValue)
                 (\key a b -> Dict.insert key (HasBothValues a b))
                 (\key _ -> Dict.insert key MissingOtherValue)
-                (Dict.fromList leftFields)
-                (Dict.fromList rightFields)
+                leftFields
+                rightFields
                 Dict.empty
                 |> Dict.values
     in
