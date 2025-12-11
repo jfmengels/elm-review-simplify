@@ -6866,22 +6866,40 @@ a = List.repeat n
 listSortByTests : Test
 listSortByTests =
     describe "List.sortBy"
-        [ test "should not report List.sortBy with a function variable and a list variable" <|
+        [ test "should not report List.sortBy used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-type ChoiceTypeWithPhantomType unused = Bad Int Int
-type ChoiceTypeWithoutPhantomType used = Good Int used
 a = List.sortBy fn
 b = List.sortBy fn list
 c = List.sortBy << List.sortBy fn
 d = List.sortBy fn << List.sortWith gn
 e = List.sortBy fn << List.sort
 f = List.sortBy (\\(x,y) -> (y,x))
-g = List.sortBy (\\{x,y} -> {x=x,y=y}) -- because {x,y} can match e.g. {x,y,z} values
-h = List.sortBy (\\({x,y} as r) -> {r|y=y})
-i = List.sortBy (\\({x,y} as r) -> {r|x=y,y=x})
-i = List.sortBy (\\(Good a b) -> Good a) -- not fully constructed
-j = List.sortBy (\\(Bad x y) -> Bad x y) -- because it could change phantom types
+g = List.sortBy (\\({x,y} as r) -> {r|y=y})
+h = List.sortBy (\\({x,y} as r) -> {r|x=y,y=x})
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.sortBy with a function that reconstructs all destructured record fields, as record patterns do not have to be exhaustive, e.g. {x,y} can match {x=x,y=y,z=z} values" <|
+            \() ->
+                """module A exposing (..)
+a = List.sortBy (\\{x,y} -> {x=x,y=y}) -- because 
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.sortBy with a function that reconstructs the destructured variant with a curried call" <|
+            \() ->
+                """module A exposing (..)
+type ChoiceTypeWithoutPhantomType used = Good Int used
+a = List.sortBy (\\(Good b c) -> Good b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.sortBy with a function that reconstructs a variant whose origin type has parameters not used in the variant values, as therefore the function could change phantom types of input and output" <|
+            \() ->
+                """module A exposing (..)
+type ChoiceTypeWithPhantomType unused = Bad Int Int
+a = List.sortBy (\\(Bad b c) -> Bad b c)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
