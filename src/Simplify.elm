@@ -15872,10 +15872,9 @@ sameInAllBranches getSpecific baseExpressionNode =
                     sameInAllBranches getSpecific letIn.expression
 
                 Expression.IfBlock _ thenBranch elseBranch ->
-                    traverse
-                        (\branchExpression -> sameInAllBranches getSpecific branchExpression)
-                        [ thenBranch, elseBranch ]
-                        |> Maybe.map List.concat
+                    Maybe.map2 (++)
+                        (sameInAllBranches getSpecific thenBranch)
+                        (sameInAllBranches getSpecific elseBranch)
 
                 Expression.CaseExpression caseOf ->
                     traverse
