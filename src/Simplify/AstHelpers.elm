@@ -420,15 +420,14 @@ getValueOrFunction lookupTable expressionNode =
         nonFunctionOrValueNode ->
             case getReducedLambda lookupTable nonFunctionOrValueNode of
                 Just reducedLambdaToFn ->
-                    case ( reducedLambdaToFn.lambdaPatterns, reducedLambdaToFn.callArguments ) of
-                        ( [], [] ) ->
-                            Just { range = reducedLambdaToFn.fnRange, name = reducedLambdaToFn.fnName }
+                    if
+                        List.isEmpty reducedLambdaToFn.lambdaPatterns
+                            && List.isEmpty reducedLambdaToFn.callArguments
+                    then
+                        Just { range = reducedLambdaToFn.fnRange, name = reducedLambdaToFn.fnName }
 
-                        ( _ :: _, _ ) ->
-                            Nothing
-
-                        ( _, _ :: _ ) ->
-                            Nothing
+                    else
+                        Nothing
 
                 Nothing ->
                     Nothing
