@@ -499,22 +499,6 @@ getCollapsedUnreducedValueOrFunctionCall :
             , callStyle : FunctionCallStyle
             }
 getCollapsedUnreducedValueOrFunctionCall baseNode =
-    let
-        step :
-            { firstArg : Node Expression, argsAfterFirst : List (Node Expression), fed : Node Expression, callStyle : FunctionCallStyle }
-            -> Maybe { nodeRange : Range, fnRange : Range, fnName : String, args : List (Node Expression), callStyle : FunctionCallStyle }
-        step layer =
-            Maybe.map
-                (\fed ->
-                    { nodeRange = Node.range baseNode
-                    , fnRange = fed.fnRange
-                    , fnName = fed.fnName
-                    , args = fed.args ++ (layer.firstArg :: layer.argsAfterFirst)
-                    , callStyle = layer.callStyle
-                    }
-                )
-                (getCollapsedUnreducedValueOrFunctionCall layer.fed)
-    in
     case removeParens baseNode of
         Node fnRange (Expression.FunctionOrValue _ fnName) ->
             Just
@@ -525,32 +509,54 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
                 , callStyle = CallStyle.Application
                 }
 
-        Node _ (Expression.Application (fed :: firstArg :: argsAfterFirst)) ->
-            step
-                { fed = fed
-                , firstArg = firstArg
-                , argsAfterFirst = argsAfterFirst
-                , callStyle = CallStyle.Application
-                }
+        Node _ (Expression.Application (fedNode :: firstArg :: argsAfterFirst)) ->
+            Maybe.map
+                (\fed ->
+                    { nodeRange = Node.range baseNode
+                    , fnRange = fed.fnRange
+                    , fnName = fed.fnName
+                    , args = fed.args ++ (firstArg :: argsAfterFirst)
+                    , callStyle = CallStyle.Application
+                    }
+                )
+                (getCollapsedUnreducedValueOrFunctionCall fedNode)
 
-        Node _ (Expression.OperatorApplication "|>" _ firstArg fed) ->
-            step
-                { fed = fed
-                , firstArg = firstArg
-                , argsAfterFirst = []
-                , callStyle = CallStyle.Pipe CallStyle.LeftToRight
-                }
+        Node _ (Expression.OperatorApplication "|>" _ firstArg fedNode) ->
+            Maybe.map
+                (\fed ->
+                    { nodeRange = Node.range baseNode
+                    , fnRange = fed.fnRange
+                    , fnName = fed.fnName
+                    , args = fed.args ++ [ firstArg ]
+                    , callStyle = functionCallStylePipeLeftToRight
+                    }
+                )
+                (getCollapsedUnreducedValueOrFunctionCall fedNode)
 
-        Node _ (Expression.OperatorApplication "<|" _ fed firstArg) ->
-            step
-                { fed = fed
-                , firstArg = firstArg
-                , argsAfterFirst = []
-                , callStyle = CallStyle.Pipe CallStyle.RightToLeft
-                }
+        Node _ (Expression.OperatorApplication "<|" _ fedNode firstArg) ->
+            Maybe.map
+                (\fed ->
+                    { nodeRange = Node.range baseNode
+                    , fnRange = fed.fnRange
+                    , fnName = fed.fnName
+                    , args = fed.args ++ [ firstArg ]
+                    , callStyle = functionCallStylePipeRightToLeft
+                    }
+                )
+                (getCollapsedUnreducedValueOrFunctionCall fedNode)
 
         _ ->
             Nothing
+
+
+functionCallStylePipeLeftToRight : FunctionCallStyle
+functionCallStylePipeLeftToRight =
+    CallStyle.Pipe CallStyle.LeftToRight
+
+
+functionCallStylePipeRightToLeft : FunctionCallStyle
+functionCallStylePipeRightToLeft =
+    CallStyle.Pipe CallStyle.RightToLeft
 
 
 {-| Whether it's a function that accesses a tuple's first part.
