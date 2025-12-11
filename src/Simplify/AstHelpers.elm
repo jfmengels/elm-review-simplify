@@ -396,19 +396,23 @@ getSpecificValueOrFn :
     -> ReduceLambdaResources context
     -> Node Expression
     -> Maybe Range
-getSpecificValueOrFn ( moduleName, name ) context expressionNode =
+getSpecificValueOrFn ( specificModuleOrigin, specificName ) context expressionNode =
     case getValueOrFunction context expressionNode of
-        Just normalFn ->
+        Just valueOrFn ->
             if
-                (normalFn.name /= name)
-                    || (ModuleNameLookupTable.moduleNameAt context.lookupTable normalFn.range
-                            /= Just moduleName
+                (valueOrFn.name == specificName)
+                    && (case ModuleNameLookupTable.moduleNameAt context.lookupTable valueOrFn.range of
+                            Nothing ->
+                                False
+
+                            Just moduleOrigin ->
+                                moduleOrigin == specificModuleOrigin
                        )
             then
-                Nothing
+                Just valueOrFn.range
 
             else
-                Just normalFn.range
+                Nothing
 
         Nothing ->
             Nothing
