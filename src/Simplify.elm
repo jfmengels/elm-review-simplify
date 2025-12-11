@@ -10439,10 +10439,10 @@ isEqualToConstantFunction rawNode =
                                 nodeToFind =
                                     Expression.FunctionOrValue [] var
                             in
-                            if (Node.value left == nodeToFind) && not (expressionContainsVariable var (Node.value right)) then
+                            if (Node.value left == nodeToFind) && not (expressionContainsVariable var right) then
                                 Just { constant = right }
 
-                            else if (Node.value right == nodeToFind) && not (expressionContainsVariable var (Node.value left)) then
+                            else if (Node.value right == nodeToFind) && not (expressionContainsVariable var left) then
                                 Just { constant = left }
 
                             else
@@ -10458,15 +10458,123 @@ isEqualToConstantFunction rawNode =
             Nothing
 
 
-expressionContainsVariable : String -> Expression -> Bool
-expressionContainsVariable variableToFind expressionNode =
+expressionContainsVariable : String -> Node Expression -> Bool
+expressionContainsVariable variableToFind (Node _ expressionNode) =
     case expressionNode of
         Expression.FunctionOrValue [] variable ->
             variable == variableToFind
 
-        nonVariableExpressionNode ->
-            List.any (\(Node _ sub) -> expressionContainsVariable variableToFind sub)
-                (AstHelpers.subExpressions nonVariableExpressionNode)
+        Expression.LambdaExpression lambda ->
+            expressionContainsVariable variableToFind lambda.expression
+
+        Expression.ParenthesizedExpression expressionInParens ->
+            expressionContainsVariable variableToFind expressionInParens
+
+        Expression.Negation expressionInNegation ->
+            expressionContainsVariable variableToFind expressionInNegation
+
+        Expression.LetExpression letBlock ->
+            expressionContainsVariable variableToFind letBlock.expression
+                || List.any
+                    (\(Node _ letDeclaration) ->
+                        expressionContainsVariable variableToFind
+                            (case letDeclaration of
+                                Expression.LetFunction letFunction ->
+                                    letFunction.declaration |> Node.value |> .expression
+
+                                Expression.LetDestructuring _ expression_ ->
+                                    expression_
+                            )
+                    )
+                    letBlock.declarations
+
+        Expression.ListExpr elements ->
+            List.any (\element -> expressionContainsVariable variableToFind element)
+                elements
+
+        Expression.TupledExpression parts ->
+            List.any (\part -> expressionContainsVariable variableToFind part) parts
+
+        Expression.RecordExpr fields ->
+            List.any
+                (\(Node _ ( _, value )) ->
+                    expressionContainsVariable variableToFind value
+                )
+                fields
+
+        Expression.RecordUpdateExpression (Node recordVariableRange recordVariable) setters ->
+            (recordVariable == variableToFind)
+                || List.any
+                    (\(Node _ ( _, newValue )) ->
+                        expressionContainsVariable variableToFind newValue
+                    )
+                    setters
+
+        Expression.RecordAccess recordToAccess _ ->
+            expressionContainsVariable variableToFind recordToAccess
+
+        Expression.Application applicationElements ->
+            List.any (\part -> expressionContainsVariable variableToFind part) applicationElements
+
+        Expression.CaseExpression caseBlock ->
+            expressionContainsVariable variableToFind caseBlock.expression
+                || List.any
+                    (\( _, caseExpression ) ->
+                        expressionContainsVariable variableToFind caseExpression
+                    )
+                    caseBlock.cases
+
+        Expression.OperatorApplication _ _ e1 e2 ->
+            -- || split into if for TCO
+            if expressionContainsVariable variableToFind e1 then
+                True
+
+            else
+                expressionContainsVariable variableToFind e2
+
+        Expression.IfBlock condition then_ else_ ->
+            -- || split into if for TCO
+            if
+                expressionContainsVariable variableToFind condition
+                    || expressionContainsVariable variableToFind then_
+            then
+                True
+
+            else
+                expressionContainsVariable variableToFind else_
+
+        Expression.UnitExpr ->
+            False
+
+        Expression.Integer _ ->
+            False
+
+        Expression.Hex _ ->
+            False
+
+        Expression.Floatable _ ->
+            False
+
+        Expression.Literal _ ->
+            False
+
+        Expression.CharLiteral _ ->
+            False
+
+        Expression.GLSLExpression _ ->
+            False
+
+        Expression.RecordAccessFunction _ ->
+            False
+
+        Expression.FunctionOrValue _ _ ->
+            False
+
+        Expression.Operator _ ->
+            False
+
+        Expression.PrefixOperator _ ->
+            False
 
 
 {-| The sequence checks `sequenceOnCollectionWithKnownEmptyElementCheck` and `sequenceOnFromListWithEmptyIgnoresLaterElementsCheck`
