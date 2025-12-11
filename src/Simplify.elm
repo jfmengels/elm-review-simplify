@@ -11712,11 +11712,10 @@ onSpecificFnCallCanBeCombinedCheck config =
                 extractedResources =
                     extractReduceLambdaResources resources
             in
-            List.all identity
-                (List.map2 (\arg argConfig -> argConfig.is extractedResources arg)
-                    laterInitArgs
-                    config.args
-                )
+            listAll2
+                (\arg argConfig -> argConfig.is extractedResources arg)
+                laterInitArgs
+                config.args
     in
     { call =
         \checkInfo ->
@@ -12075,14 +12074,12 @@ operationDoesNotChangeResultOfOperationCheck =
                     let
                         areAllArgsEqual : Bool
                         areAllArgsEqual =
-                            List.all
-                                (\( arg, lastArgCallArg ) ->
+                            listAll2
+                                (\arg lastArgCallArg ->
                                     Normalize.compare checkInfo arg lastArgCallArg == Normalize.ConfirmedEquality
                                 )
-                                (List.map2 Tuple.pair
-                                    (listFilledInit ( checkInfo.firstArg, checkInfo.argsAfterFirst ))
-                                    (listFilledInit ( lastArgCall.firstArg, lastArgCall.argsAfterFirst ))
-                                )
+                                (listFilledInit ( checkInfo.firstArg, checkInfo.argsAfterFirst ))
+                                (listFilledInit ( lastArgCall.firstArg, lastArgCall.argsAfterFirst ))
                     in
                     if areAllArgsEqual then
                         Just
@@ -12110,11 +12107,12 @@ operationDoesNotChangeResultOfOperationCheck =
             let
                 areAllArgsEqual : () -> Bool
                 areAllArgsEqual () =
-                    List.all
-                        (\( arg, earlierArg ) ->
+                    listAll2
+                        (\arg earlierArg ->
                             Normalize.compare checkInfo arg earlierArg == Normalize.ConfirmedEquality
                         )
-                        (List.map2 Tuple.pair checkInfo.later.args checkInfo.earlier.args)
+                        checkInfo.later.args
+                        checkInfo.earlier.args
             in
             if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == checkInfo.later.fn) && areAllArgsEqual () then
                 Just
@@ -16016,6 +16014,33 @@ listFilledInit ( head, tail ) =
 listFilledMap : (a -> b) -> ( a, List a ) -> ( b, List b )
 listFilledMap elementChange ( head, tail ) =
     ( elementChange head, List.map elementChange tail )
+
+
+{-| `listAll2 f as bs` is equivalent to both
+
+    List.all (\(a,b)-> f a b) (List.map2 Tuple.pair as bs)
+    List.all identity (List.map2 f as bs)
+
+but more performant.
+
+-}
+listAll2 : (a -> b -> Bool) -> List a -> List b -> Bool
+listAll2 elementsAreRegular aList bList =
+    case aList of
+        [] ->
+            True
+
+        aHead :: aTail ->
+            case bList of
+                [] ->
+                    True
+
+                bHead :: bTail ->
+                    if elementsAreRegular aHead bHead then
+                        listAll2 elementsAreRegular aTail bTail
+
+                    else
+                        False
 
 
 findMap : (a -> Maybe b) -> List a -> Maybe b
