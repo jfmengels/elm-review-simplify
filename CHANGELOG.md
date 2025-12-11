@@ -15,6 +15,8 @@ The rule now simplifies:
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",
   to catch issues like `Maybe.map (\(x, y) -> (x, y))`
+- Now recognizes more `if`s as equal or different,
+  to for example fix `(if c then 2 else 3) == (if c then 1 else 4)` to `False`
 
 ## [2.1.10] - 2025-11-21
 
