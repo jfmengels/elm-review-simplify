@@ -9522,19 +9522,18 @@ emptiableWithDefaultChecks :
 emptiableWithDefaultChecks emptiable checkInfo =
     case secondArg checkInfo of
         Just emptiableArg ->
-            case sameInAllBranches (getEmptyExpressionNode checkInfo emptiable) emptiableArg of
-                Just _ ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " on " ++ typeSubsetDescriptionIndefinite emptiable.empty ++ " will result in the default value"
-                            , details = [ "You can replace this call by the default value." ]
-                            }
-                            checkInfo.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
-                        )
+            if trueInAllBranches (\branch -> isInTypeSubset emptiable.empty checkInfo branch) emptiableArg then
+                Just
+                    (Rule.errorWithFix
+                        { message = qualifiedToString checkInfo.fn ++ " on " ++ typeSubsetDescriptionIndefinite emptiable.empty ++ " will result in the default value"
+                        , details = [ "You can replace this call by the default value." ]
+                        }
+                        checkInfo.fnRange
+                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
+                    )
 
-                Nothing ->
-                    Nothing
+            else
+                Nothing
 
         Nothing ->
             Nothing
@@ -9561,25 +9560,24 @@ fromMaybeWithEmptyValueOnNothingCheck wrapper =
             (\checkInfo ->
                 case secondArg checkInfo of
                     Just maybeArg ->
-                        case sameInAllBranches (\branch -> AstHelpers.getSpecificValueOrFn Fn.Maybe.nothingVariant checkInfo branch) maybeArg of
-                            Just _ ->
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = qualifiedToString checkInfo.fn ++ " on Nothing will result in " ++ qualifiedToString (qualify wrapper.empty.specific.fn checkInfo) ++ " with the given first value"
-                                        , details = [ "You can replace this call by " ++ qualifiedToString (qualify wrapper.empty.specific.fn checkInfo) ++ " with the given first value." ]
-                                        }
-                                        checkInfo.fnRange
-                                        (Fix.replaceRangeBy checkInfo.fnRange
-                                            (qualifiedToString (qualify wrapper.empty.specific.fn checkInfo))
-                                            :: keepOnlyFix
-                                                { parentRange = checkInfo.parentRange
-                                                , keep = Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ]
-                                                }
-                                        )
+                        if trueInAllBranches (\branch -> AstHelpers.isSpecificValueOrFn Fn.Maybe.nothingVariant checkInfo branch) maybeArg then
+                            Just
+                                (Rule.errorWithFix
+                                    { message = qualifiedToString checkInfo.fn ++ " on Nothing will result in " ++ qualifiedToString (qualify wrapper.empty.specific.fn checkInfo) ++ " with the given first value"
+                                    , details = [ "You can replace this call by " ++ qualifiedToString (qualify wrapper.empty.specific.fn checkInfo) ++ " with the given first value." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.replaceRangeBy checkInfo.fnRange
+                                        (qualifiedToString (qualify wrapper.empty.specific.fn checkInfo))
+                                        :: keepOnlyFix
+                                            { parentRange = checkInfo.parentRange
+                                            , keep = Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ]
+                                            }
                                     )
+                                )
 
-                            Nothing ->
-                                Nothing
+                        else
+                            Nothing
 
                     Nothing ->
                         Nothing
@@ -12288,35 +12286,34 @@ unnecessaryCallOnSpecificFnCallCheck specificFn checkInfo =
             Nothing
 
         Just fullyAppliedLastArgNode ->
-            case
-                sameInAllBranches
-                    (\branch -> AstHelpers.getSpecificFnCall specificFn checkInfo branch)
+            if
+                trueInAllBranches
+                    (\branch -> isJust (AstHelpers.getSpecificFnCall specificFn checkInfo branch))
                     fullyAppliedLastArgNode
-            of
-                Nothing ->
-                    Nothing
-
-                Just _ ->
-                    Just
-                        (Rule.errorWithFix
-                            { message =
-                                "Unnecessary "
-                                    ++ qualifiedToString checkInfo.fn
-                                    ++ " on a "
-                                    ++ qualifiedToString specificFn
-                                    ++ " call"
-                            , details =
-                                [ "You can replace this call by the given "
-                                    ++ qualifiedToString specificFn
-                                    ++ " call."
-                                ]
-                            }
-                            checkInfo.fnRange
-                            (replaceBySubExpressionFix
-                                checkInfo.parentRange
-                                fullyAppliedLastArgNode
-                            )
+            then
+                Just
+                    (Rule.errorWithFix
+                        { message =
+                            "Unnecessary "
+                                ++ qualifiedToString checkInfo.fn
+                                ++ " on a "
+                                ++ qualifiedToString specificFn
+                                ++ " call"
+                        , details =
+                            [ "You can replace this call by the given "
+                                ++ qualifiedToString specificFn
+                                ++ " call."
+                            ]
+                        }
+                        checkInfo.fnRange
+                        (replaceBySubExpressionFix
+                            checkInfo.parentRange
+                            fullyAppliedLastArgNode
                         )
+                    )
+
+            else
+                Nothing
 
 
 {-| The wrapper check
@@ -12342,30 +12339,20 @@ unnecessaryCallOnCheck : TypeSubsetProperties otherProperties -> CallCheckInfo -
 unnecessaryCallOnCheck constructable checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just constructableArg ->
-            let
-                getConstructable : Node Expression -> Maybe ()
-                getConstructable expressionNode =
-                    if isInTypeSubset constructable checkInfo expressionNode then
-                        Just ()
-
-                    else
-                        Nothing
-            in
-            case sameInAllBranches getConstructable constructableArg of
-                Just _ ->
-                    Just
-                        (Rule.errorWithFix
-                            (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = constructable })
-                            checkInfo.fnRange
-                            (keepOnlyFix
-                                { parentRange = checkInfo.parentRange
-                                , keep = Node.range constructableArg
-                                }
-                            )
+            if trueInAllBranches (\branch -> isInTypeSubset constructable checkInfo branch) constructableArg then
+                Just
+                    (Rule.errorWithFix
+                        (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = constructable })
+                        checkInfo.fnRange
+                        (keepOnlyFix
+                            { parentRange = checkInfo.parentRange
+                            , keep = Node.range constructableArg
+                            }
                         )
+                    )
 
-                Nothing ->
-                    Nothing
+            else
+                Nothing
 
         Nothing ->
             Nothing
@@ -15898,6 +15885,35 @@ sameInAllBranches getSpecific baseExpressionNode =
 
                 _ ->
                     Nothing
+
+
+{-| Same as `sameInAllBranches` without returning values from branches
+-}
+trueInAllBranches :
+    (Node Expression -> Bool)
+    -> Node Expression
+    -> Bool
+trueInAllBranches isSpecific baseExpressionNode =
+    if isSpecific baseExpressionNode then
+        True
+
+    else
+        case Node.value (AstHelpers.removeParens baseExpressionNode) of
+            Expression.LetExpression letIn ->
+                trueInAllBranches isSpecific letIn.expression
+
+            Expression.IfBlock _ thenBranch elseBranch ->
+                List.all
+                    (\branchExpression -> trueInAllBranches isSpecific branchExpression)
+                    [ thenBranch, elseBranch ]
+
+            Expression.CaseExpression caseOf ->
+                List.all
+                    (\( _, caseExpression ) -> trueInAllBranches isSpecific caseExpression)
+                    caseOf.cases
+
+            _ ->
+                False
 
 
 getComparableExpression : Node Expression -> Maybe (List Expression)
