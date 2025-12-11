@@ -268,33 +268,9 @@ getSpecificFnCall :
             , argsAfterFirst : List (Node Expression)
             , callStyle : FunctionCallStyle
             }
-getSpecificFnCall ( moduleName, name ) context expressionNode =
-    case getValueOrFnOrFnCall context expressionNode of
-        Just call ->
-            case call.args of
-                firstArg :: argsAfterFirst ->
-                    if
-                        (call.fnName /= name)
-                            || (ModuleNameLookupTable.moduleNameAt context.lookupTable call.fnRange
-                                    /= Just moduleName
-                               )
-                    then
-                        Nothing
-
-                    else
-                        Just
-                            { nodeRange = call.nodeRange
-                            , fnRange = call.fnRange
-                            , firstArg = firstArg
-                            , argsAfterFirst = argsAfterFirst
-                            , callStyle = call.callStyle
-                            }
-
-                [] ->
-                    Nothing
-
-        Nothing ->
-            Nothing
+getSpecificFnCall reference context expressionNode =
+    Maybe.andThen (\valOrFn -> valueOrFunctionCallToSpecificFnCall reference context.lookupTable valOrFn)
+        (getValueOrFnOrFnCall context expressionNode)
 
 
 {-| A simpler and faster version of `getSpecificFnCall` that skips checking for possible reduced lambdas.
@@ -322,32 +298,54 @@ getSpecificUnreducedFnCall :
             , argsAfterFirst : List (Node Expression)
             , callStyle : FunctionCallStyle
             }
-getSpecificUnreducedFnCall ( moduleName, name ) lookupTable expressionNode =
-    case getCollapsedUnreducedValueOrFunctionCall expressionNode of
-        Just call ->
-            case call.args of
-                firstArg :: argsAfterFirst ->
-                    if
-                        (call.fnName /= name)
-                            || (ModuleNameLookupTable.moduleNameAt lookupTable call.fnRange
-                                    /= Just moduleName
-                               )
-                    then
-                        Nothing
+getSpecificUnreducedFnCall reference lookupTable expressionNode =
+    Maybe.andThen (\valOrFn -> valueOrFunctionCallToSpecificFnCall reference lookupTable valOrFn)
+        (getCollapsedUnreducedValueOrFunctionCall expressionNode)
 
-                    else
-                        Just
-                            { nodeRange = call.nodeRange
-                            , fnRange = call.fnRange
-                            , firstArg = firstArg
-                            , argsAfterFirst = argsAfterFirst
-                            , callStyle = call.callStyle
-                            }
 
-                [] ->
-                    Nothing
+valueOrFunctionCallToSpecificFnCall :
+    ( ModuleName, String )
+    -> ModuleNameLookupTable
+    ->
+        { nodeRange : Range
+        , fnName : String
+        , fnRange : Range
+        , args : List (Node Expression)
+        , callStyle : FunctionCallStyle
+        }
+    ->
+        Maybe
+            { nodeRange : Range
+            , fnRange : Range
+            , firstArg : Node Expression
+            , argsAfterFirst : List (Node Expression)
+            , callStyle : FunctionCallStyle
+            }
+valueOrFunctionCallToSpecificFnCall ( specificModuleOrigin, specificName ) lookupTable valueOrFunctionCall =
+    case valueOrFunctionCall.args of
+        firstArg :: argsAfterFirst ->
+            if
+                (valueOrFunctionCall.fnName == specificName)
+                    && (case ModuleNameLookupTable.moduleNameAt lookupTable valueOrFunctionCall.fnRange of
+                            Nothing ->
+                                False
 
-        Nothing ->
+                            Just moduleOrigin ->
+                                moduleOrigin == specificModuleOrigin
+                       )
+            then
+                Just
+                    { nodeRange = valueOrFunctionCall.nodeRange
+                    , fnRange = valueOrFunctionCall.fnRange
+                    , firstArg = firstArg
+                    , argsAfterFirst = argsAfterFirst
+                    , callStyle = valueOrFunctionCall.callStyle
+                    }
+
+            else
+                Nothing
+
+        [] ->
             Nothing
 
 
