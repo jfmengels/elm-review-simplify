@@ -232,25 +232,19 @@ getListSingleton :
     -> Node Expression
     -> Maybe { element : Node Expression }
 getListSingleton lookupTable expressionNode =
-    case getListLiteral expressionNode of
-        Just (element :: []) ->
-            Just { element = element }
+    case removeParens expressionNode of
+        Node _ (Expression.ListExpr elements) ->
+            case elements of
+                [ element ] ->
+                    Just { element = element }
 
-        Just _ ->
-            Nothing
-
-        Nothing ->
-            case getSpecificUnreducedFnCall Fn.List.singleton lookupTable expressionNode of
-                Just singletonCall ->
-                    case singletonCall.argsAfterFirst of
-                        [] ->
-                            Just { element = singletonCall.firstArg }
-
-                        _ :: _ ->
-                            Nothing
-
-                Nothing ->
+                _ ->
                     Nothing
+
+        expressionUnparenthesizedNode ->
+            Maybe.map
+                (\singletonCall -> { element = singletonCall.firstArg })
+                (getSpecificUnreducedFnCall Fn.List.singleton lookupTable expressionUnparenthesizedNode)
 
 
 {-| Parses calls and lambdas that are reducible to a call of a function with the given name.
