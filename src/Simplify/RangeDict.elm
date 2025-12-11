@@ -74,10 +74,10 @@ union (RangeDict aRangeDict) (RangeDict bRangeDict) =
 
 rangeAsString : Range -> String
 rangeAsString range =
-    [ range.start.row
-    , range.start.column
-    , range.end.row
-    , range.end.column
-    ]
-        |> List.map String.fromInt
-        |> String.join "_"
+    String.fromInt range.start.row
+        ++ "_"
+        ++ String.fromInt range.start.column
+        ++ "_"
+        ++ String.fromInt range.end.row
+        ++ "_"
+        ++ String.fromInt range.end.column
