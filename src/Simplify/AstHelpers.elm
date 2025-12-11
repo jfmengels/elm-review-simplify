@@ -687,7 +687,7 @@ isIdentity context baseExpressionNode =
                 Node _ (Expression.LambdaExpression lambda) ->
                     case lambda.args of
                         arg :: [] ->
-                            expressionReconstructsIrrefutablePattern context
+                            expressionReconstructsDestructuringPattern context
                                 lambda.expression
                                 arg
 
@@ -761,7 +761,7 @@ getReducedLambda context expressionNode =
                         ( reducedCallArguments, reducedLambdaPatterns ) =
                             drop2EndingsWhile
                                 (\( argument, pattern ) ->
-                                    expressionReconstructsIrrefutablePattern context argument pattern
+                                    expressionReconstructsDestructuringPattern context argument pattern
                                 )
                                 ( call.args
                                 , lambda.patterns
@@ -790,26 +790,26 @@ For example in
 
 what comes out of this lambda will always be the same value that comes in.
 
-An irrefutable pattern is any pattern that exhaustively matches all possible cases.
+An destructuring pattern is any pattern that exhaustively matches all possible cases.
 E.g. any lambda pattern, any let destructuring pattern, any (let) function declaration pattern or the last `case of`
 case pattern when matching on a value with infinite cases like an `Int` or a `List`.
 
 -}
-expressionReconstructsIrrefutablePattern :
+expressionReconstructsDestructuringPattern :
     ReduceLambdaResources context
     -> Node Expression
     -> Node Pattern
     -> Bool
-expressionReconstructsIrrefutablePattern context expressionNode patternNode =
+expressionReconstructsDestructuringPattern context expressionNode patternNode =
     case Node.value patternNode of
         Pattern.ParenthesizedPattern patternInParens ->
-            expressionReconstructsIrrefutablePattern context
+            expressionReconstructsDestructuringPattern context
                 expressionNode
                 patternInParens
 
         -- should be covered by ParenthesizedPattern
         Pattern.TuplePattern [ patternInParens ] ->
-            expressionReconstructsIrrefutablePattern context
+            expressionReconstructsDestructuringPattern context
                 expressionNode
                 patternInParens
 
@@ -876,7 +876,7 @@ expressionReconstructsIrrefutablePattern context expressionNode patternNode =
                         True
 
                     else
-                        expressionReconstructsIrrefutablePattern context
+                        expressionReconstructsDestructuringPattern context
                             unparenthesizedExpressionNotLocalReference
                             unparenthesizedAliasedPattern
 
@@ -887,8 +887,8 @@ expressionReconstructsIrrefutablePattern context expressionNode patternNode =
 
                 Just expressionParts ->
                     -- && split into if to make use of TCO
-                    if expressionReconstructsIrrefutablePattern context expressionParts.first patternPart0 then
-                        expressionReconstructsIrrefutablePattern context expressionParts.second patternPart1
+                    if expressionReconstructsDestructuringPattern context expressionParts.first patternPart0 then
+                        expressionReconstructsDestructuringPattern context expressionParts.second patternPart1
 
                     else
                         False
@@ -898,10 +898,10 @@ expressionReconstructsIrrefutablePattern context expressionNode patternNode =
                 Node _ (Expression.TupledExpression [ expressionPart0, expressionPart1, expressionPart2 ]) ->
                     -- && split into if to make use of TCO
                     if
-                        expressionReconstructsIrrefutablePattern context expressionPart0 patternPart0
-                            && expressionReconstructsIrrefutablePattern context expressionPart1 patternPart1
+                        expressionReconstructsDestructuringPattern context expressionPart0 patternPart0
+                            && expressionReconstructsDestructuringPattern context expressionPart1 patternPart1
                     then
-                        expressionReconstructsIrrefutablePattern context expressionPart2 patternPart2
+                        expressionReconstructsDestructuringPattern context expressionPart2 patternPart2
 
                     else
                         False
@@ -976,14 +976,14 @@ expressionReconstructsIrrefutablePattern context expressionNode patternNode =
                                         False
 
                                     Just expressionVariantCall ->
-                                        expressionReconstructsIrrefutablePattern context expressionVariantCall.firstArg valuePattern0
+                                        expressionReconstructsDestructuringPattern context expressionVariantCall.firstArg valuePattern0
                                             && -- must be the same length
                                                -- because e.g. (\(V x y) -> V x)
                                                -- is valid, compiling elm code
                                                -- that is not equivalent to identity
                                                list2AreSameLengthAndAll
                                                 (\valueExpression valuePattern ->
-                                                    expressionReconstructsIrrefutablePattern context valueExpression valuePattern
+                                                    expressionReconstructsDestructuringPattern context valueExpression valuePattern
                                                 )
                                                 expressionVariantCall.argsAfterFirst
                                                 valuePattern1Up
