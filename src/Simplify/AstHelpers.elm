@@ -370,17 +370,17 @@ getValueOrFnOrFnCall lookupTable expressionNode =
         Nothing ->
             case getReducedLambda lookupTable expressionNode of
                 Just reducedLambda ->
-                    case ( reducedLambda.lambdaPatterns, reducedLambda.callArguments ) of
-                        ( [], args ) ->
+                    case reducedLambda.lambdaPatterns of
+                        [] ->
                             Just
                                 { nodeRange = reducedLambda.nodeRange
                                 , fnName = reducedLambda.fnName
                                 , fnRange = reducedLambda.fnRange
                                 , callStyle = reducedLambda.callStyle
-                                , args = args
+                                , args = reducedLambda.callArguments
                                 }
 
-                        ( _ :: _, _ ) ->
+                        _ :: _ ->
                             Nothing
 
                 Nothing ->
