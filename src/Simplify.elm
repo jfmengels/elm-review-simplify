@@ -5736,7 +5736,7 @@ listConcatChecks =
             (\checkInfo ->
                 case fromListGetLiteral listCollection checkInfo.lookupTable checkInfo.firstArg of
                     Just listLiteral ->
-                        if List.all (\element -> isJust (AstHelpers.getListLiteral element)) listLiteral.elements then
+                        if List.all AstHelpers.isListLiteral listLiteral.elements then
                             Just
                                 (Rule.errorWithFix
                                     { message = "Expression could be simplified to be a single List"
@@ -8258,7 +8258,14 @@ listCollection =
 listEmptyConstantSpecific : ConstantProperties
 listEmptyConstantSpecific =
     { description = "[]"
-    , is = \_ expr -> AstHelpers.getListLiteral expr == Just []
+    , is =
+        \_ expressionNode ->
+            case AstHelpers.removeParens expressionNode of
+                Node _ (Expression.ListExpr []) ->
+                    True
+
+                _ ->
+                    False
     , asString = \_ -> "[]"
     }
 

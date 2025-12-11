@@ -8,7 +8,7 @@ module Simplify.AstHelpers exposing
     , isTupleFirstAccess, isTupleSecondAccess
     , getAccessingRecord, getRecordAccessFunction
     , getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
-    , getCollapsedCons, getListLiteral, getListSingleton
+    , getCollapsedCons, getListLiteral, isListLiteral, getListSingleton
     , getTuple2, getTuple2Literal
     , boolToString, orderToString, emptyStringAsString
     , moduleNameFromString, qualifiedName, qualifiedModuleName, qualifiedToString, moduleNameToString
@@ -47,7 +47,7 @@ module Simplify.AstHelpers exposing
 @docs isTupleFirstAccess, isTupleSecondAccess
 @docs getAccessingRecord, getRecordAccessFunction
 @docs getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
-@docs getCollapsedCons, getListLiteral, getListSingleton
+@docs getCollapsedCons, getListLiteral, isListLiteral, getListSingleton
 @docs getTuple2, getTuple2Literal
 
 
@@ -1292,6 +1292,16 @@ getListLiteral expressionNode =
 
         _ ->
             Nothing
+
+
+isListLiteral : Node Expression -> Bool
+isListLiteral expressionNode =
+    case removeParens expressionNode of
+        Node _ (Expression.ListExpr _) ->
+            True
+
+        _ ->
+            False
 
 
 getCollapsedCons : Node Expression -> Maybe { consed : List (Node Expression), tail : Node Expression }
