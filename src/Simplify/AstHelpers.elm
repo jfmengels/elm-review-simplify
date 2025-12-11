@@ -1148,8 +1148,11 @@ patternBindings pattern =
         Pattern.TuplePattern patterns ->
             patternListBindings patterns
 
-        Pattern.RecordPattern patterns ->
-            Set.fromList (List.map Node.value patterns)
+        Pattern.RecordPattern fieldNames ->
+            List.foldl
+                (\(Node _ fieldName) soFar -> Set.insert fieldName soFar)
+                Set.empty
+                fieldNames
 
         Pattern.NamedPattern _ patterns ->
             patternListBindings patterns
@@ -1203,8 +1206,11 @@ declarationBindings declaration =
     case declaration of
         Declaration.CustomTypeDeclaration variantType ->
             variantType.constructors
-                |> List.map (\(Node _ variant) -> Node.value variant.name)
-                |> Set.fromList
+                |> List.foldl
+                    (\(Node _ variant) soFar ->
+                        Set.insert (Node.value variant.name) soFar
+                    )
+                    Set.empty
 
         Declaration.FunctionDeclaration functionDeclaration ->
             Set.singleton

@@ -1915,11 +1915,12 @@ importContext importNode =
 
                     Exposing.Explicit exposes ->
                         ExposedSome
-                            (Set.fromList
-                                (List.map
-                                    (\(Node _ expose) -> AstHelpers.nameOfExpose expose)
-                                    exposes
+                            (List.foldl
+                                (\(Node _ expose) soFar ->
+                                    Set.insert (AstHelpers.nameOfExpose expose) soFar
                                 )
+                                Set.empty
+                                exposes
                             )
     }
 
@@ -2010,8 +2011,18 @@ dependenciesVisitor typeNamesAsStrings dependencies context =
 
         unions : Set String
         unions =
-            List.concatMap (\module_ -> List.map (\union -> module_.name ++ "." ++ union.name) module_.unions) modules
-                |> Set.fromList
+            List.foldl
+                (\module_ soFar ->
+                    List.foldl
+                        (\union withModuleUnionsSoFar ->
+                            Set.insert (module_.name ++ "." ++ union.name)
+                                withModuleUnionsSoFar
+                        )
+                        soFar
+                        module_.unions
+                )
+                Set.empty
+                modules
 
         unknownTypesToIgnore : List String
         unknownTypesToIgnore =
@@ -2020,20 +2031,31 @@ dependenciesVisitor typeNamesAsStrings dependencies context =
 
         customTypesToReportInCases : Set ( ModuleName, String )
         customTypesToReportInCases =
-            modules
-                |> List.concatMap
-                    (\mod ->
-                        let
-                            moduleName : ModuleName
-                            moduleName =
-                                AstHelpers.moduleNameFromString mod.name
-                        in
-                        mod.unions
-                            |> List.filter (\union -> not (Set.member (mod.name ++ "." ++ union.name) typeNamesAsStrings))
-                            |> List.concatMap (\union -> union.tags)
-                            |> List.map (\( tagName, _ ) -> ( moduleName, tagName ))
-                    )
-                |> Set.fromList
+            List.foldl
+                (\mod soFar ->
+                    let
+                        moduleName : ModuleName
+                        moduleName =
+                            AstHelpers.moduleNameFromString mod.name
+                    in
+                    mod.unions
+                        |> List.foldl
+                            (\union withModuleUnionsSoFar ->
+                                if Set.member (mod.name ++ "." ++ union.name) typeNamesAsStrings then
+                                    withModuleUnionsSoFar
+
+                                else
+                                    union.tags
+                                        |> List.foldl
+                                            (\( tagName, _ ) withUnionVariantsSoFar ->
+                                                Set.insert ( moduleName, tagName ) withUnionVariantsSoFar
+                                            )
+                                            withModuleUnionsSoFar
+                            )
+                            soFar
+                )
+                Set.empty
+                modules
 
         dependencyExposedVariants : Dict ModuleName (Set String)
         dependencyExposedVariants =
@@ -2042,12 +2064,16 @@ dependenciesVisitor typeNamesAsStrings dependencies context =
                     Dict.insert
                         (AstHelpers.moduleNameFromString moduleDoc.name)
                         (moduleDoc.unions
-                            |> List.concatMap
-                                (\union ->
+                            |> List.foldl
+                                (\union moduleVariantNamesSoFar ->
                                     union.tags
-                                        |> List.map (\( variantName, _ ) -> variantName)
+                                        |> List.foldl
+                                            (\( variantName, _ ) withVariantsSoFar ->
+                                                Set.insert variantName withVariantsSoFar
+                                            )
+                                            moduleVariantNamesSoFar
                                 )
-                            |> Set.fromList
+                                Set.empty
                         )
                         acc
                 )
