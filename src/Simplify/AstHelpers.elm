@@ -3,7 +3,7 @@ module Simplify.AstHelpers exposing
     , subExpressions
     , removeParens, removeParensFromPattern
     , getValueOrFnOrFnCall
-    , getSpecificFnCall, getSpecificUnreducedFnCall, getSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
+    , getSpecificFnCall, getSpecificUnreducedFnCall, getSpecificValueOrFn, isSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
     , getAccessingRecord, getRecordAccessFunction
@@ -38,7 +38,7 @@ module Simplify.AstHelpers exposing
 ### value/function/function call/composition
 
 @docs getValueOrFnOrFnCall
-@docs getSpecificFnCall, getSpecificUnreducedFnCall, getSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
+@docs getSpecificFnCall, getSpecificUnreducedFnCall, getSpecificValueOrFn, isSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
 
 
 ### certain kind
@@ -364,8 +364,8 @@ getValueOrFnOrFnCall :
             }
 getValueOrFnOrFnCall lookupTable expressionNode =
     case getCollapsedUnreducedValueOrFunctionCall expressionNode of
-        Just valueOrCall ->
-            Just valueOrCall
+        (Just _) as justValueOrCall ->
+            justValueOrCall
 
         Nothing ->
             case getReducedLambda lookupTable expressionNode of
@@ -416,6 +416,29 @@ getSpecificValueOrFn ( specificModuleOrigin, specificName ) context expressionNo
 
         Nothing ->
             Nothing
+
+
+{-| Same as `getSpecificValueOrFn` without returning the range
+-}
+isSpecificValueOrFn :
+    ( ModuleName, String )
+    -> ReduceLambdaResources context
+    -> Node Expression
+    -> Bool
+isSpecificValueOrFn ( specificModuleOrigin, specificName ) context expressionNode =
+    case getValueOrFunction context expressionNode of
+        Just valueOrFn ->
+            (valueOrFn.name == specificName)
+                && (case ModuleNameLookupTable.moduleNameAt context.lookupTable valueOrFn.range of
+                        Nothing ->
+                            False
+
+                        Just moduleOrigin ->
+                            moduleOrigin == specificModuleOrigin
+                   )
+
+        Nothing ->
+            False
 
 
 {-| Parses either a value reference, a function reference without arguments or a lambda that is reducible to a function without arguments
@@ -570,12 +593,8 @@ Either a function reducible to `Tuple.first` or `\( first, ... ) -> first`.
 -}
 isTupleFirstAccess : ReduceLambdaResources context -> Node Expression -> Bool
 isTupleFirstAccess context expressionNode =
-    case getSpecificValueOrFn Fn.Tuple.first context expressionNode of
-        Just _ ->
-            True
-
-        Nothing ->
-            isTupleFirstPatternLambda expressionNode
+    isSpecificValueOrFn Fn.Tuple.first context expressionNode
+        || isTupleFirstPatternLambda expressionNode
 
 
 isTupleFirstPatternLambda : Node Expression -> Bool
@@ -598,12 +617,8 @@ Either a function reducible to `Tuple.second` or `\( ..., second ) -> second`.
 -}
 isTupleSecondAccess : ReduceLambdaResources context -> Node Expression -> Bool
 isTupleSecondAccess context expressionNode =
-    case getSpecificValueOrFn Fn.Tuple.second context expressionNode of
-        Just _ ->
-            True
-
-        Nothing ->
-            isTupleSecondPatternLambda expressionNode
+    isSpecificValueOrFn Fn.Tuple.second context expressionNode
+        || isTupleSecondPatternLambda expressionNode
 
 
 isTupleSecondPatternLambda : Node Expression -> Bool
@@ -680,12 +695,8 @@ Either a function reducible to `Basics.identity` or `\a -> a` (or any other lamb
 -}
 isIdentity : ReduceLambdaResources context -> Node Expression -> Bool
 isIdentity context baseExpressionNode =
-    case getSpecificValueOrFn Fn.Basics.identity context baseExpressionNode of
-        Just _ ->
-            True
-
-        Nothing ->
-            case removeParens baseExpressionNode of
+    isSpecificValueOrFn Fn.Basics.identity context baseExpressionNode
+        || (case removeParens baseExpressionNode of
                 Node _ (Expression.LambdaExpression lambda) ->
                     case lambda.args of
                         arg :: [] ->
@@ -698,6 +709,7 @@ isIdentity context baseExpressionNode =
 
                 _ ->
                     False
+           )
 
 
 {-| Parse a function that returns the same for any given input and return the result expression node.

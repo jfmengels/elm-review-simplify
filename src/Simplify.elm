@@ -9418,17 +9418,16 @@ wrapperFlatMapChecks wrapper =
           }
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                case AstHelpers.getSpecificValueOrFn wrapper.wrap.fn checkInfo checkInfo.firstArg of
-                    Just _ ->
-                        Just
-                            (alwaysReturnsLastArgError
-                                (qualifiedToString checkInfo.fn ++ " with a function equivalent to " ++ qualifiedToString (qualify wrapper.wrap.fn defaultQualifyResources))
-                                wrapper
-                                checkInfo
-                            )
+                if AstHelpers.isSpecificValueOrFn wrapper.wrap.fn checkInfo checkInfo.firstArg then
+                    Just
+                        (alwaysReturnsLastArgError
+                            (qualifiedToString checkInfo.fn ++ " with a function equivalent to " ++ qualifiedToString (qualify wrapper.wrap.fn defaultQualifyResources))
+                            wrapper
+                            checkInfo
+                        )
 
-                    Nothing ->
-                        Nothing
+                else
+                    Nothing
             )
         , intoFnCheckOnlyCall
             (\checkInfo ->
@@ -10231,39 +10230,38 @@ collectionAllChecks collection =
             else
                 Nothing
         , \checkInfo ->
-            case AstHelpers.getSpecificValueOrFn Fn.Basics.not checkInfo checkInfo.firstArg of
-                Just _ ->
-                    case Maybe.andThen (collection.elements.get (extractInferResources checkInfo)) (fullyAppliedLastArg checkInfo) of
-                        Just elements ->
-                            firstThatConstructsJust
-                                [ \() ->
-                                    if List.any (boolTrueConstant.is (extractInferResources checkInfo)) elements.known then
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ collection.represents ++ " with True will result in False"
-                                                , details =
-                                                    [ "You can replace this call by False." ]
-                                                }
-                                                checkInfo.fnRange
-                                                [ Fix.replaceRangeBy checkInfo.parentRange
-                                                    (qualifiedToString (qualify Fn.Basics.falseVariant checkInfo))
-                                                ]
-                                            )
+            if AstHelpers.isSpecificValueOrFn Fn.Basics.not checkInfo checkInfo.firstArg then
+                case Maybe.andThen (collection.elements.get (extractInferResources checkInfo)) (fullyAppliedLastArg checkInfo) of
+                    Just elements ->
+                        firstThatConstructsJust
+                            [ \() ->
+                                if List.any (boolTrueConstant.is (extractInferResources checkInfo)) elements.known then
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ collection.represents ++ " with True will result in False"
+                                            , details =
+                                                [ "You can replace this call by False." ]
+                                            }
+                                            checkInfo.fnRange
+                                            [ Fix.replaceRangeBy checkInfo.parentRange
+                                                (qualifiedToString (qualify Fn.Basics.falseVariant checkInfo))
+                                            ]
+                                        )
 
-                                    else
-                                        Nothing
-                                , \() ->
-                                    callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with `not`")
-                                        ( collection, { empty = { specific = boolFalseConstant, kind = Constant } } )
-                                        checkInfo
-                                ]
-                                ()
+                                else
+                                    Nothing
+                            , \() ->
+                                callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with `not`")
+                                    ( collection, { empty = { specific = boolFalseConstant, kind = Constant } } )
+                                    checkInfo
+                            ]
+                            ()
 
-                        Nothing ->
-                            Nothing
+                    Nothing ->
+                        Nothing
 
-                Nothing ->
-                    Nothing
+            else
+                Nothing
         ]
 
 
@@ -10313,39 +10311,38 @@ collectionAnyChecks collection =
             else
                 Nothing
         , \checkInfo ->
-            case AstHelpers.getSpecificValueOrFn Fn.Basics.not checkInfo checkInfo.firstArg of
-                Just _ ->
-                    case Maybe.andThen (collection.elements.get (extractInferResources checkInfo)) (fullyAppliedLastArg checkInfo) of
-                        Just elements ->
-                            firstThatConstructsJust
-                                [ \() ->
-                                    if List.any (boolFalseConstant.is (extractInferResources checkInfo)) elements.known then
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ collection.represents ++ " with False will result in True"
-                                                , details =
-                                                    [ "You can replace this call by True." ]
-                                                }
-                                                checkInfo.fnRange
-                                                [ Fix.replaceRangeBy checkInfo.parentRange
-                                                    (qualifiedToString (qualify Fn.Basics.trueVariant checkInfo))
-                                                ]
-                                            )
+            if AstHelpers.isSpecificValueOrFn Fn.Basics.not checkInfo checkInfo.firstArg then
+                case Maybe.andThen (collection.elements.get (extractInferResources checkInfo)) (fullyAppliedLastArg checkInfo) of
+                    Just elements ->
+                        firstThatConstructsJust
+                            [ \() ->
+                                if List.any (boolFalseConstant.is (extractInferResources checkInfo)) elements.known then
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ collection.represents ++ " with False will result in True"
+                                            , details =
+                                                [ "You can replace this call by True." ]
+                                            }
+                                            checkInfo.fnRange
+                                            [ Fix.replaceRangeBy checkInfo.parentRange
+                                                (qualifiedToString (qualify Fn.Basics.trueVariant checkInfo))
+                                            ]
+                                        )
 
-                                    else
-                                        Nothing
-                                , \() ->
-                                    callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with `not`")
-                                        ( collection, { empty = { specific = boolTrueConstant, kind = Constant } } )
-                                        checkInfo
-                                ]
-                                ()
+                                else
+                                    Nothing
+                            , \() ->
+                                callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with `not`")
+                                    ( collection, { empty = { specific = boolTrueConstant, kind = Constant } } )
+                                    checkInfo
+                            ]
+                            ()
 
-                        Nothing ->
-                            Nothing
+                    Nothing ->
+                        Nothing
 
-                Nothing ->
-                    Nothing
+            else
+                Nothing
         ]
 
 
@@ -11564,17 +11561,16 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
             )
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                case AstHelpers.getSpecificValueOrFn Fn.Maybe.justVariant checkInfo checkInfo.firstArg of
-                    Just _ ->
-                        Just
-                            (alwaysReturnsLastArgError
-                                (qualifiedToString checkInfo.fn ++ " with a function that will always return Just")
-                                emptiableWrapper
-                                checkInfo
-                            )
+                if AstHelpers.isSpecificValueOrFn Fn.Maybe.justVariant checkInfo checkInfo.firstArg then
+                    Just
+                        (alwaysReturnsLastArgError
+                            (qualifiedToString checkInfo.fn ++ " with a function that will always return Just")
+                            emptiableWrapper
+                            checkInfo
+                        )
 
-                    Nothing ->
-                        Nothing
+                else
+                    Nothing
             )
         , intoFnCheckOnlyCall
             (\checkInfo ->
@@ -15620,14 +15616,14 @@ constructsOrComposesInto constructWithOneValue context expressionNode =
                 |> getCompositionToLast
                 |> Maybe.andThen
                     (\compositionToLast ->
-                        compositionToLast.last
-                            |> AstHelpers.getSpecificValueOrFn constructWithOneValue.fn context
-                            |> Maybe.map
-                                (\_ ->
-                                    [ Fix.removeRange
-                                        (andBetweenRange { included = Node.range compositionToLast.last, excluded = Node.range compositionToLast.earlier })
-                                    ]
-                                )
+                        if AstHelpers.isSpecificValueOrFn constructWithOneValue.fn context compositionToLast.last then
+                            Just
+                                [ Fix.removeRange
+                                    (andBetweenRange { included = Node.range compositionToLast.last, excluded = Node.range compositionToLast.earlier })
+                                ]
+
+                        else
+                            Nothing
                     )
         ]
 
