@@ -1,6 +1,5 @@
 module Simplify.AstHelpers exposing
     ( ReduceLambdaResources
-    , subExpressions
     , removeParens, removeParensFromPattern
     , getValueOrFnOrFnCall
     , getSpecificFnCall, getSpecificUnreducedFnCall, isSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
@@ -23,11 +22,6 @@ module Simplify.AstHelpers exposing
 ## resources
 
 @docs ReduceLambdaResources
-
-
-## look deeper
-
-@docs subExpressions
 
 
 ### remove parens
@@ -110,97 +104,6 @@ removeParensFromPattern patternNode =
 
         _ ->
             patternNode
-
-
-{-| Get all immediate child expressions of an expression
--}
-subExpressions : Expression -> List (Node Expression)
-subExpressions expression =
-    case expression of
-        Expression.LetExpression letBlock ->
-            letBlock.expression
-                :: (letBlock.declarations
-                        |> List.map
-                            (\(Node _ letDeclaration) ->
-                                case letDeclaration of
-                                    Expression.LetFunction letFunction ->
-                                        letFunction.declaration |> Node.value |> .expression
-
-                                    Expression.LetDestructuring _ expression_ ->
-                                        expression_
-                            )
-                   )
-
-        Expression.ListExpr expressions ->
-            expressions
-
-        Expression.TupledExpression expressions ->
-            expressions
-
-        Expression.RecordExpr fields ->
-            fields |> List.map (\(Node _ ( _, value )) -> value)
-
-        Expression.RecordUpdateExpression (Node recordVariableRange recordVariable) setters ->
-            Node recordVariableRange (Expression.FunctionOrValue [] recordVariable)
-                :: (setters |> List.map (\(Node _ ( _, newValue )) -> newValue))
-
-        Expression.RecordAccess recordToAccess _ ->
-            [ recordToAccess ]
-
-        Expression.Application applicationElements ->
-            applicationElements
-
-        Expression.CaseExpression caseBlock ->
-            caseBlock.expression
-                :: (caseBlock.cases |> List.map (\( _, caseExpression ) -> caseExpression))
-
-        Expression.OperatorApplication _ _ e1 e2 ->
-            [ e1, e2 ]
-
-        Expression.IfBlock condition then_ else_ ->
-            [ condition, then_, else_ ]
-
-        Expression.LambdaExpression lambda ->
-            [ lambda.expression ]
-
-        Expression.ParenthesizedExpression expressionInParens ->
-            [ expressionInParens ]
-
-        Expression.Negation expressionInNegation ->
-            [ expressionInNegation ]
-
-        Expression.UnitExpr ->
-            []
-
-        Expression.Integer _ ->
-            []
-
-        Expression.Hex _ ->
-            []
-
-        Expression.Floatable _ ->
-            []
-
-        Expression.Literal _ ->
-            []
-
-        Expression.CharLiteral _ ->
-            []
-
-        Expression.GLSLExpression _ ->
-            []
-
-        Expression.RecordAccessFunction _ ->
-            []
-
-        Expression.FunctionOrValue _ _ ->
-            []
-
-        Expression.Operator _ ->
-            []
-
-        Expression.PrefixOperator _ ->
-            []
 
 
 type alias ReduceLambdaResources context =
