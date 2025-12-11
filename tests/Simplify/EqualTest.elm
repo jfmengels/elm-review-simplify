@@ -847,10 +847,70 @@ a = (if 1 then 2 else 3) == (if 2 - 1 then 3 - 1 else 4 - 1)
 a = True
 """
                         ]
-        , test "should not simplify if expressions that don't look like each other" <|
+        , test "should simplify if expressions with conditions that look different but branches that look like each other when switched around" <|
             \() ->
                 """module A exposing (..)
-a = (if a then 2 else 3) == (if a then 1 else 2)
+a = (if c then 2 else 3) == (if Basics.not c then 3 else 2)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
+                            , under = "(if c then 2 else 3) == (if Basics.not c then 3 else 2)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify if expressions that have conditions that are like each other but on-True and on-False branches that look different" <|
+            \() ->
+                """module A exposing (..)
+a = (if c then 2 else 3) == (if c then 1 else 4)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
+                            , under = "(if c then 2 else 3) == (if c then 1 else 4)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should not simplify if expressions that have conditions that are like each other but on-False branches that look different whereas on-True branches look like each other" <|
+            \() ->
+                """module A exposing (..)
+a = (if c then 1 else 3) == (if c then 1 else 2)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not simplify if expressions that don't look like each other in condition" <|
+            \() ->
+                """module A exposing (..)
+a = (if c then 1 else 2) == (if x then 1 else 2)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not simplify if expressions that look like each other in condition and on-False branches but on-True branches don't look similar" <|
+            \() ->
+                """module A exposing (..)
+a = (if c then 1 else 2) == (if c then x + 1 else 2)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not simplify if expressions that look like each other in condition and on-True branches but on-False branches don't look similar" <|
+            \() ->
+                """module A exposing (..)
+a = (if c then 1 else 2 + x) == (if c then 1 else 2)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not simplify if expressions that look different in condition but switched branches don't look similar" <|
+            \() ->
+                """module A exposing (..)
+a = (if c then 1 + x else 2 + x) == (if Basics.not c then 2 else 1)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors

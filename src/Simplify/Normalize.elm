@@ -412,9 +412,7 @@ compareHelp leftNode right canFlip =
                 case Node.value (removeParens right) of
                     Expression.OperatorApplication rightOp _ rightLeft rightRight ->
                         if leftOp == rightOp then
-                            compareEqualityOfAll
-                                [ leftLeft, leftRight ]
-                                [ rightLeft, rightRight ]
+                            compareAll2Help leftLeft rightLeft leftRight rightRight
 
                         else
                             fallback ()
@@ -453,11 +451,7 @@ compareHelp leftNode right canFlip =
         Expression.ListExpr leftList ->
             case Node.value (removeParens right) of
                 Expression.ListExpr rightList ->
-                    if List.length leftList /= List.length rightList then
-                        ConfirmedInequality
-
-                    else
-                        compareLists leftList rightList ConfirmedEquality
+                    compareLists leftList rightList ConfirmedEquality
 
                 _ ->
                     fallback ()
@@ -465,7 +459,26 @@ compareHelp leftNode right canFlip =
         Expression.TupledExpression leftList ->
             case Node.value (removeParens right) of
                 Expression.TupledExpression rightList ->
-                    compareLists leftList rightList ConfirmedEquality
+                    case leftList of
+                        [ left0, left1 ] ->
+                            case rightList of
+                                [ right0, right1 ] ->
+                                    compareAll2Help left0 right0 left1 right1
+
+                                _ ->
+                                    Unconfirmed
+
+                        [ left0, left1, left2 ] ->
+                            case rightList of
+                                [ right0, right1, right2 ] ->
+                                    compareAll3Help left0 right0 left1 right1 left2 right2
+
+                                _ ->
+                                    Unconfirmed
+
+                        -- invalid syntax
+                        _ ->
+                            Unconfirmed
 
                 _ ->
                     fallback ()
@@ -481,19 +494,27 @@ compareHelp leftNode right canFlip =
         Expression.RecordUpdateExpression leftBaseValue leftList ->
             case Node.value (removeParens right) of
                 Expression.RecordUpdateExpression rightBaseValue rightList ->
-                    if Node.value leftBaseValue == Node.value rightBaseValue then
-                        compareRecords leftList rightList ConfirmedEquality
+                    compareRecords leftList
+                        rightList
+                        (if Node.value leftBaseValue == Node.value rightBaseValue then
+                            ConfirmedEquality
 
-                    else
-                        compareRecords leftList rightList Unconfirmed
+                         else
+                            Unconfirmed
+                        )
 
                 _ ->
                     fallback ()
 
-        Expression.Application leftArgs ->
+        Expression.Application (leftCalled :: leftArg0 :: leftArg1Up) ->
             case Node.value (removeParens right) of
-                Expression.Application rightArgs ->
-                    compareEqualityOfAll leftArgs rightArgs
+                Expression.Application (rightCalled :: rightArg0 :: rightArg1Up) ->
+                    case compareAll2Help leftCalled rightCalled leftArg0 rightArg0 of
+                        ConfirmedEquality ->
+                            compareAllConfirmedEqualityElseUnconfirmedHelp leftArg1Up rightArg1Up
+
+                        _ ->
+                            Unconfirmed
 
                 _ ->
                     fallback ()
@@ -516,15 +537,147 @@ compareHelp leftNode right canFlip =
         Expression.IfBlock leftCond leftThen leftElse ->
             case Node.value (removeParens right) of
                 Expression.IfBlock rightCond rightThen rightElse ->
-                    compareEqualityOfAll
-                        [ leftCond, leftThen, leftElse ]
-                        [ rightCond, rightThen, rightElse ]
+                    case compareHelp leftCond rightCond True of
+                        ConfirmedEquality ->
+                            case compareHelp leftThen rightThen True of
+                                ConfirmedInequality ->
+                                    case compareHelp leftElse rightElse True of
+                                        ConfirmedInequality ->
+                                            ConfirmedInequality
+
+                                        _ ->
+                                            Unconfirmed
+
+                                ConfirmedEquality ->
+                                    case compareHelp leftElse rightElse True of
+                                        ConfirmedEquality ->
+                                            ConfirmedEquality
+
+                                        _ ->
+                                            Unconfirmed
+
+                                Unconfirmed ->
+                                    Unconfirmed
+
+                        ConfirmedInequality ->
+                            -- notice that we instead compare the then with else branches
+                            case compareHelp leftThen rightElse True of
+                                ConfirmedInequality ->
+                                    case compareHelp leftElse rightThen True of
+                                        ConfirmedInequality ->
+                                            ConfirmedInequality
+
+                                        _ ->
+                                            Unconfirmed
+
+                                ConfirmedEquality ->
+                                    case compareHelp leftElse rightThen True of
+                                        ConfirmedEquality ->
+                                            ConfirmedEquality
+
+                                        _ ->
+                                            Unconfirmed
+
+                                Unconfirmed ->
+                                    Unconfirmed
+
+                        Unconfirmed ->
+                            Unconfirmed
 
                 _ ->
                     fallback ()
 
         _ ->
             fallback ()
+
+
+compareAll2Help : Node Expression -> Node Expression -> Node Expression -> Node Expression -> Comparison
+compareAll2Help left0 right0 left1 right1 =
+    case compareHelp left0 right0 True of
+        ConfirmedInequality ->
+            ConfirmedInequality
+
+        ConfirmedEquality ->
+            compareHelp left1 right1 True
+
+        Unconfirmed ->
+            case compareHelp left1 right1 True of
+                ConfirmedInequality ->
+                    ConfirmedInequality
+
+                _ ->
+                    Unconfirmed
+
+
+compareAll3Help : Node Expression -> Node Expression -> Node Expression -> Node Expression -> Node Expression -> Node Expression -> Comparison
+compareAll3Help left0 right0 left1 right1 left2 right2 =
+    case compareAll2Help left0 right0 left1 right1 of
+        ConfirmedInequality ->
+            ConfirmedInequality
+
+        ConfirmedEquality ->
+            compareHelp left2 right2 True
+
+        Unconfirmed ->
+            case compareHelp left2 right2 True of
+                ConfirmedInequality ->
+                    ConfirmedInequality
+
+                _ ->
+                    Unconfirmed
+
+
+compareLists : List (Node Expression) -> List (Node Expression) -> Comparison -> Comparison
+compareLists leftList rightList soFar =
+    case leftList of
+        [] ->
+            case rightList of
+                [] ->
+                    soFar
+
+                _ :: _ ->
+                    ConfirmedInequality
+
+        left :: restOfLeft ->
+            case rightList of
+                [] ->
+                    ConfirmedInequality
+
+                right :: restOfRight ->
+                    case compareWithoutNormalization left right of
+                        ConfirmedInequality ->
+                            ConfirmedInequality
+
+                        ConfirmedEquality ->
+                            compareLists restOfLeft restOfRight soFar
+
+                        Unconfirmed ->
+                            compareLists restOfLeft restOfRight Unconfirmed
+
+
+compareAllConfirmedEqualityElseUnconfirmedHelp : List (Node Expression) -> List (Node Expression) -> Comparison
+compareAllConfirmedEqualityElseUnconfirmedHelp leftList rightList =
+    case leftList of
+        [] ->
+            case rightList of
+                [] ->
+                    ConfirmedEquality
+
+                _ :: _ ->
+                    Unconfirmed
+
+        left :: restOfLeft ->
+            case rightList of
+                [] ->
+                    Unconfirmed
+
+                right :: restOfRight ->
+                    case compareHelp left right True of
+                        ConfirmedEquality ->
+                            compareAllConfirmedEqualityElseUnconfirmedHelp restOfLeft restOfRight
+
+                        _ ->
+                            Unconfirmed
 
 
 compareNumbers : Float -> Node Expression -> Comparison
@@ -581,42 +734,6 @@ getNumberValue node =
 
         _ ->
             Nothing
-
-
-compareLists : List (Node Expression) -> List (Node Expression) -> Comparison -> Comparison
-compareLists leftList rightList acc =
-    case ( leftList, rightList ) of
-        ( left :: restOfLeft, right :: restOfRight ) ->
-            case compareWithoutNormalization left right of
-                ConfirmedEquality ->
-                    compareLists restOfLeft restOfRight acc
-
-                ConfirmedInequality ->
-                    ConfirmedInequality
-
-                Unconfirmed ->
-                    compareLists restOfLeft restOfRight Unconfirmed
-
-        _ ->
-            acc
-
-
-compareEqualityOfAll : List (Node Expression) -> List (Node Expression) -> Comparison
-compareEqualityOfAll leftList rightList =
-    case ( leftList, rightList ) of
-        ( left :: restOfLeft, right :: restOfRight ) ->
-            case compareHelp left right True of
-                ConfirmedEquality ->
-                    compareEqualityOfAll restOfLeft restOfRight
-
-                ConfirmedInequality ->
-                    Unconfirmed
-
-                Unconfirmed ->
-                    Unconfirmed
-
-        _ ->
-            ConfirmedEquality
 
 
 type RecordFieldComparison
