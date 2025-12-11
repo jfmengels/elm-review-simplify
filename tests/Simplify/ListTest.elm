@@ -7111,7 +7111,7 @@ type ChoiceType = Variant
 a = List.sort
 """
                         ]
-        , test "should replace List.sortBy (\\(Variant a b) -> Variant a b) by List.sort when origin choice type parameters are all used in variants" <|
+        , test "should replace List.sortBy (\\(Variant a b) -> Variant a b) by List.sort when origin choice type has no parameters" <|
             \() ->
                 """module A exposing (..)
 type ChoiceType = Variant Int Int
@@ -7126,6 +7126,24 @@ a = List.sortBy (\\(Variant a b) -> Variant a b)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 type ChoiceType = Variant Int Int
+a = List.sort
+"""
+                        ]
+        , test "should replace List.sortBy (\\(Variant a b) -> Variant a b) by List.sort when origin choice type parameters are all used in variants" <|
+            \() ->
+                """module A exposing (..)
+type ChoiceType a b = Variant a (Maybe (ChoiceType a b))
+a = List.sortBy (\\(Variant a b) -> Variant a b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.sortBy with an identity function is the same as List.sort"
+                            , details = [ "You can replace this call by List.sort." ]
+                            , under = "List.sortBy"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+type ChoiceType a b = Variant a (Maybe (ChoiceType a b))
 a = List.sort
 """
                         ]
