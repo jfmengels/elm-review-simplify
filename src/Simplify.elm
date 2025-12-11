@@ -2985,7 +2985,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , argCount = argCount
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
-                                                , callStyle = CallStyle.Pipe CallStyle.RightToLeft
+                                                , callStyle = functionCallStylePipeRightToLeft
                                                 }
                                             )
 
@@ -3009,7 +3009,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , fn = ( moduleName, fnName )
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
-                                                , callStyle = CallStyle.Pipe CallStyle.RightToLeft
+                                                , callStyle = functionCallStylePipeRightToLeft
                                                 }
                                             )
                                         )
@@ -3056,7 +3056,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , argCount = argCount
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
-                                                , callStyle = CallStyle.Pipe CallStyle.LeftToRight
+                                                , callStyle = functionCallStylePipeLeftToRight
                                                 }
                                             )
 
@@ -3080,7 +3080,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , argCount = argCount
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
-                                                , callStyle = CallStyle.Pipe CallStyle.LeftToRight
+                                                , callStyle = functionCallStylePipeLeftToRight
                                                 }
                                             )
                                         )
@@ -3332,6 +3332,16 @@ expressionVisitorHelp (Node expressionRange expression) config context =
 
         Expression.Application (_ :: []) ->
             onlyMaybeError Nothing
+
+
+functionCallStylePipeLeftToRight : FunctionCallStyle
+functionCallStylePipeLeftToRight =
+    CallStyle.Pipe CallStyle.LeftToRight
+
+
+functionCallStylePipeRightToLeft : FunctionCallStyle
+functionCallStylePipeRightToLeft =
+    CallStyle.Pipe CallStyle.RightToLeft
 
 
 type alias OperatorApplicationCheckInfo =
