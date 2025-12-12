@@ -2814,12 +2814,13 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             -> CallCheckInfo
         toCheckInfo checkInfo =
             let
-                ( parentRange, callStyle ) =
+                ( argsAfterFirst, parentRange, callStyle ) =
                     case List.drop (checkInfo.argCount - 1) (checkInfo.firstArg :: checkInfo.argsAfterFirst) of
                         lastExpectedArg :: _ :: _ ->
                             -- Too many arguments!
                             -- We'll update the range to drop the extra ones and force the call style to application
-                            ( case checkInfo.callStyle of
+                            ( List.take (checkInfo.argCount - 1) checkInfo.argsAfterFirst
+                            , case checkInfo.callStyle of
                                 CallStyle.Application ->
                                     { start = checkInfo.fnRange.start, end = (Node.range lastExpectedArg).end }
 
@@ -2831,14 +2832,9 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             , CallStyle.Application
                             )
 
-                        -- [] | _ :: [] ->
+                        -- [] | [ _ ] ->
                         _ ->
-                            ( expressionRange, checkInfo.callStyle )
-
-                argsAfterFirst : List (Node Expression)
-                argsAfterFirst =
-                    -- Drop the extra arguments
-                    List.take (checkInfo.argCount - 1) checkInfo.argsAfterFirst
+                            ( checkInfo.argsAfterFirst, expressionRange, checkInfo.callStyle )
             in
             { lookupTable = context.lookupTable
             , expectNaN = config.expectNaN
@@ -2856,8 +2852,6 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             , argCount = checkInfo.argCount
             , firstArg = checkInfo.firstArg
             , argsAfterFirst = argsAfterFirst
-            , secondArg = List.head argsAfterFirst
-            , thirdArg = List.head (List.drop 1 argsAfterFirst)
             , callStyle = callStyle
             }
 
@@ -3439,23 +3433,22 @@ type alias CallCheckInfo =
     , callStyle : FunctionCallStyle
     , firstArg : Node Expression
     , argsAfterFirst : List (Node Expression)
-
-    -- stored for quick access since usage is very common
-    -- prefer using secondArg and thirdArg functions
-    -- because the optimization could change in the future
-    , secondArg : Maybe (Node Expression)
-    , thirdArg : Maybe (Node Expression)
     }
 
 
 secondArg : CallCheckInfo -> Maybe (Node Expression)
 secondArg checkInfo =
-    checkInfo.secondArg
+    List.head checkInfo.argsAfterFirst
 
 
 thirdArg : CallCheckInfo -> Maybe (Node Expression)
 thirdArg checkInfo =
-    checkInfo.thirdArg
+    case checkInfo.argsAfterFirst of
+        _ :: thirdArgument :: _ ->
+            Just thirdArgument
+
+        _ ->
+            Nothing
 
 
 type alias CompositionIntoCheckInfo =
