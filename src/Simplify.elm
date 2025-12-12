@@ -1944,10 +1944,10 @@ createImportLookup context =
                                 import_
 
                             Just importExposedVariants ->
-                                { import_
-                                    | exposed =
-                                        ExposedSome
-                                            (Set.union some importExposedVariants)
+                                { alias = import_.alias
+                                , exposed =
+                                    ExposedSome
+                                        (Set.union some importExposedVariants)
                                 }
             )
 
@@ -1970,7 +1970,9 @@ moduleExposingContext exposingSyntax =
                                 soFar
 
                             Exposing.TypeOrAliasExpose name ->
-                                { soFar | potentialTypeAliases = Set.insert name soFar.potentialTypeAliases }
+                                { typesExposingVariants = soFar.typesExposingVariants
+                                , potentialTypeAliases = Set.insert name soFar.potentialTypeAliases
+                                }
 
                             Exposing.TypeExpose variantType ->
                                 case variantType.open of
@@ -1978,7 +1980,9 @@ moduleExposingContext exposingSyntax =
                                         soFar
 
                                     Just _ ->
-                                        { soFar | typesExposingVariants = Set.insert variantType.name soFar.typesExposingVariants }
+                                        { potentialTypeAliases = soFar.potentialTypeAliases
+                                        , typesExposingVariants = Set.insert variantType.name soFar.typesExposingVariants
+                                        }
                     )
                     { typesExposingVariants = Set.empty
                     , potentialTypeAliases = Set.empty
@@ -12234,9 +12238,10 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                             if error.firstStepIsComposition then
                                 -- parens can safely be removed
                                 Just
-                                    { error
-                                        | fixes =
-                                            removeBoundariesFix subExpression ++ error.fixes
+                                    { opToReplaceRange = error.opToReplaceRange
+                                    , firstStepIsComposition = error.firstStepIsComposition
+                                    , fixes =
+                                        removeBoundariesFix subExpression ++ error.fixes
                                     }
 
                             else
@@ -13657,13 +13662,11 @@ type alias IfCheckInfo =
 
 targetIfKeyword : Range -> Range
 targetIfKeyword ifExpressionRange =
-    let
-        ifStart : Location
-        ifStart =
-            ifExpressionRange.start
-    in
-    { start = ifStart
-    , end = { ifStart | column = ifStart.column + 2 }
+    { start = ifExpressionRange.start
+    , end =
+        { row = ifExpressionRange.start.row
+        , column = ifExpressionRange.start.column + 2
+        }
     }
 
 
@@ -14326,51 +14329,53 @@ caseSingleVariantWithUnreachableCasesCheck variantCaseOf checkInfo =
                     checkInfo
                     |> Maybe.map
                         (\attachmentError ->
-                            { attachmentError
-                                | fix =
-                                    { casedExpressionReplace =
-                                        { range = variantCaseOf.casedExpressionRange
-                                        , replacement =
-                                            toNestedTupleFix
-                                                (List.indexedMap
-                                                    (\i (Node argRange _) ->
-                                                        if i == casedVariantAttachmentAndCases.index then
-                                                            attachmentError.fix.casedExpressionReplace.replacement
+                            { message = attachmentError.message
+                            , details = attachmentError.details
+                            , range = attachmentError.range
+                            , fix =
+                                { casedExpressionReplace =
+                                    { range = variantCaseOf.casedExpressionRange
+                                    , replacement =
+                                        toNestedTupleFix
+                                            (List.indexedMap
+                                                (\i (Node argRange _) ->
+                                                    if i == casedVariantAttachmentAndCases.index then
+                                                        attachmentError.fix.casedExpressionReplace.replacement
 
-                                                        else
-                                                            checkInfo.extractSourceCode argRange
-                                                    )
-                                                    variantCaseOf.cased.attachments
+                                                    else
+                                                        checkInfo.extractSourceCode argRange
                                                 )
-                                        }
-                                    , cases =
-                                        List.map2
-                                            (\variantPattern patternAttachmentError ->
-                                                case patternAttachmentError of
-                                                    UnreachableCaseRemove remove ->
-                                                        UnreachableCaseRemove remove
-
-                                                    UnreachableCaseReplace replace ->
-                                                        UnreachableCaseReplace
-                                                            { range = variantPattern.patternRange
-                                                            , replacement =
-                                                                toNestedTupleFix
-                                                                    (List.indexedMap
-                                                                        (\i (Node attachmentRange _) ->
-                                                                            if i == casedVariantAttachmentAndCases.index then
-                                                                                replace.replacement
-
-                                                                            else
-                                                                                checkInfo.extractSourceCode attachmentRange
-                                                                        )
-                                                                        variantPattern.attachments
-                                                                    )
-                                                            , expressionNode = replace.expressionNode
-                                                            }
+                                                variantCaseOf.cased.attachments
                                             )
-                                            variantCaseOf.cases
-                                            attachmentError.fix.cases
                                     }
+                                , cases =
+                                    List.map2
+                                        (\variantPattern patternAttachmentError ->
+                                            case patternAttachmentError of
+                                                UnreachableCaseRemove remove ->
+                                                    UnreachableCaseRemove remove
+
+                                                UnreachableCaseReplace replace ->
+                                                    UnreachableCaseReplace
+                                                        { range = variantPattern.patternRange
+                                                        , replacement =
+                                                            toNestedTupleFix
+                                                                (List.indexedMap
+                                                                    (\i (Node attachmentRange _) ->
+                                                                        if i == casedVariantAttachmentAndCases.index then
+                                                                            replace.replacement
+
+                                                                        else
+                                                                            checkInfo.extractSourceCode attachmentRange
+                                                                    )
+                                                                    variantPattern.attachments
+                                                                )
+                                                        , expressionNode = replace.expressionNode
+                                                        }
+                                        )
+                                        variantCaseOf.cases
+                                        attachmentError.fix.cases
+                                }
                             }
                         )
             )
