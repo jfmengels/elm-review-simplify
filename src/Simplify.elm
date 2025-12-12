@@ -4271,7 +4271,7 @@ plusplusChecks checkInfo =
         |> maybeOnNothing
             (\() ->
                 case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.left of
-                    Just leftListSingleton ->
+                    Just leftListSingletonElement ->
                         if checkInfo.isOnTheRightSideOfPlusPlus then
                             Nothing
 
@@ -4284,7 +4284,7 @@ plusplusChecks checkInfo =
                                     checkInfo.operatorRange
                                     (Fix.replaceRangeBy checkInfo.operatorRange
                                         "::"
-                                        :: replaceBySubExpressionFix checkInfo.leftRange leftListSingleton.element
+                                        :: replaceBySubExpressionFix checkInfo.leftRange leftListSingletonElement
                                     )
                                 )
 
@@ -4355,7 +4355,7 @@ consChecks checkInfo =
         |> maybeOnNothing
             (\() ->
                 case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.right of
-                    Just tailSingleton ->
+                    Just tailSingletonElement ->
                         Just
                             (Rule.errorWithFix
                                 { message = "Element added to the beginning of the list could be included in the list"
@@ -4365,11 +4365,11 @@ consChecks checkInfo =
                                 [ Fix.insertAt checkInfo.leftRange.start "[ "
                                 , Fix.replaceRangeBy
                                     { start = checkInfo.leftRange.end
-                                    , end = (Node.range tailSingleton.element).start
+                                    , end = (Node.range tailSingletonElement).start
                                     }
                                     ", "
                                 , Fix.replaceRangeBy
-                                    { start = (Node.range tailSingleton.element).end
+                                    { start = (Node.range tailSingletonElement).end
                                     , end = checkInfo.parentRange.end
                                     }
                                     " ]"
@@ -5966,12 +5966,7 @@ getListHead lookupTable expressionNode =
             Just head
 
         _ ->
-            case AstHelpers.getListSingleton lookupTable expressionNode of
-                Just single ->
-                    Just single.element
-
-                Nothing ->
-                    Nothing
+            AstHelpers.getListSingleton lookupTable expressionNode
 
 
 listTailExistsError : List Fix -> CallCheckInfo -> Error {}
@@ -6075,11 +6070,11 @@ listMapOnSingletonCheck =
             case secondArg checkInfo of
                 Just listArg ->
                     (case AstHelpers.getListSingleton checkInfo.lookupTable listArg of
-                        Just wrapped ->
+                        Just wrappedElement ->
                             let
                                 mappedValueRange : Range
                                 mappedValueRange =
-                                    Node.range wrapped.element
+                                    Node.range wrappedElement
 
                                 mappingArgRange : Range
                                 mappingArgRange =
@@ -6092,7 +6087,7 @@ listMapOnSingletonCheck =
                                     }
                                     checkInfo.fnRange
                                     (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range listArg }
-                                        ++ parenthesizeIfNeededFix wrapped.element
+                                        ++ parenthesizeIfNeededFix wrappedElement
                                         ++ (case checkInfo.callStyle of
                                                 CallStyle.Pipe CallStyle.LeftToRight ->
                                                     [ Fix.insertAt mappedValueRange.start "("
@@ -7590,8 +7585,8 @@ htmlAttributesClassListChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
             (case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
-                Just single ->
-                    case AstHelpers.getTuple2Literal single.element of
+                Just singletonElement ->
+                    case AstHelpers.getTuple2Literal singletonElement of
                         Just tuple ->
                             case AstHelpers.getBool checkInfo.lookupTable tuple.second of
                                 Just bool ->
@@ -8415,9 +8410,7 @@ listSingletonConstruct : ConstructWithOneValueProperties
 listSingletonConstruct =
     { description = A "singleton list"
     , fn = Fn.List.singleton
-    , getValue =
-        \lookupTable expr ->
-            Maybe.map .element (AstHelpers.getListSingleton lookupTable expr)
+    , getValue = AstHelpers.getListSingleton
     }
 
 
