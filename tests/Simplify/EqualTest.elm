@@ -1567,7 +1567,7 @@ a = (d |> Dict.isEmpty |> not)
 
 arrayIsEmptyTests : Test
 arrayIsEmptyTests =
-    describe "Array.length should be `Arraya.isEmpty`"
+    describe "Array.length should be `Array.isEmpty`"
         [ test "should replace Array.length array == 0 with Array.isEmpty array" <|
             \() ->
                 """module A exposing (..)
