@@ -3863,32 +3863,43 @@ findOperatorRange context =
 
         operatorStartLocationFound : Maybe Location
         operatorStartLocationFound =
-            String.indexes context.operator betweenOperands
-                |> findMap
-                    (\operatorOffset ->
-                        let
-                            operatorStartLocation : Location
-                            operatorStartLocation =
-                                offsetInStringToLocation
-                                    { offset = operatorOffset
-                                    , startLocation = context.leftRange.end
-                                    , source = betweenOperands
-                                    }
+            case String.indexes context.operator betweenOperands of
+                [ operatorOffset ] ->
+                    Just
+                        (offsetInStringToLocation
+                            { offset = operatorOffset
+                            , startLocation = context.leftRange.end
+                            , source = betweenOperands
+                            }
+                        )
 
-                            isPartOfComment : Bool
-                            isPartOfComment =
-                                List.any
-                                    (\commentRange ->
-                                        rangeContainsLocation operatorStartLocation commentRange
-                                    )
-                                    context.commentRanges
-                        in
-                        if isPartOfComment then
-                            Nothing
+                possiblyOperatorOffsets ->
+                    possiblyOperatorOffsets
+                        |> findMap
+                            (\operatorOffset ->
+                                let
+                                    operatorStartLocation : Location
+                                    operatorStartLocation =
+                                        offsetInStringToLocation
+                                            { offset = operatorOffset
+                                            , startLocation = context.leftRange.end
+                                            , source = betweenOperands
+                                            }
 
-                        else
-                            Just operatorStartLocation
-                    )
+                                    isPartOfComment : Bool
+                                    isPartOfComment =
+                                        List.any
+                                            (\commentRange ->
+                                                rangeContainsLocation operatorStartLocation commentRange
+                                            )
+                                            context.commentRanges
+                                in
+                                if isPartOfComment then
+                                    Nothing
+
+                                else
+                                    Just operatorStartLocation
+                            )
     in
     case operatorStartLocationFound of
         Just operatorStartLocation ->
@@ -3910,7 +3921,7 @@ offsetInStringToLocation config =
         [] ->
             config.startLocation
 
-        onlyLine :: [] ->
+        [ onlyLine ] ->
             { row = config.startLocation.row
             , column = config.startLocation.column + String.length onlyLine
             }
