@@ -193,8 +193,8 @@ isBoolean expr (Inferred inferred) =
 
 inferForIfCondition : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred -> List ( Range, Inferred )
 inferForIfCondition condition { trueBranchRange, falseBranchRange } inferred =
-    [ ( trueBranchRange, infer [ condition ] True inferred )
-    , ( falseBranchRange, infer [ condition ] False inferred )
+    [ ( trueBranchRange, inferHelp True condition inferred )
+    , ( falseBranchRange, inferHelp False condition inferred )
     ]
 
 
@@ -222,6 +222,11 @@ infer nodes shouldBe acc =
     List.foldl (inferHelp shouldBe) acc nodes
 
 
+infer2 : Expression -> Expression -> Bool -> Inferred -> Inferred
+infer2 a b shouldBe soFar =
+    inferHelp shouldBe b (inferHelp shouldBe a soFar)
+
+
 inferHelp : Bool -> Expression -> Inferred -> Inferred
 inferHelp shouldBe node acc =
     let
@@ -235,7 +240,7 @@ inferHelp shouldBe node acc =
 
         Expression.OperatorApplication "&&" _ (Node _ left) (Node _ right) ->
             if shouldBe then
-                infer [ left, right ] shouldBe dict
+                infer2 left right shouldBe dict
 
             else
                 injectFacts
@@ -255,7 +260,7 @@ inferHelp shouldBe node acc =
                     dict
 
             else
-                infer [ left, right ] shouldBe dict
+                infer2 left right shouldBe dict
 
         Expression.OperatorApplication "==" inf left right ->
             dict
