@@ -400,10 +400,16 @@ mergeEqualFacts : ( Expression, DeducedValue ) -> Fact -> List Fact
 mergeEqualFacts equalFact fact =
     case fact of
         Or left right ->
-            (List.filterMap (\cond -> ifSatisfy equalFact ( cond, right )) left
-                ++ List.filterMap (\cond -> ifSatisfy equalFact ( cond, left )) right
-            )
-                |> List.concat
+            List.concatMap
+                (\cond ->
+                    ifSatisfy equalFact ( cond, right ) |> Maybe.withDefault []
+                )
+                left
+                ++ List.concatMap
+                    (\cond ->
+                        ifSatisfy equalFact ( cond, left ) |> Maybe.withDefault []
+                    )
+                    right
 
         _ ->
             []
