@@ -12458,11 +12458,9 @@ unnecessaryCallOnSpecificFnCallCheck specificFn checkInfo =
             if
                 trueInAllBranches
                     (\branch ->
-                        isJust
-                            (AstHelpers.getSpecificUnreducedFnCall specificFn
-                                checkInfo.lookupTable
-                                branch
-                            )
+                        AstHelpers.isSpecificUnreducedFnCall specificFn
+                            checkInfo.lookupTable
+                            branch
                     )
                     fullyAppliedLastArgNode
             then
