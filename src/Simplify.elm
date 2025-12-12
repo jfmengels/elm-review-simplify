@@ -15892,8 +15892,8 @@ getCompositionToLast expressionNode =
     case getFullComposition expressionNode of
         Just fullComposition ->
             case getCompositionToLast fullComposition.composedLater of
-                Just actualLast ->
-                    Just actualLast
+                (Just _) as justActualLast ->
+                    justActualLast
 
                 Nothing ->
                     Just { earlier = fullComposition.earlier, last = fullComposition.composedLater }
@@ -15912,8 +15912,8 @@ getCompositionFromEarliest expressionNode =
     case getFullComposition expressionNode of
         Just fullComposition ->
             case getCompositionFromEarliest fullComposition.earlier of
-                Just actualEarlier ->
-                    Just actualEarlier
+                (Just _) as justActualLast ->
+                    justActualLast
 
                 Nothing ->
                     Just { earliest = fullComposition.earlier, later = fullComposition.composedLater }
@@ -16246,8 +16246,8 @@ findMap mapper nodes =
 
         node :: rest ->
             case mapper node of
-                Just value ->
-                    Just value
+                (Just _) as justFound ->
+                    justFound
 
                 Nothing ->
                     findMap mapper rest
@@ -16346,8 +16346,8 @@ foldUntilOkFrom initialFolded mapOrFoldFurther list =
 
         head :: tail ->
             case mapOrFoldFurther head initialFolded of
-                Ok found ->
-                    Ok found
+                (Ok _) as okFound ->
+                    okFound
 
                 Err newFolded ->
                     foldUntilOkFrom newFolded mapOrFoldFurther tail
