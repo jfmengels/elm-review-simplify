@@ -2376,48 +2376,25 @@ expressionVisitor node config context =
         expressionRange : Range
         expressionRange =
             Node.range node
-
-        contextWithInferredConstants : ModuleContext
-        contextWithInferredConstants =
-            case RangeDict.get expressionRange context.inferredConstantsDict of
-                Nothing ->
-                    context
-
-                Just inferredConstants ->
-                    let
-                        ( previous, previousStack ) =
-                            context.inferredConstants
-                    in
-                    { inferredConstants = ( inferredConstants, previous :: previousStack )
-
-                    --
-                    , lookupTable = context.lookupTable
-                    , moduleName = context.moduleName
-                    , exposed = context.exposed
-                    , commentRanges = context.commentRanges
-                    , importRecordTypeAliases = context.importRecordTypeAliases
-                    , moduleRecordTypeAliases = context.moduleRecordTypeAliases
-                    , importCustomTypes = context.importCustomTypes
-                    , moduleCustomTypes = context.moduleCustomTypes
-                    , moduleBindings = context.moduleBindings
-                    , localBindings = context.localBindings
-                    , branchLocalBindings = context.branchLocalBindings
-                    , rangesToIgnore = context.rangesToIgnore
-                    , rightSidesOfPlusPlus = context.rightSidesOfPlusPlus
-                    , customTypesToReportInCases = context.customTypesToReportInCases
-                    , localIgnoredCustomTypes = context.localIgnoredCustomTypes
-                    , constructorsToIgnore = context.constructorsToIgnore
-                    , inferredConstantsDict = context.inferredConstantsDict
-                    , extractSourceCode = context.extractSourceCode
-                    , exposedVariants = context.exposedVariants
-                    , importLookup = context.importLookup
-                    }
     in
     if RangeDict.member expressionRange context.rangesToIgnore then
-        ( [], contextWithInferredConstants )
+        ( [], context )
 
     else
         let
+            newInferredConstants : ( Infer.Inferred, List Infer.Inferred )
+            newInferredConstants =
+                case RangeDict.get expressionRange context.inferredConstantsDict of
+                    Nothing ->
+                        context.inferredConstants
+
+                    Just inferredConstants ->
+                        let
+                            ( previous, previousStack ) =
+                                context.inferredConstants
+                        in
+                        ( inferredConstants, previous :: previousStack )
+
             expression : Expression
             expression =
                 Node.value node
@@ -2437,27 +2414,25 @@ expressionVisitor node config context =
                     Nothing ->
                         { localBindings = withExpressionSurfaceBindings
                         , branchLocalBindings = withNewBranchLocalBindings
-
-                        --
-                        , inferredConstants = contextWithInferredConstants.inferredConstants
-                        , lookupTable = contextWithInferredConstants.lookupTable
-                        , moduleName = contextWithInferredConstants.moduleName
-                        , exposed = contextWithInferredConstants.exposed
-                        , commentRanges = contextWithInferredConstants.commentRanges
-                        , importRecordTypeAliases = contextWithInferredConstants.importRecordTypeAliases
-                        , moduleRecordTypeAliases = contextWithInferredConstants.moduleRecordTypeAliases
-                        , importCustomTypes = contextWithInferredConstants.importCustomTypes
-                        , moduleCustomTypes = contextWithInferredConstants.moduleCustomTypes
-                        , moduleBindings = contextWithInferredConstants.moduleBindings
-                        , rangesToIgnore = contextWithInferredConstants.rangesToIgnore
-                        , rightSidesOfPlusPlus = contextWithInferredConstants.rightSidesOfPlusPlus
-                        , customTypesToReportInCases = contextWithInferredConstants.customTypesToReportInCases
-                        , localIgnoredCustomTypes = contextWithInferredConstants.localIgnoredCustomTypes
-                        , constructorsToIgnore = contextWithInferredConstants.constructorsToIgnore
-                        , inferredConstantsDict = contextWithInferredConstants.inferredConstantsDict
-                        , extractSourceCode = contextWithInferredConstants.extractSourceCode
-                        , exposedVariants = contextWithInferredConstants.exposedVariants
-                        , importLookup = contextWithInferredConstants.importLookup
+                        , inferredConstants = newInferredConstants --
+                        , lookupTable = context.lookupTable
+                        , moduleName = context.moduleName
+                        , exposed = context.exposed
+                        , commentRanges = context.commentRanges
+                        , importRecordTypeAliases = context.importRecordTypeAliases
+                        , moduleRecordTypeAliases = context.moduleRecordTypeAliases
+                        , importCustomTypes = context.importCustomTypes
+                        , moduleCustomTypes = context.moduleCustomTypes
+                        , moduleBindings = context.moduleBindings
+                        , rangesToIgnore = context.rangesToIgnore
+                        , rightSidesOfPlusPlus = context.rightSidesOfPlusPlus
+                        , customTypesToReportInCases = context.customTypesToReportInCases
+                        , localIgnoredCustomTypes = context.localIgnoredCustomTypes
+                        , constructorsToIgnore = context.constructorsToIgnore
+                        , inferredConstantsDict = context.inferredConstantsDict
+                        , extractSourceCode = context.extractSourceCode
+                        , exposedVariants = context.exposedVariants
+                        , importLookup = context.importLookup
                         }
 
                     Just currentBranchLocalBindings ->
@@ -2465,27 +2440,25 @@ expressionVisitor node config context =
                             RangeDict.insert expressionRange currentBranchLocalBindings withExpressionSurfaceBindings
                         , branchLocalBindings =
                             RangeDict.remove expressionRange withNewBranchLocalBindings
-
-                        --
-                        , inferredConstants = contextWithInferredConstants.inferredConstants
-                        , lookupTable = contextWithInferredConstants.lookupTable
-                        , moduleName = contextWithInferredConstants.moduleName
-                        , exposed = contextWithInferredConstants.exposed
-                        , commentRanges = contextWithInferredConstants.commentRanges
-                        , importRecordTypeAliases = contextWithInferredConstants.importRecordTypeAliases
-                        , moduleRecordTypeAliases = contextWithInferredConstants.moduleRecordTypeAliases
-                        , importCustomTypes = contextWithInferredConstants.importCustomTypes
-                        , moduleCustomTypes = contextWithInferredConstants.moduleCustomTypes
-                        , moduleBindings = contextWithInferredConstants.moduleBindings
-                        , rangesToIgnore = contextWithInferredConstants.rangesToIgnore
-                        , rightSidesOfPlusPlus = contextWithInferredConstants.rightSidesOfPlusPlus
-                        , customTypesToReportInCases = contextWithInferredConstants.customTypesToReportInCases
-                        , localIgnoredCustomTypes = contextWithInferredConstants.localIgnoredCustomTypes
-                        , constructorsToIgnore = contextWithInferredConstants.constructorsToIgnore
-                        , inferredConstantsDict = contextWithInferredConstants.inferredConstantsDict
-                        , extractSourceCode = contextWithInferredConstants.extractSourceCode
-                        , exposedVariants = contextWithInferredConstants.exposedVariants
-                        , importLookup = contextWithInferredConstants.importLookup
+                        , inferredConstants = newInferredConstants --
+                        , lookupTable = context.lookupTable
+                        , moduleName = context.moduleName
+                        , exposed = context.exposed
+                        , commentRanges = context.commentRanges
+                        , importRecordTypeAliases = context.importRecordTypeAliases
+                        , moduleRecordTypeAliases = context.moduleRecordTypeAliases
+                        , importCustomTypes = context.importCustomTypes
+                        , moduleCustomTypes = context.moduleCustomTypes
+                        , moduleBindings = context.moduleBindings
+                        , rangesToIgnore = context.rangesToIgnore
+                        , rightSidesOfPlusPlus = context.rightSidesOfPlusPlus
+                        , customTypesToReportInCases = context.customTypesToReportInCases
+                        , localIgnoredCustomTypes = context.localIgnoredCustomTypes
+                        , constructorsToIgnore = context.constructorsToIgnore
+                        , inferredConstantsDict = context.inferredConstantsDict
+                        , extractSourceCode = context.extractSourceCode
+                        , exposedVariants = context.exposedVariants
+                        , importLookup = context.importLookup
                         }
 
             expressionChecked : { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
@@ -2502,7 +2475,7 @@ expressionVisitor node config context =
           , rightSidesOfPlusPlus = RangeDict.union expressionChecked.rightSidesOfPlusPlus context.rightSidesOfPlusPlus
           , inferredConstantsDict =
                 List.foldl (\( range, constants ) acc -> RangeDict.insert range constants acc)
-                    contextWithInferredConstants.inferredConstantsDict
+                    context.inferredConstantsDict
                     expressionChecked.inferredConstants
 
           --
