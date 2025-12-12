@@ -2702,23 +2702,17 @@ expressionBranchLocalBindings expression =
 expressionExitVisitor : Node Expression -> ModuleContext -> ModuleContext
 expressionExitVisitor (Node expressionRange _) context =
     let
-        maybeInferredConstants : Maybe ( Infer.Inferred, List Infer.Inferred )
+        maybeInferredConstants : List Infer.Inferred
         maybeInferredConstants =
             if RangeDict.member expressionRange context.inferredConstantsDict then
-                case Tuple.second context.inferredConstants of
-                    topOfStack :: restOfStack ->
-                        Just ( topOfStack, restOfStack )
-
-                    [] ->
-                        -- should never be empty
-                        Nothing
+                Tuple.second context.inferredConstants
 
             else
-                Nothing
+                []
     in
     case maybeInferredConstants of
-        Just inferredConstants ->
-            { inferredConstants = inferredConstants
+        inferredConstantsTopOfStack :: inferredConstantsRestOfStack ->
+            { inferredConstants = ( inferredConstantsTopOfStack, inferredConstantsRestOfStack )
             , localBindings =
                 if RangeDict.member expressionRange context.rangesToIgnore then
                     context.localBindings
@@ -2748,7 +2742,7 @@ expressionExitVisitor (Node expressionRange _) context =
             , importLookup = context.importLookup
             }
 
-        Nothing ->
+        [] ->
             if RangeDict.member expressionRange context.rangesToIgnore then
                 context
 
