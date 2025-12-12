@@ -8726,7 +8726,7 @@ setGetElements resources expressionNode =
                                 case traverse getComparableWithExpressionNode listElements.known of
                                     Just comparableElements ->
                                         Just
-                                            { known = uniqueBy .comparable comparableElements |> List.map .expressionNode
+                                            { known = uniqueByThenMap .comparable .expressionNode comparableElements
                                             , allKnown = listElements.allKnown
                                             }
 
@@ -8770,7 +8770,7 @@ setDetermineSize resources expressionNode =
                                 if listElements.allKnown then
                                     case traverse getComparableExpression listElements.known of
                                         Just comparableListElements ->
-                                            comparableListElements |> unique |> List.length |> Exactly |> Just
+                                            comparableListElements |> countUnique |> Exactly |> Just
 
                                         Nothing ->
                                             case listElements.known of
@@ -8847,14 +8847,14 @@ dictDetermineSize resources expressionNode =
                                 if listElements.allKnown then
                                     case traverse (getTupleWithComparableFirst resources.lookupTable) listElements.known of
                                         Just comparableKeyExpressions ->
-                                            comparableKeyExpressions |> uniqueBy .comparableFirst |> List.length |> Exactly |> Just
+                                            comparableKeyExpressions |> countUniqueBy .comparableFirst |> Exactly |> Just
 
                                         Nothing ->
                                             case listElements.known of
                                                 [] ->
                                                     Nothing
 
-                                                _ :: [] ->
+                                                [ _ ] ->
                                                     Just (Exactly 1)
 
                                                 _ :: _ :: _ ->
@@ -8910,7 +8910,7 @@ dictGetValues resources expressionNode =
                                         case traverse (getTupleWithComparableFirst resources.lookupTable) listElements.known of
                                             Just tuplesWithComparableKey ->
                                                 Just
-                                                    { known = uniqueBy .comparableFirst tuplesWithComparableKey |> List.map .second
+                                                    { known = uniqueByThenMap .comparableFirst .second tuplesWithComparableKey
                                                     , allKnown = True
                                                     }
 
@@ -8983,8 +8983,7 @@ dictGetKeys resources expressionNode =
                                             Just tuplesWithComparableKey ->
                                                 Just
                                                     { known =
-                                                        uniqueBy .comparableFirst tuplesWithComparableKey
-                                                            |> List.map .first
+                                                        uniqueByThenMap .comparableFirst .first tuplesWithComparableKey
                                                     , allKnown = True
                                                     }
 
@@ -16499,21 +16498,49 @@ listAppendReverse leftReverse right =
             listAppendReverse leftBeforeLastReverse (leftLast :: right)
 
 
-unique : List a -> List a
-unique list =
-    uniqueBy identity list
+uniqueByThenMap : (a -> aspect) -> (a -> mapped) -> List a -> List mapped
+uniqueByThenMap toAspectThatShouldBeUnique eleemntChange list =
+    uniqueByThenMapHelp toAspectThatShouldBeUnique eleemntChange [] list []
 
 
-uniqueBy : (a -> b) -> List a -> List a
-uniqueBy toAspectThatShouldBeUnique list =
-    uniqueByHelp toAspectThatShouldBeUnique [] list []
-
-
-uniqueByHelp : (a -> b) -> List b -> List a -> List a -> List a
-uniqueByHelp toAspectThatShouldBeUnique existing remaining accumulator =
+uniqueByThenMapHelp : (a -> aspect) -> (a -> mapped) -> List aspect -> List a -> List mapped -> List mapped
+uniqueByThenMapHelp toAspectThatShouldBeUnique eleemntChange existing remaining accumulator =
     case remaining of
         [] ->
             List.reverse accumulator
+
+        first :: rest ->
+            let
+                firstAspect : aspect
+                firstAspect =
+                    toAspectThatShouldBeUnique first
+            in
+            if List.member firstAspect existing then
+                uniqueByThenMapHelp toAspectThatShouldBeUnique eleemntChange existing rest accumulator
+
+            else
+                uniqueByThenMapHelp toAspectThatShouldBeUnique
+                    eleemntChange
+                    (firstAspect :: existing)
+                    rest
+                    (eleemntChange first :: accumulator)
+
+
+countUnique : List a -> Int
+countUnique list =
+    countUniqueBy Basics.identity list
+
+
+countUniqueBy : (a -> b) -> List a -> Int
+countUniqueBy toAspectThatShouldBeUnique list =
+    countUniqueByHelp toAspectThatShouldBeUnique [] list 0
+
+
+countUniqueByHelp : (a -> b) -> List b -> List a -> Int -> Int
+countUniqueByHelp toAspectThatShouldBeUnique existing remaining soFar =
+    case remaining of
+        [] ->
+            soFar
 
         first :: rest ->
             let
@@ -16522,10 +16549,10 @@ uniqueByHelp toAspectThatShouldBeUnique existing remaining accumulator =
                     toAspectThatShouldBeUnique first
             in
             if List.member firstAspect existing then
-                uniqueByHelp toAspectThatShouldBeUnique existing rest accumulator
+                countUniqueByHelp toAspectThatShouldBeUnique existing rest soFar
 
             else
-                uniqueByHelp toAspectThatShouldBeUnique (firstAspect :: existing) rest (first :: accumulator)
+                countUniqueByHelp toAspectThatShouldBeUnique (firstAspect :: existing) rest (soFar + 1)
 
 
 
