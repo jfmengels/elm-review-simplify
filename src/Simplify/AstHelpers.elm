@@ -2,7 +2,7 @@ module Simplify.AstHelpers exposing
     ( ReduceLambdaResources
     , removeParens, removeParensFromPattern
     , getValueOrFnOrFnCall
-    , getSpecificFnCall, getSpecificUnreducedFnCall, isSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
+    , getSpecificFnCall, getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
     , getAccessingRecord, getRecordAccessFunction
@@ -32,7 +32,7 @@ module Simplify.AstHelpers exposing
 ### value/function/function call/composition
 
 @docs getValueOrFnOrFnCall
-@docs getSpecificFnCall, getSpecificUnreducedFnCall, isSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
+@docs getSpecificFnCall, getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
 
 
 ### certain kind
@@ -198,6 +198,26 @@ getSpecificUnreducedFnCall :
 getSpecificUnreducedFnCall reference lookupTable expressionNode =
     Maybe.andThen (\valOrFn -> valueOrFunctionCallToSpecificFnCall reference lookupTable valOrFn)
         (getCollapsedUnreducedValueOrFunctionCall expressionNode)
+
+
+{-| Like `getSpecificUnreducedFnCall` without returning any info
+-}
+isSpecificUnreducedFnCall : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Bool
+isSpecificUnreducedFnCall ( specificModuleOrigin, specificName ) lookupTable expressionNode =
+    case getCollapsedUnreducedValueOrFunctionCall expressionNode of
+        Nothing ->
+            False
+
+        Just valueOrFunctionCall ->
+            Basics.not (List.isEmpty valueOrFunctionCall.args)
+                && (valueOrFunctionCall.fnName == specificName)
+                && (case ModuleNameLookupTable.moduleNameAt lookupTable valueOrFunctionCall.fnRange of
+                        Nothing ->
+                            False
+
+                        Just moduleOrigin ->
+                            moduleOrigin == specificModuleOrigin
+                   )
 
 
 valueOrFunctionCallToSpecificFnCall :
