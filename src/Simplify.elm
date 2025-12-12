@@ -3204,7 +3204,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             in
             case ifChecks ifCheckInfo of
                 Just ifErrors ->
-                    maybeErrorAndRangesToIgnore (Just ifErrors.errors) ifErrors.rangesToIgnore
+                    onlyMaybeError (Just ifErrors)
 
                 Nothing ->
                     { error = Nothing
@@ -13665,9 +13665,7 @@ targetIfKeyword ifExpressionRange =
     }
 
 
-ifChecks :
-    IfCheckInfo
-    -> Maybe { errors : Error {}, rangesToIgnore : RangeDict () }
+ifChecks : IfCheckInfo -> Maybe (Error {})
 ifChecks checkInfo =
     (case Evaluate.getBoolean checkInfo checkInfo.condition of
         Determined determinedConditionResultIsTrue ->
@@ -13681,15 +13679,13 @@ ifChecks checkInfo =
                         { expressionNode = checkInfo.falseBranch, name = "else" }
             in
             Just
-                { errors =
-                    Rule.errorWithFix
-                        { message = "The condition will always evaluate to " ++ AstHelpers.boolToString determinedConditionResultIsTrue
-                        , details = [ "The expression can be replaced by what is inside the '" ++ branch.name ++ "' branch." ]
-                        }
-                        (targetIfKeyword checkInfo.nodeRange)
-                        (replaceBySubExpressionFix checkInfo.nodeRange branch.expressionNode)
-                , rangesToIgnore = RangeDict.singleton (Node.range checkInfo.condition) ()
-                }
+                (Rule.errorWithFix
+                    { message = "The condition will always evaluate to " ++ AstHelpers.boolToString determinedConditionResultIsTrue
+                    , details = [ "The expression can be replaced by what is inside the '" ++ branch.name ++ "' branch." ]
+                    }
+                    (targetIfKeyword checkInfo.nodeRange)
+                    (replaceBySubExpressionFix checkInfo.nodeRange branch.expressionNode)
+                )
 
         Undetermined ->
             Nothing
@@ -13701,15 +13697,13 @@ ifChecks checkInfo =
                         case Evaluate.getBoolean checkInfo checkInfo.falseBranch of
                             Determined False ->
                                 Just
-                                    { errors =
-                                        Rule.errorWithFix
-                                            { message = "The if expression's value is the same as the condition"
-                                            , details = [ "The expression can be replaced by the condition." ]
-                                            }
-                                            (targetIfKeyword checkInfo.nodeRange)
-                                            (replaceBySubExpressionFix checkInfo.nodeRange checkInfo.condition)
-                                    , rangesToIgnore = RangeDict.empty
-                                    }
+                                    (Rule.errorWithFix
+                                        { message = "The if expression's value is the same as the condition"
+                                        , details = [ "The expression can be replaced by the condition." ]
+                                        }
+                                        (targetIfKeyword checkInfo.nodeRange)
+                                        (replaceBySubExpressionFix checkInfo.nodeRange checkInfo.condition)
+                                    )
 
                             _ ->
                                 Nothing
@@ -13718,19 +13712,17 @@ ifChecks checkInfo =
                         case Evaluate.getBoolean checkInfo checkInfo.falseBranch of
                             Determined True ->
                                 Just
-                                    { errors =
-                                        Rule.errorWithFix
-                                            { message = "The if expression's value is the inverse of the condition"
-                                            , details = [ "The expression can be replaced by the condition wrapped by `not`." ]
-                                            }
-                                            (targetIfKeyword checkInfo.nodeRange)
-                                            (replaceBySubExpressionFix checkInfo.nodeRange checkInfo.condition
-                                                ++ [ Fix.insertAt checkInfo.nodeRange.start
-                                                        (qualifiedToString (qualify Fn.Basics.not checkInfo) ++ " ")
-                                                   ]
-                                            )
-                                    , rangesToIgnore = RangeDict.empty
-                                    }
+                                    (Rule.errorWithFix
+                                        { message = "The if expression's value is the inverse of the condition"
+                                        , details = [ "The expression can be replaced by the condition wrapped by `not`." ]
+                                        }
+                                        (targetIfKeyword checkInfo.nodeRange)
+                                        (replaceBySubExpressionFix checkInfo.nodeRange checkInfo.condition
+                                            ++ [ Fix.insertAt checkInfo.nodeRange.start
+                                                    (qualifiedToString (qualify Fn.Basics.not checkInfo) ++ " ")
+                                               ]
+                                        )
+                                    )
 
                             _ ->
                                 Nothing
@@ -13743,15 +13735,13 @@ ifChecks checkInfo =
                 case Normalize.compare checkInfo checkInfo.trueBranch checkInfo.falseBranch of
                     Normalize.ConfirmedEquality ->
                         Just
-                            { errors =
-                                Rule.errorWithFix
-                                    { message = "The values in both branches is the same."
-                                    , details = [ "The expression can be replaced by the contents of either branch." ]
-                                    }
-                                    (targetIfKeyword checkInfo.nodeRange)
-                                    (replaceBySubExpressionFix checkInfo.nodeRange checkInfo.trueBranch)
-                            , rangesToIgnore = RangeDict.empty
-                            }
+                            (Rule.errorWithFix
+                                { message = "The values in both branches is the same."
+                                , details = [ "The expression can be replaced by the contents of either branch." ]
+                                }
+                                (targetIfKeyword checkInfo.nodeRange)
+                                (replaceBySubExpressionFix checkInfo.nodeRange checkInfo.trueBranch)
+                            )
 
                     _ ->
                         Nothing
