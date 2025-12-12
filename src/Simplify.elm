@@ -5020,7 +5020,7 @@ findSimilarConditionsError operatorCheckInfo =
     in
     operatorCheckInfo.left
         |> listConditions operatorCheckInfo.operator (RemoveFrom operatorCheckInfo.leftRange.end)
-        |> findMap (Tuple.second >> errorsForNode)
+        |> findMap (\( _, condition ) -> errorsForNode condition)
 
 
 areSimilarConditionsError :
