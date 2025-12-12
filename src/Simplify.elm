@@ -9411,14 +9411,18 @@ emptiableFlatMapChecks emptiable =
         [ unnecessaryOnEmptyCheck emptiable
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                case constructs (sameInAllBranches (getEmptyExpressionNode checkInfo emptiable)) checkInfo.lookupTable checkInfo.firstArg of
-                    Just _ ->
-                        Just
-                            (alwaysResultsInUnparenthesizedConstantError
-                                (qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ emptiable.empty.specific.description)
-                                { replacement = emptiable.empty.specific.asString }
-                                checkInfo
-                            )
+                case toConstructedResult checkInfo.lookupTable checkInfo.firstArg of
+                    Just constructed ->
+                        if trueInAllBranches (isInTypeSubset emptiable.empty checkInfo) constructed then
+                            Just
+                                (alwaysResultsInUnparenthesizedConstantError
+                                    (qualifiedToString checkInfo.fn ++ " with a function that will always return " ++ emptiable.empty.specific.description)
+                                    { replacement = emptiable.empty.specific.asString }
+                                    checkInfo
+                                )
+
+                        else
+                            Nothing
 
                     Nothing ->
                         Nothing
@@ -11730,7 +11734,18 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall
             (\checkInfo ->
-                case constructs (sameInAllBranches (\branch -> AstHelpers.getSpecificUnreducedFnCall Fn.Maybe.justVariant checkInfo.lookupTable branch)) checkInfo.lookupTable checkInfo.firstArg of
+                case
+                    checkInfo.firstArg
+                        |> toConstructedResult checkInfo.lookupTable
+                        |> Maybe.andThen
+                            (\construct ->
+                                sameInAllBranches
+                                    (\branch ->
+                                        AstHelpers.getSpecificUnreducedFnCall Fn.Maybe.justVariant checkInfo.lookupTable branch
+                                    )
+                                    construct
+                            )
+                of
                     Just justCalls ->
                         Just
                             (Rule.errorWithFix
@@ -11762,14 +11777,24 @@ emptiableWrapperFilterMapChecks emptiableWrapper =
             )
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                case constructs (sameInAllBranches (\branch -> AstHelpers.getSpecificValueReference checkInfo.lookupTable Fn.Maybe.nothingVariant branch)) checkInfo.lookupTable checkInfo.firstArg of
-                    Just _ ->
-                        Just
-                            (alwaysResultsInUnparenthesizedConstantError
-                                (qualifiedToString checkInfo.fn ++ " with a function that will always return Nothing")
-                                { replacement = emptiableWrapper.empty.specific.asString }
-                                checkInfo
-                            )
+                case toConstructedResult checkInfo.lookupTable checkInfo.firstArg of
+                    Just constructed ->
+                        if
+                            trueInAllBranches
+                                (\branch ->
+                                    AstHelpers.isSpecificValueReference checkInfo.lookupTable Fn.Maybe.nothingVariant branch
+                                )
+                                constructed
+                        then
+                            Just
+                                (alwaysResultsInUnparenthesizedConstantError
+                                    (qualifiedToString checkInfo.fn ++ " with a function that will always return Nothing")
+                                    { replacement = emptiableWrapper.empty.specific.asString }
+                                    checkInfo
+                                )
+
+                        else
+                            Nothing
 
                     Nothing ->
                         Nothing
@@ -14997,7 +15022,11 @@ accessingRecordCompositionChecks checkInfo =
         Just accessFunctionFieldName ->
             firstThatConstructsJust
                 [ \() ->
-                    case constructs (getRecordWithKnownFields checkInfo) checkInfo.lookupTable checkInfo.earlier.node of
+                    case
+                        checkInfo.earlier.node
+                            |> toConstructedResult checkInfo.lookupTable
+                            |> Maybe.andThen (\constructed -> getRecordWithKnownFields checkInfo constructed)
+                    of
                         Just recordWithKnownField ->
                             accessingRecordWithKnownFieldsChecks
                                 { nodeRange = recordWithKnownField.range
@@ -15775,9 +15804,16 @@ constructsOrComposesInto constructWithOneValue context expressionNode =
     findMap (\f -> f ())
         [ \() ->
             expressionNode
-                |> constructs
-                    (sameInAllBranches (\expr -> getValueWithNodeRange (constructWithOneValue.getValue context.lookupTable) expr))
+                |> toConstructedResult
                     context.lookupTable
+                |> Maybe.andThen
+                    (\constructed ->
+                        sameInAllBranches
+                            (\branch ->
+                                getValueWithNodeRange (constructWithOneValue.getValue context.lookupTable) branch
+                            )
+                            constructed
+                    )
                 |> Maybe.map
                     (\wrapCalls ->
                         List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.value) wrapCalls
@@ -16015,24 +16051,20 @@ needsParens expr =
             False
 
 
-{-| Take one argument and return a value that matches a given parser.
+{-| The result of a lambda with one argument or the first argument of a `Basics.always` call
 -}
-constructs :
-    (Node Expression -> Maybe specific)
-    -> ModuleNameLookupTable
-    -> Node Expression
-    -> Maybe specific
-constructs getSpecific lookupTable expressionNode =
+toConstructedResult : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
+toConstructedResult lookupTable expressionNode =
     case AstHelpers.getSpecificUnreducedFnCall Fn.Basics.always lookupTable expressionNode of
         Just alwaysCall ->
-            getSpecific alwaysCall.firstArg
+            Just alwaysCall.firstArg
 
         Nothing ->
             case Node.value (AstHelpers.removeParens expressionNode) of
                 Expression.LambdaExpression lambda ->
                     case lambda.args of
-                        _ :: [] ->
-                            getSpecific lambda.expression
+                        [ _ ] ->
+                            Just lambda.expression
 
                         _ ->
                             Nothing
