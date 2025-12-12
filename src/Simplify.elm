@@ -2486,7 +2486,12 @@ expressionVisitor node config context =
             expressionChecked =
                 expressionVisitorHelp node config contextWithInferredConstantsAndLocalBindings
         in
-        ( expressionChecked.error |> maybeToList
+        ( case expressionChecked.error of
+            Nothing ->
+                []
+
+            Just error ->
+                [ error ]
         , { rangesToIgnore = RangeDict.union expressionChecked.rangesToIgnore context.rangesToIgnore
           , rightSidesOfPlusPlus = RangeDict.union expressionChecked.rightSidesOfPlusPlus context.rightSidesOfPlusPlus
           , inferredConstantsDict =
@@ -16413,13 +16418,3 @@ isNothing maybe =
 
         Just _ ->
             False
-
-
-maybeToList : Maybe a -> List a
-maybeToList maybe =
-    case maybe of
-        Nothing ->
-            []
-
-        Just content ->
-            [ content ]
