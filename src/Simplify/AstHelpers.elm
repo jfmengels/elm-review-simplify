@@ -2,11 +2,11 @@ module Simplify.AstHelpers exposing
     ( ReduceLambdaResources
     , removeParens, removeParensFromPattern
     , getValueOrFnOrFnCall
-    , getSpecificFnCall, getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
+    , getSpecificFnCall, getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
     , getAccessingRecord, getRecordAccessFunction
-    , getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
+    , getOrder, getBool, getBoolPattern, getUncomputedNumberValue
     , getCollapsedCons, getListLiteral, isListLiteral, getListSingleton
     , getTuple2, getTuple2Literal
     , boolToString, orderToString, emptyStringAsString
@@ -32,7 +32,7 @@ module Simplify.AstHelpers exposing
 ### value/function/function call/composition
 
 @docs getValueOrFnOrFnCall
-@docs getSpecificFnCall, getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, getSpecificValueReference, isSpecificValueReference
+@docs getSpecificFnCall, getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
 
 
 ### certain kind
@@ -40,7 +40,7 @@ module Simplify.AstHelpers exposing
 @docs isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
 @docs isTupleFirstAccess, isTupleSecondAccess
 @docs getAccessingRecord, getRecordAccessFunction
-@docs getOrder, getSpecificBool, getBool, getBoolPattern, getUncomputedNumberValue
+@docs getOrder, getBool, getBoolPattern, getUncomputedNumberValue
 @docs getCollapsedCons, getListLiteral, isListLiteral, getListSingleton
 @docs getTuple2, getTuple2Literal
 
@@ -359,36 +359,6 @@ getValueOrFunction lookupTable expressionNode =
 {-| Specialized, more performant version of `isSpecificValueOrFn`
 that only works for variables holding a value that cannot be applied,
 like `True`, `Basics.e` or `Nothing`.
-Returns the range of the reference.
--}
-getSpecificValueReference :
-    ModuleNameLookupTable
-    -> ( ModuleName, String )
-    -> Node Expression
-    -> Maybe Range
-getSpecificValueReference lookupTable ( moduleOriginToCheckFor, nameToCheckFor ) baseNode =
-    case removeParens baseNode of
-        Node referenceRange (Expression.FunctionOrValue _ name) ->
-            if
-                (name == nameToCheckFor)
-                    && (case ModuleNameLookupTable.moduleNameAt lookupTable referenceRange of
-                            Nothing ->
-                                False
-
-                            Just moduleOrigin ->
-                                moduleOrigin == moduleOriginToCheckFor
-                       )
-            then
-                Just referenceRange
-
-            else
-                Nothing
-
-        _ ->
-            Nothing
-
-
-{-| `getSpecificValueReference` without returning the fn range
 -}
 isSpecificValueReference :
     ModuleNameLookupTable
@@ -1256,18 +1226,6 @@ getBool lookupTable expressionNode =
 
     else
         Nothing
-
-
-getSpecificBool : Bool -> ModuleNameLookupTable -> Node Expression -> Maybe Range
-getSpecificBool specificBool lookupTable expressionNode =
-    getSpecificValueReference lookupTable
-        (if specificBool then
-            Fn.Basics.trueVariant
-
-         else
-            Fn.Basics.falseVariant
-        )
-        expressionNode
 
 
 getTuple2Literal : Node Expression -> Maybe { range : Range, first : Node Expression, second : Node Expression }
