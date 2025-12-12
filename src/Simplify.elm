@@ -7539,8 +7539,22 @@ getTupleWithSpecificSecondBoolExpressionNode : Bool -> ModuleNameLookupTable -> 
 getTupleWithSpecificSecondBoolExpressionNode specificBool lookupTable expressionNode =
     AstHelpers.getTuple2Literal expressionNode
         |> Maybe.andThen
-            (\tuple -> AstHelpers.getSpecificBool specificBool lookupTable tuple.second)
-        |> Maybe.map (\_ -> expressionNode)
+            (\tuple ->
+                if
+                    AstHelpers.isSpecificValueReference lookupTable
+                        (if specificBool then
+                            Fn.Basics.trueVariant
+
+                         else
+                            Fn.Basics.falseVariant
+                        )
+                        tuple.second
+                then
+                    Just expressionNode
+
+                else
+                    Nothing
+            )
 
 
 htmlAttributesClassListFalseElementError : CallCheckInfo -> { message : String, details : List String }
