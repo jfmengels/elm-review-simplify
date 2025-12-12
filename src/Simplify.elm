@@ -10522,7 +10522,7 @@ expressionContainsVariable variableToFind (Node _ expressionNode) =
                 )
                 fields
 
-        Expression.RecordUpdateExpression (Node recordVariableRange recordVariable) setters ->
+        Expression.RecordUpdateExpression (Node _ recordVariable) setters ->
             (recordVariable == variableToFind)
                 || List.any
                     (\(Node _ ( _, newValue )) ->
