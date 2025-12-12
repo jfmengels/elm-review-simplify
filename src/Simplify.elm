@@ -4339,8 +4339,8 @@ equalityChecks isEqual =
                 (operationSides checkInfo)
         , \checkInfo ->
             case
-                ( AstHelpers.getSpecificFnCall Fn.Basics.not checkInfo checkInfo.left
-                , AstHelpers.getSpecificFnCall Fn.Basics.not checkInfo checkInfo.right
+                ( AstHelpers.getSpecificUnreducedFnCall Fn.Basics.not checkInfo.lookupTable checkInfo.left
+                , AstHelpers.getSpecificUnreducedFnCall Fn.Basics.not checkInfo.lookupTable checkInfo.right
                 )
             of
                 ( Just leftNotCall, Just rightNotCall ) ->
@@ -4501,7 +4501,7 @@ compareWithZeroChecks checkInfo isEqual node =
     ]
         |> findMap
             (\( newFn, oldFn, structName ) ->
-                case AstHelpers.getSpecificFnCall oldFn checkInfo node of
+                case AstHelpers.getSpecificUnreducedFnCall oldFn checkInfo.lookupTable node of
                     Just call ->
                         let
                             newFunction : String
@@ -5260,10 +5260,10 @@ tuplePartChecks partConfig =
             )
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                case AstHelpers.getSpecificFnCall partConfig.mapUnrelatedFn checkInfo checkInfo.firstArg of
+                case AstHelpers.getSpecificUnreducedFnCall partConfig.mapUnrelatedFn checkInfo.lookupTable checkInfo.firstArg of
                     Just mapSecondCall ->
                         case mapSecondCall.argsAfterFirst of
-                            unmappedTuple :: [] ->
+                            [ unmappedTuple ] ->
                                 Just
                                     (Rule.errorWithFix
                                         { message = "Unnecessary " ++ qualifiedToString partConfig.mapUnrelatedFn ++ " before " ++ qualifiedToString checkInfo.fn
@@ -5281,10 +5281,10 @@ tuplePartChecks partConfig =
             )
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                case AstHelpers.getSpecificFnCall Fn.Tuple.mapBoth checkInfo checkInfo.firstArg of
+                case AstHelpers.getSpecificUnreducedFnCall Fn.Tuple.mapBoth checkInfo.lookupTable checkInfo.firstArg of
                     Just tupleMapBothCall ->
                         case tupleMapBothCall.argsAfterFirst of
-                            secondMapperArg :: _ :: [] ->
+                            [ secondMapperArg, _ ] ->
                                 Just
                                     (Rule.errorWithFix
                                         { message = qualifiedToString Fn.Tuple.mapBoth ++ " before " ++ qualifiedToString checkInfo.fn ++ " is the same as " ++ qualifiedToString partConfig.mapFn
@@ -5815,10 +5815,10 @@ listHeadChecks =
                         )
                         (getListHead checkInfo.lookupTable checkInfo.firstArg)
                 , \checkInfo ->
-                    AstHelpers.getSpecificFnCall Fn.List.reverse checkInfo checkInfo.firstArg
+                    AstHelpers.getSpecificUnreducedFnCall Fn.List.reverse checkInfo.lookupTable checkInfo.firstArg
                         |> Maybe.andThen
                             (\reverseCall ->
-                                AstHelpers.getSpecificFnCall Fn.List.sort checkInfo reverseCall.firstArg
+                                AstHelpers.getSpecificUnreducedFnCall Fn.List.sort checkInfo.lookupTable reverseCall.firstArg
                                     |> Maybe.map
                                         (\sortCall ->
                                             Rule.errorWithFix
@@ -6286,7 +6286,7 @@ listFoldAnyDirectionChecks =
                 \checkInfo ->
                     case thirdArg checkInfo of
                         Just listArg ->
-                            case AstHelpers.getSpecificFnCall Fn.Set.toList checkInfo listArg of
+                            case AstHelpers.getSpecificUnreducedFnCall Fn.Set.toList checkInfo.lookupTable listArg of
                                 Just setToListCall ->
                                     Just
                                         (Rule.errorWithFix
@@ -6452,7 +6452,11 @@ listFilterMapChecks =
                                         Just list ->
                                             case
                                                 traverse
-                                                    (AstHelpers.getSpecificFnCall Fn.Maybe.justVariant checkInfo)
+                                                    (\branch ->
+                                                        AstHelpers.getSpecificUnreducedFnCall Fn.Maybe.justVariant
+                                                            checkInfo.lookupTable
+                                                            branch
+                                                    )
                                                     list
                                             of
                                                 Just justCalls ->
@@ -6739,11 +6743,15 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
         maybeCall =
             firstThatConstructsJust
                 [ \() ->
-                    AstHelpers.getSpecificFnCall Fn.Array.repeat checkInfo checkInfo.firstArg
-                        |> Maybe.map (Tuple.pair "repeat")
+                    AstHelpers.getSpecificUnreducedFnCall Fn.Array.repeat
+                        checkInfo.lookupTable
+                        checkInfo.firstArg
+                        |> Maybe.map (\call -> ( "repeat", call ))
                 , \() ->
-                    AstHelpers.getSpecificFnCall Fn.Array.initialize checkInfo checkInfo.firstArg
-                        |> Maybe.map (Tuple.pair "initialize")
+                    AstHelpers.getSpecificUnreducedFnCall Fn.Array.initialize
+                        checkInfo.lookupTable
+                        checkInfo.firstArg
+                        |> Maybe.map (\call -> ( "initialize", call ))
                 ]
                 ()
     in
@@ -6974,7 +6982,9 @@ setUnionChecks =
                         Nothing
 
                     Just secondSetArg ->
-                        AstHelpers.getSpecificFnCall Fn.Set.singleton checkInfo secondSetArg
+                        AstHelpers.getSpecificUnreducedFnCall Fn.Set.singleton
+                            checkInfo.lookupTable
+                            secondSetArg
                             |> Maybe.map
                                 (\setSingletonCall ->
                                     let
@@ -7261,8 +7271,8 @@ dictUpdateChecks =
 
                                 else
                                     case
-                                        AstHelpers.getSpecificFnCall Fn.Maybe.justVariant
-                                            checkInfo
+                                        AstHelpers.getSpecificUnreducedFnCall Fn.Maybe.justVariant
+                                            checkInfo.lookupTable
                                             updateFunctionArgumentAlwaysResult
                                     of
                                         Nothing ->
@@ -9628,7 +9638,15 @@ fromMaybeWithEmptyValueOnNothingCheck wrapper =
                 \checkInfo ->
                     case secondArg checkInfo of
                         Just maybeArg ->
-                            case sameInAllBranches (\branch -> AstHelpers.getSpecificFnCall Fn.Maybe.justVariant checkInfo branch) maybeArg of
+                            case
+                                sameInAllBranches
+                                    (\branch ->
+                                        AstHelpers.getSpecificUnreducedFnCall Fn.Maybe.justVariant
+                                            checkInfo.lookupTable
+                                            branch
+                                    )
+                                    maybeArg
+                            of
                                 Just justCalls ->
                                     Just
                                         (Rule.errorWithFix
@@ -9734,7 +9752,9 @@ flatFromListsSpreadFlatFromListElementsCheck checkInfo =
             let
                 getFlatFromListOnLiteralCheck : Node Expression -> Maybe { callNodeRange : Range, literalRange : Range }
                 getFlatFromListOnLiteralCheck expressionNode =
-                    AstHelpers.getSpecificFnCall checkInfo.fn checkInfo expressionNode
+                    AstHelpers.getSpecificUnreducedFnCall checkInfo.fn
+                        checkInfo.lookupTable
+                        expressionNode
                         |> Maybe.andThen
                             (\flatFromListCall ->
                                 case flatFromListCall.firstArg of
@@ -12437,7 +12457,13 @@ unnecessaryCallOnSpecificFnCallCheck specificFn checkInfo =
         Just fullyAppliedLastArgNode ->
             if
                 trueInAllBranches
-                    (\branch -> isJust (AstHelpers.getSpecificFnCall specificFn checkInfo branch))
+                    (\branch ->
+                        isJust
+                            (AstHelpers.getSpecificUnreducedFnCall specificFn
+                                checkInfo.lookupTable
+                                branch
+                            )
+                    )
                     fullyAppliedLastArgNode
             then
                 Just
