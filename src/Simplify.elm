@@ -4655,11 +4655,18 @@ isEmpty lookupTable node =
         Node range (Expression.FunctionOrValue _ "empty") ->
             case ModuleNameLookupTable.moduleNameAt lookupTable range of
                 Just modName ->
-                    if List.member modName [ [ "Array" ], [ "Set" ], [ "Dict" ] ] then
-                        Just modName
+                    case modName of
+                        [ "Array" ] ->
+                            Just modName
 
-                    else
-                        Nothing
+                        [ "Set" ] ->
+                            Just modName
+
+                        [ "Dict" ] ->
+                            Just modName
+
+                        _ ->
+                            Nothing
 
                 Nothing ->
                     Nothing

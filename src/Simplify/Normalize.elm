@@ -105,7 +105,10 @@ normalize resources node =
                 right =
                     normalize resources r
             in
-            if List.member operator [ "+", "*", "||", "&&", "==", "/=" ] && toComparable left > toComparable right then
+            if
+                operatorIsSymmetrical operator
+                    && (toComparable left > toComparable right)
+            then
                 toNode (Expression.OperatorApplication operator infixDirection right left)
 
             else
@@ -228,11 +231,35 @@ normalize resources node =
                 |> toNode
 
         Expression.Hex int ->
-            Expression.Integer int
-                |> toNode
+            toNode (Expression.Integer int)
 
         expr ->
             toNode expr
+
+
+operatorIsSymmetrical : String -> Bool
+operatorIsSymmetrical operator =
+    case operator of
+        "+" ->
+            True
+
+        "*" ->
+            True
+
+        "||" ->
+            True
+
+        "&&" ->
+            True
+
+        "==" ->
+            True
+
+        "/=" ->
+            True
+
+        _ ->
+            False
 
 
 normalizeButKeepRange : Infer.Resources a -> Node Expression -> Node Expression
@@ -395,7 +422,7 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.OperatorApplication leftOp _ leftLeft leftRight ->
-            if List.member leftOp [ "+", "-", "*", "/" ] then
+            if isNumberOperator leftOp then
                 case getNumberValue leftNode of
                     Just leftValue ->
                         case getNumberValue right of
@@ -589,6 +616,28 @@ compareHelp leftNode right canFlip =
 
         _ ->
             fallback ()
+
+
+{-| For consistency with `getNumberValue`, this does not
+(yet?) include `//`
+-}
+isNumberOperator : String -> Bool
+isNumberOperator operator =
+    case operator of
+        "+" ->
+            True
+
+        "-" ->
+            True
+
+        "*" ->
+            True
+
+        "/" ->
+            True
+
+        _ ->
+            False
 
 
 compareAll2Help : Node Expression -> Node Expression -> Node Expression -> Node Expression -> Comparison
