@@ -1,11 +1,12 @@
 module Simplify.RangeDict exposing (RangeDict, any, empty, get, insert, mapFromList, member, remove, singleton, union)
 
+import Bitwise
 import Dict exposing (Dict)
 import Elm.Syntax.Range exposing (Range)
 
 
 type RangeDict v
-    = RangeDict (Dict String v)
+    = RangeDict (Dict ( Int, Int ) v)
 
 
 empty : RangeDict v
@@ -15,7 +16,7 @@ empty =
 
 singleton : Range -> v -> RangeDict v
 singleton range value =
-    RangeDict (Dict.singleton (rangeAsString range) value)
+    RangeDict (Dict.singleton (rangeAsComparable range) value)
 
 
 {-| Indirect conversion from a list to key-value pairs to avoid successive List.map calls.
@@ -28,7 +29,7 @@ mapFromList toAssociation list =
                 ( range, v ) =
                     toAssociation element
             in
-            Dict.insert (rangeAsString range) v acc
+            Dict.insert (rangeAsComparable range) v acc
         )
         Dict.empty
         list
@@ -37,22 +38,22 @@ mapFromList toAssociation list =
 
 insert : Range -> v -> RangeDict v -> RangeDict v
 insert range value (RangeDict rangeDict) =
-    RangeDict (Dict.insert (rangeAsString range) value rangeDict)
+    RangeDict (Dict.insert (rangeAsComparable range) value rangeDict)
 
 
 remove : Range -> RangeDict v -> RangeDict v
 remove range (RangeDict rangeDict) =
-    RangeDict (Dict.remove (rangeAsString range) rangeDict)
+    RangeDict (Dict.remove (rangeAsComparable range) rangeDict)
 
 
 get : Range -> RangeDict v -> Maybe v
 get range (RangeDict rangeDict) =
-    Dict.get (rangeAsString range) rangeDict
+    Dict.get (rangeAsComparable range) rangeDict
 
 
 member : Range -> RangeDict v -> Bool
 member range (RangeDict rangeDict) =
-    Dict.member (rangeAsString range) rangeDict
+    Dict.member (rangeAsComparable range) rangeDict
 
 
 foldl : (v -> folded -> folded) -> folded -> RangeDict v -> folded
@@ -72,12 +73,8 @@ union (RangeDict aRangeDict) (RangeDict bRangeDict) =
     RangeDict (Dict.union aRangeDict bRangeDict)
 
 
-rangeAsString : Range -> String
-rangeAsString range =
-    String.fromInt range.start.row
-        ++ "_"
-        ++ String.fromInt range.start.column
-        ++ "_"
-        ++ String.fromInt range.end.row
-        ++ "_"
-        ++ String.fromInt range.end.column
+rangeAsComparable : Range -> ( Int, Int )
+rangeAsComparable range =
+    ( Bitwise.shiftLeftBy 16 range.start.row + range.start.column
+    , Bitwise.shiftLeftBy 16 range.end.row + range.end.column
+    )
