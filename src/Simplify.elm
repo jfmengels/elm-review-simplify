@@ -2576,7 +2576,7 @@ insertImport moduleName importInfoToAdd importLookup =
                             importInfoToAdd
 
                         Just import_ ->
-                            { alias = findMap .alias [ import_, importInfoToAdd ]
+                            { alias = import_.alias |> maybeOnNothing (\() -> importInfoToAdd.alias)
                             , exposed = exposedMerge ( import_.exposed, importInfoToAdd.exposed )
                             }
             in
@@ -2791,6 +2791,15 @@ maybeErrorAndRangesToIgnore maybeError rangesToIgnore =
 onlyMaybeError : Maybe (Error {}) -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
 onlyMaybeError maybeError =
     { error = maybeError
+    , rangesToIgnore = RangeDict.empty
+    , rightSidesOfPlusPlus = RangeDict.empty
+    , inferredConstants = []
+    }
+
+
+expressionVisitResultNoError : { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
+expressionVisitResultNoError =
+    { error = Nothing
     , rangesToIgnore = RangeDict.empty
     , rightSidesOfPlusPlus = RangeDict.empty
     , inferredConstants = []
@@ -3022,10 +3031,10 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                         (RangeDict.singleton applicationRange ())
 
                                 Nothing ->
-                                    onlyMaybeError Nothing
+                                    expressionVisitResultNoError
 
                         Nothing ->
-                            onlyMaybeError Nothing
+                            expressionVisitResultNoError
 
                 pipedIntoOther ->
                     onlyMaybeError
@@ -3050,12 +3059,12 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         Expression.OperatorApplication "|>" _ lastArg pipedInto ->
             case pipedInto of
                 Node fnRange (Expression.FunctionOrValue _ fnName) ->
-                    onlyMaybeError
-                        (case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
-                            Just moduleName ->
-                                case Dict.get ( moduleName, fnName ) functionCallChecks of
-                                    Just ( argCount, checks ) ->
-                                        checks
+                    case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
+                        Just moduleName ->
+                            case Dict.get ( moduleName, fnName ) functionCallChecks of
+                                Just ( argCount, checks ) ->
+                                    onlyMaybeError
+                                        (checks
                                             (toCheckInfo
                                                 { fnRange = fnRange
                                                 , fn = ( moduleName, fnName )
@@ -3065,13 +3074,13 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , callStyle = functionCallStylePipeLeftToRight
                                                 }
                                             )
+                                        )
 
-                                    Nothing ->
-                                        Nothing
+                                Nothing ->
+                                    expressionVisitResultNoError
 
-                            Nothing ->
-                                Nothing
-                        )
+                        Nothing ->
+                            expressionVisitResultNoError
 
                 Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: argsBetweenFirstAndLast)) ->
                     case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
@@ -3093,10 +3102,10 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                         (RangeDict.singleton applicationRange ())
 
                                 Nothing ->
-                                    onlyMaybeError Nothing
+                                    expressionVisitResultNoError
 
                         Nothing ->
-                            onlyMaybeError Nothing
+                            expressionVisitResultNoError
 
                 pipedIntoOther ->
                     onlyMaybeError
@@ -3120,7 +3129,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         ----------
         Expression.OperatorApplication ">>" _ earlier composedLater ->
             onlyMaybeError
-                (firstThatConstructsJust compositionChecks
+                (compositionChecks
                     (toCompositionCheckInfo { earlier = earlier, later = composedLater })
                 )
 
@@ -3129,7 +3138,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         ----------
         Expression.OperatorApplication "<<" _ composedLater earlier ->
             onlyMaybeError
-                (firstThatConstructsJust compositionChecks
+                (compositionChecks
                     (toCompositionCheckInfo { earlier = earlier, later = composedLater })
                 )
 
@@ -3187,7 +3196,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                     }
 
                 Nothing ->
-                    onlyMaybeError Nothing
+                    expressionVisitResultNoError
 
         --------------
         -- NEGATION --
@@ -3255,7 +3264,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         -------------
         Expression.CaseExpression caseBlock ->
             onlyMaybeError
-                (firstThatConstructsJust caseOfChecks
+                (caseOfChecks
                     { lookupTable = context.lookupTable
                     , moduleCustomTypes = context.moduleCustomTypes
                     , importCustomTypes = context.importCustomTypes
@@ -3283,61 +3292,61 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         -- NOT SIMPLIFIED --
         --------------------
         Expression.UnitExpr ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.CharLiteral _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.Integer _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.Hex _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.Floatable _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.Literal _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.GLSLExpression _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.PrefixOperator _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.RecordAccessFunction _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.FunctionOrValue _ _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.ParenthesizedExpression _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.TupledExpression _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.ListExpr _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.RecordExpr _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.LambdaExpression _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         ----------------------
         -- IMPOSSIBLE CASES --
         ----------------------
         Expression.Operator _ ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.Application [] ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
         Expression.Application (_ :: []) ->
-            onlyMaybeError Nothing
+            expressionVisitResultNoError
 
 
 functionCallStylePipeLeftToRight : FunctionCallStyle
@@ -3754,54 +3763,61 @@ type alias CompositionCheckInfo =
     }
 
 
-compositionChecks : List (CompositionCheckInfo -> Maybe (Error {}))
-compositionChecks =
-    [ accessingRecordCompositionChecks
-    , basicsIdentityCompositionChecks
-    , \checkInfo ->
-        case
-            ( AstHelpers.getValueOrFnOrFnCall checkInfo checkInfo.earlier.node
-            , AstHelpers.getValueOrFnOrFnCall checkInfo checkInfo.later.node
-            )
-        of
-            ( Just earlierFnOrCall, Just laterFnOrCall ) ->
+compositionChecks : CompositionCheckInfo -> Maybe (Error {})
+compositionChecks checkInfo =
+    accessingRecordCompositionChecks checkInfo
+        |> maybeOnNothing (\() -> basicsIdentityCompositionChecks checkInfo)
+        |> maybeOnNothing
+            (\() ->
                 case
-                    ( ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable earlierFnOrCall.fnRange
-                    , ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable laterFnOrCall.fnRange
+                    ( AstHelpers.getValueOrFnOrFnCall checkInfo checkInfo.earlier.node
+                    , AstHelpers.getValueOrFnOrFnCall checkInfo checkInfo.later.node
                     )
                 of
-                    ( Just earlierFnModuleName, Just laterFnModuleName ) ->
-                        case Dict.get ( laterFnModuleName, laterFnOrCall.fnName ) compositionIntoChecks of
-                            Just ( laterArgCount, compositionIntoChecksForSpecificLater ) ->
-                                compositionIntoChecksForSpecificLater
-                                    { lookupTable = checkInfo.lookupTable
-                                    , importLookup = checkInfo.importLookup
-                                    , importCustomTypes = checkInfo.importCustomTypes
-                                    , moduleCustomTypes = checkInfo.moduleCustomTypes
-                                    , inferredConstants = checkInfo.inferredConstants
-                                    , moduleBindings = checkInfo.moduleBindings
-                                    , localBindings = checkInfo.localBindings
-                                    , extractSourceCode = checkInfo.extractSourceCode
-                                    , later =
-                                        { range = laterFnOrCall.nodeRange
-                                        , fn = ( laterFnModuleName, laterFnOrCall.fnName )
-                                        , fnRange = laterFnOrCall.fnRange
-                                        , args = laterFnOrCall.args
-                                        , argCount = laterArgCount
-                                        , removeRange = checkInfo.later.removeRange
-                                        }
-                                    , earlier =
-                                        { range = earlierFnOrCall.nodeRange
-                                        , fn = ( earlierFnModuleName, earlierFnOrCall.fnName )
-                                        , fnRange = earlierFnOrCall.fnRange
-                                        , args = earlierFnOrCall.args
-                                        , removeRange = checkInfo.earlier.removeRange
-                                        }
-                                    , isEmbeddedInComposition = checkInfo.isEmbeddedInComposition
-                                    }
-                                    |> Maybe.map (\e -> Rule.errorWithFix e.info laterFnOrCall.fnRange e.fix)
+                    ( Just earlierFnOrCall, Just laterFnOrCall ) ->
+                        case
+                            ( ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable earlierFnOrCall.fnRange
+                            , ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable laterFnOrCall.fnRange
+                            )
+                        of
+                            ( Just earlierFnModuleName, Just laterFnModuleName ) ->
+                                case Dict.get ( laterFnModuleName, laterFnOrCall.fnName ) compositionIntoChecks of
+                                    Just ( laterArgCount, compositionIntoChecksForSpecificLater ) ->
+                                        compositionIntoChecksForSpecificLater
+                                            { lookupTable = checkInfo.lookupTable
+                                            , importLookup = checkInfo.importLookup
+                                            , importCustomTypes = checkInfo.importCustomTypes
+                                            , moduleCustomTypes = checkInfo.moduleCustomTypes
+                                            , inferredConstants = checkInfo.inferredConstants
+                                            , moduleBindings = checkInfo.moduleBindings
+                                            , localBindings = checkInfo.localBindings
+                                            , extractSourceCode = checkInfo.extractSourceCode
+                                            , later =
+                                                { range = laterFnOrCall.nodeRange
+                                                , fn = ( laterFnModuleName, laterFnOrCall.fnName )
+                                                , fnRange = laterFnOrCall.fnRange
+                                                , args = laterFnOrCall.args
+                                                , argCount = laterArgCount
+                                                , removeRange = checkInfo.later.removeRange
+                                                }
+                                            , earlier =
+                                                { range = earlierFnOrCall.nodeRange
+                                                , fn = ( earlierFnModuleName, earlierFnOrCall.fnName )
+                                                , fnRange = earlierFnOrCall.fnRange
+                                                , args = earlierFnOrCall.args
+                                                , removeRange = checkInfo.earlier.removeRange
+                                                }
+                                            , isEmbeddedInComposition = checkInfo.isEmbeddedInComposition
+                                            }
+                                            |> Maybe.map (\e -> Rule.errorWithFix e.info laterFnOrCall.fnRange e.fix)
 
-                            Nothing ->
+                                    Nothing ->
+                                        Nothing
+
+                            ( Nothing, _ ) ->
+                                Nothing
+
+                            ( _, Nothing ) ->
                                 Nothing
 
                     ( Nothing, _ ) ->
@@ -3809,13 +3825,7 @@ compositionChecks =
 
                     ( _, Nothing ) ->
                         Nothing
-
-            ( Nothing, _ ) ->
-                Nothing
-
-            ( _, Nothing ) ->
-                Nothing
-    ]
+            )
 
 
 compositionIntoChecks : Dict ( ModuleName, String ) ( Int, CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix )
@@ -4510,49 +4520,62 @@ compareWithZeroChecks :
             , newFunction : String
             }
 compareWithZeroChecks checkInfo isEqual node =
-    [ ( Fn.List.isEmpty, Fn.List.length, "List" )
-    , ( Fn.Dict.isEmpty, Fn.Dict.size, "Dict" )
-    , ( Fn.Set.isEmpty, Fn.Set.size, "Set" )
-    , ( Fn.Array.isEmpty, Fn.Array.length, "Array" )
+    -- , compareWithZeroCheck Fn.String.isEmpty Fn.String.length "String" is this the best replacement? Should it be == ""?
+    compareWithZeroCheck Fn.List.isEmpty Fn.List.length "List" isEqual checkInfo node
+        |> maybeOnNothing (\() -> compareWithZeroCheck Fn.Dict.isEmpty Fn.Dict.size "Dict" isEqual checkInfo node)
+        |> maybeOnNothing (\() -> compareWithZeroCheck Fn.Set.isEmpty Fn.Set.size "Set" isEqual checkInfo node)
+        |> maybeOnNothing (\() -> compareWithZeroCheck Fn.Array.isEmpty Fn.Array.length "Array" isEqual checkInfo node)
 
-    -- , ( Fn.String.isEmpty, Fn.String.length, "String" ) is this the best replacement? Should it be == ""?
-    ]
-        |> findMap
-            (\( newFn, oldFn, structName ) ->
-                case AstHelpers.getSpecificUnreducedFnCall oldFn checkInfo.lookupTable node of
-                    Just call ->
-                        let
-                            newFunction : String
-                            newFunction =
-                                qualifiedToString (qualify newFn defaultQualifyResources)
 
-                            replacementDescription : String
-                            replacementDescription =
-                                if isEqual then
-                                    "`" ++ newFunction ++ "`"
+compareWithZeroCheck :
+    ( ModuleName, String )
+    -> ( ModuleName, String )
+    -> String
+    -> Bool
+    -> OperatorApplicationCheckInfo
+    -> Node Expression
+    ->
+        Maybe
+            { message : String
+            , details : List String
+            , fnRange : Range
+            , callStyle : FunctionCallStyle
+            , newFunction : String
+            }
+compareWithZeroCheck newFn oldFn structName isEqual checkInfo node =
+    case AstHelpers.getSpecificUnreducedFnCall oldFn checkInfo.lookupTable node of
+        Just call ->
+            let
+                newFunction : String
+                newFunction =
+                    qualifiedToString (qualify newFn defaultQualifyResources)
 
-                                else
-                                    "`" ++ newFunction ++ "` and `not`"
-                        in
-                        Just
-                            { message = "This can be replaced with a call to " ++ replacementDescription
-                            , details =
-                                [ "Whereas "
-                                    ++ qualifiedToString (qualify oldFn checkInfo)
-                                    ++ " takes as long to run as the number of elements in the "
-                                    ++ structName
-                                    ++ ", "
-                                    ++ newFunction
-                                    ++ " runs in constant time."
-                                ]
-                            , fnRange = call.fnRange
-                            , callStyle = call.callStyle
-                            , newFunction = qualifiedToString (qualify newFn checkInfo)
-                            }
+                replacementDescription : String
+                replacementDescription =
+                    if isEqual then
+                        "`" ++ newFunction ++ "`"
 
-                    Nothing ->
-                        Nothing
-            )
+                    else
+                        "`" ++ newFunction ++ "` and `not`"
+            in
+            Just
+                { message = "This can be replaced with a call to " ++ replacementDescription
+                , details =
+                    [ "Whereas "
+                        ++ qualifiedToString (qualify oldFn checkInfo)
+                        ++ " takes as long to run as the number of elements in the "
+                        ++ structName
+                        ++ ", "
+                        ++ newFunction
+                        ++ " runs in constant time."
+                    ]
+                , fnRange = call.fnRange
+                , callStyle = call.callStyle
+                , newFunction = qualifiedToString (qualify newFn checkInfo)
+                }
+
+        Nothing ->
+            Nothing
 
 
 comparisonWithEmptyChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
@@ -13684,13 +13707,12 @@ ifChecks checkInfo =
 -- CASE OF
 
 
-caseOfChecks : List (CaseOfCheckInfo -> Maybe (Error {}))
-caseOfChecks =
-    [ sameBodyForCaseOfChecks
-    , booleanCaseOfChecks
-    , destructuringCaseOfChecks
-    , caseOfWithUnreachableCasesChecks
-    ]
+caseOfChecks : CaseOfCheckInfo -> Maybe (Error {})
+caseOfChecks checkInfo =
+    sameBodyForCaseOfChecks checkInfo
+        |> maybeOnNothing (\() -> booleanCaseOfChecks checkInfo)
+        |> maybeOnNothing (\() -> destructuringCaseOfChecks checkInfo)
+        |> maybeOnNothing (\() -> caseOfWithUnreachableCasesChecks checkInfo)
 
 
 type alias CaseOfCheckInfo =
@@ -16275,11 +16297,6 @@ findMap mapper nodes =
 
                 Nothing ->
                     findMap mapper rest
-
-
-firstThatConstructsJust : List (a -> Maybe b) -> a -> Maybe b
-firstThatConstructsJust remainingChecks data =
-    findMap (\checkFn -> checkFn data) remainingChecks
 
 
 {-| `listIndexedFilterMap f list` is equivalent to `List.filterMap identity (List.indexedMap f)`
