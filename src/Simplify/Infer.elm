@@ -219,7 +219,7 @@ convertToFact expr shouldBe =
 
 infer : List Expression -> Bool -> Inferred -> Inferred
 infer nodes shouldBe acc =
-    List.foldl (inferHelp shouldBe) acc nodes
+    List.foldl (\node soFar -> inferHelp shouldBe node soFar) acc nodes
 
 
 infer2 : Expression -> Expression -> Bool -> Inferred -> Inferred
@@ -263,24 +263,22 @@ inferHelp shouldBe node acc =
                 infer2 left right shouldBe dict
 
         Expression.OperatorApplication "==" inf left right ->
-            dict
-                |> (if shouldBe then
-                        injectFacts [ NotEquals (Expression.OperatorApplication "/=" inf left right) trueExpr ]
+            (if shouldBe then
+                injectFacts [ NotEquals (Expression.OperatorApplication "/=" inf left right) trueExpr ] dict
 
-                    else
-                        identity
-                   )
+             else
+                dict
+            )
                 |> inferOnEquality left right shouldBe
                 |> inferOnEquality right left shouldBe
 
         Expression.OperatorApplication "/=" inf left right ->
-            dict
-                |> (if shouldBe then
-                        injectFacts [ NotEquals (Expression.OperatorApplication "==" inf left right) trueExpr ]
+            (if shouldBe then
+                injectFacts [ NotEquals (Expression.OperatorApplication "==" inf left right) trueExpr ] dict
 
-                    else
-                        identity
-                   )
+             else
+                dict
+            )
                 |> inferOnEquality left right (not shouldBe)
                 |> inferOnEquality right left (not shouldBe)
 
@@ -296,9 +294,7 @@ injectFacts newFacts (Inferred inferred) =
 
         newFact :: restOfFacts ->
             if List.member newFact inferred.facts then
-                injectFacts
-                    restOfFacts
-                    (Inferred inferred)
+                injectFacts restOfFacts (Inferred inferred)
 
             else
                 let
@@ -341,7 +337,7 @@ deduceNewFacts newFact facts =
         Equals factTarget factValue ->
             case expressionToDeduced factValue of
                 Just value ->
-                    List.concatMap (mergeEqualFacts ( factTarget, value )) facts
+                    List.concatMap (\fact -> mergeEqualFacts ( factTarget, value ) fact) facts
 
                 Nothing ->
                     [ Equals factValue factTarget ]
@@ -404,10 +400,9 @@ mergeEqualFacts : ( Expression, DeducedValue ) -> Fact -> List Fact
 mergeEqualFacts equalFact fact =
     case fact of
         Or left right ->
-            List.filterMap (ifSatisfy equalFact)
-                (List.map (\cond -> ( cond, right )) left
-                    ++ List.map (\cond -> ( cond, left )) right
-                )
+            (List.filterMap (\cond -> ifSatisfy equalFact ( cond, right )) left
+                ++ List.filterMap (\cond -> ifSatisfy equalFact ( cond, left )) right
+            )
                 |> List.concat
 
         _ ->
