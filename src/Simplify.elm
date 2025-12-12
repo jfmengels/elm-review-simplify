@@ -3134,57 +3134,52 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         -- OTHER OPERATION --
         ---------------------
         Expression.OperatorApplication operator _ left right ->
-            case Dict.get operator operatorApplicationChecks of
-                Just checkFn ->
-                    { error =
-                        let
-                            leftRange : Range
-                            leftRange =
-                                Node.range left
+            { error =
+                let
+                    leftRange : Range
+                    leftRange =
+                        Node.range left
 
-                            rightRange : Range
-                            rightRange =
-                                Node.range right
-                        in
-                        checkFn
-                            { lookupTable = context.lookupTable
+                    rightRange : Range
+                    rightRange =
+                        Node.range right
+                in
+                operatorApplicationChecks operator
+                    { lookupTable = context.lookupTable
+                    , extractSourceCode = context.extractSourceCode
+                    , expectNaN = config.expectNaN
+                    , importLookup = context.importLookup
+                    , moduleCustomTypes = context.moduleCustomTypes
+                    , importCustomTypes = context.importCustomTypes
+                    , moduleBindings = context.moduleBindings
+                    , localBindings = context.localBindings
+                    , inferredConstants = context.inferredConstants
+                    , parentRange = expressionRange
+                    , operator = operator
+                    , operatorRange =
+                        findOperatorRange
+                            { operator = operator
+                            , commentRanges = context.commentRanges
                             , extractSourceCode = context.extractSourceCode
-                            , expectNaN = config.expectNaN
-                            , importLookup = context.importLookup
-                            , moduleCustomTypes = context.moduleCustomTypes
-                            , importCustomTypes = context.importCustomTypes
-                            , moduleBindings = context.moduleBindings
-                            , localBindings = context.localBindings
-                            , inferredConstants = context.inferredConstants
-                            , parentRange = expressionRange
-                            , operator = operator
-                            , operatorRange =
-                                findOperatorRange
-                                    { operator = operator
-                                    , commentRanges = context.commentRanges
-                                    , extractSourceCode = context.extractSourceCode
-                                    , leftRange = leftRange
-                                    , rightRange = rightRange
-                                    }
-                            , left = left
                             , leftRange = leftRange
-                            , right = right
                             , rightRange = rightRange
-                            , isOnTheRightSideOfPlusPlus = RangeDict.member expressionRange context.rightSidesOfPlusPlus
                             }
-                    , rangesToIgnore = RangeDict.empty
-                    , rightSidesOfPlusPlus =
-                        case operator of
-                            "++" ->
-                                RangeDict.singleton (Node.range (AstHelpers.removeParens right)) ()
-
-                            _ ->
-                                RangeDict.empty
-                    , inferredConstants = []
+                    , left = left
+                    , leftRange = leftRange
+                    , right = right
+                    , rightRange = rightRange
+                    , isOnTheRightSideOfPlusPlus = RangeDict.member expressionRange context.rightSidesOfPlusPlus
                     }
+            , rangesToIgnore = RangeDict.empty
+            , rightSidesOfPlusPlus =
+                case operator of
+                    "++" ->
+                        RangeDict.singleton (Node.range (AstHelpers.removeParens right)) ()
 
-                Nothing ->
-                    expressionVisitResultNoError
+                    _ ->
+                        RangeDict.empty
+            , inferredConstants = []
+            }
 
         --------------
         -- NEGATION --
@@ -3381,25 +3376,56 @@ type alias OperatorApplicationCheckInfo =
     }
 
 
-operatorApplicationChecks : Dict String (OperatorApplicationCheckInfo -> Maybe (Error {}))
-operatorApplicationChecks =
-    Dict.fromList
-        [ ( "+", plusChecks )
-        , ( "-", minusChecks )
-        , ( "*", multiplyChecks )
-        , ( "/", divisionChecks )
-        , ( "//", intDivideChecks )
-        , ( "++", plusplusChecks )
-        , ( "::", consChecks )
-        , ( "||", orChecks )
-        , ( "&&", andChecks )
-        , ( "==", equalityChecks True )
-        , ( "/=", equalityChecks False )
-        , ( "<", numberComparisonChecks (<) )
-        , ( ">", numberComparisonChecks (>) )
-        , ( "<=", numberComparisonChecks (<=) )
-        , ( ">=", numberComparisonChecks (>=) )
-        ]
+operatorApplicationChecks : String -> OperatorApplicationCheckInfo -> Maybe (Error {})
+operatorApplicationChecks operator checkInfo =
+    case operator of
+        "+" ->
+            plusChecks checkInfo
+
+        "-" ->
+            minusChecks checkInfo
+
+        "*" ->
+            multiplyChecks checkInfo
+
+        "/" ->
+            divisionChecks checkInfo
+
+        "//" ->
+            intDivideChecks checkInfo
+
+        "++" ->
+            plusplusChecks checkInfo
+
+        "::" ->
+            consChecks checkInfo
+
+        "||" ->
+            orChecks checkInfo
+
+        "&&" ->
+            andChecks checkInfo
+
+        "==" ->
+            equalityChecks True checkInfo
+
+        "/=" ->
+            equalityChecks False checkInfo
+
+        "<" ->
+            numberComparisonChecks (<) checkInfo
+
+        ">" ->
+            numberComparisonChecks (>) checkInfo
+
+        "<=" ->
+            numberComparisonChecks (<=) checkInfo
+
+        ">=" ->
+            numberComparisonChecks (>=) checkInfo
+
+        _ ->
+            Nothing
 
 
 type alias CallCheckInfo =
