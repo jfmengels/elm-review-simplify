@@ -4470,18 +4470,27 @@ equalityChecks isEqual checkInfo =
 
 lengthOrSizeEqualityChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
 lengthOrSizeEqualityChecks isEqual checkInfo =
-    case ( Node.value checkInfo.left, Node.value checkInfo.right ) of
-        ( Expression.Integer _, Expression.Integer _ ) ->
-            Nothing
+    case Node.value checkInfo.left of
+        Expression.Integer leftInt ->
+            case Node.value checkInfo.right of
+                Expression.Integer _ ->
+                    Nothing
 
-        ( Expression.Integer 0, _ ) ->
-            lengthOrSizeToEmptyChecks isEqual checkInfo checkInfo.right checkInfo.left
+                _ ->
+                    case leftInt of
+                        0 ->
+                            lengthOrSizeToEmptyChecks isEqual checkInfo checkInfo.right checkInfo.left
 
-        ( _, Expression.Integer 0 ) ->
-            lengthOrSizeToEmptyChecks isEqual checkInfo checkInfo.left checkInfo.right
+                        _ ->
+                            Nothing
 
         _ ->
-            Nothing
+            case Node.value checkInfo.right of
+                Expression.Integer 0 ->
+                    lengthOrSizeToEmptyChecks isEqual checkInfo checkInfo.left checkInfo.right
+
+                _ ->
+                    Nothing
 
 
 lengthOrSizeToEmptyChecks : Bool -> OperatorApplicationCheckInfo -> Node Expression -> Node Expression -> Maybe (Error {})
@@ -8484,9 +8493,14 @@ listDetermineLength resources expressionNode =
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.List.range resources.lookupTable expressionNode of
                     Just rangeCall ->
-                        case ( Evaluate.getInt resources rangeCall.firstArg, Maybe.andThen (Evaluate.getInt resources) (List.head rangeCall.argsAfterFirst) ) of
-                            ( Just start, Just end ) ->
-                                Just (Exactly (max 0 (end - start)))
+                        case Evaluate.getInt resources rangeCall.firstArg of
+                            Just start ->
+                                case Maybe.andThen (Evaluate.getInt resources) (List.head rangeCall.argsAfterFirst) of
+                                    Just end ->
+                                        Just (Exactly (max 0 (end - start)))
+
+                                    Nothing ->
+                                        Nothing
 
                             _ ->
                                 Nothing
@@ -9378,20 +9392,24 @@ mapOnWrappedChecks wrapper =
                     Nothing
     , composition =
         \checkInfo ->
-            case ( checkInfo.earlier.fn == wrapper.wrap.fn, checkInfo.later.args ) of
-                ( True, (Node mapperFunctionRange _) :: _ ) ->
-                    Just
-                        { info = mapWrapErrorInfo checkInfo.later.fn wrapper
-                        , fix =
-                            [ Fix.replaceRangeBy checkInfo.later.range
-                                (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
-                            , Fix.replaceRangeBy checkInfo.earlier.range
-                                (checkInfo.extractSourceCode mapperFunctionRange)
-                            ]
-                        }
+            if checkInfo.earlier.fn == wrapper.wrap.fn then
+                case checkInfo.later.args of
+                    (Node mapperFunctionRange _) :: _ ->
+                        Just
+                            { info = mapWrapErrorInfo checkInfo.later.fn wrapper
+                            , fix =
+                                [ Fix.replaceRangeBy checkInfo.later.range
+                                    (qualifiedToString (qualify wrapper.wrap.fn checkInfo))
+                                , Fix.replaceRangeBy checkInfo.earlier.range
+                                    (checkInfo.extractSourceCode mapperFunctionRange)
+                                ]
+                            }
 
-                _ ->
-                    Nothing
+                    _ ->
+                        Nothing
+
+            else
+                Nothing
     }
 
 
@@ -9579,20 +9597,24 @@ wrapperFlatMapChecks wrapper =
                             Nothing
           , composition =
                 \checkInfo ->
-                    case ( wrapper.wrap.fn == checkInfo.earlier.fn, checkInfo.later.args ) of
-                        ( True, (Node functionRange _) :: [] ) ->
-                            Just
-                                { info =
-                                    { message = qualifiedToString checkInfo.later.fn ++ " on " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ constructWithOneValueDescriptionDefinite "the" wrapper.wrap.description
-                                    , details = [ "You can replace this composition by the function given to " ++ qualifiedToString checkInfo.later.fn ++ "." ]
+                    if wrapper.wrap.fn == checkInfo.earlier.fn then
+                        case checkInfo.later.args of
+                            [ Node functionRange _ ] ->
+                                Just
+                                    { info =
+                                        { message = qualifiedToString checkInfo.later.fn ++ " on " ++ constructWithOneValueDescriptionIndefinite wrapper.wrap.description ++ " is the same as applying the function to the value from " ++ constructWithOneValueDescriptionDefinite "the" wrapper.wrap.description
+                                        , details = [ "You can replace this composition by the function given to " ++ qualifiedToString checkInfo.later.fn ++ "." ]
+                                        }
+                                    , fix =
+                                        Fix.removeRange checkInfo.earlier.removeRange
+                                            :: keepOnlyFix { parentRange = checkInfo.later.range, keep = functionRange }
                                     }
-                                , fix =
-                                    Fix.removeRange checkInfo.earlier.removeRange
-                                        :: keepOnlyFix { parentRange = checkInfo.later.range, keep = functionRange }
-                                }
 
-                        _ ->
-                            Nothing
+                            _ ->
+                                Nothing
+
+                    else
+                        Nothing
           }
         , intoFnCheckOnlyCall
             (\checkInfo ->
@@ -13696,36 +13718,46 @@ ifChecks checkInfo =
     )
         |> maybeOnNothing
             (\() ->
-                case ( Evaluate.getBoolean checkInfo checkInfo.trueBranch, Evaluate.getBoolean checkInfo checkInfo.falseBranch ) of
-                    ( Determined True, Determined False ) ->
-                        Just
-                            { errors =
-                                Rule.errorWithFix
-                                    { message = "The if expression's value is the same as the condition"
-                                    , details = [ "The expression can be replaced by the condition." ]
+                case Evaluate.getBoolean checkInfo checkInfo.trueBranch of
+                    Determined True ->
+                        case Evaluate.getBoolean checkInfo checkInfo.falseBranch of
+                            Determined False ->
+                                Just
+                                    { errors =
+                                        Rule.errorWithFix
+                                            { message = "The if expression's value is the same as the condition"
+                                            , details = [ "The expression can be replaced by the condition." ]
+                                            }
+                                            (targetIfKeyword checkInfo.nodeRange)
+                                            (replaceBySubExpressionFix checkInfo.nodeRange checkInfo.condition)
+                                    , rangesToIgnore = RangeDict.empty
                                     }
-                                    (targetIfKeyword checkInfo.nodeRange)
-                                    (replaceBySubExpressionFix checkInfo.nodeRange checkInfo.condition)
-                            , rangesToIgnore = RangeDict.empty
-                            }
 
-                    ( Determined False, Determined True ) ->
-                        Just
-                            { errors =
-                                Rule.errorWithFix
-                                    { message = "The if expression's value is the inverse of the condition"
-                                    , details = [ "The expression can be replaced by the condition wrapped by `not`." ]
+                            _ ->
+                                Nothing
+
+                    Determined False ->
+                        case Evaluate.getBoolean checkInfo checkInfo.falseBranch of
+                            Determined True ->
+                                Just
+                                    { errors =
+                                        Rule.errorWithFix
+                                            { message = "The if expression's value is the inverse of the condition"
+                                            , details = [ "The expression can be replaced by the condition wrapped by `not`." ]
+                                            }
+                                            (targetIfKeyword checkInfo.nodeRange)
+                                            (replaceBySubExpressionFix checkInfo.nodeRange checkInfo.condition
+                                                ++ [ Fix.insertAt checkInfo.nodeRange.start
+                                                        (qualifiedToString (qualify Fn.Basics.not checkInfo) ++ " ")
+                                                   ]
+                                            )
+                                    , rangesToIgnore = RangeDict.empty
                                     }
-                                    (targetIfKeyword checkInfo.nodeRange)
-                                    (replaceBySubExpressionFix checkInfo.nodeRange checkInfo.condition
-                                        ++ [ Fix.insertAt checkInfo.nodeRange.start
-                                                (qualifiedToString (qualify Fn.Basics.not checkInfo) ++ " ")
-                                           ]
-                                    )
-                            , rangesToIgnore = RangeDict.empty
-                            }
 
-                    _ ->
+                            _ ->
+                                Nothing
+
+                    Undetermined ->
                         Nothing
             )
         |> maybeOnNothing
@@ -15784,26 +15816,28 @@ Works for patterns and expressions.
 -}
 listLiteralRemoveElementFix : { before : Maybe (Node element), found : Node element, after : Maybe (Node element) } -> List Fix
 listLiteralRemoveElementFix toRemove =
-    case ( toRemove.before, toRemove.after ) of
-        -- found the only element
-        ( Nothing, Nothing ) ->
-            [ Fix.removeRange (Node.range toRemove.found) ]
-
-        -- found first element
-        ( Nothing, Just (Node afterRange _) ) ->
-            [ Fix.removeRange
-                { start = (Node.range toRemove.found).start
-                , end = afterRange.start
-                }
-            ]
-
+    case toRemove.before of
         -- found after first element
-        ( Just (Node beforeRange _), _ ) ->
+        Just (Node beforeRange _) ->
             [ Fix.removeRange
                 { start = beforeRange.end
                 , end = (Node.range toRemove.found).end
                 }
             ]
+
+        Nothing ->
+            case toRemove.after of
+                -- found the only element
+                Nothing ->
+                    [ Fix.removeRange (Node.range toRemove.found) ]
+
+                -- found first element
+                Just (Node afterRange _) ->
+                    [ Fix.removeRange
+                        { start = (Node.range toRemove.found).start
+                        , end = afterRange.start
+                        }
+                    ]
 
 
 {-| Use in combination with
@@ -15818,28 +15852,30 @@ collapsedConsRemoveElementFix :
     }
     -> List Fix
 collapsedConsRemoveElementFix config =
-    case ( config.toRemove.before, config.toRemove.after ) of
-        -- found the only consed element
-        ( Nothing, Nothing ) ->
-            [ Fix.removeRange
-                { start = (Node.range config.toRemove.found).start, end = config.tailRange.start }
-            ]
-
-        -- found first consed element
-        ( Nothing, Just (Node afterRange _) ) ->
-            [ Fix.removeRange
-                { start = (Node.range config.toRemove.found).start
-                , end = afterRange.start
-                }
-            ]
-
+    case config.toRemove.before of
         -- found after first consed element
-        ( Just (Node beforeRange _), _ ) ->
+        Just (Node beforeRange _) ->
             [ Fix.removeRange
                 { start = beforeRange.end
                 , end = (Node.range config.toRemove.found).end
                 }
             ]
+
+        Nothing ->
+            case config.toRemove.after of
+                -- found the only consed element
+                Nothing ->
+                    [ Fix.removeRange
+                        { start = (Node.range config.toRemove.found).start, end = config.tailRange.start }
+                    ]
+
+                -- found first consed element
+                Just (Node afterRange _) ->
+                    [ Fix.removeRange
+                        { start = (Node.range config.toRemove.found).start
+                        , end = afterRange.start
+                        }
+                    ]
 
 
 {-| Detect and provide removing fixes for a function that will return a specific construct
