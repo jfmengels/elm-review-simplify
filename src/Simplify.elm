@@ -4650,7 +4650,7 @@ isEmpty : ModuleNameLookupTable -> Node Expression -> Maybe ModuleName
 isEmpty lookupTable node =
     case AstHelpers.removeParens node of
         Node _ (Expression.ListExpr []) ->
-            Just [ "List" ]
+            Just listModuleName
 
         Node range (Expression.FunctionOrValue _ "empty") ->
             case ModuleNameLookupTable.moduleNameAt lookupTable range of
@@ -6170,7 +6170,7 @@ listFoldAnyDirectionChecks =
                                         let
                                             replacementOperationAsString : String
                                             replacementOperationAsString =
-                                                qualifiedToString ( [ "List" ], operation.list )
+                                                qualifiedToString ( listModuleName, operation.list )
                                         in
                                         Rule.errorWithFix
                                             { message = qualifiedToString checkInfo.fn ++ " (" ++ operation.two ++ ") " ++ String.fromInt operation.identity ++ " is the same as " ++ replacementOperationAsString
@@ -6186,7 +6186,7 @@ listFoldAnyDirectionChecks =
                                                 { start = checkInfo.fnRange.start
                                                 , end = (Node.range initialArg).end
                                                 }
-                                                (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo))
+                                                (qualifiedToString (qualify ( listModuleName, operation.list ) checkInfo))
                                             ]
                                         )
 
@@ -6207,7 +6207,7 @@ listFoldAnyDirectionChecks =
                                                                 { start = checkInfo.fnRange.start
                                                                 , end = (Node.range checkInfo.firstArg).end
                                                                 }
-                                                                (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo) ++ ")")
+                                                                (qualifiedToString (qualify ( listModuleName, operation.list ) checkInfo) ++ ")")
                                                             , Fix.insertAt checkInfo.parentRange.start "(("
                                                             ]
                                                         )
@@ -6222,7 +6222,7 @@ listFoldAnyDirectionChecks =
                                                                 (" "
                                                                     ++ operation.two
                                                                     ++ " ("
-                                                                    ++ qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo)
+                                                                    ++ qualifiedToString (qualify ( listModuleName, operation.list ) checkInfo)
                                                                 )
                                                             , Fix.removeRange
                                                                 { start = checkInfo.fnRange.start
@@ -6249,7 +6249,7 @@ listFoldAnyDirectionChecks =
                                     let
                                         replacementOperationAsString : String
                                         replacementOperationAsString =
-                                            qualifiedToString ( [ "List" ], operation.list ) ++ " identity"
+                                            qualifiedToString ( listModuleName, operation.list ) ++ " identity"
                                     in
                                     Rule.errorWithFix
                                         { message = qualifiedToString checkInfo.fn ++ " (" ++ operation.two ++ ") " ++ AstHelpers.boolToString (not operation.determining) ++ " is the same as " ++ replacementOperationAsString
@@ -6258,7 +6258,7 @@ listFoldAnyDirectionChecks =
                                         checkInfo.fnRange
                                         [ Fix.replaceRangeBy
                                             { start = checkInfo.fnRange.start, end = (Node.range initialArg).end }
-                                            (qualifiedToString (qualify ( [ "List" ], operation.list ) checkInfo)
+                                            (qualifiedToString (qualify ( listModuleName, operation.list ) checkInfo)
                                                 ++ " "
                                                 ++ qualifiedToString (qualify Fn.Basics.identity checkInfo)
                                             )
@@ -16143,6 +16143,11 @@ getComparableExpressionHelper sign (Node _ expression) =
 
         _ ->
             Nothing
+
+
+listModuleName : List String
+listModuleName =
+    [ "List" ]
 
 
 
