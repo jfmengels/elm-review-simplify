@@ -2087,16 +2087,18 @@ dependenciesVisitor typeNamesAsStrings dependencies context =
                     (\moduleDocs soFar ->
                         Dict.insert (AstHelpers.moduleNameFromString moduleDocs.name)
                             (moduleDocs.aliases
-                                |> List.filterMap
-                                    (\typeAliasDocs ->
+                                |> List.foldl
+                                    (\typeAliasDocs moduleAliasesSoFar ->
                                         case typeAliasDocs.tipe of
                                             Elm.Type.Record fields Nothing ->
-                                                Just ( typeAliasDocs.name, List.map (\( name, _ ) -> name) fields )
+                                                Dict.insert typeAliasDocs.name
+                                                    (List.map (\( name, _ ) -> name) fields)
+                                                    moduleAliasesSoFar
 
                                             _ ->
-                                                Nothing
+                                                moduleAliasesSoFar
                                     )
-                                |> Dict.fromList
+                                    Dict.empty
                             )
                             soFar
                     )
