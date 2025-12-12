@@ -3790,61 +3790,57 @@ compositionChecks checkInfo =
         |> maybeOnNothing (\() -> basicsIdentityCompositionChecks checkInfo)
         |> maybeOnNothing
             (\() ->
-                case
-                    ( AstHelpers.getValueOrFnOrFnCall checkInfo checkInfo.earlier.node
-                    , AstHelpers.getValueOrFnOrFnCall checkInfo checkInfo.later.node
-                    )
-                of
-                    ( Just earlierFnOrCall, Just laterFnOrCall ) ->
-                        case
-                            ( ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable earlierFnOrCall.fnRange
-                            , ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable laterFnOrCall.fnRange
-                            )
-                        of
-                            ( Just earlierFnModuleName, Just laterFnModuleName ) ->
-                                case Dict.get ( laterFnModuleName, laterFnOrCall.fnName ) compositionIntoChecks of
-                                    Just ( laterArgCount, compositionIntoChecksForSpecificLater ) ->
-                                        compositionIntoChecksForSpecificLater
-                                            { lookupTable = checkInfo.lookupTable
-                                            , importLookup = checkInfo.importLookup
-                                            , importCustomTypes = checkInfo.importCustomTypes
-                                            , moduleCustomTypes = checkInfo.moduleCustomTypes
-                                            , inferredConstants = checkInfo.inferredConstants
-                                            , moduleBindings = checkInfo.moduleBindings
-                                            , localBindings = checkInfo.localBindings
-                                            , extractSourceCode = checkInfo.extractSourceCode
-                                            , later =
-                                                { range = laterFnOrCall.nodeRange
-                                                , fn = ( laterFnModuleName, laterFnOrCall.fnName )
-                                                , fnRange = laterFnOrCall.fnRange
-                                                , args = laterFnOrCall.args
-                                                , argCount = laterArgCount
-                                                , removeRange = checkInfo.later.removeRange
-                                                }
-                                            , earlier =
-                                                { range = earlierFnOrCall.nodeRange
-                                                , fn = ( earlierFnModuleName, earlierFnOrCall.fnName )
-                                                , fnRange = earlierFnOrCall.fnRange
-                                                , args = earlierFnOrCall.args
-                                                , removeRange = checkInfo.earlier.removeRange
-                                                }
-                                            , isEmbeddedInComposition = checkInfo.isEmbeddedInComposition
-                                            }
-                                            |> Maybe.map (\e -> Rule.errorWithFix e.info laterFnOrCall.fnRange e.fix)
+                case AstHelpers.getValueOrFnOrFnCall checkInfo checkInfo.earlier.node of
+                    Just earlierFnOrCall ->
+                        case AstHelpers.getValueOrFnOrFnCall checkInfo checkInfo.later.node of
+                            Just laterFnOrCall ->
+                                case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable earlierFnOrCall.fnRange of
+                                    Just earlierFnModuleName ->
+                                        case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable laterFnOrCall.fnRange of
+                                            Just laterFnModuleName ->
+                                                case Dict.get ( laterFnModuleName, laterFnOrCall.fnName ) compositionIntoChecks of
+                                                    Just ( laterArgCount, compositionIntoChecksForSpecificLater ) ->
+                                                        compositionIntoChecksForSpecificLater
+                                                            { lookupTable = checkInfo.lookupTable
+                                                            , importLookup = checkInfo.importLookup
+                                                            , importCustomTypes = checkInfo.importCustomTypes
+                                                            , moduleCustomTypes = checkInfo.moduleCustomTypes
+                                                            , inferredConstants = checkInfo.inferredConstants
+                                                            , moduleBindings = checkInfo.moduleBindings
+                                                            , localBindings = checkInfo.localBindings
+                                                            , extractSourceCode = checkInfo.extractSourceCode
+                                                            , later =
+                                                                { range = laterFnOrCall.nodeRange
+                                                                , fn = ( laterFnModuleName, laterFnOrCall.fnName )
+                                                                , fnRange = laterFnOrCall.fnRange
+                                                                , args = laterFnOrCall.args
+                                                                , argCount = laterArgCount
+                                                                , removeRange = checkInfo.later.removeRange
+                                                                }
+                                                            , earlier =
+                                                                { range = earlierFnOrCall.nodeRange
+                                                                , fn = ( earlierFnModuleName, earlierFnOrCall.fnName )
+                                                                , fnRange = earlierFnOrCall.fnRange
+                                                                , args = earlierFnOrCall.args
+                                                                , removeRange = checkInfo.earlier.removeRange
+                                                                }
+                                                            , isEmbeddedInComposition = checkInfo.isEmbeddedInComposition
+                                                            }
+                                                            |> Maybe.map (\e -> Rule.errorWithFix e.info laterFnOrCall.fnRange e.fix)
+
+                                                    Nothing ->
+                                                        Nothing
+
+                                            Nothing ->
+                                                Nothing
 
                                     Nothing ->
                                         Nothing
 
-                            ( Nothing, _ ) ->
+                            Nothing ->
                                 Nothing
 
-                            ( _, Nothing ) ->
-                                Nothing
-
-                    ( Nothing, _ ) ->
-                        Nothing
-
-                    ( _, Nothing ) ->
+                    Nothing ->
                         Nothing
             )
 
