@@ -13459,11 +13459,12 @@ replaceSingleElementListBySingleValue lookupTable expressionNode =
             Just (replaceBySubExpressionFix (Node.range expressionNode) listElement)
 
         Expression.Application ((Node fnRange (Expression.FunctionOrValue _ "singleton")) :: _ :: []) ->
-            if ModuleNameLookupTable.moduleNameAt lookupTable fnRange == Just [ "List" ] then
-                Just [ Fix.removeRange fnRange ]
+            case ModuleNameLookupTable.moduleNameAt lookupTable fnRange of
+                Just [ "List" ] ->
+                    Just [ Fix.removeRange fnRange ]
 
-            else
-                Nothing
+                _ ->
+                    Nothing
 
         Expression.IfBlock _ thenBranch elseBranch ->
             combineSingleElementFixes lookupTable [ thenBranch, elseBranch ] []
