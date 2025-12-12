@@ -8421,7 +8421,14 @@ stringEmptyConstantSpecific : ConstantProperties
 stringEmptyConstantSpecific =
     { description = emptyStringAsString
     , asString = \_ -> emptyStringAsString
-    , is = \_ (Node _ expr) -> expr == Expression.Literal ""
+    , is =
+        \_ (Node _ expr) ->
+            case expr of
+                Expression.Literal "" ->
+                    True
+
+                _ ->
+                    False
     }
 
 
