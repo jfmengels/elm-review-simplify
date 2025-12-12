@@ -14300,26 +14300,22 @@ caseMultiVariantWithUnreachableCasesError :
         }
     -> { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
 caseMultiVariantWithUnreachableCasesError variantCaseOf checkInfo =
-    let
-        caseIndexesMatchingOnDifferentVariant : List Int
-        caseIndexesMatchingOnDifferentVariant =
-            variantCaseOf.cases
-                |> List.indexedMap (\caseIndex variant -> { index = caseIndex, variant = variant })
-                |> List.filterMap
-                    (\case_ ->
-                        if case_.variant.name /= variantCaseOf.cased.name then
-                            Just case_.index
-
-                        else
-                            Nothing
-                    )
-    in
     { message = "Unreachable case branches"
     , details =
         [ "The value between case ... of is a known "
             ++ qualifiedToString (qualify ( variantCaseOf.cased.moduleName, variantCaseOf.cased.name ) defaultQualifyResources)
             ++ " variant. However, the "
-            ++ (caseIndexesMatchingOnDifferentVariant |> List.map indexthToString |> String.join " and ")
+            ++ (variantCaseOf.cases
+                    |> listIndexedFilterMap
+                        (\caseIndex variant ->
+                            if variant.name /= variantCaseOf.cased.name then
+                                Just (indexthToString caseIndex)
+
+                            else
+                                Nothing
+                        )
+                    |> String.join " and "
+               )
             ++ " case matches on a different variant which means you can remove it."
         ]
     , range =
@@ -14474,26 +14470,23 @@ caseListLiteralOfWithUnreachableCasesError config checkInfo =
                     )
                 |> List.minimum
                 |> Maybe.withDefault casedListLiteralLength
-
-        unnecessaryListPatternIndexes : List Int
-        unnecessaryListPatternIndexes =
-            config.listPatternCases
-                |> List.indexedMap (\caseIndex case_ -> { index = caseIndex, case_ = case_ })
-                |> List.filterMap
-                    (\caseAndIndex ->
-                        if isUnnecessaryListPattern caseAndIndex.case_.pattern then
-                            Just caseAndIndex.index
-
-                        else
-                            Nothing
-                    )
     in
     { message = "Unreachable case branches"
     , details =
         [ "The value between case ... of is a known list of length "
             ++ String.fromInt casedListLiteralLength
             ++ ". However, the "
-            ++ (unnecessaryListPatternIndexes |> List.map indexthToString |> String.join " and ")
+            ++ (config.listPatternCases
+                    |> listIndexedFilterMap
+                        (\caseIndex case_ ->
+                            if isUnnecessaryListPattern case_.pattern then
+                                Just (indexthToString caseIndex)
+
+                            else
+                                Nothing
+                        )
+                    |> String.join " and "
+               )
             ++ " case matches on a list with a different length which means you can remove it."
         ]
     , range =
@@ -14627,26 +14620,23 @@ caseConsOfWithUnreachableCasesError config checkInfo =
                     )
                 |> List.minimum
                 |> Maybe.withDefault casedBeginningElementCount
-
-        unnecessaryListPatternIndexes : List Int
-        unnecessaryListPatternIndexes =
-            config.listPatternCases
-                |> List.indexedMap (\caseIndex case_ -> { index = caseIndex, case_ = case_ })
-                |> List.filterMap
-                    (\caseAndIndex ->
-                        if isUnnecessaryListPattern caseAndIndex.case_.pattern then
-                            Just caseAndIndex.index
-
-                        else
-                            Nothing
-                    )
     in
     { message = "Unreachable case branches"
     , details =
         [ "The value between case ... of is a list of length >= "
             ++ String.fromInt casedBeginningElementCount
             ++ ". However, the "
-            ++ (unnecessaryListPatternIndexes |> List.map indexthToString |> String.join " and ")
+            ++ (config.listPatternCases
+                    |> listIndexedFilterMap
+                        (\caseIndex case_ ->
+                            if isUnnecessaryListPattern case_.pattern then
+                                Just (indexthToString caseIndex)
+
+                            else
+                                Nothing
+                        )
+                    |> String.join " and "
+               )
             ++ " case matches on a shorter list which means you can remove it."
         ]
     , range =
@@ -16266,6 +16256,33 @@ findMap mapper nodes =
 firstThatConstructsJust : List (a -> Maybe b) -> a -> Maybe b
 firstThatConstructsJust remainingChecks data =
     findMap (\checkFn -> checkFn data) remainingChecks
+
+
+{-| `listIndexedFilterMap f list` is equivalent to `List.filterMap identity (List.indexedMap f)`
+but more performant
+-}
+listIndexedFilterMap : (number -> a -> Maybe b) -> List a -> List b
+listIndexedFilterMap indexedElementToMaybeNew list =
+    listIndexedFilterMapFrom 0 [] indexedElementToMaybeNew list
+
+
+listIndexedFilterMapFrom : number -> List a -> (number -> b -> Maybe a) -> List b -> List a
+listIndexedFilterMapFrom index soFarReverse indexedElementToMaybeNew list =
+    case list of
+        [] ->
+            List.reverse soFarReverse
+
+        head :: tail ->
+            listIndexedFilterMapFrom (index + 1)
+                (case indexedElementToMaybeNew index head of
+                    Nothing ->
+                        soFarReverse
+
+                    Just newElement ->
+                        newElement :: soFarReverse
+                )
+                indexedElementToMaybeNew
+                tail
 
 
 findMapNeighboringAfter : Maybe a -> (a -> Maybe b) -> List a -> Maybe { before : Maybe a, found : b, after : Maybe a }
