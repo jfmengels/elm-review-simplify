@@ -128,25 +128,25 @@ type alias ReduceLambdaResources context =
 
 
 {-| Parse an expression of type list that contains only a single element.
-Could be a call to `List.singleton` or a list literal with one element: `[ a ]`
+Could be a call to `List.singleton` or a list literal with one element: `[ a ]`.
+Returns the inner element expression
 -}
 getListSingleton :
     ModuleNameLookupTable
     -> Node Expression
-    -> Maybe { element : Node Expression }
+    -> Maybe (Node Expression)
 getListSingleton lookupTable expressionNode =
     case removeParens expressionNode of
         Node _ (Expression.ListExpr elements) ->
             case elements of
                 [ element ] ->
-                    Just { element = element }
+                    Just element
 
                 _ ->
                     Nothing
 
         expressionUnparenthesizedNode ->
-            Maybe.map
-                (\singletonCall -> { element = singletonCall.firstArg })
+            Maybe.map .firstArg
                 (getSpecificUnreducedFnCall Fn.List.singleton lookupTable expressionUnparenthesizedNode)
 
 
