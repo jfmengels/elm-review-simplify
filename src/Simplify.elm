@@ -3949,7 +3949,7 @@ plusChecks checkInfo =
 
 addingZeroCheck : OperatorApplicationCheckInfo -> Maybe (Error {})
 addingZeroCheck checkInfo =
-    findMap
+    checkOperationFromBothSides checkInfo
         (\side ->
             if AstHelpers.getUncomputedNumberValue side.node == Just 0 then
                 Just
@@ -3964,7 +3964,6 @@ addingZeroCheck checkInfo =
             else
                 Nothing
         )
-        (operationSides checkInfo)
 
 
 addingOppositesCheck : OperatorApplicationCheckInfo -> Maybe (Error {})
@@ -4055,14 +4054,13 @@ checkIfMinusResultsInZero checkInfo =
 
 multiplyChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 multiplyChecks checkInfo =
-    findMap
+    checkOperationFromBothSides checkInfo
         (\side ->
             unnecessaryOperationWithEmptySideChecks numberForMultiplyProperties side checkInfo
         )
-        (operationSides checkInfo)
         |> maybeOnNothing
             (\() ->
-                findMap
+                checkOperationFromBothSides checkInfo
                     (\side ->
                         if numberNotExpectingNaNForMultiplyProperties.absorbing.is (extractInferResources checkInfo) side.node then
                             Just
@@ -4092,15 +4090,30 @@ Basics.isInfinite: https://package.elm-lang.org/packages/elm/core/latest/Basics#
                         else
                             Nothing
                     )
-                    (operationSides checkInfo)
             )
 
 
-operationSides : OperatorApplicationCheckInfo -> List { node : Node Expression, otherNode : Node Expression, otherDescription : String }
-operationSides checkInfo =
-    [ { node = checkInfo.left, otherNode = checkInfo.right, otherDescription = "right" }
-    , { node = checkInfo.right, otherNode = checkInfo.left, otherDescription = "left" }
-    ]
+checkOperationFromBothSides :
+    OperatorApplicationCheckInfo
+    ->
+        ({ node : Node Expression, otherNode : Node Expression, otherDescription : String }
+         -> Maybe checked
+        )
+    -> Maybe checked
+checkOperationFromBothSides checkInfo checkFromSide =
+    checkFromSide
+        { node = checkInfo.left
+        , otherNode = checkInfo.right
+        , otherDescription = "right"
+        }
+        |> maybeOnNothing
+            (\() ->
+                checkFromSide
+                    { node = checkInfo.right
+                    , otherNode = checkInfo.left
+                    , otherDescription = "left"
+                    }
+            )
 
 
 divisionChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
@@ -4217,7 +4230,7 @@ intDivideChecks checkInfo =
 
 plusplusChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 plusplusChecks checkInfo =
-    findMap
+    checkOperationFromBothSides checkInfo
         (\side ->
             case Node.value side.otherNode of
                 Expression.Literal _ ->
@@ -4226,10 +4239,10 @@ plusplusChecks checkInfo =
                 _ ->
                     Nothing
         )
-        (operationSides checkInfo)
         |> maybeOnNothing
             (\() ->
-                findMap (\side -> appendEmptyCheck side listCollection checkInfo) (operationSides checkInfo)
+                checkOperationFromBothSides checkInfo
+                    (\side -> appendEmptyCheck side listCollection checkInfo)
             )
         |> maybeOnNothing
             (\() ->
@@ -4377,7 +4390,7 @@ equalityChecks isEqual checkInfo =
     lengthOrSizeEqualityChecks isEqual checkInfo
         |> maybeOnNothing
             (\() ->
-                findMap
+                checkOperationFromBothSides checkInfo
                     (\side ->
                         if Evaluate.getBoolean checkInfo side.node == Determined isEqual then
                             Just
@@ -4392,7 +4405,6 @@ equalityChecks isEqual checkInfo =
                         else
                             Nothing
                     )
-                    (operationSides checkInfo)
             )
         |> maybeOnNothing
             (\() ->
@@ -5027,12 +5039,12 @@ unnecessaryConversionToIntOnIntCheck checkInfo =
 
 orChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 orChecks checkInfo =
-    findMap (\side -> unnecessaryOperationWithEmptySideChecks boolForOrProperties side checkInfo)
-        (operationSides checkInfo)
+    checkOperationFromBothSides checkInfo
+        (\side -> unnecessaryOperationWithEmptySideChecks boolForOrProperties side checkInfo)
         |> maybeOnNothing
             (\() ->
-                findMap (\side -> operationWithAbsorbingSideChecks boolForOrProperties side checkInfo)
-                    (operationSides checkInfo)
+                checkOperationFromBothSides checkInfo
+                    (\side -> operationWithAbsorbingSideChecks boolForOrProperties side checkInfo)
             )
         |> maybeOnNothing
             (\() -> findSimilarConditionsError checkInfo)
@@ -5040,12 +5052,12 @@ orChecks checkInfo =
 
 andChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 andChecks checkInfo =
-    findMap (\side -> unnecessaryOperationWithEmptySideChecks boolForAndProperties side checkInfo)
-        (operationSides checkInfo)
+    checkOperationFromBothSides checkInfo
+        (\side -> unnecessaryOperationWithEmptySideChecks boolForAndProperties side checkInfo)
         |> maybeOnNothing
             (\() ->
-                findMap (\side -> operationWithAbsorbingSideChecks boolForAndProperties side checkInfo)
-                    (operationSides checkInfo)
+                checkOperationFromBothSides checkInfo
+                    (\side -> operationWithAbsorbingSideChecks boolForAndProperties side checkInfo)
             )
         |> maybeOnNothing
             (\() -> findSimilarConditionsError checkInfo)
