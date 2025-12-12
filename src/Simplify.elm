@@ -14207,8 +14207,8 @@ caseSingleVariantWithUnreachableCasesCheck variantCaseOf checkInfo =
                         , remainingCaseVariantAttachmentListsFilled =
                             List.map listFilledTail caseVariantAttachmentListsFilled
                         , attachmentAndCasesList =
-                            soFar.attachmentAndCasesList
-                                |> (::) { index = soFar.index, attachment = attachment, cases = List.map listFilledHead caseVariantAttachmentListsFilled }
+                            { index = soFar.index, attachment = attachment, cases = List.map listFilledHead caseVariantAttachmentListsFilled }
+                                :: soFar.attachmentAndCasesList
                         }
 
                     -- case curried variant of → compiler error
