@@ -416,16 +416,23 @@ mergeEqualFacts : ( Expression, DeducedValue ) -> Fact -> List Fact
 mergeEqualFacts equalFact fact =
     case fact of
         Or left right ->
-            List.concatMap
-                (\cond ->
-                    ifSatisfy equalFact ( cond, right ) |> Maybe.withDefault []
-                )
-                left
-                ++ List.concatMap
-                    (\cond ->
-                        ifSatisfy equalFact ( cond, left ) |> Maybe.withDefault []
+            left
+                |> List.foldr
+                    (\cond rightSoFar ->
+                        case ifSatisfy equalFact ( cond, right ) of
+                            Nothing ->
+                                rightSoFar
+
+                            Just satisfied ->
+                                satisfied ++ rightSoFar
                     )
-                    right
+                    (right
+                        |> List.concatMap
+                            (\cond ->
+                                ifSatisfy equalFact ( cond, left )
+                                    |> Maybe.withDefault []
+                            )
+                    )
 
         _ ->
             []
