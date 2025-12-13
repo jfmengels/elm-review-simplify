@@ -643,24 +643,6 @@ compareAll2Help left0 right0 left1 right1 =
                     Unconfirmed
 
 
-compareAll3Help : Node Expression -> Node Expression -> Node Expression -> Node Expression -> Node Expression -> Node Expression -> Comparison
-compareAll3Help left0 right0 left1 right1 left2 right2 =
-    case compareAll2Help left0 right0 left1 right1 of
-        ConfirmedInequality ->
-            ConfirmedInequality
-
-        ConfirmedEquality ->
-            compareHelp left2 right2 True
-
-        Unconfirmed ->
-            case compareHelp left2 right2 True of
-                ConfirmedInequality ->
-                    ConfirmedInequality
-
-                _ ->
-                    Unconfirmed
-
-
 compareLists : List (Node Expression) -> List (Node Expression) -> Comparison -> Comparison
 compareLists leftList rightList soFar =
     case leftList of
