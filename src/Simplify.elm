@@ -8444,9 +8444,14 @@ listDetermineLength resources expressionNode =
         |> Maybe.map (\list -> Exactly (List.length list))
         |> maybeOnNothing
             (\() ->
-                expressionNode
-                    |> AstHelpers.getSpecificUnreducedFnCall Fn.List.singleton resources.lookupTable
-                    |> Maybe.map (\_ -> Exactly 1)
+                if
+                    expressionNode
+                        |> AstHelpers.isSpecificUnreducedFnCall Fn.List.singleton resources.lookupTable
+                then
+                    Just (Exactly 1)
+
+                else
+                    Nothing
             )
         |> maybeOnNothing
             (\() ->
@@ -8534,9 +8539,14 @@ stringDetermineLength resources expressionNode =
     )
         |> maybeOnNothing
             (\() ->
-                expressionNode
-                    |> AstHelpers.getSpecificUnreducedFnCall Fn.String.fromChar resources.lookupTable
-                    |> Maybe.map (\_ -> Exactly 1)
+                if
+                    expressionNode
+                        |> AstHelpers.isSpecificUnreducedFnCall Fn.String.fromChar resources.lookupTable
+                then
+                    Just (Exactly 1)
+
+                else
+                    Nothing
             )
         |> maybeOnNothing
             (\() ->
@@ -8736,9 +8746,14 @@ setDetermineSize resources expressionNode =
     )
         |> maybeOnNothing
             (\() ->
-                expressionNode
-                    |> AstHelpers.getSpecificUnreducedFnCall Fn.Set.singleton resources.lookupTable
-                    |> Maybe.map (\_ -> Exactly 1)
+                if
+                    expressionNode
+                        |> AstHelpers.isSpecificUnreducedFnCall Fn.Set.singleton resources.lookupTable
+                then
+                    Just (Exactly 1)
+
+                else
+                    Nothing
             )
         |> maybeOnNothing
             (\() ->
