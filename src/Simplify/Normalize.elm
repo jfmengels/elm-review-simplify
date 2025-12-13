@@ -269,12 +269,14 @@ normalizeButKeepRange checkInfo node =
 
 toNodeAndInfer : Infer.Resources a -> Expression -> Node Expression
 toNodeAndInfer resources element =
-    case Infer.getAsExpression element (Tuple.first resources.inferredConstants) of
-        Just value ->
-            toNode value
+    toNode
+        (case Infer.getAsExpression element (Tuple.first resources.inferredConstants) of
+            Just value ->
+                value
 
-        Nothing ->
-            toNode element
+            Nothing ->
+                element
+        )
 
 
 toComparable : Node Expression -> String
@@ -316,6 +318,9 @@ addToFunctionCall functionCall extraArgument =
 normalizePattern : ModuleNameLookupTable -> Node Pattern -> Node Pattern
 normalizePattern lookupTable node =
     case Node.value node of
+        Pattern.ParenthesizedPattern pattern ->
+            normalizePattern lookupTable pattern
+
         Pattern.TuplePattern patterns ->
             toNode (Pattern.TuplePattern (List.map (normalizePattern lookupTable) patterns))
 
@@ -329,12 +334,14 @@ normalizePattern lookupTable node =
                 )
 
         Pattern.UnConsPattern element list ->
-            case normalizePattern lookupTable list of
-                Node _ (Pattern.ListPattern elements) ->
-                    toNode (Pattern.ListPattern (normalizePattern lookupTable element :: elements))
+            toNode
+                (case normalizePattern lookupTable list of
+                    Node _ (Pattern.ListPattern elements) ->
+                        Pattern.ListPattern (normalizePattern lookupTable element :: elements)
 
-                normalizedList ->
-                    toNode (Pattern.UnConsPattern (normalizePattern lookupTable element) normalizedList)
+                    normalizedList ->
+                        Pattern.UnConsPattern (normalizePattern lookupTable element) normalizedList
+                )
 
         Pattern.ListPattern patterns ->
             toNode (Pattern.ListPattern (List.map (normalizePattern lookupTable) patterns))
@@ -354,9 +361,6 @@ normalizePattern lookupTable node =
         Pattern.AsPattern pattern (Node _ asName) ->
             toNode (Pattern.AsPattern (normalizePattern lookupTable pattern) (toNode asName))
 
-        Pattern.ParenthesizedPattern pattern ->
-            normalizePattern lookupTable pattern
-
         Pattern.HexPattern int ->
             toNode (Pattern.IntPattern int)
 
@@ -365,8 +369,8 @@ normalizePattern lookupTable node =
 
 
 toNode : a -> Node a
-toNode =
-    Node Range.emptyRange
+toNode value =
+    Node Range.emptyRange value
 
 
 
