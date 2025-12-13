@@ -1984,11 +1984,16 @@ moduleExposingContext exposingSyntax =
                                         , typesExposingVariants = Set.insert variantType.name soFar.typesExposingVariants
                                         }
                     )
-                    { typesExposingVariants = Set.empty
-                    , potentialTypeAliases = Set.empty
-                    }
+                    exposingSomeContextEmpty
                     some
                 )
+
+
+exposingSomeContextEmpty : { typesExposingVariants : Set String, potentialTypeAliases : Set String }
+exposingSomeContextEmpty =
+    { typesExposingVariants = Set.empty
+    , potentialTypeAliases = Set.empty
+    }
 
 
 foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
