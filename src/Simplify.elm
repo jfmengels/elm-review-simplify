@@ -2413,7 +2413,9 @@ expressionVisitor node config context =
                                 (expressionSurfaceBindings expression)
                                 context.localBindings
                         , branchLocalBindings = withNewBranchLocalBindings
-                        , inferredConstants = newInferredConstants --
+                        , inferredConstants = newInferredConstants
+
+                        --
                         , lookupTable = context.lookupTable
                         , moduleName = context.moduleName
                         , exposed = context.exposed
@@ -2441,7 +2443,9 @@ expressionVisitor node config context =
                                 context.localBindings
                         , branchLocalBindings =
                             RangeDict.remove expressionRange withNewBranchLocalBindings
-                        , inferredConstants = newInferredConstants --
+                        , inferredConstants = newInferredConstants
+
+                        --
                         , lookupTable = context.lookupTable
                         , moduleName = context.moduleName
                         , exposed = context.exposed
