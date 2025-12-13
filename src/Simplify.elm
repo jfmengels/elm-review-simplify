@@ -2896,7 +2896,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , argCount = argCount
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
-                                                , callStyle = functionCallStylePipeRightToLeft
+                                                , callStyle = CallStyle.pipeRightToLeft
                                                 }
                                             )
 
@@ -2925,7 +2925,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , fn = reference
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
-                                                , callStyle = functionCallStylePipeRightToLeft
+                                                , callStyle = CallStyle.pipeRightToLeft
                                                 }
                                             )
                                         )
@@ -2977,7 +2977,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , argCount = argCount
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
-                                                , callStyle = functionCallStylePipeLeftToRight
+                                                , callStyle = CallStyle.pipeLeftToRight
                                                 }
                                             )
                                         )
@@ -3006,7 +3006,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                                 , argCount = argCount
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
-                                                , callStyle = functionCallStylePipeLeftToRight
+                                                , callStyle = CallStyle.pipeLeftToRight
                                                 }
                                             )
                                         )
@@ -3288,16 +3288,6 @@ toCompositionCheckInfo context compositionSpecific =
     , later = innerComposition.later
     , isEmbeddedInComposition = innerComposition.isEmbeddedInComposition
     }
-
-
-functionCallStylePipeLeftToRight : FunctionCallStyle
-functionCallStylePipeLeftToRight =
-    CallStyle.Pipe CallStyle.LeftToRight
-
-
-functionCallStylePipeRightToLeft : FunctionCallStyle
-functionCallStylePipeRightToLeft =
-    CallStyle.Pipe CallStyle.RightToLeft
 
 
 type alias OperatorApplicationCheckInfo =

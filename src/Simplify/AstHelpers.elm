@@ -421,7 +421,7 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
                     , fnRange = fed.fnRange
                     , fnName = fed.fnName
                     , args = fed.args ++ [ firstArg ]
-                    , callStyle = functionCallStylePipeLeftToRight
+                    , callStyle = CallStyle.pipeLeftToRight
                     }
                 )
                 (getCollapsedUnreducedValueOrFunctionCall fedNode)
@@ -433,23 +433,13 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
                     , fnRange = fed.fnRange
                     , fnName = fed.fnName
                     , args = fed.args ++ [ firstArg ]
-                    , callStyle = functionCallStylePipeRightToLeft
+                    , callStyle = CallStyle.pipeRightToLeft
                     }
                 )
                 (getCollapsedUnreducedValueOrFunctionCall fedNode)
 
         _ ->
             Nothing
-
-
-functionCallStylePipeLeftToRight : FunctionCallStyle
-functionCallStylePipeLeftToRight =
-    CallStyle.Pipe CallStyle.LeftToRight
-
-
-functionCallStylePipeRightToLeft : FunctionCallStyle
-functionCallStylePipeRightToLeft =
-    CallStyle.Pipe CallStyle.RightToLeft
 
 
 {-| Whether it's a function that accesses a tuple's first part.
