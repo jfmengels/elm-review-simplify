@@ -8,9 +8,10 @@ module Simplify.Infer exposing
     , falseExpr
     , fromList
     , get
+    , getAsExpression
+    , getBoolean
     , infer
     , inferForIfCondition
-    , isBoolean
     , trueExpr
     )
 
@@ -151,8 +152,13 @@ fromList list =
         }
 
 
-get : Expression -> Inferred -> Maybe Expression
+get : Expression -> Inferred -> Maybe DeducedValue
 get expr (Inferred inferred) =
+    AssocList.get expr inferred.deduced
+
+
+getAsExpression : Expression -> Inferred -> Maybe Expression
+getAsExpression expr (Inferred inferred) =
     AssocList.get expr inferred.deduced
         |> Maybe.map
             (\value ->
@@ -171,8 +177,8 @@ get expr (Inferred inferred) =
             )
 
 
-isBoolean : Expression -> Inferred -> Maybe Bool
-isBoolean expr (Inferred inferred) =
+getBoolean : Expression -> Inferred -> Maybe Bool
+getBoolean expr (Inferred inferred) =
     AssocList.get expr inferred.deduced
         |> Maybe.andThen
             (\value ->
