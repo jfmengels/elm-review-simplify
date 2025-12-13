@@ -2399,10 +2399,6 @@ expressionVisitor node config context =
             expression =
                 Node.value node
 
-            withExpressionSurfaceBindings : RangeDict (Set String)
-            withExpressionSurfaceBindings =
-                RangeDict.insert expressionRange (expressionSurfaceBindings expression) context.localBindings
-
             withNewBranchLocalBindings : RangeDict (Set String)
             withNewBranchLocalBindings =
                 RangeDict.union (expressionBranchLocalBindings expression)
@@ -2412,7 +2408,10 @@ expressionVisitor node config context =
             contextWithInferredConstantsAndLocalBindings =
                 case RangeDict.get expressionRange context.branchLocalBindings of
                     Nothing ->
-                        { localBindings = withExpressionSurfaceBindings
+                        { localBindings =
+                            RangeDict.insert expressionRange
+                                (expressionSurfaceBindings expression)
+                                context.localBindings
                         , branchLocalBindings = withNewBranchLocalBindings
                         , inferredConstants = newInferredConstants --
                         , lookupTable = context.lookupTable
@@ -2437,7 +2436,9 @@ expressionVisitor node config context =
 
                     Just currentBranchLocalBindings ->
                         { localBindings =
-                            RangeDict.insert expressionRange currentBranchLocalBindings withExpressionSurfaceBindings
+                            RangeDict.insert expressionRange
+                                (Set.union currentBranchLocalBindings (expressionSurfaceBindings expression))
+                                context.localBindings
                         , branchLocalBindings =
                             RangeDict.remove expressionRange withNewBranchLocalBindings
                         , inferredConstants = newInferredConstants --
@@ -2799,38 +2800,6 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             , argsAfterFirst = argsAfterFirst
             , callStyle = callStyle
             }
-
-        toCompositionCheckInfo :
-            { earlier : Node Expression
-            , later : Node Expression
-            }
-            -> CompositionCheckInfo
-        toCompositionCheckInfo compositionSpecific =
-            let
-                innerComposition :
-                    { earlier :
-                        { node : Node Expression, removeRange : Range }
-                    , later :
-                        { node : Node Expression, removeRange : Range }
-                    , isEmbeddedInComposition : Bool
-                    }
-                innerComposition =
-                    getInnerComposition compositionSpecific
-            in
-            { lookupTable = context.lookupTable
-            , importLookup = context.importLookup
-            , importRecordTypeAliases = context.importRecordTypeAliases
-            , moduleRecordTypeAliases = context.moduleRecordTypeAliases
-            , moduleCustomTypes = context.moduleCustomTypes
-            , importCustomTypes = context.importCustomTypes
-            , inferredConstants = context.inferredConstants
-            , moduleBindings = context.moduleBindings
-            , localBindings = context.localBindings
-            , extractSourceCode = context.extractSourceCode
-            , earlier = innerComposition.earlier
-            , later = innerComposition.later
-            , isEmbeddedInComposition = innerComposition.isEmbeddedInComposition
-            }
     in
     case expression of
         -----------------
@@ -3088,7 +3057,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         Expression.OperatorApplication ">>" _ earlier composedLater ->
             onlyMaybeError
                 (compositionChecks
-                    (toCompositionCheckInfo { earlier = earlier, later = composedLater })
+                    (toCompositionCheckInfo context { earlier = earlier, later = composedLater })
                 )
 
         ----------
@@ -3097,7 +3066,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         Expression.OperatorApplication "<<" _ composedLater earlier ->
             onlyMaybeError
                 (compositionChecks
-                    (toCompositionCheckInfo { earlier = earlier, later = composedLater })
+                    (toCompositionCheckInfo context { earlier = earlier, later = composedLater })
                 )
 
         ---------------------
@@ -3300,6 +3269,41 @@ expressionVisitorHelp (Node expressionRange expression) config context =
 
         Expression.Application (_ :: []) ->
             expressionVisitResultNoError
+
+
+toCompositionCheckInfo :
+    ModuleContext
+    ->
+        { earlier : Node Expression
+        , later : Node Expression
+        }
+    -> CompositionCheckInfo
+toCompositionCheckInfo context compositionSpecific =
+    let
+        innerComposition :
+            { earlier :
+                { node : Node Expression, removeRange : Range }
+            , later :
+                { node : Node Expression, removeRange : Range }
+            , isEmbeddedInComposition : Bool
+            }
+        innerComposition =
+            getInnerComposition compositionSpecific
+    in
+    { lookupTable = context.lookupTable
+    , importLookup = context.importLookup
+    , importRecordTypeAliases = context.importRecordTypeAliases
+    , moduleRecordTypeAliases = context.moduleRecordTypeAliases
+    , moduleCustomTypes = context.moduleCustomTypes
+    , importCustomTypes = context.importCustomTypes
+    , inferredConstants = context.inferredConstants
+    , moduleBindings = context.moduleBindings
+    , localBindings = context.localBindings
+    , extractSourceCode = context.extractSourceCode
+    , earlier = innerComposition.earlier
+    , later = innerComposition.later
+    , isEmbeddedInComposition = innerComposition.isEmbeddedInComposition
+    }
 
 
 functionCallStylePipeLeftToRight : FunctionCallStyle
