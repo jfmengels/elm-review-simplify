@@ -150,7 +150,7 @@ getListSingleton lookupTable expressionNode =
                 (getSpecificUnreducedFnCall Fn.List.singleton lookupTable expressionUnparenthesizedNode)
 
 
-{-| Parses calls and lambdas that are reducible to a call of a function with the given name.
+{-| Parse a call or a lambda that is reducible to a call of a function with the given name.
 If used for parsing fully applied calls, strongly consider `getSpecificUnreducedFnCall`.
 -}
 getSpecificFnCall :
@@ -304,7 +304,7 @@ getValueOrFnOrFnCall lookupTable expressionNode =
                     Nothing
 
 
-{-| Parses either a value reference with the given name,
+{-| Check for either a value reference with the given name,
 a function reference with the given name without arguments
 or a lambda that is reducible to a function with the given name without arguments
 -}
@@ -329,7 +329,7 @@ isSpecificValueOrFn ( specificModuleOrigin, specificName ) context expressionNod
             False
 
 
-{-| Parses either a value reference, a function reference without arguments or a lambda that is reducible to a function without arguments
+{-| Parse either a value reference, a function reference without arguments or a lambda that is reducible to a function without arguments
 -}
 getValueOrFunction :
     ReduceLambdaResources context
@@ -651,7 +651,7 @@ getReducedLambda context expressionNode =
             Nothing
 
 
-{-| Checks if the expression is the exact same value that was pattern-matched on.
+{-| Check if the expression is the exact same value that was pattern-matched on.
 For example in
 
     \(( (), _ as d ) as unused) -> ( (), d )
