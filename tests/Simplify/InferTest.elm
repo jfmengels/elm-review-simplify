@@ -6,7 +6,7 @@ import Elm.Syntax.Infix as Infix exposing (InfixDirection(..))
 import Elm.Syntax.Node exposing (Node(..))
 import Elm.Syntax.Range as Range
 import Expect exposing (Expectation)
-import Simplify.Infer exposing (DeducedValue(..), Fact(..), Inferred(..), deduceNewFacts, empty, falseExpr, get, infer, trueExpr)
+import Simplify.Infer exposing (DeducedValue(..), Fact(..), Inferred(..), deduceNewFacts, empty, falseExpr, getAsExpression, infer, trueExpr)
 import Test exposing (Test, describe, test)
 
 
@@ -26,13 +26,13 @@ simpleTests =
             \() ->
                 empty
                     |> infer [ FunctionOrValue [] "a" ] True
-                    |> get (FunctionOrValue [] "a")
+                    |> getAsExpression (FunctionOrValue [] "a")
                     |> Expect.equal (Just trueExpr)
         , test "should infer a is true when a is False" <|
             \() ->
                 empty
                     |> infer [ FunctionOrValue [] "a" ] False
-                    |> get (FunctionOrValue [] "a")
+                    |> getAsExpression (FunctionOrValue [] "a")
                     |> Expect.equal (Just falseExpr)
         , test "should infer a is 1 when a == 1 is True" <|
             \() ->
@@ -44,7 +44,7 @@ simpleTests =
                             (n (Floatable 1))
                         ]
                         True
-                    |> get (FunctionOrValue [] "a")
+                    |> getAsExpression (FunctionOrValue [] "a")
                     |> Expect.equal (Just (Floatable 1))
         , test "should not infer a when a == 1 is False" <|
             \() ->
@@ -56,7 +56,7 @@ simpleTests =
                             (n (Floatable 1))
                         ]
                         False
-                    |> get (FunctionOrValue [] "a")
+                    |> getAsExpression (FunctionOrValue [] "a")
                     |> Expect.equal Nothing
         , test "should infer a is true when a && b is True" <|
             \() ->
@@ -68,7 +68,7 @@ simpleTests =
                             (n (FunctionOrValue [] "b"))
                         ]
                         True
-                    |> get (FunctionOrValue [] "a")
+                    |> getAsExpression (FunctionOrValue [] "a")
                     |> Expect.equal (Just trueExpr)
         , test "should infer b is true when a && b is True" <|
             \() ->
@@ -80,7 +80,7 @@ simpleTests =
                             (n (FunctionOrValue [] "b"))
                         ]
                         True
-                    |> get (FunctionOrValue [] "b")
+                    |> getAsExpression (FunctionOrValue [] "b")
                     |> Expect.equal (Just trueExpr)
         , test "should not infer a when a || b is True" <|
             \() ->
@@ -92,7 +92,7 @@ simpleTests =
                             (n (FunctionOrValue [] "b"))
                         ]
                         True
-                    |> get (FunctionOrValue [] "a")
+                    |> getAsExpression (FunctionOrValue [] "a")
                     |> Expect.equal Nothing
         , test "should not infer b when a || b is True" <|
             \() ->
@@ -104,7 +104,7 @@ simpleTests =
                             (n (FunctionOrValue [] "b"))
                         ]
                         True
-                    |> get (FunctionOrValue [] "b")
+                    |> getAsExpression (FunctionOrValue [] "b")
                     |> Expect.equal Nothing
         , test "should infer a is false when a || b is False" <|
             \() ->
@@ -116,7 +116,7 @@ simpleTests =
                             (n (FunctionOrValue [] "b"))
                         ]
                         False
-                    |> get (FunctionOrValue [] "a")
+                    |> getAsExpression (FunctionOrValue [] "a")
                     |> Expect.equal (Just falseExpr)
         , test "should infer b is false when a || b is False" <|
             \() ->
@@ -128,7 +128,7 @@ simpleTests =
                             (n (FunctionOrValue [] "b"))
                         ]
                         False
-                    |> get (FunctionOrValue [] "b")
+                    |> getAsExpression (FunctionOrValue [] "b")
                     |> Expect.equal (Just falseExpr)
         , test "should infer b is true when a || b is True and a is False" <|
             \() ->
@@ -142,7 +142,7 @@ simpleTests =
                         True
                     |> infer [ FunctionOrValue [] "a" ]
                         False
-                    |> get (FunctionOrValue [] "b")
+                    |> getAsExpression (FunctionOrValue [] "b")
                     |> Expect.equal (Just trueExpr)
         , test "should infer b is true when b || a is True and a is False" <|
             \() ->
@@ -156,7 +156,7 @@ simpleTests =
                         True
                     |> infer [ FunctionOrValue [] "a" ]
                         False
-                    |> get (FunctionOrValue [] "b")
+                    |> getAsExpression (FunctionOrValue [] "b")
                     |> Expect.equal (Just trueExpr)
         , test "should not infer b when a || b is True and a is True" <|
             \() ->
@@ -170,7 +170,7 @@ simpleTests =
                         True
                     |> infer [ FunctionOrValue [] "a" ]
                         True
-                    |> get (FunctionOrValue [] "b")
+                    |> getAsExpression (FunctionOrValue [] "b")
                     |> Expect.equal Nothing
         ]
 

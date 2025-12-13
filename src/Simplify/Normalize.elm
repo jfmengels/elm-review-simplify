@@ -269,7 +269,7 @@ normalizeButKeepRange checkInfo node =
 
 toNodeAndInfer : Infer.Resources a -> Expression -> Node Expression
 toNodeAndInfer resources element =
-    case Infer.get element (Tuple.first resources.inferredConstants) of
+    case Infer.getAsExpression element (Tuple.first resources.inferredConstants) of
         Just value ->
             toNode value
 
