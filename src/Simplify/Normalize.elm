@@ -762,24 +762,40 @@ getNumberValue node =
             getNumberValue expression
 
         Expression.OperatorApplication "+" _ left right ->
-            Maybe.map2 (+)
-                (getNumberValue left)
-                (getNumberValue right)
+            case getNumberValue left of
+                Nothing ->
+                    Nothing
+
+                Just leftNumber ->
+                    Maybe.map (\rightNumber -> leftNumber + rightNumber)
+                        (getNumberValue right)
 
         Expression.OperatorApplication "-" _ left right ->
-            Maybe.map2 (-)
-                (getNumberValue left)
-                (getNumberValue right)
+            case getNumberValue left of
+                Nothing ->
+                    Nothing
+
+                Just leftNumber ->
+                    Maybe.map (\rightNumber -> leftNumber - rightNumber)
+                        (getNumberValue right)
 
         Expression.OperatorApplication "*" _ left right ->
-            Maybe.map2 (*)
-                (getNumberValue left)
-                (getNumberValue right)
+            case getNumberValue left of
+                Nothing ->
+                    Nothing
+
+                Just leftNumber ->
+                    Maybe.map (\rightNumber -> leftNumber * rightNumber)
+                        (getNumberValue right)
 
         Expression.OperatorApplication "/" _ left right ->
-            Maybe.map2 (/)
-                (getNumberValue left)
-                (getNumberValue right)
+            case getNumberValue left of
+                Nothing ->
+                    Nothing
+
+                Just leftNumber ->
+                    Maybe.map (\rightNumber -> leftNumber / rightNumber)
+                        (getNumberValue right)
 
         Expression.Negation expr ->
             getNumberValue expr
