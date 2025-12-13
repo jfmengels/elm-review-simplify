@@ -448,40 +448,74 @@ ifSatisfy ( target, value ) ( targetFact, otherFact ) =
 
 areIncompatible : DeducedValue -> Expression -> Bool
 areIncompatible value factValue =
-    case ( value, factValue ) of
-        ( DTrue, Expression.FunctionOrValue [ "Basics" ] "False" ) ->
-            True
+    case value of
+        DTrue ->
+            case factValue of
+                Expression.FunctionOrValue [ "Basics" ] "False" ->
+                    True
 
-        ( DFalse, Expression.FunctionOrValue [ "Basics" ] "True" ) ->
-            True
+                _ ->
+                    False
 
-        ( DNumber valueFloat, Expression.Floatable factFloat ) ->
-            valueFloat /= factFloat
+        DFalse ->
+            case factValue of
+                Expression.FunctionOrValue [ "Basics" ] "True" ->
+                    True
 
-        ( DString valueString, Expression.Literal factString ) ->
-            valueString /= factString
+                _ ->
+                    False
 
-        _ ->
-            False
+        DNumber valueFloat ->
+            case factValue of
+                Expression.Floatable factFloat ->
+                    valueFloat /= factFloat
+
+                _ ->
+                    False
+
+        DString valueString ->
+            case factValue of
+                Expression.Literal factString ->
+                    valueString /= factString
+
+                _ ->
+                    False
 
 
 areCompatible : DeducedValue -> Expression -> Bool
 areCompatible value factValue =
-    case ( value, factValue ) of
-        ( DTrue, Expression.FunctionOrValue [ "Basics" ] "True" ) ->
-            True
+    case value of
+        DTrue ->
+            case factValue of
+                Expression.FunctionOrValue [ "Basics" ] "True" ->
+                    True
 
-        ( DFalse, Expression.FunctionOrValue [ "Basics" ] "False" ) ->
-            True
+                _ ->
+                    False
 
-        ( DNumber valueFloat, Expression.Floatable factFloat ) ->
-            valueFloat == factFloat
+        DFalse ->
+            case factValue of
+                Expression.FunctionOrValue [ "Basics" ] "False" ->
+                    True
 
-        ( DString valueString, Expression.Literal factString ) ->
-            valueString == factString
+                _ ->
+                    False
 
-        _ ->
-            False
+        DNumber valueFloat ->
+            case factValue of
+                Expression.Floatable factFloat ->
+                    valueFloat == factFloat
+
+                _ ->
+                    False
+
+        DString valueString ->
+            case factValue of
+                Expression.Literal factString ->
+                    valueString == factString
+
+                _ ->
+                    False
 
 
 inferOnEquality : Node Expression -> Node Expression -> Bool -> Inferred -> Inferred
