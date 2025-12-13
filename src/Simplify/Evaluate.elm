@@ -11,49 +11,45 @@ import Simplify.Normalize as Normalize
 
 getBoolean : Infer.Resources a -> Node Expression -> Match Bool
 getBoolean resources baseNode =
-    let
-        node : Node Expression
-        node =
-            AstHelpers.removeParens baseNode
-    in
-    case Node.value node of
-        Expression.FunctionOrValue _ "True" ->
-            case ModuleNameLookupTable.moduleNameFor resources.lookupTable node of
-                Just [ "Basics" ] ->
-                    Determined True
+    case AstHelpers.removeParens baseNode of
+        Node referenceRange (Expression.FunctionOrValue _ name) ->
+            case ModuleNameLookupTable.moduleNameAt resources.lookupTable referenceRange of
+                Just moduleOrigin ->
+                    case name of
+                        "True" ->
+                            case moduleOrigin of
+                                [ "Basics" ] ->
+                                    determinedTrue
 
-                _ ->
-                    Undetermined
+                                _ ->
+                                    Undetermined
 
-        Expression.FunctionOrValue _ "False" ->
-            case ModuleNameLookupTable.moduleNameFor resources.lookupTable node of
-                Just [ "Basics" ] ->
-                    Determined False
+                        "False" ->
+                            case moduleOrigin of
+                                [ "Basics" ] ->
+                                    determinedFalse
 
-                _ ->
-                    Undetermined
+                                _ ->
+                                    Undetermined
 
-        Expression.FunctionOrValue _ name ->
-            case
-                ModuleNameLookupTable.moduleNameFor resources.lookupTable node
-                    |> Maybe.andThen (\moduleName -> Infer.get (Expression.FunctionOrValue moduleName name) (Tuple.first resources.inferredConstants))
-            of
-                Just (Expression.FunctionOrValue [ "Basics" ] "True") ->
-                    Determined True
+                        _ ->
+                            case
+                                Infer.isBoolean (Expression.FunctionOrValue moduleOrigin name)
+                                    (Tuple.first resources.inferredConstants)
+                            of
+                                Just bool ->
+                                    Determined bool
 
-                Just (Expression.FunctionOrValue [ "Basics" ] "False") ->
-                    Determined False
-
-                Just _ ->
-                    Undetermined
+                                Nothing ->
+                                    Undetermined
 
                 Nothing ->
                     Undetermined
 
-        _ ->
+        unparenthesizedNode ->
             case
                 Infer.isBoolean
-                    (Node.value (Normalize.normalize resources node))
+                    (Node.value (Normalize.normalize resources unparenthesizedNode))
                     (Tuple.first resources.inferredConstants)
             of
                 Just bool ->
@@ -61,6 +57,16 @@ getBoolean resources baseNode =
 
                 Nothing ->
                     Undetermined
+
+
+determinedTrue : Match Bool
+determinedTrue =
+    Determined True
+
+
+determinedFalse : Match Bool
+determinedFalse =
+    Determined False
 
 
 getInt : Infer.Resources a -> Node Expression -> Maybe Int
