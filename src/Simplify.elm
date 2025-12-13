@@ -2682,68 +2682,40 @@ expressionExitVisitor (Node expressionRange _) context =
         context
 
     else
-        let
-            maybeInferredConstants : List Infer.Inferred
-            maybeInferredConstants =
-                if RangeDict.member expressionRange context.inferredConstantsDict then
-                    Tuple.second context.inferredConstants
+        { localBindings = RangeDict.remove expressionRange context.localBindings
+        , inferredConstants =
+            if RangeDict.member expressionRange context.inferredConstantsDict then
+                case Tuple.second context.inferredConstants of
+                    inferredConstantsTopOfStack :: inferredConstantsRestOfStack ->
+                        ( inferredConstantsTopOfStack, inferredConstantsRestOfStack )
 
-                else
-                    []
-        in
-        case maybeInferredConstants of
-            inferredConstantsTopOfStack :: inferredConstantsRestOfStack ->
-                { inferredConstants = ( inferredConstantsTopOfStack, inferredConstantsRestOfStack )
-                , localBindings =
-                    RangeDict.remove expressionRange context.localBindings
+                    [] ->
+                        context.inferredConstants
 
-                --
-                , lookupTable = context.lookupTable
-                , moduleName = context.moduleName
-                , exposed = context.exposed
-                , commentRanges = context.commentRanges
-                , importRecordTypeAliases = context.importRecordTypeAliases
-                , moduleRecordTypeAliases = context.moduleRecordTypeAliases
-                , importCustomTypes = context.importCustomTypes
-                , moduleCustomTypes = context.moduleCustomTypes
-                , moduleBindings = context.moduleBindings
-                , branchLocalBindings = context.branchLocalBindings
-                , rangesToIgnore = context.rangesToIgnore
-                , rightSidesOfPlusPlus = context.rightSidesOfPlusPlus
-                , customTypesToReportInCases = context.customTypesToReportInCases
-                , localIgnoredCustomTypes = context.localIgnoredCustomTypes
-                , constructorsToIgnore = context.constructorsToIgnore
-                , inferredConstantsDict = context.inferredConstantsDict
-                , extractSourceCode = context.extractSourceCode
-                , exposedVariants = context.exposedVariants
-                , importLookup = context.importLookup
-                }
+            else
+                context.inferredConstants
 
-            [] ->
-                { localBindings = RangeDict.remove expressionRange context.localBindings
-
-                --
-                , lookupTable = context.lookupTable
-                , moduleName = context.moduleName
-                , exposed = context.exposed
-                , commentRanges = context.commentRanges
-                , importRecordTypeAliases = context.importRecordTypeAliases
-                , moduleRecordTypeAliases = context.moduleRecordTypeAliases
-                , importCustomTypes = context.importCustomTypes
-                , moduleCustomTypes = context.moduleCustomTypes
-                , moduleBindings = context.moduleBindings
-                , branchLocalBindings = context.branchLocalBindings
-                , rangesToIgnore = context.rangesToIgnore
-                , rightSidesOfPlusPlus = context.rightSidesOfPlusPlus
-                , customTypesToReportInCases = context.customTypesToReportInCases
-                , localIgnoredCustomTypes = context.localIgnoredCustomTypes
-                , constructorsToIgnore = context.constructorsToIgnore
-                , inferredConstantsDict = context.inferredConstantsDict
-                , inferredConstants = context.inferredConstants
-                , extractSourceCode = context.extractSourceCode
-                , exposedVariants = context.exposedVariants
-                , importLookup = context.importLookup
-                }
+        --
+        , lookupTable = context.lookupTable
+        , moduleName = context.moduleName
+        , exposed = context.exposed
+        , commentRanges = context.commentRanges
+        , importRecordTypeAliases = context.importRecordTypeAliases
+        , moduleRecordTypeAliases = context.moduleRecordTypeAliases
+        , importCustomTypes = context.importCustomTypes
+        , moduleCustomTypes = context.moduleCustomTypes
+        , moduleBindings = context.moduleBindings
+        , branchLocalBindings = context.branchLocalBindings
+        , rangesToIgnore = context.rangesToIgnore
+        , rightSidesOfPlusPlus = context.rightSidesOfPlusPlus
+        , customTypesToReportInCases = context.customTypesToReportInCases
+        , localIgnoredCustomTypes = context.localIgnoredCustomTypes
+        , constructorsToIgnore = context.constructorsToIgnore
+        , inferredConstantsDict = context.inferredConstantsDict
+        , extractSourceCode = context.extractSourceCode
+        , exposedVariants = context.exposedVariants
+        , importLookup = context.importLookup
+        }
 
 
 maybeErrorAndRangesToIgnore : Maybe (Error {}) -> RangeDict () -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
