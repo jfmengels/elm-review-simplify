@@ -78,6 +78,7 @@ import Fn.Tuple
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Set exposing (Set)
 import Simplify.CallStyle as CallStyle exposing (FunctionCallStyle)
+import Simplify.CoreHelpers exposing (drop2EndingsWhile, list2AreSameLengthAndAll)
 import Simplify.Infer as Infer
 import Simplify.Normalize as Normalize
 
@@ -935,57 +936,6 @@ isUnit expressionNode =
 
         _ ->
             False
-
-
-list2AreSameLengthAndAll : (a -> b -> Bool) -> List a -> List b -> Bool
-list2AreSameLengthAndAll areRegular aList bList =
-    case aList of
-        [] ->
-            List.isEmpty bList
-
-        aHead :: aTail ->
-            case bList of
-                [] ->
-                    False
-
-                bHead :: bTail ->
-                    if areRegular aHead bHead then
-                        list2AreSameLengthAndAll areRegular aTail bTail
-
-                    else
-                        False
-
-
-{-| Remove elements at the end of both given lists, then repeat for the previous elements until a given test returns False
--}
-drop2EndingsWhile : (( a, b ) -> Bool) -> ( List a, List b ) -> ( List a, List b )
-drop2EndingsWhile shouldDrop ( aList, bList ) =
-    let
-        ( reducedArgumentsReverse, reducedPatternsReverse ) =
-            drop2BeginningsWhile
-                shouldDrop
-                ( List.reverse aList
-                , List.reverse bList
-                )
-    in
-    ( List.reverse reducedArgumentsReverse, List.reverse reducedPatternsReverse )
-
-
-drop2BeginningsWhile : (( a, b ) -> Bool) -> ( List a, List b ) -> ( List a, List b )
-drop2BeginningsWhile shouldDrop listPair =
-    case listPair of
-        ( [], bList ) ->
-            ( [], bList )
-
-        ( aList, [] ) ->
-            ( aList, [] )
-
-        ( aHead :: aTail, bHead :: bTail ) ->
-            if shouldDrop ( aHead, bHead ) then
-                drop2BeginningsWhile shouldDrop ( aTail, bTail )
-
-            else
-                ( aHead :: aTail, bHead :: bTail )
 
 
 getCollapsedLambda : Node Expression -> Maybe { patterns : List (Node Pattern), expression : Node Expression }

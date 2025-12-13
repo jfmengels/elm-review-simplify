@@ -3,6 +3,7 @@ module Simplify.HashExpression exposing (hash)
 import Elm.Syntax.Expression as Expression exposing (Expression(..))
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern exposing (Pattern(..))
+import Simplify.CoreHelpers exposing (listMapToStringsThenJoin)
 
 
 hash : Node Expression -> String
@@ -251,27 +252,3 @@ object_ list =
         |> listMapToStringsThenJoin
             (\( k, v ) -> "(" ++ k ++ "=" ++ v ++ ")")
             ","
-
-
-listMapToStringsThenJoin : (a -> String) -> String -> List a -> String
-listMapToStringsThenJoin elementToString separator list =
-    case list of
-        [] ->
-            ""
-
-        head :: tail ->
-            listMapToStringsThenJoinAfter (elementToString head) elementToString separator tail
-
-
-listMapToStringsThenJoinAfter : String -> (a -> String) -> String -> List a -> String
-listMapToStringsThenJoinAfter soFar elementToString separator list =
-    case list of
-        [] ->
-            soFar
-
-        head :: tail ->
-            listMapToStringsThenJoinAfter
-                (soFar ++ separator ++ elementToString head ++ "")
-                elementToString
-                separator
-                tail
