@@ -2006,153 +2006,128 @@ foldProjectContexts newContext previousContext =
 
 dependenciesVisitor : Set String -> Dict String Dependency -> ProjectContext -> ( List (Error scope), ProjectContext )
 dependenciesVisitor typeNamesAsStrings dependencies context =
-    let
-        modules : List Elm.Docs.Module
-        modules =
-            dependencies
-                |> Dict.values
-                |> List.concatMap Dependency.modules
-
-        unions : Set String
-        unions =
-            List.foldl
-                (\module_ soFar ->
-                    List.foldl
-                        (\union withModuleUnionsSoFar ->
-                            Set.insert (module_.name ++ "." ++ union.name)
-                                withModuleUnionsSoFar
-                        )
-                        soFar
-                        module_.unions
-                )
-                Set.empty
-                modules
-
-        unknownTypesToIgnore : List String
-        unknownTypesToIgnore =
-            Set.diff typeNamesAsStrings unions
-                |> Set.toList
-
-        customTypesToReportInCases : Set ( ModuleName, String )
-        customTypesToReportInCases =
-            List.foldl
-                (\mod soFar ->
-                    let
-                        moduleName : ModuleName
-                        moduleName =
-                            AstHelpers.moduleNameFromString mod.name
-                    in
-                    mod.unions
-                        |> List.foldl
-                            (\union withModuleUnionsSoFar ->
-                                if Set.member (mod.name ++ "." ++ union.name) typeNamesAsStrings then
-                                    withModuleUnionsSoFar
-
-                                else
-                                    union.tags
-                                        |> List.foldl
-                                            (\( tagName, _ ) withUnionVariantsSoFar ->
-                                                Set.insert ( moduleName, tagName ) withUnionVariantsSoFar
-                                            )
-                                            withModuleUnionsSoFar
-                            )
-                            soFar
-                )
-                Set.empty
-                modules
-
-        dependencyExposedVariants : Dict ModuleName (Set String)
-        dependencyExposedVariants =
-            List.foldl
-                (\moduleDoc acc ->
-                    Dict.insert
-                        (AstHelpers.moduleNameFromString moduleDoc.name)
-                        (moduleDoc.unions
-                            |> List.foldl
-                                (\union moduleVariantNamesSoFar ->
-                                    union.tags
-                                        |> List.foldl
-                                            (\( variantName, _ ) withVariantsSoFar ->
-                                                Set.insert variantName withVariantsSoFar
-                                            )
-                                            moduleVariantNamesSoFar
-                                )
-                                Set.empty
-                        )
-                        acc
-                )
-                context.exposedVariants
-                modules
-
-        recordTypeAliases : Dict ModuleName (Dict String (List String))
-        recordTypeAliases =
-            modules
-                |> List.foldl
-                    (\moduleDocs soFar ->
-                        Dict.insert (AstHelpers.moduleNameFromString moduleDocs.name)
-                            (moduleDocs.aliases
-                                |> List.foldl
-                                    (\typeAliasDocs moduleAliasesSoFar ->
-                                        case typeAliasDocs.tipe of
-                                            Elm.Type.Record fields Nothing ->
-                                                Dict.insert typeAliasDocs.name
-                                                    (List.map (\( name, _ ) -> name) fields)
-                                                    moduleAliasesSoFar
-
-                                            _ ->
-                                                moduleAliasesSoFar
-                                    )
-                                    Dict.empty
-                            )
-                            soFar
-                    )
-                    Dict.empty
-
-        exposedCustomTypes :
-            Dict
-                ModuleName
-                (Dict
-                    String
-                    { variantNames : Set String
-                    , allParametersAreUsedInVariants : Bool
-                    }
-                )
-        exposedCustomTypes =
-            dependencies
-                |> Dict.foldr
-                    (\_ dependency soFarAcrossDependencies ->
-                        dependency
-                            |> Dependency.modules
-                            |> List.foldl
-                                (\moduleDocs withDependencySoFar ->
-                                    Dict.insert
-                                        (moduleDocs.name |> AstHelpers.moduleNameFromString)
-                                        (moduleDocs.unions
-                                            |> List.foldl
-                                                (\choiceTypeDocs moduleChoiceTypesSoFar ->
-                                                    Dict.insert choiceTypeDocs.name
-                                                        (interfaceChoiceTypeToInfo choiceTypeDocs)
-                                                        moduleChoiceTypesSoFar
-                                                )
-                                                Dict.empty
-                                        )
-                                        withDependencySoFar
-                                )
-                                soFarAcrossDependencies
-                    )
-                    context.exposedCustomTypes
-    in
-    ( if List.isEmpty unknownTypesToIgnore then
+    ( if Set.isEmpty typeNamesAsStrings then
         []
 
       else
-        [ errorForUnknownIgnoredConstructor unknownTypesToIgnore ]
-    , { customTypesToReportInCases = customTypesToReportInCases
-      , exposedVariants = dependencyExposedVariants
-      , exposedRecordTypeAliases = recordTypeAliases
-      , exposedCustomTypes = exposedCustomTypes
-      }
+        let
+            unions : Set String
+            unions =
+                dependencies
+                    |> Dict.foldr
+                        (\_ dependency soFarAcrossDependencies ->
+                            dependency
+                                |> Dependency.modules
+                                |> List.foldl
+                                    (\moduleDocs withDependencySoFar ->
+                                        List.foldl
+                                            (\union withModuleUnionsSoFar ->
+                                                Set.insert (moduleDocs.name ++ "." ++ union.name)
+                                                    withModuleUnionsSoFar
+                                            )
+                                            withDependencySoFar
+                                            moduleDocs.unions
+                                    )
+                                    soFarAcrossDependencies
+                        )
+                        Set.empty
+
+            unknownTypesToIgnore : Set String
+            unknownTypesToIgnore =
+                Set.diff typeNamesAsStrings unions
+        in
+        if Set.isEmpty unknownTypesToIgnore then
+            []
+
+        else
+            [ errorForUnknownIgnoredConstructor (Set.toList unknownTypesToIgnore) ]
+    , dependencies
+        |> Dict.foldr
+            (\_ dependency soFarAcrossDependencies ->
+                dependency
+                    |> Dependency.modules
+                    |> List.foldl
+                        (\moduleDocs withDependencySoFar ->
+                            updateContextWithModuleInterface typeNamesAsStrings
+                                moduleDocs
+                                withDependencySoFar
+                        )
+                        soFarAcrossDependencies
+            )
+            context
     )
+
+
+updateContextWithModuleInterface : Set String -> Elm.Docs.Module -> ProjectContext -> ProjectContext
+updateContextWithModuleInterface typeNamesAsStrings moduleDocs withDependencySoFar =
+    let
+        moduleName : ModuleName
+        moduleName =
+            AstHelpers.moduleNameFromString moduleDocs.name
+    in
+    { exposedVariants =
+        Dict.insert
+            (AstHelpers.moduleNameFromString moduleDocs.name)
+            (moduleDocs.unions
+                |> List.foldl
+                    (\union moduleVariantNamesSoFar ->
+                        union.tags
+                            |> List.foldl
+                                (\( variantName, _ ) withVariantsSoFar ->
+                                    Set.insert variantName withVariantsSoFar
+                                )
+                                moduleVariantNamesSoFar
+                    )
+                    Set.empty
+            )
+            withDependencySoFar.exposedVariants
+    , customTypesToReportInCases =
+        moduleDocs.unions
+            |> List.foldl
+                (\union withModuleUnionsSoFar ->
+                    if Set.member (moduleDocs.name ++ "." ++ union.name) typeNamesAsStrings then
+                        withModuleUnionsSoFar
+
+                    else
+                        union.tags
+                            |> List.foldl
+                                (\( tagName, _ ) withUnionVariantsSoFar ->
+                                    Set.insert ( moduleName, tagName ) withUnionVariantsSoFar
+                                )
+                                withModuleUnionsSoFar
+                )
+                withDependencySoFar.customTypesToReportInCases
+    , exposedRecordTypeAliases =
+        Dict.insert (AstHelpers.moduleNameFromString moduleDocs.name)
+            (moduleDocs.aliases
+                |> List.foldl
+                    (\typeAliasDocs moduleAliasesSoFar ->
+                        case typeAliasDocs.tipe of
+                            Elm.Type.Record fields Nothing ->
+                                Dict.insert typeAliasDocs.name
+                                    (List.map (\( name, _ ) -> name) fields)
+                                    moduleAliasesSoFar
+
+                            _ ->
+                                moduleAliasesSoFar
+                    )
+                    Dict.empty
+            )
+            withDependencySoFar.exposedRecordTypeAliases
+    , exposedCustomTypes =
+        Dict.insert
+            (moduleDocs.name |> AstHelpers.moduleNameFromString)
+            (moduleDocs.unions
+                |> List.foldl
+                    (\choiceTypeDocs moduleChoiceTypesSoFar ->
+                        Dict.insert choiceTypeDocs.name
+                            (interfaceChoiceTypeToInfo choiceTypeDocs)
+                            moduleChoiceTypesSoFar
+                    )
+                    Dict.empty
+            )
+            withDependencySoFar.exposedCustomTypes
+    }
 
 
 interfaceChoiceTypeToInfo :
