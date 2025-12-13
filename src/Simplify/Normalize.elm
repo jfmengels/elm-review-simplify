@@ -490,26 +490,7 @@ compareHelp leftNode right canFlip =
         Expression.TupledExpression leftList ->
             case Node.value (removeParens right) of
                 Expression.TupledExpression rightList ->
-                    case leftList of
-                        [ left0, left1 ] ->
-                            case rightList of
-                                [ right0, right1 ] ->
-                                    compareAll2Help left0 right0 left1 right1
-
-                                _ ->
-                                    Unconfirmed
-
-                        [ left0, left1, left2 ] ->
-                            case rightList of
-                                [ right0, right1, right2 ] ->
-                                    compareAll3Help left0 right0 left1 right1 left2 right2
-
-                                _ ->
-                                    Unconfirmed
-
-                        -- invalid syntax
-                        _ ->
-                            Unconfirmed
+                    compareLists leftList rightList ConfirmedEquality
 
                 _ ->
                     fallback ()
