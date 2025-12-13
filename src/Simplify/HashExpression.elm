@@ -236,8 +236,7 @@ encodePattern (Node _ pattern) =
 list_ : (a -> String) -> List a -> String
 list_ f list =
     list
-        |> List.map f
-        |> String.join ","
+        |> listMapToStringsThenJoin f ","
         |> wrap "[" "]"
 
 
@@ -249,5 +248,30 @@ wrap before after str =
 object_ : List ( String, String ) -> String
 object_ list =
     list
-        |> List.map (\( k, v ) -> "(" ++ k ++ "=" ++ v ++ ")")
-        |> String.join ","
+        |> listMapToStringsThenJoin
+            (\( k, v ) -> "(" ++ k ++ "=" ++ v ++ ")")
+            ","
+
+
+listMapToStringsThenJoin : (a -> String) -> String -> List a -> String
+listMapToStringsThenJoin elementToString separator list =
+    case list of
+        [] ->
+            ""
+
+        head :: tail ->
+            listMapToStringsThenJoinAfter (elementToString head) elementToString separator tail
+
+
+listMapToStringsThenJoinAfter : String -> (a -> String) -> String -> List a -> String
+listMapToStringsThenJoinAfter soFar elementToString separator list =
+    case list of
+        [] ->
+            soFar
+
+        head :: tail ->
+            listMapToStringsThenJoinAfter
+                (soFar ++ separator ++ elementToString head ++ "")
+                elementToString
+                separator
+                tail
