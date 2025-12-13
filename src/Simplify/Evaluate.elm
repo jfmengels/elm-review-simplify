@@ -34,7 +34,7 @@ getBoolean resources baseNode =
 
                         _ ->
                             case
-                                Infer.isBoolean (Expression.FunctionOrValue moduleOrigin name)
+                                Infer.getBoolean (Expression.FunctionOrValue moduleOrigin name)
                                     (Tuple.first resources.inferredConstants)
                             of
                                 Just bool ->
@@ -48,7 +48,7 @@ getBoolean resources baseNode =
 
         unparenthesizedNode ->
             case
-                Infer.isBoolean
+                Infer.getBoolean
                     (Node.value (Normalize.normalize resources unparenthesizedNode))
                     (Tuple.first resources.inferredConstants)
             of
@@ -71,25 +71,21 @@ determinedFalse =
 
 getInt : Infer.Resources a -> Node Expression -> Maybe Int
 getInt resources baseNode =
-    let
-        node : Node Expression
-        node =
-            AstHelpers.removeParens baseNode
-    in
-    case Node.value node of
-        Expression.Integer n ->
+    case AstHelpers.removeParens baseNode of
+        Node _ (Expression.Integer n) ->
             Just n
 
-        Expression.Hex n ->
+        Node _ (Expression.Hex n) ->
             Just n
 
-        Expression.Negation expr ->
+        Node _ (Expression.Negation expr) ->
             Maybe.map negate (getInt resources expr)
 
-        Expression.FunctionOrValue _ name ->
+        Node referenceRange (Expression.FunctionOrValue _ name) ->
+            -- note, when this comment was written, getAsExpression never even returned Integer
             case
-                ModuleNameLookupTable.moduleNameFor resources.lookupTable node
-                    |> Maybe.andThen (\moduleName -> Infer.get (Expression.FunctionOrValue moduleName name) (Tuple.first resources.inferredConstants))
+                ModuleNameLookupTable.moduleNameAt resources.lookupTable referenceRange
+                    |> Maybe.andThen (\moduleOrigin -> Infer.getAsExpression (Expression.FunctionOrValue moduleOrigin name) (Tuple.first resources.inferredConstants))
             of
                 Just (Expression.Integer int) ->
                     Just int
@@ -120,9 +116,9 @@ getNumber resources baseNode =
                 Node variableRange (Expression.FunctionOrValue _ name) ->
                     case
                         ModuleNameLookupTable.moduleNameAt resources.lookupTable variableRange
-                            |> Maybe.andThen (\moduleName -> Infer.get (Expression.FunctionOrValue moduleName name) (Tuple.first resources.inferredConstants))
+                            |> Maybe.andThen (\moduleOrigin -> Infer.get (Expression.FunctionOrValue moduleOrigin name) (Tuple.first resources.inferredConstants))
                     of
-                        Just (Expression.Floatable float) ->
+                        Just (Infer.DNumber float) ->
                             Just float
 
                         _ ->
