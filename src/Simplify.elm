@@ -10223,17 +10223,14 @@ wrapperMemberChecks wrapper checkInfo =
                             , details = [ "You can replace this call by checking whether the member to find and the value inside " ++ constructWithOneValueDescriptionDefinite "the" wrapper.wrap.description ++ " are equal." ]
                             }
                             checkInfo.fnRange
-                            (List.concat
-                                [ keepOnlyFix
-                                    { parentRange = checkInfo.parentRange
-                                    , keep = Range.combine [ needleArgRange, Node.range wrapValue ]
-                                    }
-                                , [ Fix.replaceRangeBy
-                                        (rangeBetweenExclusive ( needleArgRange, Node.range wrapValue ))
-                                        " == "
-                                  ]
-                                , parenthesizeIfNeededFix wrapValue
-                                ]
+                            (keepOnlyFix
+                                { parentRange = checkInfo.parentRange
+                                , keep = Range.combine [ needleArgRange, Node.range wrapValue ]
+                                }
+                                ++ Fix.replaceRangeBy
+                                    (rangeBetweenExclusive ( needleArgRange, Node.range wrapValue ))
+                                    " == "
+                                :: parenthesizeIfNeededFix wrapValue
                             )
                         )
 
@@ -14043,36 +14040,33 @@ type UnreachableCaseFix
 unreachableCasesFixToReviewFixes : UnreachableCasesFix -> List Fix
 unreachableCasesFixToReviewFixes unreachableCasesFix =
     Fix.replaceRangeBy unreachableCasesFix.casedExpressionReplace.range unreachableCasesFix.casedExpressionReplace.replacement
-        :: List.concat
-            (List.map2
-                (\unreachableCaseFix unreachableCaseFixBefore ->
-                    case unreachableCaseFix of
-                        UnreachableCaseReplace unreachableCaseReplace ->
-                            [ Fix.replaceRangeBy unreachableCaseReplace.range unreachableCaseReplace.replacement ]
+        :: List.map2
+            (\unreachableCaseFix unreachableCaseFixBefore ->
+                case unreachableCaseFix of
+                    UnreachableCaseReplace unreachableCaseReplace ->
+                        Fix.replaceRangeBy unreachableCaseReplace.range unreachableCaseReplace.replacement
 
-                        UnreachableCaseRemove caseRanges ->
-                            [ Fix.removeRange
-                                { start =
-                                    { row =
-                                        case unreachableCaseFixBefore of
-                                            Nothing ->
-                                                caseRanges.patternRange.start.row
+                    UnreachableCaseRemove caseRanges ->
+                        Fix.removeRange
+                            { start =
+                                { row =
+                                    case unreachableCaseFixBefore of
+                                        Nothing ->
+                                            caseRanges.patternRange.start.row
 
-                                            Just (UnreachableCaseRemove beforeCaseRanges) ->
-                                                beforeCaseRanges.expressionRange.end.row + 1
+                                        Just (UnreachableCaseRemove beforeCaseRanges) ->
+                                            beforeCaseRanges.expressionRange.end.row + 1
 
-                                            Just (UnreachableCaseReplace beforeUnreachableCaseReplace) ->
-                                                (Node.range beforeUnreachableCaseReplace.expressionNode).end.row + 1
-                                    , column = 0
-                                    }
-                                , end =
-                                    { row = caseRanges.expressionRange.end.row + 1, column = 0 }
+                                        Just (UnreachableCaseReplace beforeUnreachableCaseReplace) ->
+                                            (Node.range beforeUnreachableCaseReplace.expressionNode).end.row + 1
+                                , column = 0
                                 }
-                            ]
-                )
-                unreachableCasesFix.cases
-                (Nothing :: List.map Just unreachableCasesFix.cases)
+                            , end =
+                                { row = caseRanges.expressionRange.end.row + 1, column = 0 }
+                            }
             )
+            unreachableCasesFix.cases
+            (Nothing :: List.map Just unreachableCasesFix.cases)
 
 
 caseOfWithUnreachableCasesChecksOn :
