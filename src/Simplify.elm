@@ -4415,7 +4415,7 @@ equalityChecks isEqual checkInfo =
                             normalizedExpressionNode =
                                 Normalize.normalize checkInfo expressionNode
                         in
-                        case Infer.get (Node.value normalizedExpressionNode) inferred of
+                        case Infer.getAsExpression (Node.value normalizedExpressionNode) inferred of
                             Just expr ->
                                 Node Range.emptyRange expr
 
@@ -8152,17 +8152,27 @@ boolForOrProperties =
 boolTrueConstant : ConstantProperties
 boolTrueConstant =
     { description = qualifiedToString (qualify Fn.Basics.trueVariant defaultQualifyResources)
-    , is = \res expr -> Evaluate.getBoolean res expr == Determined True
+    , is = \res expr -> Evaluate.getBoolean res expr == determinedTrue
     , asString = \res -> qualifiedToString (qualify Fn.Basics.trueVariant res)
     }
+
+
+determinedTrue : Match Bool
+determinedTrue =
+    Determined True
 
 
 boolFalseConstant : ConstantProperties
 boolFalseConstant =
     { description = qualifiedToString (qualify Fn.Basics.falseVariant defaultQualifyResources)
-    , is = \res expr -> Evaluate.getBoolean res expr == Determined False
+    , is = \res expr -> Evaluate.getBoolean res expr == determinedFalse
     , asString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res)
     }
+
+
+determinedFalse : Match Bool
+determinedFalse =
+    Determined False
 
 
 numberForAddProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
