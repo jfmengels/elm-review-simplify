@@ -2678,52 +2678,48 @@ expressionBranchLocalBindings expression =
 
 expressionExitVisitor : Node Expression -> ModuleContext -> ModuleContext
 expressionExitVisitor (Node expressionRange _) context =
-    let
-        maybeInferredConstants : List Infer.Inferred
-        maybeInferredConstants =
-            if RangeDict.member expressionRange context.inferredConstantsDict then
-                Tuple.second context.inferredConstants
+    if RangeDict.member expressionRange context.rangesToIgnore then
+        context
 
-            else
-                []
-    in
-    case maybeInferredConstants of
-        inferredConstantsTopOfStack :: inferredConstantsRestOfStack ->
-            { inferredConstants = ( inferredConstantsTopOfStack, inferredConstantsRestOfStack )
-            , localBindings =
-                if RangeDict.member expressionRange context.rangesToIgnore then
-                    context.localBindings
+    else
+        let
+            maybeInferredConstants : List Infer.Inferred
+            maybeInferredConstants =
+                if RangeDict.member expressionRange context.inferredConstantsDict then
+                    Tuple.second context.inferredConstants
 
                 else
+                    []
+        in
+        case maybeInferredConstants of
+            inferredConstantsTopOfStack :: inferredConstantsRestOfStack ->
+                { inferredConstants = ( inferredConstantsTopOfStack, inferredConstantsRestOfStack )
+                , localBindings =
                     RangeDict.remove expressionRange context.localBindings
 
-            --
-            , lookupTable = context.lookupTable
-            , moduleName = context.moduleName
-            , exposed = context.exposed
-            , commentRanges = context.commentRanges
-            , importRecordTypeAliases = context.importRecordTypeAliases
-            , moduleRecordTypeAliases = context.moduleRecordTypeAliases
-            , importCustomTypes = context.importCustomTypes
-            , moduleCustomTypes = context.moduleCustomTypes
-            , moduleBindings = context.moduleBindings
-            , branchLocalBindings = context.branchLocalBindings
-            , rangesToIgnore = context.rangesToIgnore
-            , rightSidesOfPlusPlus = context.rightSidesOfPlusPlus
-            , customTypesToReportInCases = context.customTypesToReportInCases
-            , localIgnoredCustomTypes = context.localIgnoredCustomTypes
-            , constructorsToIgnore = context.constructorsToIgnore
-            , inferredConstantsDict = context.inferredConstantsDict
-            , extractSourceCode = context.extractSourceCode
-            , exposedVariants = context.exposedVariants
-            , importLookup = context.importLookup
-            }
+                --
+                , lookupTable = context.lookupTable
+                , moduleName = context.moduleName
+                , exposed = context.exposed
+                , commentRanges = context.commentRanges
+                , importRecordTypeAliases = context.importRecordTypeAliases
+                , moduleRecordTypeAliases = context.moduleRecordTypeAliases
+                , importCustomTypes = context.importCustomTypes
+                , moduleCustomTypes = context.moduleCustomTypes
+                , moduleBindings = context.moduleBindings
+                , branchLocalBindings = context.branchLocalBindings
+                , rangesToIgnore = context.rangesToIgnore
+                , rightSidesOfPlusPlus = context.rightSidesOfPlusPlus
+                , customTypesToReportInCases = context.customTypesToReportInCases
+                , localIgnoredCustomTypes = context.localIgnoredCustomTypes
+                , constructorsToIgnore = context.constructorsToIgnore
+                , inferredConstantsDict = context.inferredConstantsDict
+                , extractSourceCode = context.extractSourceCode
+                , exposedVariants = context.exposedVariants
+                , importLookup = context.importLookup
+                }
 
-        [] ->
-            if RangeDict.member expressionRange context.rangesToIgnore then
-                context
-
-            else
+            [] ->
                 { localBindings = RangeDict.remove expressionRange context.localBindings
 
                 --
@@ -2874,12 +2870,17 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                     Node fnRange (Expression.FunctionOrValue _ fnName) ->
                         case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
                             Just moduleName ->
-                                case Dict.get ( moduleName, fnName ) functionCallChecks of
+                                let
+                                    reference : ( ModuleName, String )
+                                    reference =
+                                        ( moduleName, fnName )
+                                in
+                                case Dict.get reference functionCallChecks of
                                     Just ( argCount, checkFn ) ->
                                         checkFn
                                             (toCheckInfo
                                                 { fnRange = fnRange
-                                                , fn = ( moduleName, fnName )
+                                                , fn = reference
                                                 , argCount = argCount
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsAfterFirst
@@ -2956,12 +2957,17 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                     onlyMaybeError
                         (case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
                             Just moduleName ->
-                                case Dict.get ( moduleName, fnName ) functionCallChecks of
+                                let
+                                    reference : ( ModuleName, String )
+                                    reference =
+                                        ( moduleName, fnName )
+                                in
+                                case Dict.get reference functionCallChecks of
                                     Just ( argCount, checkFn ) ->
                                         checkFn
                                             (toCheckInfo
                                                 { fnRange = fnRange
-                                                , fn = ( moduleName, fnName )
+                                                , fn = reference
                                                 , argCount = argCount
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
@@ -2979,14 +2985,19 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                 Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: argsBetweenFirstAndLast)) ->
                     case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
                         Just moduleName ->
-                            case Dict.get ( moduleName, fnName ) functionCallChecks of
+                            let
+                                reference : ( ModuleName, String )
+                                reference =
+                                    ( moduleName, fnName )
+                            in
+                            case Dict.get reference functionCallChecks of
                                 Just ( argCount, checkFn ) ->
                                     maybeErrorAndRangesToIgnore
                                         (checkFn
                                             (toCheckInfo
                                                 { fnRange = fnRange
                                                 , argCount = argCount
-                                                , fn = ( moduleName, fnName )
+                                                , fn = reference
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
                                                 , callStyle = functionCallStylePipeRightToLeft
@@ -3026,13 +3037,18 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                 Node fnRange (Expression.FunctionOrValue _ fnName) ->
                     case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
                         Just moduleName ->
-                            case Dict.get ( moduleName, fnName ) functionCallChecks of
+                            let
+                                reference : ( ModuleName, String )
+                                reference =
+                                    ( moduleName, fnName )
+                            in
+                            case Dict.get reference functionCallChecks of
                                 Just ( argCount, checks ) ->
                                     onlyMaybeError
                                         (checks
                                             (toCheckInfo
                                                 { fnRange = fnRange
-                                                , fn = ( moduleName, fnName )
+                                                , fn = reference
                                                 , argCount = argCount
                                                 , firstArg = lastArg
                                                 , argsAfterFirst = []
@@ -3050,13 +3066,18 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                 Node applicationRange (Expression.Application ((Node fnRange (Expression.FunctionOrValue _ fnName)) :: firstArg :: argsBetweenFirstAndLast)) ->
                     case ModuleNameLookupTable.moduleNameAt context.lookupTable fnRange of
                         Just moduleName ->
-                            case Dict.get ( moduleName, fnName ) functionCallChecks of
+                            let
+                                reference : ( ModuleName, String )
+                                reference =
+                                    ( moduleName, fnName )
+                            in
+                            case Dict.get reference functionCallChecks of
                                 Just ( argCount, checks ) ->
                                     maybeErrorAndRangesToIgnore
                                         (checks
                                             (toCheckInfo
                                                 { fnRange = fnRange
-                                                , fn = ( moduleName, fnName )
+                                                , fn = reference
                                                 , argCount = argCount
                                                 , firstArg = firstArg
                                                 , argsAfterFirst = argsBetweenFirstAndLast ++ [ lastArg ]
