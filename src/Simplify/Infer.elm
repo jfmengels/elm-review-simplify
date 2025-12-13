@@ -243,20 +243,20 @@ inferHelp shouldBe node acc =
                 infer2 left right shouldBe dict
 
             else
-                injectFacts
-                    [ Or
+                injectFact
+                    (Or
                         (convertToFact left False)
                         (convertToFact right False)
-                    ]
+                    )
                     dict
 
         Expression.OperatorApplication "||" _ (Node _ left) (Node _ right) ->
             if shouldBe then
-                injectFacts
-                    [ Or
+                injectFact
+                    (Or
                         (convertToFact left True)
                         (convertToFact right True)
-                    ]
+                    )
                     dict
 
             else
@@ -264,7 +264,7 @@ inferHelp shouldBe node acc =
 
         Expression.OperatorApplication "==" inf left right ->
             (if shouldBe then
-                injectFacts [ NotEquals (Expression.OperatorApplication "/=" inf left right) trueExpr ] dict
+                injectFact (NotEquals (Expression.OperatorApplication "/=" inf left right) trueExpr) dict
 
              else
                 dict
@@ -274,7 +274,7 @@ inferHelp shouldBe node acc =
 
         Expression.OperatorApplication "/=" inf left right ->
             (if shouldBe then
-                injectFacts [ NotEquals (Expression.OperatorApplication "==" inf left right) trueExpr ] dict
+                injectFact (NotEquals (Expression.OperatorApplication "==" inf left right) trueExpr) dict
 
              else
                 dict
@@ -297,38 +297,48 @@ injectFacts newFacts (Inferred inferred) =
                 injectFacts restOfFacts (Inferred inferred)
 
             else
-                let
-                    newFactsToVisit : List Fact
-                    newFactsToVisit =
-                        deduceNewFacts newFact inferred.facts
-
-                    deducedFromNewFact : Maybe ( Expression, DeducedValue )
-                    deducedFromNewFact =
-                        case newFact of
-                            Equals a b ->
-                                equalsFact a b
-
-                            NotEquals a b ->
-                                equalsFact a b
-                                    |> Maybe.andThen notDeduced
-
-                            Or _ _ ->
-                                -- TODO Add "a || b || ..."?
-                                Nothing
-                in
                 injectFacts
-                    (newFactsToVisit ++ restOfFacts)
-                    (Inferred
-                        { facts = newFact :: inferred.facts
-                        , deduced =
-                            case deducedFromNewFact of
-                                Just ( a, b ) ->
-                                    AssocList.insert a b inferred.deduced
+                    (deduceNewFacts newFact inferred.facts ++ restOfFacts)
+                    (inferredAddFact newFact (Inferred inferred))
 
-                                Nothing ->
-                                    inferred.deduced
-                        }
-                    )
+
+injectFact : Fact -> Inferred -> Inferred
+injectFact newFact (Inferred inferred) =
+    if List.member newFact inferred.facts then
+        Inferred inferred
+
+    else
+        injectFacts
+            (deduceNewFacts newFact inferred.facts)
+            (inferredAddFact newFact (Inferred inferred))
+
+
+inferredAddFact : Fact -> Inferred -> Inferred
+inferredAddFact newFact (Inferred inferred) =
+    Inferred
+        { facts = newFact :: inferred.facts
+        , deduced =
+            case newFact of
+                Equals equalsA equalsB ->
+                    case equalsFact equalsA equalsB of
+                        Just ( toInsertA, toInsertB ) ->
+                            AssocList.insert toInsertA toInsertB inferred.deduced
+
+                        Nothing ->
+                            inferred.deduced
+
+                NotEquals notEqualsA notEqualsB ->
+                    case equalsFact notEqualsA notEqualsB |> Maybe.andThen notDeduced of
+                        Just ( toInsertA, toInsertB ) ->
+                            AssocList.insert toInsertA toInsertB inferred.deduced
+
+                        Nothing ->
+                            inferred.deduced
+
+                Or _ _ ->
+                    -- TODO Add "a || b || ..."?
+                    inferred.deduced
+        }
 
 
 deduceNewFacts : Fact -> List Fact -> List Fact
@@ -479,59 +489,59 @@ inferOnEquality (Node _ expr) (Node _ other) shouldBe dict =
     case expr of
         Expression.Integer int ->
             if shouldBe then
-                injectFacts
-                    [ Equals other (Expression.Floatable (Basics.toFloat int)) ]
+                injectFact
+                    (Equals other (Expression.Floatable (Basics.toFloat int)))
                     dict
 
             else
-                injectFacts
-                    [ NotEquals other (Expression.Floatable (Basics.toFloat int)) ]
+                injectFact
+                    (NotEquals other (Expression.Floatable (Basics.toFloat int)))
                     dict
 
         Expression.Floatable float ->
             if shouldBe then
-                injectFacts
-                    [ Equals other (Expression.Floatable float) ]
+                injectFact
+                    (Equals other (Expression.Floatable float))
                     dict
 
             else
-                injectFacts
-                    [ NotEquals other (Expression.Floatable float) ]
+                injectFact
+                    (NotEquals other (Expression.Floatable float))
                     dict
 
         Expression.Literal str ->
             if shouldBe then
-                injectFacts
-                    [ Equals other (Expression.Literal str) ]
+                injectFact
+                    (Equals other (Expression.Literal str))
                     dict
 
             else
-                injectFacts
-                    [ NotEquals other (Expression.Literal str) ]
+                injectFact
+                    (NotEquals other (Expression.Literal str))
                     dict
 
         Expression.FunctionOrValue [ "Basics" ] "True" ->
-            injectFacts
-                [ Equals other
+            injectFact
+                (Equals other
                     (if shouldBe then
                         trueExpr
 
                      else
                         falseExpr
                     )
-                ]
+                )
                 dict
 
         Expression.FunctionOrValue [ "Basics" ] "False" ->
-            injectFacts
-                [ Equals other
+            injectFact
+                (Equals other
                     (if shouldBe then
                         falseExpr
 
                      else
                         trueExpr
                     )
-                ]
+                )
                 dict
 
         _ ->
