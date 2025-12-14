@@ -15619,30 +15619,27 @@ alwaysResultsInConstantError :
     -> Error {}
 alwaysResultsInConstantError usingSituation config checkInfo =
     let
-        addNecessaryParens : String -> String
-        addNecessaryParens string =
-            if config.replacementNeedsParens then
-                "(" ++ string ++ ")"
-
-            else
-                string
-
         replacement : QualifyResources {} -> String
-        replacement =
+        replacement res =
             case checkInfo.argCount - (1 + List.length checkInfo.argsAfterFirst) of
                 -- fully applied
                 0 ->
-                    config.replacement
+                    config.replacement res
 
                 -- one arg curried
                 1 ->
-                    \res ->
-                        qualifiedToString (qualify Fn.Basics.always res) ++ " " ++ addNecessaryParens (config.replacement res)
+                    qualifiedToString (qualify Fn.Basics.always res)
+                        ++ " "
+                        ++ (if config.replacementNeedsParens then
+                                "(" ++ config.replacement res ++ ")"
+
+                            else
+                                config.replacement res
+                           )
 
                 -- multiple args curried
                 atLeast2 ->
-                    \res ->
-                        "(\\" ++ String.repeat atLeast2 "_ " ++ "-> " ++ config.replacement res ++ ")"
+                    "(\\" ++ String.repeat atLeast2 "_ " ++ "-> " ++ config.replacement res ++ ")"
     in
     Rule.errorWithFix
         { message = usingSituation ++ " will always result in " ++ config.replacement defaultQualifyResources
