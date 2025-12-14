@@ -1,4 +1,4 @@
-module Simplify.RangeDict exposing (RangeDict, any, empty, get, insert, mapFromList, member, remove, singleton, union)
+module Simplify.RangeDict exposing (RangeDict, any, empty, get, insert, member, remove, singleton, union)
 
 import Bitwise
 import Dict exposing (Dict)
@@ -17,23 +17,6 @@ empty =
 singleton : Range -> v -> RangeDict v
 singleton range value =
     RangeDict (Dict.singleton (rangeAsComparable range) value)
-
-
-{-| Indirect conversion from a list to key-value pairs to avoid successive List.map calls.
--}
-mapFromList : (a -> ( Range, v )) -> List a -> RangeDict v
-mapFromList toAssociation list =
-    List.foldl
-        (\element acc ->
-            let
-                ( range, v ) =
-                    toAssociation element
-            in
-            Dict.insert (rangeAsComparable range) v acc
-        )
-        Dict.empty
-        list
-        |> RangeDict
 
 
 insert : Range -> v -> RangeDict v -> RangeDict v

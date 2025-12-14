@@ -2378,8 +2378,7 @@ expressionVisitor node config context =
 
             withNewBranchLocalBindings : RangeDict (Set String)
             withNewBranchLocalBindings =
-                RangeDict.union (expressionBranchLocalBindings expression)
-                    context.branchLocalBindings
+                expressionBranchLocalBindingsInto context.branchLocalBindings expression
 
             contextWithInferredConstantsAndLocalBindings : ModuleContext
             contextWithInferredConstantsAndLocalBindings =
@@ -2620,16 +2619,17 @@ expressionSurfaceBindings expression =
             Set.empty
 
 
-expressionBranchLocalBindings : Expression -> RangeDict (Set String)
-expressionBranchLocalBindings expression =
+expressionBranchLocalBindingsInto : RangeDict (Set String) -> Expression -> RangeDict (Set String)
+expressionBranchLocalBindingsInto existingBindings expression =
     case expression of
         Expression.CaseExpression caseBlock ->
-            RangeDict.mapFromList
-                (\( Node _ pattern, Node resultRange _ ) ->
-                    ( resultRange
-                    , AstHelpers.patternBindings pattern
-                    )
+            List.foldl
+                (\( Node _ pattern, Node resultRange _ ) soFar ->
+                    soFar
+                        |> RangeDict.insert resultRange
+                            (AstHelpers.patternBindings pattern)
                 )
+                existingBindings
                 caseBlock.cases
 
         Expression.LetExpression letBlock ->
@@ -2647,11 +2647,11 @@ expressionBranchLocalBindings expression =
                         _ ->
                             acc
                 )
-                RangeDict.empty
+                existingBindings
                 letBlock.declarations
 
         _ ->
-            RangeDict.empty
+            existingBindings
 
 
 expressionExitVisitor : Node Expression -> ModuleContext -> ModuleContext
