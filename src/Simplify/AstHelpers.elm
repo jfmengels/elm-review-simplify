@@ -941,18 +941,18 @@ getCollapsedLambda : Node Expression -> Maybe { patterns : List (Node Pattern), 
 getCollapsedLambda expressionNode =
     case removeParens expressionNode of
         Node _ (Expression.LambdaExpression lambda) ->
-            case getCollapsedLambda lambda.expression of
-                Nothing ->
-                    Just
+            Just
+                (case getCollapsedLambda lambda.expression of
+                    Nothing ->
                         { patterns = lambda.args
                         , expression = lambda.expression
                         }
 
-                Just innerCollapsedLambda ->
-                    Just
+                    Just innerCollapsedLambda ->
                         { patterns = lambda.args ++ innerCollapsedLambda.patterns
                         , expression = innerCollapsedLambda.expression
                         }
+                )
 
         _ ->
             Nothing
