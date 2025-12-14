@@ -9896,7 +9896,10 @@ flatFromListsSpreadFlatFromListElementsCheck checkInfo =
                             )
             in
             case List.filterMap getFlatFromListOnLiteralCheck listLiteralElements of
-                nestedFromListLiteral0 :: nestedFromListLiteral1Up ->
+                [] ->
+                    Nothing
+
+                (_ :: _) as nestedFromListLiterals ->
                     let
                         flatFromListOnLiteralDescription : String
                         flatFromListOnLiteralDescription =
@@ -9912,12 +9915,9 @@ flatFromListsSpreadFlatFromListElementsCheck checkInfo =
                                 (\nestedFromListLiteral ->
                                     keepOnlyFix { parentRange = nestedFromListLiteral.callNodeRange, keep = rangeWithoutBoundaries nestedFromListLiteral.literalRange }
                                 )
-                                (nestedFromListLiteral0 :: nestedFromListLiteral1Up)
+                                nestedFromListLiterals
                             )
                         )
-
-                [] ->
-                    Nothing
 
         Nothing ->
             Nothing
@@ -9982,18 +9982,18 @@ mergeConsecutiveFromListLiteralsCheck constructibleFromList checkInfo =
     case Maybe.andThen (\lastArg -> fromListGetLiteral constructibleFromList checkInfo.lookupTable lastArg) (fullyAppliedLastArg checkInfo) of
         Just listLiteral ->
             case mergeConsecutiveFromListLiteralsFixWithBeforeEndingIn Nothing [] constructibleFromList checkInfo listLiteral.elements of
-                firstFix :: fixesAfterFirst ->
+                [] ->
+                    Nothing
+
+                (_ :: _) as fixes ->
                     Just
                         (Rule.errorWithFix
                             { message = "Consecutive " ++ constructionFromListOnLiteralDescription constructibleFromList.fromList ++ "s can be merged"
                             , details = [ "Try moving all the elements from consecutive " ++ constructionFromListOnLiteralDescription constructibleFromList.fromList ++ "s so that they form a single list." ]
                             }
                             checkInfo.fnRange
-                            (firstFix :: fixesAfterFirst)
+                            fixes
                         )
-
-                [] ->
-                    Nothing
 
         Nothing ->
             Nothing
