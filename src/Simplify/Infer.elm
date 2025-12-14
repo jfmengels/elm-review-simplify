@@ -417,7 +417,7 @@ mergeEqualFacts equalFact fact =
     case fact of
         Or left right ->
             left
-                |> List.foldr
+                |> List.foldl
                     (\cond rightSoFar ->
                         case ifSatisfy equalFact ( cond, right ) of
                             Nothing ->
