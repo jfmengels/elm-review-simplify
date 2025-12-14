@@ -13011,7 +13011,7 @@ collectionSliceChecks collection =
             (\checkInfo ->
                 case secondArg checkInfo of
                     Just endArg ->
-                        if Normalize.areAllTheSame checkInfo checkInfo.firstArg [ endArg ] then
+                        if Normalize.areTheSame checkInfo checkInfo.firstArg endArg then
                             Just
                                 (alwaysResultsInUnparenthesizedConstantError (qualifiedToString checkInfo.fn ++ " with equal start and end index")
                                     { replacement = collection.empty.specific.asString }

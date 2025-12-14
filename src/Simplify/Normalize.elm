@@ -1,4 +1,4 @@
-module Simplify.Normalize exposing (Comparison(..), areAllTheSame, compare, compareWithoutNormalization, getNumberValue, normalize, normalizeButKeepRange)
+module Simplify.Normalize exposing (Comparison(..), areAllTheSame, areTheSame, compare, compareWithoutNormalization, getNumberValue, normalize, normalizeButKeepRange)
 
 import Dict exposing (Dict)
 import Elm.Syntax.Expression as Expression exposing (Expression)
@@ -9,6 +9,11 @@ import Elm.Syntax.Range as Range
 import Elm.Writer
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Simplify.Infer as Infer
+
+
+areTheSame : Infer.Resources a -> Node Expression -> Node Expression -> Bool
+areTheSame resources a b =
+    normalize resources a == normalize resources b
 
 
 areAllTheSame : Infer.Resources a -> Node Expression -> List (Node Expression) -> Bool
