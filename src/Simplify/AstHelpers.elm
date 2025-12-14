@@ -9,7 +9,7 @@ module Simplify.AstHelpers exposing
     , getOrder, getBool, getBoolPattern, getUncomputedNumberValue
     , getCollapsedCons, getListLiteral, isListLiteral, getListSingleton
     , getTuple2, getTuple2Literal
-    , boolToString, orderToString, emptyStringAsString
+    , boolToString, emptyStringAsString
     , moduleNameFromString, qualifiedName, qualifiedModuleName, qualifiedToString, moduleNameToString
     , declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings, typeUsesVariable
     , nameOfExpose
@@ -47,7 +47,7 @@ module Simplify.AstHelpers exposing
 
 ### literal as string
 
-@docs boolToString, orderToString, emptyStringAsString
+@docs boolToString, emptyStringAsString
 
 
 ### qualification
@@ -1489,19 +1489,6 @@ boolToString bool =
 
     else
         "False"
-
-
-orderToString : Order -> String
-orderToString order =
-    case order of
-        LT ->
-            "LT"
-
-        EQ ->
-            "EQ"
-
-        GT ->
-            "GT"
 
 
 {-| Put a `ModuleName` and thing name together as a string.
