@@ -1514,7 +1514,7 @@ import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
 import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, qualifiedToString)
 import Simplify.CallStyle as CallStyle exposing (FunctionCallStyle)
-import Simplify.CoreHelpers exposing (countUnique, countUniqueBy, findMap, findMapAndAllBefore, findMapNeighboring, isJust, isNothing, listAll2, listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList, listIndexedFilterMap, listLast, onNothing, traverse, traverseConcat, uniqueByThenMap)
+import Simplify.CoreHelpers exposing (countUnique, countUniqueBy, findMap, findMapAndAllBefore, findMapNeighboring, indexedFindMap, isJust, isNothing, listAll2, listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList, listIndexedFilterMap, listLast, onNothing, traverse, traverseConcat, uniqueByThenMap)
 import Simplify.Evaluate as Evaluate
 import Simplify.HashExpression as HashExpression
 import Simplify.Infer as Infer
@@ -13998,15 +13998,14 @@ caseOfWithUnreachableCasesChecks checkInfo =
                         case error.fix.casedExpressionReplace.replacement of
                             "()" ->
                                 error.fix.cases
-                                    |> List.indexedMap (\index fix -> { index = index, fix = fix })
-                                    |> findMap
-                                        (\case_ ->
-                                            case case_.fix of
+                                    |> indexedFindMap
+                                        (\caseIndex fix ->
+                                            case fix of
                                                 UnreachableCaseRemove _ ->
                                                     Nothing
 
                                                 UnreachableCaseReplace replace ->
-                                                    Just { index = case_.index, expressionNode = replace.expressionNode }
+                                                    Just { index = caseIndex, expressionNode = replace.expressionNode }
                                         )
 
                             _ ->

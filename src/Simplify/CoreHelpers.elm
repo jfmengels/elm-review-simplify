@@ -1,6 +1,6 @@
 module Simplify.CoreHelpers exposing
     ( isJust, isNothing, onNothing
-    , countUnique, countUniqueBy, findMap, findMapAndAllBefore, findMapNeighboring, listAll2, list2AreSameLengthAndAll, drop2EndingsWhile, listIndexedFilterMap, listLast, traverse, traverseConcat, uniqueByThenMap, listMapToStringsThenJoin
+    , countUnique, countUniqueBy, findMap, indexedFindMap, findMapAndAllBefore, findMapNeighboring, listAll2, list2AreSameLengthAndAll, drop2EndingsWhile, listIndexedFilterMap, listLast, traverse, traverseConcat, uniqueByThenMap, listMapToStringsThenJoin
     , listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList
     )
 
@@ -15,7 +15,7 @@ moved to a separate module for easier testing etc.
 
 ## List
 
-@docs countUnique, countUniqueBy, findMap, findMapAndAllBefore, findMapNeighboring, listAll2, list2AreSameLengthAndAll, drop2EndingsWhile, listIndexedFilterMap, listLast, traverse, traverseConcat, uniqueByThenMap, listMapToStringsThenJoin
+@docs countUnique, countUniqueBy, findMap, indexedFindMap, findMapAndAllBefore, findMapNeighboring, listAll2, list2AreSameLengthAndAll, drop2EndingsWhile, listIndexedFilterMap, listLast, traverse, traverseConcat, uniqueByThenMap, listMapToStringsThenJoin
 
 
 ## `( a, List a )`
@@ -132,6 +132,26 @@ findMap mapper nodes =
 
                 Nothing ->
                     findMap mapper rest
+
+
+indexedFindMap : (Int -> a -> Maybe b) -> List a -> Maybe b
+indexedFindMap elementToMaybeFound elements =
+    indexedFindMapFromIndex 0 elementToMaybeFound elements
+
+
+indexedFindMapFromIndex : Int -> (Int -> a -> Maybe b) -> List a -> Maybe b
+indexedFindMapFromIndex index elementToMaybeFound elements =
+    case elements of
+        [] ->
+            Nothing
+
+        node :: rest ->
+            case elementToMaybeFound index node of
+                (Just _) as justFound ->
+                    justFound
+
+                Nothing ->
+                    indexedFindMapFromIndex (index + 1) elementToMaybeFound rest
 
 
 {-| `listIndexedFilterMap f list` is equivalent to `List.filterMap identity (List.indexedMap f)`
