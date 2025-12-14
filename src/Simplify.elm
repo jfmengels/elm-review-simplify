@@ -6216,10 +6216,6 @@ listFoldAnyDirectionChecks =
 
                     Just initialArg ->
                         let
-                            maybeListArg : Maybe (Node Expression)
-                            maybeListArg =
-                                thirdArg checkInfo
-
                             numberBinaryOperationChecks : { identity : Int, two : String, list : String } -> Maybe (Error {})
                             numberBinaryOperationChecks operation =
                                 let
@@ -6249,7 +6245,7 @@ listFoldAnyDirectionChecks =
                                         )
 
                                 else
-                                    case maybeListArg of
+                                    case thirdArg checkInfo of
                                         Nothing ->
                                             Nothing
 
@@ -6622,29 +6618,27 @@ listSortWithChecks =
                 in
                 case alwaysAlwaysOrder of
                     Just order ->
-                        let
-                            fixToIdentity : Error {}
-                            fixToIdentity =
-                                alwaysReturnsLastArgError
-                                    (qualifiedToString checkInfo.fn ++ " with a comparison that always returns " ++ AstHelpers.orderToString order)
-                                    listCollection
-                                    checkInfo
-                        in
-                        case order of
-                            LT ->
-                                Just
-                                    (operationWithFirstArgIsEquivalentToFnError
+                        Just
+                            (case order of
+                                LT ->
+                                    operationWithFirstArgIsEquivalentToFnError
                                         { firstArgDescription = "a comparison that always returns LT"
                                         , replacementFn = Fn.List.reverse
                                         }
                                         checkInfo
-                                    )
 
-                            EQ ->
-                                Just fixToIdentity
+                                EQ ->
+                                    alwaysReturnsLastArgError
+                                        (qualifiedToString checkInfo.fn ++ " with a comparison that always returns EQ")
+                                        listCollection
+                                        checkInfo
 
-                            GT ->
-                                Just fixToIdentity
+                                GT ->
+                                    alwaysReturnsLastArgError
+                                        (qualifiedToString checkInfo.fn ++ " with a comparison that always returns GT")
+                                        listCollection
+                                        checkInfo
+                            )
 
                     Nothing ->
                         Nothing
