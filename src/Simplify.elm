@@ -3219,47 +3219,58 @@ toCallCheckInfo :
         }
     -> CallCheckInfo
 toCallCheckInfo config context checkInfo =
-    let
-        ( argsAfterFirst, parentRange, callStyle ) =
-            case List.drop (checkInfo.argCount - 1) (checkInfo.firstArg :: checkInfo.argsAfterFirst) of
-                lastExpectedArg :: _ :: _ ->
-                    -- Too many arguments!
-                    -- We'll update the range to drop the extra ones and force the call style to application
-                    ( List.take (checkInfo.argCount - 1) checkInfo.argsAfterFirst
-                    , case checkInfo.callStyle of
-                        CallStyle.Application ->
-                            { start = checkInfo.fnRange.start, end = (Node.range lastExpectedArg).end }
+    case List.drop (checkInfo.argCount - 1) (checkInfo.firstArg :: checkInfo.argsAfterFirst) of
+        lastExpectedArg :: _ :: _ ->
+            -- Too many arguments!
+            -- We'll update the range to drop the extra ones and force the call style to application
+            { parentRange =
+                case checkInfo.callStyle of
+                    CallStyle.Application ->
+                        { start = checkInfo.fnRange.start, end = (Node.range lastExpectedArg).end }
 
-                        CallStyle.Pipe CallStyle.LeftToRight ->
-                            { start = checkInfo.fnRange.start, end = (Node.range lastExpectedArg).end }
+                    CallStyle.Pipe CallStyle.LeftToRight ->
+                        { start = checkInfo.fnRange.start, end = (Node.range lastExpectedArg).end }
 
-                        CallStyle.Pipe CallStyle.RightToLeft ->
-                            { start = (Node.range checkInfo.firstArg).start, end = (Node.range checkInfo.firstArg).end }
-                    , CallStyle.Application
-                    )
+                    CallStyle.Pipe CallStyle.RightToLeft ->
+                        { start = (Node.range checkInfo.firstArg).start, end = (Node.range checkInfo.firstArg).end }
+            , argsAfterFirst = List.take (checkInfo.argCount - 1) checkInfo.argsAfterFirst
+            , callStyle = CallStyle.Application
+            , fnRange = checkInfo.fnRange
+            , fn = checkInfo.fn
+            , argCount = checkInfo.argCount
+            , firstArg = checkInfo.firstArg
+            , lookupTable = context.lookupTable
+            , expectNaN = config.expectNaN
+            , extractSourceCode = context.extractSourceCode
+            , importLookup = context.importLookup
+            , moduleCustomTypes = context.moduleCustomTypes
+            , importCustomTypes = context.importCustomTypes
+            , commentRanges = context.commentRanges
+            , moduleBindings = context.moduleBindings
+            , localBindings = context.localBindings
+            , inferredConstants = context.inferredConstants
+            }
 
-                -- [] | [ _ ] ->
-                _ ->
-                    ( checkInfo.argsAfterFirst, checkInfo.parentRange, checkInfo.callStyle )
-    in
-    { lookupTable = context.lookupTable
-    , expectNaN = config.expectNaN
-    , extractSourceCode = context.extractSourceCode
-    , importLookup = context.importLookup
-    , moduleCustomTypes = context.moduleCustomTypes
-    , importCustomTypes = context.importCustomTypes
-    , commentRanges = context.commentRanges
-    , moduleBindings = context.moduleBindings
-    , localBindings = context.localBindings
-    , inferredConstants = context.inferredConstants
-    , parentRange = parentRange
-    , fnRange = checkInfo.fnRange
-    , fn = checkInfo.fn
-    , argCount = checkInfo.argCount
-    , firstArg = checkInfo.firstArg
-    , argsAfterFirst = argsAfterFirst
-    , callStyle = callStyle
-    }
+        -- [] | [ _ ] ->
+        _ ->
+            { parentRange = checkInfo.parentRange
+            , fnRange = checkInfo.fnRange
+            , fn = checkInfo.fn
+            , argCount = checkInfo.argCount
+            , firstArg = checkInfo.firstArg
+            , argsAfterFirst = checkInfo.argsAfterFirst
+            , callStyle = checkInfo.callStyle
+            , lookupTable = context.lookupTable
+            , expectNaN = config.expectNaN
+            , extractSourceCode = context.extractSourceCode
+            , importLookup = context.importLookup
+            , moduleCustomTypes = context.moduleCustomTypes
+            , importCustomTypes = context.importCustomTypes
+            , commentRanges = context.commentRanges
+            , moduleBindings = context.moduleBindings
+            , localBindings = context.localBindings
+            , inferredConstants = context.inferredConstants
+            }
 
 
 toCompositionCheckInfo :
