@@ -4606,17 +4606,6 @@ comparisonWithEmptyChecks isEqual checkInfo =
 
             else
                 ( "not (" ++ fnName ++ " ", ")" )
-
-        toMessage : ModuleName -> { message : String, details : List String }
-        toMessage modName =
-            let
-                modIsEmpty : String
-                modIsEmpty =
-                    qualifiedToString (qualify ( modName, "isEmpty" ) defaultQualifyResources)
-            in
-            { message = "Comparison with an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " can be replaced by a call to " ++ modIsEmpty
-            , details = [ "You can replace this comparison to an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " with a call to " ++ modIsEmpty ++ ", which is more efficient." ]
-            }
     in
     case isEmpty checkInfo.lookupTable checkInfo.right of
         Just modName ->
@@ -4625,7 +4614,7 @@ comparisonWithEmptyChecks isEqual checkInfo =
                     surroundWith modName checkInfo.left
             in
             Just
-                (Rule.errorWithFix (toMessage modName)
+                (Rule.errorWithFix (toComparisonWithEmptyErrorInfo modName)
                     (Range.combine [ checkInfo.operatorRange, checkInfo.rightRange ])
                     [ Fix.insertAt checkInfo.leftRange.start left
                     , Fix.replaceRangeBy
@@ -4644,7 +4633,7 @@ comparisonWithEmptyChecks isEqual checkInfo =
                             surroundWith modName checkInfo.right
                     in
                     Just
-                        (Rule.errorWithFix (toMessage modName)
+                        (Rule.errorWithFix (toComparisonWithEmptyErrorInfo modName)
                             (Range.combine [ checkInfo.leftRange, checkInfo.operatorRange ])
                             [ Fix.replaceRangeBy
                                 { start = checkInfo.leftRange.start
@@ -4657,6 +4646,18 @@ comparisonWithEmptyChecks isEqual checkInfo =
 
                 Nothing ->
                     Nothing
+
+
+toComparisonWithEmptyErrorInfo : ModuleName -> { message : String, details : List String }
+toComparisonWithEmptyErrorInfo modName =
+    let
+        modIsEmpty : String
+        modIsEmpty =
+            qualifiedToString (qualify ( modName, "isEmpty" ) defaultQualifyResources)
+    in
+    { message = "Comparison with an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " can be replaced by a call to " ++ modIsEmpty
+    , details = [ "You can replace this comparison to an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " with a call to " ++ modIsEmpty ++ ", which is more efficient." ]
+    }
 
 
 comparisonWithEmptyCheckInPrefixOperator : ModuleNameLookupTable -> Range -> Node Expression -> Maybe (Error {})
