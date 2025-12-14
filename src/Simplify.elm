@@ -1851,12 +1851,7 @@ fromProjectToModule =
                 imports =
                     List.foldl
                         (\import_ importLookup ->
-                            let
-                                importInfo : { moduleName : ModuleName, exposed : Exposed, alias : Maybe ModuleName }
-                                importInfo =
-                                    importContext import_
-                            in
-                            insertImport importInfo.moduleName { alias = importInfo.alias, exposed = importInfo.exposed } importLookup
+                            insertImport (importContext import_) importLookup
                         )
                         implicitImports
                         fullAst.imports
@@ -2528,23 +2523,17 @@ implicitImports =
 {-| Merge a given new import with an existing import lookup.
 This is strongly preferred over Dict.insert since the implicit default imports can be overridden
 -}
-insertImport : ModuleName -> { alias : Maybe ModuleName, exposed : Exposed } -> ImportLookup -> ImportLookup
-insertImport moduleName importInfoToAdd importLookup =
-    Dict.update moduleName
-        (\existingImport ->
-            let
-                newImportInfo : { alias : Maybe ModuleName, exposed : Exposed }
-                newImportInfo =
-                    case existingImport of
-                        Nothing ->
-                            importInfoToAdd
+insertImport : { moduleName : ModuleName, alias : Maybe ModuleName, exposed : Exposed } -> ImportLookup -> ImportLookup
+insertImport importInfoToAdd importLookup =
+    Dict.insert importInfoToAdd.moduleName
+        (case Dict.get importInfoToAdd.moduleName importLookup of
+            Nothing ->
+                { alias = importInfoToAdd.alias, exposed = importInfoToAdd.exposed }
 
-                        Just import_ ->
-                            { alias = import_.alias |> onNothing (\() -> importInfoToAdd.alias)
-                            , exposed = exposedMerge import_.exposed importInfoToAdd.exposed
-                            }
-            in
-            Just newImportInfo
+            Just import_ ->
+                { alias = import_.alias |> onNothing (\() -> importInfoToAdd.alias)
+                , exposed = exposedMerge import_.exposed importInfoToAdd.exposed
+                }
         )
         importLookup
 
