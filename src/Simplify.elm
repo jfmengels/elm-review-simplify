@@ -13802,7 +13802,7 @@ sameBodyForCaseOfChecks context =
             in
             if
                 introducesVariableOrUsesTypeConstructor context (firstPattern :: restPatterns)
-                    || not (Normalize.areAllTheSame context firstBody (List.map Tuple.second rest))
+                    || not (Normalize.areAllTheSameAs context firstBody Tuple.second rest)
             then
                 Nothing
 
