@@ -2016,7 +2016,7 @@ dependenciesVisitor typeNamesAsStrings dependencies context =
             unions : Set String
             unions =
                 dependencies
-                    |> Dict.foldr
+                    |> Dict.foldl
                         (\_ dependency soFarAcrossDependencies ->
                             dependency
                                 |> Dependency.modules
@@ -2044,7 +2044,7 @@ dependenciesVisitor typeNamesAsStrings dependencies context =
         else
             [ errorForUnknownIgnoredConstructor (Set.toList unknownTypesToIgnore) ]
     , dependencies
-        |> Dict.foldr
+        |> Dict.foldl
             (\_ dependency soFarAcrossDependencies ->
                 dependency
                     |> Dependency.modules
