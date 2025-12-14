@@ -1528,8 +1528,9 @@ import Simplify.RangeDict as RangeDict exposing (RangeDict)
 rule : Configuration -> Rule
 rule (Configuration config) =
     Rule.newProjectRuleSchema "Simplify" initialContext
-        |> Rule.withDirectDependenciesProjectVisitor (dependenciesVisitor (Set.fromList config.ignoreConstructors))
-        |> Rule.withModuleVisitor (moduleVisitor config)
+        |> Rule.withDirectDependenciesProjectVisitor
+            (\deps -> dependenciesVisitor (Set.fromList config.ignoreConstructors) deps)
+        |> Rule.withModuleVisitor (\moduleSchema -> moduleVisitor config moduleSchema)
         |> Rule.withContextFromImportedModules
         |> Rule.withModuleContextUsingContextCreator
             { fromProjectToModule = fromProjectToModule
@@ -6613,8 +6614,8 @@ listSortWithChecks =
                     alwaysAlwaysOrder : Maybe Order
                     alwaysAlwaysOrder =
                         AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg
-                            |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo)
-                            |> Maybe.andThen (AstHelpers.getOrder checkInfo.lookupTable)
+                            |> Maybe.andThen (\res -> AstHelpers.getAlwaysResult checkInfo res)
+                            |> Maybe.andThen (\res -> AstHelpers.getOrder checkInfo.lookupTable res)
                 in
                 case alwaysAlwaysOrder of
                     Just order ->
@@ -8465,7 +8466,7 @@ listDetermineLength resources expressionNode =
                     Just rangeCall ->
                         case Evaluate.getInt resources rangeCall.firstArg of
                             Just start ->
-                                case Maybe.andThen (Evaluate.getInt resources) (List.head rangeCall.argsAfterFirst) of
+                                case Maybe.andThen (\endArg -> Evaluate.getInt resources endArg) (List.head rangeCall.argsAfterFirst) of
                                     Just end ->
                                         Just (Exactly (max 0 (end - start)))
 
@@ -8557,7 +8558,9 @@ stringDetermineLength resources expressionNode =
                     |> Maybe.andThen
                         (\consCall ->
                             maybeCollectionSizeAdd1
-                                (Maybe.andThen (stringDetermineLength resources) (List.head consCall.argsAfterFirst))
+                                (Maybe.andThen (\tailArg -> stringDetermineLength resources tailArg)
+                                    (List.head consCall.argsAfterFirst)
+                                )
                         )
             )
 
@@ -8660,7 +8663,9 @@ arrayDetermineLength resources expressionNode =
                     |> Maybe.andThen
                         (\pushCall ->
                             maybeCollectionSizeAdd1
-                                (Maybe.andThen (arrayDetermineLength resources) (List.head pushCall.argsAfterFirst))
+                                (Maybe.andThen (\arrayArg -> arrayDetermineLength resources arrayArg)
+                                    (List.head pushCall.argsAfterFirst)
+                                )
                         )
             )
 
@@ -9977,7 +9982,7 @@ callOnFromListWithIrrelevantEmptyElement situation ( constructibleFromList, empt
 -}
 mergeConsecutiveFromListLiteralsCheck : ConstructibleFromListProperties otherProperties -> CallCheckInfo -> Maybe (Error {})
 mergeConsecutiveFromListLiteralsCheck constructibleFromList checkInfo =
-    case Maybe.andThen (fromListGetLiteral constructibleFromList checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
+    case Maybe.andThen (\lastArg -> fromListGetLiteral constructibleFromList checkInfo.lookupTable lastArg) (fullyAppliedLastArg checkInfo) of
         Just listLiteral ->
             case mergeConsecutiveFromListLiteralsFixWithBeforeEndingIn Nothing [] constructibleFromList checkInfo listLiteral.elements of
                 firstFix :: fixesAfterFirst ->
@@ -10350,7 +10355,7 @@ callOnCollectionWithAbsorbingElementChecks :
     -> CallCheckInfo
     -> Maybe (Error {})
 callOnCollectionWithAbsorbingElementChecks situation ( collection, elementAbsorbable ) checkInfo =
-    case Maybe.andThen (collection.elements.get (extractInferResources checkInfo)) (fullyAppliedLastArg checkInfo) of
+    case Maybe.andThen (\lastArg -> collection.elements.get (extractInferResources checkInfo) lastArg) (fullyAppliedLastArg checkInfo) of
         Just elements ->
             case findMap (getAbsorbingExpressionNode elementAbsorbable checkInfo) elements.known of
                 Just absorbingElement ->
@@ -10417,9 +10422,9 @@ collectionAllChecks collection checkInfo =
         |> maybeOnNothing
             (\() ->
                 if AstHelpers.isSpecificValueOrFn Fn.Basics.not checkInfo checkInfo.firstArg then
-                    case Maybe.andThen (collection.elements.get (extractInferResources checkInfo)) (fullyAppliedLastArg checkInfo) of
+                    case Maybe.andThen (\collectionArg -> collection.elements.get (extractInferResources checkInfo) collectionArg) (fullyAppliedLastArg checkInfo) of
                         Just elements ->
-                            if List.any (boolTrueConstant.is (extractInferResources checkInfo)) elements.known then
+                            if List.any (\element -> boolTrueConstant.is (extractInferResources checkInfo) element) elements.known then
                                 Just
                                     (Rule.errorWithFix
                                         { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ collection.represents ++ " with True will result in False"
@@ -10491,9 +10496,9 @@ collectionAnyChecks collection checkInfo =
         |> maybeOnNothing
             (\() ->
                 if AstHelpers.isSpecificValueOrFn Fn.Basics.not checkInfo checkInfo.firstArg then
-                    case Maybe.andThen (collection.elements.get (extractInferResources checkInfo)) (fullyAppliedLastArg checkInfo) of
+                    case Maybe.andThen (\lastArg -> collection.elements.get (extractInferResources checkInfo) lastArg) (fullyAppliedLastArg checkInfo) of
                         Just elements ->
-                            if List.any (boolFalseConstant.is (extractInferResources checkInfo)) elements.known then
+                            if List.any (\element -> boolFalseConstant.is (extractInferResources checkInfo) element) elements.known then
                                 Just
                                     (Rule.errorWithFix
                                         { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ collection.represents ++ " with False will result in True"
@@ -11165,7 +11170,7 @@ foldToUnchangedAccumulatorWithExtraArgCheck typeProperties checkInfo =
         maybeReduceFunctionResult =
             checkInfo.firstArg
                 |> AstHelpers.getAlwaysResult checkInfo
-                |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo)
+                |> Maybe.andThen (\alwaysResult -> AstHelpers.getAlwaysResult checkInfo alwaysResult)
     in
     case maybeReduceFunctionResult of
         Just reduceAlwaysResult ->
@@ -11260,7 +11265,7 @@ getChecks collection checkInfo =
         |> maybeOnNothing
             (\() ->
                 Evaluate.getInt checkInfo checkInfo.firstArg
-                    |> Maybe.andThen (indexAccessChecks collection checkInfo)
+                    |> Maybe.andThen (\index -> indexAccessChecks collection checkInfo index)
             )
 
 
@@ -11555,7 +11560,7 @@ dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck config const
 
 emptiableMapNChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 emptiableMapNChecks emptiable checkInfo =
-    if List.any (isInTypeSubset emptiable.empty checkInfo) checkInfo.argsAfterFirst then
+    if List.any (\emptiableArg -> isInTypeSubset emptiable.empty checkInfo emptiableArg) checkInfo.argsAfterFirst then
         Just
             (alwaysResultsInUnparenthesizedConstantError
                 (qualifiedToString checkInfo.fn ++ " with any " ++ emptiable.represents ++ " being " ++ emptiable.empty.specific.description)
@@ -12002,7 +12007,7 @@ onSpecificFnCallCanBeCombinedCheck config =
     in
     { call =
         \checkInfo ->
-            case Maybe.andThen (AstHelpers.getSpecificFnCall config.earlierFn checkInfo) (fullyAppliedLastArg checkInfo) of
+            case Maybe.andThen (\lastArg -> AstHelpers.getSpecificFnCall config.earlierFn checkInfo lastArg) (fullyAppliedLastArg checkInfo) of
                 Just fromFnCall ->
                     if laterInitArgsAreValidForOperation (listFilledInit ( checkInfo.firstArg, checkInfo.argsAfterFirst )) checkInfo then
                         Just
@@ -12354,7 +12359,7 @@ operationDoesNotChangeResultOfOperationCheck : IntoFnCheck
 operationDoesNotChangeResultOfOperationCheck =
     { call =
         \checkInfo ->
-            case Maybe.andThen (AstHelpers.getSpecificUnreducedFnCall checkInfo.fn checkInfo.lookupTable) (fullyAppliedLastArg checkInfo) of
+            case Maybe.andThen (\lastArg -> AstHelpers.getSpecificUnreducedFnCall checkInfo.fn checkInfo.lookupTable lastArg) (fullyAppliedLastArg checkInfo) of
                 Just lastArgCall ->
                     let
                         areAllArgsEqual : Bool
@@ -12986,7 +12991,7 @@ emptiableKeepWhenWithExtraArgChecks emptiable =
                     maybeFilterFunctionResult =
                         checkInfo.firstArg
                             |> AstHelpers.getAlwaysResult checkInfo
-                            |> Maybe.andThen (AstHelpers.getAlwaysResult checkInfo)
+                            |> Maybe.andThen (\result -> AstHelpers.getAlwaysResult checkInfo result)
                 in
                 case maybeFilterFunctionResult of
                     Just constantFunctionResult ->
