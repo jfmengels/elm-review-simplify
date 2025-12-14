@@ -5067,20 +5067,19 @@ findSimilarConditionsError operatorCheckInfo =
                 operatorCheckInfo.operator
                 (RemoveFrom operatorCheckInfo.leftRange.end)
                 operatorCheckInfo.right
-
-        errorsForNode : Node Expression -> Maybe (Error {})
-        errorsForNode nodeToCompareTo =
-            findMap
-                (areSimilarConditionsError
-                    operatorCheckInfo
-                    operatorCheckInfo.operator
-                    nodeToCompareTo
-                )
-                conditionsOnTheRight
     in
     operatorCheckInfo.left
         |> listConditions operatorCheckInfo.operator (RemoveFrom operatorCheckInfo.leftRange.end)
-        |> findMap (\( _, condition ) -> errorsForNode condition)
+        |> findMap
+            (\( _, condition ) ->
+                findMap
+                    (areSimilarConditionsError
+                        operatorCheckInfo
+                        operatorCheckInfo.operator
+                        condition
+                    )
+                    conditionsOnTheRight
+            )
 
 
 areSimilarConditionsError :
