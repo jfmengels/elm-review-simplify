@@ -629,12 +629,11 @@ getReducedLambda context expressionNode =
                     let
                         ( reducedCallArguments, reducedLambdaPatterns ) =
                             drop2EndingsWhile
-                                (\( argument, pattern ) ->
+                                (\argument pattern ->
                                     expressionReconstructsDestructuringPattern context argument pattern
                                 )
-                                ( call.args
-                                , lambda.patterns
-                                )
+                                call.args
+                                lambda.patterns
                     in
                     Just
                         { nodeRange = Node.range expressionNode
