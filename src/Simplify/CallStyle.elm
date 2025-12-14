@@ -1,8 +1,8 @@
-module Simplify.CallStyle exposing (FunctionCallStyle(..), LeftOrRightDirection(..))
+module Simplify.CallStyle exposing (FunctionCallStyle(..), LeftOrRightDirection(..), pipeLeftToRight, pipeRightToLeft)
 
 {-|
 
-@docs FunctionCallStyle, LeftOrRightDirection
+@docs FunctionCallStyle, LeftOrRightDirection, pipeLeftToRight, pipeRightToLeft
 
 -}
 
@@ -22,3 +22,17 @@ type FunctionCallStyle
 type LeftOrRightDirection
     = RightToLeft
     | LeftToRight
+
+
+{-| `Pipe LeftToRight`
+-}
+pipeLeftToRight : FunctionCallStyle
+pipeLeftToRight =
+    Pipe LeftToRight
+
+
+{-| `Pipe RightToLeft`
+-}
+pipeRightToLeft : FunctionCallStyle
+pipeRightToLeft =
+    Pipe RightToLeft

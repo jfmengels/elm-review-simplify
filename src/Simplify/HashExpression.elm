@@ -3,6 +3,7 @@ module Simplify.HashExpression exposing (hash)
 import Elm.Syntax.Expression as Expression exposing (Expression(..))
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern exposing (Pattern(..))
+import Simplify.CoreHelpers exposing (listMapToStringsThenJoin)
 
 
 hash : Node Expression -> String
@@ -236,8 +237,7 @@ encodePattern (Node _ pattern) =
 list_ : (a -> String) -> List a -> String
 list_ f list =
     list
-        |> List.map f
-        |> String.join ","
+        |> listMapToStringsThenJoin f ","
         |> wrap "[" "]"
 
 
@@ -249,5 +249,6 @@ wrap before after str =
 object_ : List ( String, String ) -> String
 object_ list =
     list
-        |> List.map (\( k, v ) -> "(" ++ k ++ "=" ++ v ++ ")")
-        |> String.join ","
+        |> listMapToStringsThenJoin
+            (\( k, v ) -> "(" ++ k ++ "=" ++ v ++ ")")
+            ","
