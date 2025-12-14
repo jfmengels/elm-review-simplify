@@ -360,34 +360,35 @@ list2AreSameLengthAndAll areRegular aList bList =
 
 {-| Remove elements at the end of both given lists, then repeat for the previous elements until a given test returns False
 -}
-drop2EndingsWhile : (( a, b ) -> Bool) -> ( List a, List b ) -> ( List a, List b )
-drop2EndingsWhile shouldDrop ( aList, bList ) =
+drop2EndingsWhile : (a -> b -> Bool) -> List a -> List b -> ( List a, List b )
+drop2EndingsWhile shouldDrop aList bList =
     let
         ( reducedArgumentsReverse, reducedPatternsReverse ) =
             drop2BeginningsWhile
                 shouldDrop
-                ( List.reverse aList
-                , List.reverse bList
-                )
+                (List.reverse aList)
+                (List.reverse bList)
     in
     ( List.reverse reducedArgumentsReverse, List.reverse reducedPatternsReverse )
 
 
-drop2BeginningsWhile : (( a, b ) -> Bool) -> ( List a, List b ) -> ( List a, List b )
-drop2BeginningsWhile shouldDrop listPair =
-    case listPair of
-        ( [], bList ) ->
+drop2BeginningsWhile : (a -> b -> Bool) -> List a -> List b -> ( List a, List b )
+drop2BeginningsWhile shouldDrop aList bList =
+    case aList of
+        [] ->
             ( [], bList )
 
-        ( aList, [] ) ->
-            ( aList, [] )
+        aHead :: aTail ->
+            case bList of
+                [] ->
+                    ( aList, [] )
 
-        ( aHead :: aTail, bHead :: bTail ) ->
-            if shouldDrop ( aHead, bHead ) then
-                drop2BeginningsWhile shouldDrop ( aTail, bTail )
+                bHead :: bTail ->
+                    if shouldDrop aHead bHead then
+                        drop2BeginningsWhile shouldDrop aTail bTail
 
-            else
-                ( aHead :: aTail, bHead :: bTail )
+                    else
+                        ( aList, bList )
 
 
 listMapToStringsThenJoin : (a -> String) -> String -> List a -> String

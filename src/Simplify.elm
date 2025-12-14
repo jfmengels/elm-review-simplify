@@ -2540,7 +2540,7 @@ insertImport moduleName importInfoToAdd importLookup =
 
                         Just import_ ->
                             { alias = import_.alias |> maybeOnNothing (\() -> importInfoToAdd.alias)
-                            , exposed = exposedMerge ( import_.exposed, importInfoToAdd.exposed )
+                            , exposed = exposedMerge import_.exposed importInfoToAdd.exposed
                             }
             in
             Just newImportInfo
@@ -2548,17 +2548,19 @@ insertImport moduleName importInfoToAdd importLookup =
         importLookup
 
 
-exposedMerge : ( Exposed, Exposed ) -> Exposed
-exposedMerge exposedTuple =
-    case exposedTuple of
-        ( ExposedAll, _ ) ->
+exposedMerge : Exposed -> Exposed -> Exposed
+exposedMerge exposedA exposedB =
+    case exposedA of
+        ExposedAll ->
             ExposedAll
 
-        ( ExposedSome _, ExposedAll ) ->
-            ExposedAll
+        ExposedSome aSet ->
+            case exposedB of
+                ExposedAll ->
+                    ExposedAll
 
-        ( ExposedSome aSet, ExposedSome bSet ) ->
-            ExposedSome (Set.union aSet bSet)
+                ExposedSome bSet ->
+                    ExposedSome (Set.union aSet bSet)
 
 
 qualify : ( ModuleName, String ) -> QualifyResources a -> ( ModuleName, String )
@@ -4353,24 +4355,25 @@ equalityChecks isEqual checkInfo =
             )
         |> maybeOnNothing
             (\() ->
-                case
-                    ( AstHelpers.getSpecificUnreducedFnCall Fn.Basics.not checkInfo.lookupTable checkInfo.left
-                    , AstHelpers.getSpecificUnreducedFnCall Fn.Basics.not checkInfo.lookupTable checkInfo.right
-                    )
-                of
-                    ( Just leftNotCall, Just rightNotCall ) ->
-                        Just
-                            (Rule.errorWithFix
-                                { message = "Unnecessary `not` on both sides of (" ++ checkInfo.operator ++ ")"
-                                , details = [ "You can replace the bool on each side by the value given to `not`." ]
-                                }
-                                checkInfo.operatorRange
-                                (replaceBySubExpressionFix leftNotCall.nodeRange leftNotCall.firstArg
-                                    ++ replaceBySubExpressionFix rightNotCall.nodeRange rightNotCall.firstArg
-                                )
-                            )
+                case AstHelpers.getSpecificUnreducedFnCall Fn.Basics.not checkInfo.lookupTable checkInfo.left of
+                    Just leftNotCall ->
+                        case AstHelpers.getSpecificUnreducedFnCall Fn.Basics.not checkInfo.lookupTable checkInfo.right of
+                            Just rightNotCall ->
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = "Unnecessary `not` on both sides of (" ++ checkInfo.operator ++ ")"
+                                        , details = [ "You can replace the bool on each side by the value given to `not`." ]
+                                        }
+                                        checkInfo.operatorRange
+                                        (replaceBySubExpressionFix leftNotCall.nodeRange leftNotCall.firstArg
+                                            ++ replaceBySubExpressionFix rightNotCall.nodeRange rightNotCall.firstArg
+                                        )
+                                    )
 
-                    _ ->
+                            Nothing ->
+                                Nothing
+
+                    Nothing ->
                         Nothing
             )
         |> maybeOnNothing
@@ -10050,23 +10053,25 @@ emptiableRangeChecks : EmptiableProperties ConstantProperties otherProperties ->
 emptiableRangeChecks emptiable checkInfo =
     case secondArg checkInfo of
         Just rangeEndArg ->
-            case ( Evaluate.getInt checkInfo checkInfo.firstArg, Evaluate.getInt checkInfo rangeEndArg ) of
-                ( Just rangeStartValue, Just rangeEndValue ) ->
-                    if rangeStartValue > rangeEndValue then
-                        Just
-                            (resultsInConstantError
-                                (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
-                                emptiable.empty.specific.asString
-                                checkInfo
-                            )
+            case Evaluate.getInt checkInfo checkInfo.firstArg of
+                Just rangeStartValue ->
+                    case Evaluate.getInt checkInfo rangeEndArg of
+                        Just rangeEndValue ->
+                            if rangeStartValue > rangeEndValue then
+                                Just
+                                    (resultsInConstantError
+                                        (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
+                                        emptiable.empty.specific.asString
+                                        checkInfo
+                                    )
 
-                    else
-                        Nothing
+                            else
+                                Nothing
 
-                ( Nothing, _ ) ->
-                    Nothing
+                        Nothing ->
+                            Nothing
 
-                ( _, Nothing ) ->
+                Nothing ->
                     Nothing
 
         Nothing ->
@@ -10228,7 +10233,7 @@ wrapperMemberChecks wrapper checkInfo =
                                 , keep = Range.combine [ needleArgRange, Node.range wrapValue ]
                                 }
                                 ++ Fix.replaceRangeBy
-                                    (rangeBetweenExclusive ( needleArgRange, Node.range wrapValue ))
+                                    (rangeBetweenExclusive needleArgRange (Node.range wrapValue))
                                     " == "
                                 :: parenthesizeIfNeededFix wrapValue
                             )
@@ -15424,8 +15429,8 @@ replaceSubExpressionByRecordAccessFix fieldName (Node exprRange exprValue) =
         [ Fix.insertAt exprRange.end ("." ++ fieldName) ]
 
 
-rangeBetweenExclusive : ( Range, Range ) -> Range
-rangeBetweenExclusive ( aRange, bRange ) =
+rangeBetweenExclusive : Range -> Range -> Range
+rangeBetweenExclusive aRange bRange =
     case Range.compareLocations aRange.start bRange.start of
         GT ->
             { start = bRange.end, end = aRange.start }
@@ -15529,13 +15534,13 @@ toNestedTupleFix parts =
 
 
 toNestedTupleFixFromPartial : ( String, List String ) -> String
-toNestedTupleFixFromPartial parts =
-    case parts of
-        ( only, [] ) ->
-            only
+toNestedTupleFixFromPartial ( firstPart, secondPartUp ) =
+    case secondPartUp of
+        [] ->
+            firstPart
 
-        ( first, second :: thirdUp ) ->
-            "(" ++ first ++ ", " ++ toNestedTupleFixFromPartial ( second, thirdUp ) ++ ")"
+        second :: thirdUp ->
+            "(" ++ firstPart ++ ", " ++ toNestedTupleFixFromPartial ( second, thirdUp ) ++ ")"
 
 
 rangeContainsLocation : Location -> Range -> Bool
