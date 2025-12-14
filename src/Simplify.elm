@@ -15494,17 +15494,17 @@ listLiteralToNestedTupleFix config =
 
         element0 :: element1Up ->
             let
-                tupledElements : ( String, List String )
+                tupledElements : List String
                 tupledElements =
-                    ( element0, List.take (config.tupledBeginningLength - 1) element1Up )
+                    element0 :: List.take (config.tupledBeginningLength - 1) element1Up
             in
             case List.drop (config.tupledBeginningLength - 1) element1Up of
                 [] ->
-                    toNestedTupleFix (listFilledToList tupledElements)
+                    toNestedTupleFix tupledElements
 
                 firstUntupledElementRange :: afterFirstUntupledElementRange ->
                     toNestedTupleFix
-                        (listFilledToList tupledElements
+                        (tupledElements
                             ++ [ "[ "
                                     ++ String.join ", " (firstUntupledElementRange :: afterFirstUntupledElementRange)
                                     ++ " ]"
