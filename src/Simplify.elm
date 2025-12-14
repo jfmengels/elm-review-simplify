@@ -2386,7 +2386,7 @@ expressionVisitor node config context =
                     Nothing ->
                         { localBindings =
                             RangeDict.insert expressionRange
-                                (expressionSurfaceBindings expression)
+                                (expressionSurfaceBindingsInto Set.empty expression)
                                 context.localBindings
                         , branchLocalBindings = withNewBranchLocalBindings
                         , inferredConstants = newInferredConstants
@@ -2415,7 +2415,7 @@ expressionVisitor node config context =
                     Just currentBranchLocalBindings ->
                         { localBindings =
                             RangeDict.insert expressionRange
-                                (Set.union currentBranchLocalBindings (expressionSurfaceBindings expression))
+                                (expressionSurfaceBindingsInto currentBranchLocalBindings expression)
                                 context.localBindings
                         , branchLocalBindings =
                             RangeDict.remove expressionRange withNewBranchLocalBindings
@@ -2606,17 +2606,27 @@ with parent and sub ranges and bindings as leaves (maybe a "trie", tho I've not 
 Removing all bindings for an expression's range on leave would then be trivial
 
 -}
-expressionSurfaceBindings : Expression -> Set String
-expressionSurfaceBindings expression =
+expressionSurfaceBindingsInto : Set String -> Expression -> Set String
+expressionSurfaceBindingsInto soFar expression =
     case expression of
         Expression.LambdaExpression lambda ->
-            AstHelpers.patternListBindings lambda.args
+            Set.union (AstHelpers.patternListBindings lambda.args) soFar
 
         Expression.LetExpression letBlock ->
-            AstHelpers.letDeclarationListBindings letBlock.declarations
+            List.foldl insertLetDeclarationBindings soFar letBlock.declarations
 
         _ ->
-            Set.empty
+            soFar
+
+
+insertLetDeclarationBindings : Node Expression.LetDeclaration -> Set String -> Set String
+insertLetDeclarationBindings (Node _ letDeclaration) soFar =
+    case letDeclaration of
+        Expression.LetFunction fun ->
+            Set.insert (fun.declaration |> Node.value |> .name |> Node.value) soFar
+
+        Expression.LetDestructuring (Node _ pattern) _ ->
+            Set.union (AstHelpers.patternBindings pattern) soFar
 
 
 expressionBranchLocalBindingsInto : RangeDict (Set String) -> Expression -> RangeDict (Set String)

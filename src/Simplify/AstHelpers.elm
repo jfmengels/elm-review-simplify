@@ -11,7 +11,7 @@ module Simplify.AstHelpers exposing
     , getTuple2, getTuple2Literal
     , boolToString, emptyStringAsString
     , moduleNameFromString, qualifiedName, qualifiedModuleName, qualifiedToString, moduleNameToString
-    , declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings, typeUsesVariable
+    , declarationListBindings, patternBindings, patternListBindings, typeUsesVariable
     , nameOfExpose
     , couldBeValueContainingNaN
     )
@@ -57,7 +57,7 @@ module Simplify.AstHelpers exposing
 
 ### misc
 
-@docs declarationListBindings, letDeclarationListBindings, patternBindings, patternListBindings, typeUsesVariable
+@docs declarationListBindings, patternBindings, patternListBindings, typeUsesVariable
 @docs nameOfExpose
 @docs couldBeValueContainingNaN
 
@@ -1092,27 +1092,6 @@ typeUsesVariable variableNeedle (Node _ type_) =
 
             else
                 typeUsesVariable variableNeedle output
-
-
-letDeclarationBindings : Expression.LetDeclaration -> Set String
-letDeclarationBindings letDeclaration =
-    case letDeclaration of
-        Expression.LetFunction fun ->
-            Set.singleton
-                (fun.declaration |> Node.value |> .name |> Node.value)
-
-        Expression.LetDestructuring (Node _ pattern) _ ->
-            patternBindings pattern
-
-
-letDeclarationListBindings : List (Node Expression.LetDeclaration) -> Set String
-letDeclarationListBindings letDeclarationList =
-    List.foldl
-        (\(Node _ declaration) soFar ->
-            Set.union (letDeclarationBindings declaration) soFar
-        )
-        Set.empty
-        letDeclarationList
 
 
 getListLiteral : Node Expression -> Maybe (List (Node Expression))
