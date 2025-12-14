@@ -2736,59 +2736,6 @@ expressionVisitResultNoError =
 
 expressionVisitorHelp : Node Expression -> { config | expectNaN : Bool } -> ModuleContext -> { error : Maybe (Error {}), rangesToIgnore : RangeDict (), rightSidesOfPlusPlus : RangeDict (), inferredConstants : List ( Range, Infer.Inferred ) }
 expressionVisitorHelp (Node expressionRange expression) config context =
-    let
-        toCheckInfo :
-            { fnRange : Range
-            , fn : ( ModuleName, String )
-            , argCount : Int
-            , firstArg : Node Expression
-            , argsAfterFirst : List (Node Expression)
-            , callStyle : FunctionCallStyle
-            }
-            -> CallCheckInfo
-        toCheckInfo checkInfo =
-            let
-                ( argsAfterFirst, parentRange, callStyle ) =
-                    case List.drop (checkInfo.argCount - 1) (checkInfo.firstArg :: checkInfo.argsAfterFirst) of
-                        lastExpectedArg :: _ :: _ ->
-                            -- Too many arguments!
-                            -- We'll update the range to drop the extra ones and force the call style to application
-                            ( List.take (checkInfo.argCount - 1) checkInfo.argsAfterFirst
-                            , case checkInfo.callStyle of
-                                CallStyle.Application ->
-                                    { start = checkInfo.fnRange.start, end = (Node.range lastExpectedArg).end }
-
-                                CallStyle.Pipe CallStyle.LeftToRight ->
-                                    { start = checkInfo.fnRange.start, end = (Node.range lastExpectedArg).end }
-
-                                CallStyle.Pipe CallStyle.RightToLeft ->
-                                    { start = (Node.range checkInfo.firstArg).start, end = (Node.range checkInfo.firstArg).end }
-                            , CallStyle.Application
-                            )
-
-                        -- [] | [ _ ] ->
-                        _ ->
-                            ( checkInfo.argsAfterFirst, expressionRange, checkInfo.callStyle )
-            in
-            { lookupTable = context.lookupTable
-            , expectNaN = config.expectNaN
-            , extractSourceCode = context.extractSourceCode
-            , importLookup = context.importLookup
-            , moduleCustomTypes = context.moduleCustomTypes
-            , importCustomTypes = context.importCustomTypes
-            , commentRanges = context.commentRanges
-            , moduleBindings = context.moduleBindings
-            , localBindings = context.localBindings
-            , inferredConstants = context.inferredConstants
-            , parentRange = parentRange
-            , fnRange = checkInfo.fnRange
-            , fn = checkInfo.fn
-            , argCount = checkInfo.argCount
-            , firstArg = checkInfo.firstArg
-            , argsAfterFirst = argsAfterFirst
-            , callStyle = callStyle
-            }
-    in
     case expression of
         -----------------
         -- APPLICATION --
@@ -2807,8 +2754,10 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                 case Dict.get reference functionCallChecks of
                                     Just ( argCount, checkFn ) ->
                                         checkFn
-                                            (toCheckInfo
-                                                { fnRange = fnRange
+                                            (toCallCheckInfo config
+                                                context
+                                                { parentRange = expressionRange
+                                                , fnRange = fnRange
                                                 , fn = reference
                                                 , argCount = argCount
                                                 , firstArg = firstArg
@@ -2894,8 +2843,10 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                 case Dict.get reference functionCallChecks of
                                     Just ( argCount, checkFn ) ->
                                         checkFn
-                                            (toCheckInfo
-                                                { fnRange = fnRange
+                                            (toCallCheckInfo config
+                                                context
+                                                { parentRange = expressionRange
+                                                , fnRange = fnRange
                                                 , fn = reference
                                                 , argCount = argCount
                                                 , firstArg = lastArg
@@ -2923,8 +2874,10 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                 Just ( argCount, checkFn ) ->
                                     maybeErrorAndRangesToIgnore
                                         (checkFn
-                                            (toCheckInfo
-                                                { fnRange = fnRange
+                                            (toCallCheckInfo config
+                                                context
+                                                { parentRange = expressionRange
+                                                , fnRange = fnRange
                                                 , argCount = argCount
                                                 , fn = reference
                                                 , firstArg = firstArg
@@ -2975,8 +2928,10 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                 Just ( argCount, checks ) ->
                                     onlyMaybeError
                                         (checks
-                                            (toCheckInfo
-                                                { fnRange = fnRange
+                                            (toCallCheckInfo config
+                                                context
+                                                { parentRange = expressionRange
+                                                , fnRange = fnRange
                                                 , fn = reference
                                                 , argCount = argCount
                                                 , firstArg = lastArg
@@ -3004,8 +2959,10 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                                 Just ( argCount, checks ) ->
                                     maybeErrorAndRangesToIgnore
                                         (checks
-                                            (toCheckInfo
-                                                { fnRange = fnRange
+                                            (toCallCheckInfo config
+                                                context
+                                                { parentRange = expressionRange
+                                                , fnRange = fnRange
                                                 , fn = reference
                                                 , argCount = argCount
                                                 , firstArg = firstArg
@@ -3257,6 +3214,63 @@ expressionVisitorHelp (Node expressionRange expression) config context =
 
         Expression.Application (_ :: []) ->
             expressionVisitResultNoError
+
+
+toCallCheckInfo :
+    { config | expectNaN : Bool }
+    -> ModuleContext
+    ->
+        { parentRange : Range
+        , fnRange : Range
+        , fn : ( ModuleName, String )
+        , argCount : Int
+        , firstArg : Node Expression
+        , argsAfterFirst : List (Node Expression)
+        , callStyle : FunctionCallStyle
+        }
+    -> CallCheckInfo
+toCallCheckInfo config context checkInfo =
+    let
+        ( argsAfterFirst, parentRange, callStyle ) =
+            case List.drop (checkInfo.argCount - 1) (checkInfo.firstArg :: checkInfo.argsAfterFirst) of
+                lastExpectedArg :: _ :: _ ->
+                    -- Too many arguments!
+                    -- We'll update the range to drop the extra ones and force the call style to application
+                    ( List.take (checkInfo.argCount - 1) checkInfo.argsAfterFirst
+                    , case checkInfo.callStyle of
+                        CallStyle.Application ->
+                            { start = checkInfo.fnRange.start, end = (Node.range lastExpectedArg).end }
+
+                        CallStyle.Pipe CallStyle.LeftToRight ->
+                            { start = checkInfo.fnRange.start, end = (Node.range lastExpectedArg).end }
+
+                        CallStyle.Pipe CallStyle.RightToLeft ->
+                            { start = (Node.range checkInfo.firstArg).start, end = (Node.range checkInfo.firstArg).end }
+                    , CallStyle.Application
+                    )
+
+                -- [] | [ _ ] ->
+                _ ->
+                    ( checkInfo.argsAfterFirst, checkInfo.parentRange, checkInfo.callStyle )
+    in
+    { lookupTable = context.lookupTable
+    , expectNaN = config.expectNaN
+    , extractSourceCode = context.extractSourceCode
+    , importLookup = context.importLookup
+    , moduleCustomTypes = context.moduleCustomTypes
+    , importCustomTypes = context.importCustomTypes
+    , commentRanges = context.commentRanges
+    , moduleBindings = context.moduleBindings
+    , localBindings = context.localBindings
+    , inferredConstants = context.inferredConstants
+    , parentRange = parentRange
+    , fnRange = checkInfo.fnRange
+    , fn = checkInfo.fn
+    , argCount = checkInfo.argCount
+    , firstArg = checkInfo.firstArg
+    , argsAfterFirst = argsAfterFirst
+    , callStyle = callStyle
+    }
 
 
 toCompositionCheckInfo :
