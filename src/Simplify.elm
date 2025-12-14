@@ -1514,7 +1514,7 @@ import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
 import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, qualifiedToString)
 import Simplify.CallStyle as CallStyle exposing (FunctionCallStyle)
-import Simplify.CoreHelpers exposing (countUnique, countUniqueBy, findMap, findMapAndAllBefore, findMapNeighboring, isJust, isNothing, listAll2, listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList, listIndexedFilterMap, listLast, maybeOnNothing, traverse, traverseConcat, uniqueByThenMap)
+import Simplify.CoreHelpers exposing (countUnique, countUniqueBy, findMap, findMapAndAllBefore, findMapNeighboring, isJust, isNothing, listAll2, listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList, listIndexedFilterMap, listLast, onNothing, traverse, traverseConcat, uniqueByThenMap)
 import Simplify.Evaluate as Evaluate
 import Simplify.HashExpression as HashExpression
 import Simplify.Infer as Infer
@@ -2540,7 +2540,7 @@ insertImport moduleName importInfoToAdd importLookup =
                             importInfoToAdd
 
                         Just import_ ->
-                            { alias = import_.alias |> maybeOnNothing (\() -> importInfoToAdd.alias)
+                            { alias = import_.alias |> onNothing (\() -> importInfoToAdd.alias)
                             , exposed = exposedMerge import_.exposed importInfoToAdd.exposed
                             }
             in
@@ -2840,7 +2840,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                          else
                             Nothing
                         )
-                            |> maybeOnNothing
+                            |> onNothing
                                 (\() ->
                                     case argsAfterFirst of
                                         [ right ] ->
@@ -3735,8 +3735,8 @@ type alias CompositionCheckInfo =
 compositionChecks : CompositionCheckInfo -> Maybe (Error {})
 compositionChecks checkInfo =
     accessingRecordCompositionChecks checkInfo
-        |> maybeOnNothing (\() -> basicsIdentityCompositionChecks checkInfo)
-        |> maybeOnNothing
+        |> onNothing (\() -> basicsIdentityCompositionChecks checkInfo)
+        |> onNothing
             (\() ->
                 case AstHelpers.getValueOrFnOrFnCall checkInfo checkInfo.earlier.node of
                     Just earlierFnOrCall ->
@@ -3892,7 +3892,7 @@ offsetInStringToLocation config =
 plusChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 plusChecks checkInfo =
     addingZeroCheck checkInfo
-        |> maybeOnNothing (\() -> addingOppositesCheck checkInfo)
+        |> onNothing (\() -> addingOppositesCheck checkInfo)
 
 
 addingZeroCheck : OperatorApplicationCheckInfo -> Maybe (Error {})
@@ -4006,7 +4006,7 @@ multiplyChecks checkInfo =
         (\side ->
             unnecessaryOperationWithEmptySideChecks numberForMultiplyProperties side checkInfo
         )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 checkOperationFromBothSides checkInfo
                     (\side ->
@@ -4054,7 +4054,7 @@ checkOperationFromBothSides checkInfo checkFromSide =
         , otherNode = checkInfo.right
         , otherDescription = "right"
         }
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 checkFromSide
                     { node = checkInfo.right
@@ -4156,7 +4156,7 @@ intDivideChecks checkInfo =
         Nothing ->
             Nothing
     )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 if AstHelpers.getUncomputedNumberValue checkInfo.left == Just 0 then
                     Just
@@ -4187,12 +4187,12 @@ plusplusChecks checkInfo =
                 _ ->
                     Nothing
         )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 checkOperationFromBothSides checkInfo
                     (\side -> appendEmptyCheck side listCollection checkInfo)
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 collectionUnionWithLiteralsChecks
                     { leftElementsStayOnTheLeft = True }
@@ -4204,7 +4204,7 @@ plusplusChecks checkInfo =
                     listCollection
                     checkInfo
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 collectionUnionWithLiteralsChecks
                     { leftElementsStayOnTheLeft = True }
@@ -4216,7 +4216,7 @@ plusplusChecks checkInfo =
                     stringCollection
                     checkInfo
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.left of
                     Just leftListSingletonElement ->
@@ -4300,7 +4300,7 @@ consChecks checkInfo =
         _ ->
             Nothing
     )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.right of
                     Just tailSingletonElement ->
@@ -4336,7 +4336,7 @@ consChecks checkInfo =
 equalityChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
 equalityChecks isEqual checkInfo =
     lengthOrSizeEqualityChecks isEqual checkInfo
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 checkOperationFromBothSides checkInfo
                     (\side ->
@@ -4354,7 +4354,7 @@ equalityChecks isEqual checkInfo =
                             Nothing
                     )
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Basics.not checkInfo.lookupTable checkInfo.left of
                     Just leftNotCall ->
@@ -4377,7 +4377,7 @@ equalityChecks isEqual checkInfo =
                     Nothing ->
                         Nothing
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 let
                     inferred : Infer.Inferred
@@ -4425,7 +4425,7 @@ equalityChecks isEqual checkInfo =
                     Normalize.Unconfirmed ->
                         Nothing
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() -> comparisonWithEmptyChecks isEqual checkInfo)
 
 
@@ -4525,9 +4525,9 @@ compareWithZeroChecks :
 compareWithZeroChecks checkInfo isEqual node =
     -- , compareWithZeroCheck Fn.String.isEmpty Fn.String.length "String" is this the best replacement? Should it be == ""?
     compareWithZeroCheck Fn.List.isEmpty Fn.List.length "List" isEqual checkInfo node
-        |> maybeOnNothing (\() -> compareWithZeroCheck Fn.Dict.isEmpty Fn.Dict.size "Dict" isEqual checkInfo node)
-        |> maybeOnNothing (\() -> compareWithZeroCheck Fn.Set.isEmpty Fn.Set.size "Set" isEqual checkInfo node)
-        |> maybeOnNothing (\() -> compareWithZeroCheck Fn.Array.isEmpty Fn.Array.length "Array" isEqual checkInfo node)
+        |> onNothing (\() -> compareWithZeroCheck Fn.Dict.isEmpty Fn.Dict.size "Dict" isEqual checkInfo node)
+        |> onNothing (\() -> compareWithZeroCheck Fn.Set.isEmpty Fn.Set.size "Set" isEqual checkInfo node)
+        |> onNothing (\() -> compareWithZeroCheck Fn.Array.isEmpty Fn.Array.length "Array" isEqual checkInfo node)
 
 
 compareWithZeroCheck :
@@ -4992,12 +4992,12 @@ orChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 orChecks checkInfo =
     checkOperationFromBothSides checkInfo
         (\side -> unnecessaryOperationWithEmptySideChecks boolForOrProperties side checkInfo)
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 checkOperationFromBothSides checkInfo
                     (\side -> operationWithAbsorbingSideChecks boolForOrProperties side checkInfo)
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() -> findSimilarConditionsError checkInfo)
 
 
@@ -5005,12 +5005,12 @@ andChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 andChecks checkInfo =
     checkOperationFromBothSides checkInfo
         (\side -> unnecessaryOperationWithEmptySideChecks boolForAndProperties side checkInfo)
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 checkOperationFromBothSides checkInfo
                     (\side -> operationWithAbsorbingSideChecks boolForAndProperties side checkInfo)
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() -> findSimilarConditionsError checkInfo)
 
 
@@ -5575,7 +5575,7 @@ stringReplaceChecks =
                                         Nothing
                             )
                             (thirdArg checkInfo)
-                            |> maybeOnNothing
+                            |> onNothing
                                 (\() ->
                                     case Normalize.compare checkInfo checkInfo.firstArg replacementArg of
                                         Normalize.ConfirmedEquality ->
@@ -5615,7 +5615,7 @@ stringJoinChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
             callOnEmptyReturnsCheck { resultAsString = stringCollection.empty.specific.asString } listCollection checkInfo
-                |> maybeOnNothing
+                |> onNothing
                     (\() ->
                         flatIntersperseWithEmptySeparatorIsEquivalentToFnCheck stringCollection Fn.String.concat checkInfo
                     )
@@ -5671,7 +5671,7 @@ maybeMapNChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
             wrapperMapNChecks maybeWithJustAsWrap checkInfo
-                |> maybeOnNothing
+                |> onNothing
                     (\() -> emptiableMapNChecks maybeWithJustAsWrap checkInfo)
         )
 
@@ -5713,7 +5713,7 @@ resultMapNChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
             wrapperMapNChecks resultWithOkAsWrap checkInfo
-                |> maybeOnNothing
+                |> onNothing
                     (\() -> mapNOrFirstEmptyConstructionChecks resultWithOkAsWrap checkInfo)
         )
 
@@ -5860,7 +5860,7 @@ listHeadChecks =
         [ intoFnCheckOnlyCall
             (\checkInfo ->
                 callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } listCollection checkInfo
-                    |> maybeOnNothing
+                    |> onNothing
                         (\() ->
                             Maybe.map
                                 (\listArgHead ->
@@ -5877,7 +5877,7 @@ listHeadChecks =
                                 )
                                 (getListHead checkInfo.lookupTable checkInfo.firstArg)
                         )
-                    |> maybeOnNothing
+                    |> onNothing
                         (\() ->
                             AstHelpers.getSpecificUnreducedFnCall Fn.List.reverse checkInfo.lookupTable checkInfo.firstArg
                                 |> Maybe.andThen
@@ -5939,7 +5939,7 @@ listTailChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
             callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } listCollection checkInfo
-                |> maybeOnNothing
+                |> onNothing
                     (\() ->
                         case Node.value (AstHelpers.removeParens checkInfo.firstArg) of
                             Expression.ListExpr ((Node headRange _) :: (Node tailFirstRange _) :: _) ->
@@ -5960,7 +5960,7 @@ listTailChecks =
                             _ ->
                                 Nothing
                     )
-                |> maybeOnNothing
+                |> onNothing
                     (\() ->
                         case AstHelpers.getListSingleton checkInfo.lookupTable checkInfo.firstArg of
                             Just _ ->
@@ -6062,7 +6062,7 @@ listMapOnSingletonCheck =
                         Nothing ->
                             Nothing
                     )
-                        |> maybeOnNothing
+                        |> onNothing
                             (\() ->
                                 case sameInAllBranches (getValueWithNodeRange (listCollection.wrap.getValue checkInfo.lookupTable)) listArg of
                                     Just wraps ->
@@ -6108,8 +6108,8 @@ listMemberChecks =
                 { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
                 listCollection
                 checkInfo
-                |> maybeOnNothing (\() -> knownMemberChecks listCollection checkInfo)
-                |> maybeOnNothing (\() -> wrapperMemberChecks listCollection checkInfo)
+                |> onNothing (\() -> knownMemberChecks listCollection checkInfo)
+                |> onNothing (\() -> wrapperMemberChecks listCollection checkInfo)
         )
 
 
@@ -6120,13 +6120,13 @@ listSumChecks =
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection checkInfo
-                    |> maybeOnNothing
+                    |> onNothing
                         (\() ->
                             callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
                                 ( listCollection, numberForAddProperties )
                                 checkInfo
                         )
-                    |> maybeOnNothing
+                    |> onNothing
                         (\() ->
                             if checkInfo.expectNaN then
                                 callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn)
@@ -6147,13 +6147,13 @@ listProductChecks =
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection checkInfo
-                    |> maybeOnNothing
+                    |> onNothing
                         (\() ->
                             callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn)
                                 ( listCollection, numberForMultiplyProperties )
                                 checkInfo
                         )
-                    |> maybeOnNothing
+                    |> onNothing
                         (\() ->
                             if
                                 checkInfo.expectNaN
@@ -6465,7 +6465,7 @@ listAllChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
             emptiableAllChecks listCollection checkInfo
-                |> maybeOnNothing (\() -> collectionAllChecks listCollection checkInfo)
+                |> onNothing (\() -> collectionAllChecks listCollection checkInfo)
         )
 
 
@@ -6474,8 +6474,8 @@ listAnyChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
             emptiableAnyChecks listCollection checkInfo
-                |> maybeOnNothing (\() -> collectionAnyChecks listCollection checkInfo)
-                |> maybeOnNothing
+                |> onNothing (\() -> collectionAnyChecks listCollection checkInfo)
+                |> onNothing
                     (\() -> operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck Fn.List.member checkInfo)
         )
 
@@ -6500,7 +6500,7 @@ listFilterMapChecks =
                     callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with an identity function")
                         ( listCollection, maybeWithJustAsWrap )
                         checkInfo
-                        |> maybeOnNothing
+                        |> onNothing
                             (\() ->
                                 case secondArg checkInfo of
                                     Just listArg ->
@@ -6555,7 +6555,7 @@ listRepeatChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
             emptiableRepeatChecks listCollection checkInfo
-                |> maybeOnNothing (\() -> wrapperRepeatChecks listCollection checkInfo)
+                |> onNothing (\() -> wrapperRepeatChecks listCollection checkInfo)
         )
 
 
@@ -6684,9 +6684,9 @@ listDropChecks =
                                 { int = count, intDescription = "count", fn = checkInfo.fn }
                                 |> Maybe.map
                                     (\situation -> alwaysReturnsLastArgError situation listCollection checkInfo)
-                                |> maybeOnNothing
+                                |> onNothing
                                     (\() -> dropOnSmallerCollectionCheck { dropCount = count } listCollection checkInfo)
-                                |> maybeOnNothing
+                                |> onNothing
                                     (\() ->
                                         dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck { dropCount = count }
                                             listCollection
@@ -6773,7 +6773,7 @@ arrayLengthChecks =
         [ intoFnCheckOnlyCall
             (\checkInfo ->
                 collectionSizeChecks arrayCollection checkInfo
-                    |> maybeOnNothing (\() -> arrayLengthOnArrayRepeatOrInitializeChecks checkInfo)
+                    |> onNothing (\() -> arrayLengthOnArrayRepeatOrInitializeChecks checkInfo)
             )
         , onSpecificFnCallCanBeCombinedCheck
             { args = []
@@ -6797,7 +6797,7 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
                 checkInfo.lookupTable
                 checkInfo.firstArg
                 |> Maybe.map (\call -> ( "repeat", call ))
-                |> maybeOnNothing
+                |> onNothing
                     (\() ->
                         AstHelpers.getSpecificUnreducedFnCall Fn.Array.initialize
                             checkInfo.lookupTable
@@ -6978,8 +6978,8 @@ setMemberChecks =
                 { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
                 setCollection
                 checkInfo
-                |> maybeOnNothing (\() -> knownMemberChecks setCollection checkInfo)
-                |> maybeOnNothing (\() -> wrapperMemberChecks setCollection checkInfo)
+                |> onNothing (\() -> knownMemberChecks setCollection checkInfo)
+                |> onNothing (\() -> wrapperMemberChecks setCollection checkInfo)
         )
 
 
@@ -7144,7 +7144,7 @@ dictFromListChecks =
                                         }
                                 in
                                 allKeysDifferent checkInfo.expectNaN (toEntry first) (List.map toEntry rest)
-                                    |> maybeOnNothing
+                                    |> onNothing
                                         (\() ->
                                             allValuesDifferent
                                                 checkInfo.expectNaN
@@ -7237,7 +7237,7 @@ dictMemberChecks =
                 { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
                 dictCollection
                 checkInfo
-                |> maybeOnNothing
+                |> onNothing
                     (\() ->
                         knownMemberChecks
                             { represents = "dict"
@@ -7461,7 +7461,7 @@ taskMapNChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
             wrapperMapNChecks taskWithSucceedAsWrap checkInfo
-                |> maybeOnNothing (\() -> mapNOrFirstEmptyConstructionChecks taskWithSucceedAsWrap checkInfo)
+                |> onNothing (\() -> mapNOrFirstEmptyConstructionChecks taskWithSucceedAsWrap checkInfo)
         )
 
 
@@ -7576,7 +7576,7 @@ htmlAttributesClassListChecks =
                 Nothing ->
                     Nothing
             )
-                |> maybeOnNothing
+                |> onNothing
                     (\() ->
                         case AstHelpers.getListLiteral checkInfo.firstArg of
                             Just (tuple0 :: tuple1 :: tuple2Up) ->
@@ -7594,7 +7594,7 @@ htmlAttributesClassListChecks =
                             _ ->
                                 Nothing
                     )
-                |> maybeOnNothing
+                |> onNothing
                     (\() ->
                         case AstHelpers.getCollapsedCons checkInfo.firstArg of
                             Just classParts ->
@@ -7636,7 +7636,7 @@ jsonDecodeMapNChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
             wrapperMapNChecks jsonDecoderWithSucceedAsWrap checkInfo
-                |> maybeOnNothing (\() -> mapNOrFirstEmptyConstructionChecks jsonDecoderWithSucceedAsWrap checkInfo)
+                |> onNothing (\() -> mapNOrFirstEmptyConstructionChecks jsonDecoderWithSucceedAsWrap checkInfo)
         )
 
 
@@ -8383,13 +8383,13 @@ listGetElements resources expressionNode =
     expressionNode
         |> AstHelpers.getListLiteral
         |> Maybe.map (\list -> { known = list, allKnown = True })
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 expressionNode
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.List.singleton resources.lookupTable
                     |> Maybe.map (\singletonCall -> { known = [ singletonCall.firstArg ], allKnown = True })
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.removeParens expressionNode of
                     Node _ (Expression.OperatorApplication "::" _ head tail) ->
@@ -8403,7 +8403,7 @@ listGetElements resources expressionNode =
                     _ ->
                         Nothing
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.removeParens expressionNode of
                     Node _ (Expression.OperatorApplication "++" _ leftList rightList) ->
@@ -8439,7 +8439,7 @@ listDetermineLength resources expressionNode =
     expressionNode
         |> AstHelpers.getListLiteral
         |> Maybe.map (\list -> Exactly (List.length list))
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 if
                     expressionNode
@@ -8450,7 +8450,7 @@ listDetermineLength resources expressionNode =
                 else
                     Nothing
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.List.repeat resources.lookupTable expressionNode of
                     Just repeatCall ->
@@ -8460,7 +8460,7 @@ listDetermineLength resources expressionNode =
                     Nothing ->
                         Nothing
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.List.range resources.lookupTable expressionNode of
                     Just rangeCall ->
@@ -8479,7 +8479,7 @@ listDetermineLength resources expressionNode =
                     Nothing ->
                         Nothing
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.removeParens expressionNode of
                     Node _ (Expression.OperatorApplication "::" _ _ right) ->
@@ -8534,7 +8534,7 @@ stringDetermineLength resources expressionNode =
         _ ->
             Nothing
     )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 if
                     expressionNode
@@ -8545,13 +8545,13 @@ stringDetermineLength resources expressionNode =
                 else
                     Nothing
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 expressionNode
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.String.fromList resources.lookupTable
                     |> Maybe.andThen (\fromListCall -> listDetermineLength resources fromListCall.firstArg)
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 expressionNode
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.String.cons resources.lookupTable
@@ -8583,7 +8583,7 @@ stringGetElements resources expressionNode =
     expressionNode
         |> AstHelpers.getSpecificUnreducedFnCall Fn.String.fromChar resources.lookupTable
         |> Maybe.map (\fromCharCall -> { known = [ fromCharCall.firstArg ], allKnown = True })
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 expressionNode
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.String.fromList resources.lookupTable
@@ -8627,7 +8627,7 @@ arrayDetermineLength resources expressionNode =
      else
         Nothing
     )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Array.fromList resources.lookupTable expressionNode of
                     Just fromListCall ->
@@ -8636,7 +8636,7 @@ arrayDetermineLength resources expressionNode =
                     Nothing ->
                         Nothing
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Array.repeat resources.lookupTable expressionNode of
                     Just repeatCall ->
@@ -8646,7 +8646,7 @@ arrayDetermineLength resources expressionNode =
                     Nothing ->
                         Nothing
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Array.initialize resources.lookupTable expressionNode of
                     Just repeatCall ->
@@ -8656,7 +8656,7 @@ arrayDetermineLength resources expressionNode =
                     Nothing ->
                         Nothing
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 expressionNode
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.Array.push resources.lookupTable
@@ -8698,7 +8698,7 @@ setGetElements resources expressionNode =
      else
         Nothing
     )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Set.singleton resources.lookupTable expressionNode of
                     Just singletonCall ->
@@ -8707,7 +8707,7 @@ setGetElements resources expressionNode =
                     Nothing ->
                         Nothing
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Set.fromList resources.lookupTable expressionNode of
                     Just fromListCall ->
@@ -8745,7 +8745,7 @@ setDetermineSize resources expressionNode =
      else
         Nothing
     )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 if
                     expressionNode
@@ -8756,7 +8756,7 @@ setDetermineSize resources expressionNode =
                 else
                     Nothing
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Set.fromList resources.lookupTable expressionNode of
                     Just fromListCall ->
@@ -8819,7 +8819,7 @@ dictDetermineSize resources expressionNode =
      else
         Nothing
     )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 expressionNode
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.Dict.singleton resources.lookupTable
@@ -8833,7 +8833,7 @@ dictDetermineSize resources expressionNode =
                                     Nothing
                         )
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Dict.fromList resources.lookupTable expressionNode of
                     Just fromListCall ->
@@ -8879,7 +8879,7 @@ dictGetValues resources expressionNode =
      else
         Nothing
     )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 expressionNode
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.Dict.singleton resources.lookupTable
@@ -8893,7 +8893,7 @@ dictGetValues resources expressionNode =
                                     Nothing
                         )
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 expressionNode
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.Dict.fromList resources.lookupTable
@@ -8956,7 +8956,7 @@ dictGetKeys resources expressionNode =
      else
         Nothing
     )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 expressionNode
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.Dict.singleton resources.lookupTable
@@ -8965,7 +8965,7 @@ dictGetKeys resources expressionNode =
                             { known = [ singletonCall.firstArg ], allKnown = True }
                         )
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 expressionNode
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.Dict.fromList resources.lookupTable
@@ -10382,7 +10382,7 @@ emptiableAllChecks emptiable checkInfo =
         { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.trueVariant res) }
         emptiable
         checkInfo
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
                     Just alwaysResult ->
@@ -10409,7 +10409,7 @@ collectionAllChecks collection checkInfo =
         callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
             ( collection, boolForAndProperties )
             checkInfo
-            |> maybeOnNothing
+            |> onNothing
                 (\() ->
                     callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with an identity function")
                         ( collection, boolForAndProperties )
@@ -10419,7 +10419,7 @@ collectionAllChecks collection checkInfo =
      else
         Nothing
     )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 if AstHelpers.isSpecificValueOrFn Fn.Basics.not checkInfo checkInfo.firstArg then
                     case Maybe.andThen (\collectionArg -> collection.elements.get (extractInferResources checkInfo) collectionArg) (fullyAppliedLastArg checkInfo) of
@@ -10456,7 +10456,7 @@ emptiableAnyChecks emptiable checkInfo =
         { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
         emptiable
         checkInfo
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
                     Just alwaysResult ->
@@ -10483,7 +10483,7 @@ collectionAnyChecks collection checkInfo =
         callOnCollectionWithAbsorbingElementChecks (qualifiedToString checkInfo.fn ++ " with an identity function")
             ( collection, boolForOrProperties )
             checkInfo
-            |> maybeOnNothing
+            |> onNothing
                 (\() ->
                     callOnFromListWithIrrelevantEmptyElement (qualifiedToString checkInfo.fn ++ " with an identity function")
                         ( collection, boolForOrProperties )
@@ -10493,7 +10493,7 @@ collectionAnyChecks collection checkInfo =
      else
         Nothing
     )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 if AstHelpers.isSpecificValueOrFn Fn.Basics.not checkInfo checkInfo.firstArg then
                     case Maybe.andThen (\lastArg -> collection.elements.get (extractInferResources checkInfo) lastArg) (fullyAppliedLastArg checkInfo) of
@@ -10725,7 +10725,7 @@ sequenceOrFirstEmptyChecks :
     -> Maybe (Error {})
 sequenceOrFirstEmptyChecks ( collection, elementEmptiable ) checkInfo =
     sequenceOnCollectionWithKnownEmptyElementCheck ( collection, elementEmptiable ) checkInfo
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 sequenceOnFromListWithEmptyIgnoresLaterElementsCheck ( collection, elementEmptiable ) checkInfo
             )
@@ -10931,7 +10931,7 @@ sequenceRepeatChecks wrapper checkInfo =
         Nothing ->
             Nothing
     )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case secondArg checkInfo of
                     Just elementArg ->
@@ -11002,7 +11002,7 @@ emptiableFlatRepeatChecks emptiable checkInfo =
         Nothing ->
             Nothing
     )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case Evaluate.getInt checkInfo checkInfo.firstArg of
                     Just intValue ->
@@ -11065,7 +11065,7 @@ emptiableFoldChecks :
     -> Maybe (Error {})
 emptiableFoldChecks emptiable checkInfo =
     foldToUnchangedAccumulatorCheck emptiable checkInfo
-        |> maybeOnNothing (\() -> foldOnEmptyChecks emptiable checkInfo)
+        |> onNothing (\() -> foldOnEmptyChecks emptiable checkInfo)
 
 
 foldOnEmptyChecks : EmptiableProperties empty otherProperties -> CallCheckInfo -> Maybe (Error {})
@@ -11160,7 +11160,7 @@ emptiableFoldWithExtraArgChecks :
     -> Maybe (Error {})
 emptiableFoldWithExtraArgChecks emptiable checkInfo =
     foldToUnchangedAccumulatorWithExtraArgCheck emptiable checkInfo
-        |> maybeOnNothing (\() -> foldOnEmptyChecks emptiable checkInfo)
+        |> onNothing (\() -> foldOnEmptyChecks emptiable checkInfo)
 
 
 foldToUnchangedAccumulatorWithExtraArgCheck : TypeProperties otherProperties -> CallCheckInfo -> Maybe (Error {})
@@ -11262,7 +11262,7 @@ wrapperRepeatChecks wrapper checkInfo =
 getChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> CallCheckInfo -> Maybe (Error {})
 getChecks collection checkInfo =
     callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } collection checkInfo
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 Evaluate.getInt checkInfo checkInfo.firstArg
                     |> Maybe.andThen (\index -> indexAccessChecks collection checkInfo index)
@@ -11315,7 +11315,7 @@ indexAccessChecks collection checkInfo n =
                     Nothing ->
                         Nothing
                 )
-                    |> maybeOnNothing
+                    |> onNothing
                         (\() ->
                             AstHelpers.getSpecificUnreducedFnCall Fn.Array.repeat checkInfo.lookupTable arg
                                 |> Maybe.andThen
@@ -11354,7 +11354,7 @@ indexAccessChecks collection checkInfo n =
                                                 )
                                     )
                         )
-                    |> maybeOnNothing
+                    |> onNothing
                         (\() ->
                             AstHelpers.getSpecificUnreducedFnCall Fn.Array.initialize checkInfo.lookupTable arg
                                 |> Maybe.andThen
@@ -12166,9 +12166,9 @@ pipelineChecks :
     -> Maybe (Error {})
 pipelineChecks checkInfo =
     pipingIntoCompositionChecks { commentRanges = checkInfo.commentRanges, extractSourceCode = checkInfo.extractSourceCode } checkInfo.direction checkInfo.pipedInto
-        |> maybeOnNothing
+        |> onNothing
             (\() -> fullyAppliedLambdaInPipelineChecks { nodeRange = checkInfo.nodeRange, function = checkInfo.pipedInto, firstArgument = checkInfo.arg })
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getRecordAccessFunction checkInfo.pipedInto of
                     Just fieldName ->
@@ -13448,7 +13448,7 @@ If your function takes two arguments like `Dict.partition`, use `emptiablePartit
 collectionPartitionChecks : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties otherProperties)) -> CallCheckInfo -> Maybe (Error {})
 collectionPartitionChecks collection checkInfo =
     partitionOnEmptyChecks collection checkInfo
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
                     Just constantFunctionResult ->
@@ -13529,7 +13529,7 @@ If your function only takes one argument like `List.partition`, use `collectionP
 emptiablePartitionWithExtraArgChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 emptiablePartitionWithExtraArgChecks emptiable checkInfo =
     partitionOnEmptyChecks emptiable checkInfo
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 let
                     maybePartitionFunctionResult : Maybe (Node Expression)
@@ -13696,7 +13696,7 @@ ifChecks checkInfo =
         Undetermined ->
             Nothing
     )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case Evaluate.getBoolean checkInfo checkInfo.trueBranch of
                     Determined True ->
@@ -13736,7 +13736,7 @@ ifChecks checkInfo =
                     Undetermined ->
                         Nothing
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 case Normalize.compare checkInfo checkInfo.trueBranch checkInfo.falseBranch of
                     Normalize.ConfirmedEquality ->
@@ -13761,9 +13761,9 @@ ifChecks checkInfo =
 caseOfChecks : CaseOfCheckInfo -> Maybe (Error {})
 caseOfChecks checkInfo =
     sameBodyForCaseOfChecks checkInfo
-        |> maybeOnNothing (\() -> booleanCaseOfChecks checkInfo)
-        |> maybeOnNothing (\() -> destructuringCaseOfChecks checkInfo)
-        |> maybeOnNothing (\() -> caseOfWithUnreachableCasesChecks checkInfo)
+        |> onNothing (\() -> booleanCaseOfChecks checkInfo)
+        |> onNothing (\() -> destructuringCaseOfChecks checkInfo)
+        |> onNothing (\() -> caseOfWithUnreachableCasesChecks checkInfo)
 
 
 type alias CaseOfCheckInfo =
@@ -14085,13 +14085,13 @@ caseOfWithUnreachableCasesChecksOn :
     -> Maybe { message : String, details : List String, range : Range, fix : UnreachableCasesFix }
 caseOfWithUnreachableCasesChecksOn config checkInfo =
     caseVariantOfWithUnreachableCasesChecks config checkInfo
-        |> maybeOnNothing
+        |> onNothing
             (\() -> caseListLiteralOfWithUnreachableCasesChecks config checkInfo)
-        |> maybeOnNothing
+        |> onNothing
             (\() -> caseConsOfWithUnreachableCasesChecks config checkInfo)
-        |> maybeOnNothing
+        |> onNothing
             (\() -> caseTuple2OfWithUnreachableCasesChecks config checkInfo)
-        |> maybeOnNothing (\() -> caseTuple3OfWithUnreachableCasesChecks config checkInfo)
+        |> onNothing (\() -> caseTuple3OfWithUnreachableCasesChecks config checkInfo)
 
 
 caseTuple2OfWithUnreachableCasesChecks :
@@ -14130,7 +14130,7 @@ caseTuple2OfWithUnreachableCasesChecks config checkInfo =
                                 tuplePatternCases
                         }
                         checkInfo
-                        |> maybeOnNothing
+                        |> onNothing
                             (\() ->
                                 caseOfWithUnreachableCasesChecksOn
                                     { casedExpressionNode = casedTuple.second
@@ -14175,7 +14175,7 @@ caseTuple3OfWithUnreachableCasesChecks config checkInfo =
                                 tuplePatternCases
                         }
                         checkInfo
-                        |> maybeOnNothing
+                        |> onNothing
                             (\() ->
                                 caseOfWithUnreachableCasesChecksOn
                                     { casedExpressionNode = casedTupleSecondNode
@@ -14185,7 +14185,7 @@ caseTuple3OfWithUnreachableCasesChecks config checkInfo =
                                     }
                                     checkInfo
                             )
-                        |> maybeOnNothing
+                        |> onNothing
                             (\() ->
                                 caseOfWithUnreachableCasesChecksOn
                                     { casedExpressionNode = casedTupleThirdNode
@@ -15120,7 +15120,7 @@ accessingRecordCompositionChecks checkInfo =
                 Nothing ->
                     Nothing
             )
-                |> maybeOnNothing
+                |> onNothing
                     (\() ->
                         case getRecordTypeAliasConstructorCall checkInfo.earlier.node checkInfo of
                             Just recordTypeAliasConstructorCall ->
@@ -15897,7 +15897,7 @@ constructsOrComposesInto constructWithOneValue context expressionNode =
             (\wrapCalls ->
                 List.concatMap (\call -> replaceBySubExpressionFix call.nodeRange call.value) wrapCalls
             )
-        |> maybeOnNothing
+        |> onNothing
             (\() ->
                 expressionNode
                     |> getCompositionToLast

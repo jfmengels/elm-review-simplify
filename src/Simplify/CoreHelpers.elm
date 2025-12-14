@@ -1,5 +1,5 @@
 module Simplify.CoreHelpers exposing
-    ( isJust, isNothing, maybeOnNothing
+    ( isJust, isNothing, onNothing
     , countUnique, countUniqueBy, findMap, findMapAndAllBefore, findMapNeighboring, listAll2, list2AreSameLengthAndAll, drop2EndingsWhile, listIndexedFilterMap, listLast, traverse, traverseConcat, uniqueByThenMap, listMapToStringsThenJoin
     , listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList
     )
@@ -10,7 +10,7 @@ moved to a separate module for easier testing etc.
 
 ## Maybe
 
-@docs isJust, isNothing, maybeOnNothing
+@docs isJust, isNothing, onNothing
 
 
 ## List
@@ -422,8 +422,8 @@ listMapToStringsThenJoinAfter soFar elementToString separator list =
 {-| Like `Maybe.andThen` but for the `Nothing` case.
 Exceptionally useful for trying multiple things in order
 -}
-maybeOnNothing : (() -> Maybe a) -> Maybe a -> Maybe a
-maybeOnNothing nextTry maybe =
+onNothing : (() -> Maybe a) -> Maybe a -> Maybe a
+onNothing nextTry maybe =
     case maybe of
         (Just _) as just ->
             just
