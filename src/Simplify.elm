@@ -15684,9 +15684,13 @@ alwaysResultsInConstantError :
     -> Error {}
 alwaysResultsInConstantError usingSituation config checkInfo =
     let
+        remainingArgCount : Int
+        remainingArgCount =
+            checkInfo.argCount - (1 + List.length checkInfo.argsAfterFirst)
+
         replacement : QualifyResources {} -> String
         replacement res =
-            case checkInfo.argCount - (1 + List.length checkInfo.argsAfterFirst) of
+            case remainingArgCount of
                 -- fully applied
                 0 ->
                     config.replacement res
