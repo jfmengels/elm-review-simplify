@@ -12553,8 +12553,8 @@ onSpecificFnCallReturnsItsLastArgCheck inverseFn =
 
 unnecessaryOnSpecificFnCallCheck : ( ModuleName, String ) -> IntoFnCheck
 unnecessaryOnSpecificFnCallCheck specificFn =
-    { call = unnecessaryCallOnSpecificFnCallCheck specificFn
-    , composition = unnecessaryCompositionAfterSpecificFnValueOrCallCheck specificFn
+    { call = \checkInfo -> unnecessaryCallOnSpecificFnCallCheck specificFn checkInfo
+    , composition = \checkInfo -> unnecessaryCompositionAfterSpecificFnValueOrCallCheck specificFn checkInfo
     }
 
 
@@ -12648,8 +12648,10 @@ So for example
 -}
 unnecessaryOnWrappedCheck : WrapperProperties otherProperties -> IntoFnCheck
 unnecessaryOnWrappedCheck wrapper =
-    { call = unnecessaryCallOnCheck { specific = wrapper.wrap, kind = ConstructWithOneValue }
-    , composition = unnecessaryCompositionAfterCheck wrapper.wrap
+    { call =
+        \checkInfo ->
+            unnecessaryCallOnCheck { specific = wrapper.wrap, kind = ConstructWithOneValue } checkInfo
+    , composition = \checkInfo -> unnecessaryCompositionAfterCheck wrapper.wrap checkInfo
     }
 
 
@@ -12703,7 +12705,7 @@ Examples
 -}
 unnecessaryOnEmptyCheck : EmptiableProperties empty otherProperties -> IntoFnCheck
 unnecessaryOnEmptyCheck emptiable =
-    { call = unnecessaryCallOnCheck emptiable.empty
+    { call = \checkInfo -> unnecessaryCallOnCheck emptiable.empty checkInfo
     , composition =
         case emptiable.empty.kind emptiable.empty.specific of
             Constant _ ->
@@ -13404,8 +13406,8 @@ collectionSizeChecks collection checkInfo =
 
 
 emptiableFromListChecks : EmptiableProperties ConstantProperties otherProperties -> CallCheckInfo -> Maybe (Error {})
-emptiableFromListChecks collection =
-    callOnEmptyReturnsCheck { resultAsString = collection.empty.specific.asString } listCollection
+emptiableFromListChecks collection checkInfo =
+    callOnEmptyReturnsCheck { resultAsString = collection.empty.specific.asString } listCollection checkInfo
 
 
 wrapperFromListSingletonChecks : WrapperProperties otherProperties -> IntoFnCheck
@@ -13448,8 +13450,8 @@ emptiableToListChecks :
     EmptiableProperties empty otherProperties
     -> CallCheckInfo
     -> Maybe (Error {})
-emptiableToListChecks collection =
-    callOnEmptyReturnsCheck { resultAsString = listCollection.empty.specific.asString } collection
+emptiableToListChecks collection checkInfo =
+    callOnEmptyReturnsCheck { resultAsString = listCollection.empty.specific.asString } collection checkInfo
 
 
 {-| The partition checks
@@ -13478,10 +13480,11 @@ collectionPartitionChecks collection checkInfo =
 
 
 partitionOnEmptyChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
-partitionOnEmptyChecks emptiable =
+partitionOnEmptyChecks emptiable chheckInfo =
     callOnEmptyReturnsCheck
         { resultAsString = \res -> "( " ++ emptiable.empty.specific.asString res ++ ", " ++ emptiable.empty.specific.asString res ++ " )" }
         emptiable
+        chheckInfo
 
 
 partitionWithConstantFunctionResult : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
@@ -15614,11 +15617,12 @@ alwaysResultsInUnparenthesizedConstantError :
     -> { replacement : QualifyResources {} -> String }
     -> CallCheckInfo
     -> Error {}
-alwaysResultsInUnparenthesizedConstantError usingSituation config =
+alwaysResultsInUnparenthesizedConstantError usingSituation config checkInfo =
     alwaysResultsInConstantError usingSituation
         { replacement = config.replacement
         , replacementNeedsParens = False
         }
+        checkInfo
 
 
 {-| Regardless of what the next incoming value will be, the result is already determined to be a given constant.
@@ -16229,8 +16233,8 @@ trueInAllBranches isSpecific baseExpressionNode =
 
 
 getComparableExpression : Node Expression -> Maybe (List Expression)
-getComparableExpression =
-    getComparableExpressionHelper 1
+getComparableExpression expressionNode =
+    getComparableExpressionHelper 1 expressionNode
 
 
 getComparableExpressionHelper : Int -> Node Expression -> Maybe (List Expression)

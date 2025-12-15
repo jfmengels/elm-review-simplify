@@ -3,8 +3,7 @@ module Simplify.InferTest exposing (all)
 import AssocList
 import Elm.Syntax.Expression exposing (Expression(..))
 import Elm.Syntax.Infix as Infix exposing (InfixDirection(..))
-import Elm.Syntax.Node exposing (Node(..))
-import Elm.Syntax.Range as Range
+import Elm.Syntax.Node as Node exposing (Node)
 import Expect exposing (Expectation)
 import Simplify.Infer exposing (DeducedValue(..), Fact(..), Inferred(..), deduceNewFacts, empty, falseExpr, getAsExpression, infer, trueExpr)
 import Test exposing (Test, describe, test)
@@ -532,4 +531,4 @@ expectEqual record (Inferred inferred) =
 
 n : Expression -> Node Expression
 n =
-    Node Range.emptyRange
+    Node.empty
