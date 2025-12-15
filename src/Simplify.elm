@@ -4243,15 +4243,7 @@ intDivideChecks checkInfo =
 
 plusplusChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 plusplusChecks checkInfo =
-    checkOperationFromBothSides checkInfo
-        (\side ->
-            case Node.value side.otherNode of
-                Expression.Literal _ ->
-                    appendEmptyCheck side stringCollection checkInfo
-
-                _ ->
-                    Nothing
-        )
+    appendEmptyStringCheck checkInfo
         |> onNothing
             (\() ->
                 checkOperationFromBothSides checkInfo
@@ -4306,6 +4298,64 @@ plusplusChecks checkInfo =
             )
 
 
+appendEmptyStringCheck : OperatorApplicationCheckInfo -> Maybe (Error {})
+appendEmptyStringCheck checkInfo =
+    case Node.value checkInfo.left of
+        Expression.Literal leftContents ->
+            case findNextStringLiteral checkInfo.right checkInfo.left of
+                Just { left, right } ->
+                    if String.isEmpty leftContents then
+                        Just
+                            (Rule.errorWithFix
+                                (appendEmptyErrorDetails "right" stringCollection)
+                                checkInfo.operatorRange
+                                [ Fix.removeRange
+                                    { start = (Node.range checkInfo.left).start
+                                    , end = (Node.range checkInfo.right).start
+                                    }
+                                ]
+                            )
+
+                    else if String.isEmpty (Node.value right) then
+                        Just
+                            (Rule.errorWithFix
+                                (appendEmptyErrorDetails "left" stringCollection)
+                                checkInfo.operatorRange
+                                [ Fix.removeRange
+                                    { start = left.end
+                                    , end = (Node.range right).end
+                                    }
+                                ]
+                            )
+
+                    else
+                        Nothing
+
+                Nothing ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
+findNextStringLiteral : Node Expression -> Node Expression -> Maybe { left : Range, right : Node String }
+findNextStringLiteral (Node range node) previousNode =
+    case node of
+        Expression.Literal str ->
+            Just { left = Node.range previousNode, right = Node range str }
+
+        Expression.OperatorApplication "++" _ ((Node leftRange left) as leftNode) rightNode ->
+            case left of
+                Expression.Literal str ->
+                    Just { left = Node.range previousNode, right = Node leftRange str }
+
+                _ ->
+                    findNextStringLiteral rightNode leftNode
+
+        _ ->
+            Nothing
+
+
 appendEmptyCheck :
     { side | node : Node Expression, otherNode : Node Expression, otherDescription : String }
     -> TypeProperties (EmptiableProperties empty otherProperties)
@@ -4315,9 +4365,7 @@ appendEmptyCheck side collection checkInfo =
     if isInTypeSubset collection.empty checkInfo side.node then
         Just
             (Rule.errorWithFix
-                (appendEmptyErrorDetails side.otherDescription
-                    collection
-                )
+                (appendEmptyErrorDetails side.otherDescription collection)
                 checkInfo.operatorRange
                 (keepOnlyFix
                     { keep = Node.range side.otherNode

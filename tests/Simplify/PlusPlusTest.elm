@@ -45,6 +45,74 @@ a = "a" ++ ""
 a = "a"
 """
                         ]
+        , test """should replace "a" ++ "" ++ x by "a" ++ x""" <|
+            \() ->
+                """module A exposing (..)
+a = "a" ++ "" ++ x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary appending \"\""
+                            , details = [ "You can replace this operation by the left string." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 9 }, end = { row = 2, column = 11 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = "a" ++ x
+"""
+                        ]
+        , test """should replace x ++ "a" ++ "" by x ++ "a\"""" <|
+            \() ->
+                """module A exposing (..)
+a = x ++ "a" ++ ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary appending \"\""
+                            , details = [ "You can replace this operation by the left string." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 14 }, end = { row = 2, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x ++ "a"
+"""
+                        ]
+        , test """should replace x ++ "" ++ "a" by x ++ "a\"""" <|
+            \() ->
+                """module A exposing (..)
+a = x ++ "" ++ "a"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary appending \"\""
+                            , details = [ "You can replace this operation by the right string." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 13 }, end = { row = 2, column = 15 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x ++ "a"
+"""
+                        ]
+        , test """should replace "" ++ x ++ "a" ++ "" by x ++ "a\"""" <|
+            \() ->
+                """module A exposing (..)
+a = "" ++ x ++ "a"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary appending \"\""
+                            , details = [ "You can replace this operation by the right string." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 8 }, end = { row = 2, column = 10 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x ++ "a"
+"""
+                        ]
         , test """should not report x ++ "" (because this can lead to better performance)""" <|
             \() ->
                 """module A exposing (..)
@@ -130,6 +198,23 @@ a = something ++ []
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = something
+"""
+                        ]
+        , test "should report concatenating something and [] even when something appears afterwards" <|
+            \() ->
+                """module A exposing (..)
+a = something ++ [] ++ x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary appending []"
+                            , details = [ "You can replace this operation by the right list." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 21 }, end = { row = 2, column = 23 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = something ++ x
 """
                         ]
         , test "should replace [b] ++ c by b :: c" <|

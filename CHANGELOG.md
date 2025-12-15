@@ -11,6 +11,7 @@ The rule now simplifies:
 - `Dict.update k identity dict` to `dict`
 - `Dict.update k (\_ -> Nothing) dict` to `Dict.remove k dict`
 - `Dict.update k (\_ -> Just v) dict` to `Dict.insert k v dict`
+- `"a" ++ "" ++ x"` to `"a" ++ "x"` in more cases
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",
