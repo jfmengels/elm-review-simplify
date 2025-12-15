@@ -4315,9 +4315,9 @@ appendEmptyCheck side collection checkInfo =
     if isInTypeSubset collection.empty checkInfo side.node then
         Just
             (Rule.errorWithFix
-                { message = "Unnecessary appending " ++ typeSubsetDescriptionIndefinite collection.empty
-                , details = [ "You can replace this operation by the " ++ side.otherDescription ++ " " ++ collection.represents ++ "." ]
-                }
+                (appendEmptyErrorDetails side.otherDescription
+                    collection
+                )
                 checkInfo.operatorRange
                 (keepOnlyFix
                     { keep = Node.range side.otherNode
@@ -4328,6 +4328,16 @@ appendEmptyCheck side collection checkInfo =
 
     else
         Nothing
+
+
+appendEmptyErrorDetails :
+    String
+    -> TypeProperties (EmptiableProperties empty otherProperties)
+    -> { message : String, details : List String }
+appendEmptyErrorDetails description collection =
+    { message = "Unnecessary appending " ++ typeSubsetDescriptionIndefinite collection.empty
+    , details = [ "You can replace this operation by the " ++ description ++ " " ++ collection.represents ++ "." ]
+    }
 
 
 consChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
