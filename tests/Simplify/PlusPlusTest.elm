@@ -84,7 +84,7 @@ a = [ 1 ] ++ [ 2, 3 ]
 a = [ 1 , 2, 3 ]
 """
                         ]
-        , test "should report concatenating two list literals, even they contain variables" <|
+        , test "should report concatenating two list literals, even if they contain variables" <|
             \() ->
                 """module A exposing (..)
 a = [ a, 1 ] ++ [ b, 2 ]
