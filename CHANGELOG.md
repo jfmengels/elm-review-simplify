@@ -12,6 +12,10 @@ The rule now simplifies:
 - `Dict.update k (\_ -> Nothing) dict` to `Dict.remove k dict`
 - `Dict.update k (\_ -> Just v) dict` to `Dict.insert k v dict`
 - `"a" ++ "" ++ x"` to `"a" ++ "x"` in more cases
+- `List.filter f (List.filter f list)` to `List.filter f list`
+- `Array.filter f (Array.filter f array)` to `Array.filter f array`
+- `Set.filter f (Set.filter f set)` to `Set.filter f set`
+- `Dict.filter f (Dict.filter f dict)` to `Dict.filter f dict`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",

@@ -210,6 +210,7 @@ setFilterTests =
                 """module A exposing (..)
 import Set
 a = Set.filter f set
+b = Set.filter f (Set.filter g set)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -265,6 +266,63 @@ a = Set.empty |> Set.filter f
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
 a = Set.empty
+"""
+                        ]
+        , test "should replace Set.filter f (Set.filter f set) by Set.filter f set" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.filter f (Set.filter f set)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.filter after equivalent Set.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 15 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = (Set.filter f set)
+"""
+                        ]
+        , test "should replace Set.filter f >> Set.filter f by Set.filter f" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.filter f >> Set.filter f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.filter after equivalent Set.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 21 }, end = { row = 3, column = 31 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.filter f
+"""
+                        ]
+        , test "should replace Set.filter f << Set.filter f by Set.filter f" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.filter f << Set.filter f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.filter after equivalent Set.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 15 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.filter f
 """
                         ]
         , test "should replace Set.filter (always True) set by set" <|

@@ -1094,6 +1094,7 @@ import Dict
 a0 = Dict.filter
 a1 = Dict.filter f
 a2 = Dict.filter f dict
+a3 = Dict.filter f (Dict.filter g dict)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -1131,6 +1132,63 @@ a = Dict.filter (always (always True)) dict
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = dict
+"""
+                        ]
+        , test "should replace Dict.filter f (Dict.filter f dict) by Dict.filter f dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter f (Dict.filter f dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Dict.filter after equivalent Dict.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.filter f dict)
+"""
+                        ]
+        , test "should replace Dict.filter f >> Dict.filter f by Dict.filter f" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter f >> Dict.filter f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Dict.filter after equivalent Dict.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 22 }, end = { row = 3, column = 33 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.filter f
+"""
+                        ]
+        , test "should replace Dict.filter f << Dict.filter f by Dict.filter f" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter f << Dict.filter f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Dict.filter after equivalent Dict.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.filter f
 """
                         ]
         , test "should replace Dict.filter (always (\\_ -> True)) dict by dict" <|
