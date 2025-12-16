@@ -313,7 +313,7 @@ Destructuring using case expressions
     Tuple.second ( a, b )
     --> b
 
-    Tuple.second (Tuple.mapFirst changeSecond tuple)
+    Tuple.second (Tuple.mapFirst changeFirst tuple)
     --> Tuple.second tuple
 
     Tuple.second (Tuple.mapBoth changeFirst changeSecond tuple)
