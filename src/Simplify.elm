@@ -1132,6 +1132,9 @@ Destructuring using case expressions
     Set.insert x Set.empty
     --> Set.singleton x
 
+    Set.insert k (Set.insert k set)
+    --> Set.insert k set
+
     -- same for foldr
     List.foldl f x (Set.toList set)
     --> Set.foldl f x set
@@ -7120,7 +7123,7 @@ setMemberChecks =
 
 setInsertChecks : IntoFnCheck
 setInsertChecks =
-    intoFnCheckOnlyCall (collectionInsertChecks setCollection)
+    collectionInsertChecks setCollection
 
 
 setRemoveChecks : IntoFnCheck
@@ -13463,29 +13466,35 @@ collectionUnionWithLiteralsChecks config operationInfo collection checkInfo =
             Nothing
 
 
-collectionInsertChecks : CollectionProperties (EmptiableProperties empty (WrapperProperties otherProperties)) -> CallCheckInfo -> Maybe (Error {})
-collectionInsertChecks collection checkInfo =
-    case secondArg checkInfo of
-        Just collectionArg ->
-            if isInTypeSubset collection.empty checkInfo collectionArg then
-                Just
-                    (Rule.errorWithFix
-                        { message = "Use " ++ qualifiedToString collection.wrap.fn ++ " instead of inserting in " ++ typeSubsetDescriptionIndefinite collection.empty
-                        , details = [ "You can replace this call by " ++ qualifiedToString collection.wrap.fn ++ "." ]
-                        }
-                        checkInfo.fnRange
-                        (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg
-                            ++ [ Fix.insertAt checkInfo.parentRange.start
-                                    (qualifiedToString (qualify collection.wrap.fn checkInfo) ++ " ")
-                               ]
-                        )
-                    )
+collectionInsertChecks : CollectionProperties (EmptiableProperties empty (WrapperProperties otherProperties)) -> IntoFnCheck
+collectionInsertChecks collection =
+    intoFnChecksFirstThatConstructsError
+        [ operationDoesNotChangeResultOfOperationCheck
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case secondArg checkInfo of
+                    Just collectionArg ->
+                        if isInTypeSubset collection.empty checkInfo collectionArg then
+                            Just
+                                (Rule.errorWithFix
+                                    { message = "Use " ++ qualifiedToString collection.wrap.fn ++ " instead of inserting in " ++ typeSubsetDescriptionIndefinite collection.empty
+                                    , details = [ "You can replace this call by " ++ qualifiedToString collection.wrap.fn ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg
+                                        ++ [ Fix.insertAt checkInfo.parentRange.start
+                                                (qualifiedToString (qualify collection.wrap.fn checkInfo) ++ " ")
+                                           ]
+                                    )
+                                )
 
-            else
-                Nothing
+                        else
+                            Nothing
 
-        Nothing ->
-            Nothing
+                    Nothing ->
+                        Nothing
+            )
+        ]
 
 
 collectionIsEmptyChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> CallCheckInfo -> Maybe (Error {})
