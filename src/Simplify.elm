@@ -325,6 +325,11 @@ Destructuring using case expressions
     "a" ++ ""
     --> "a"
 
+    -- only when the end quotes of the left side and
+    -- the start quotes of the right side are on the same line
+    "a" ++ "b"
+    --> "ab"
+
     String.fromList []
     --> ""
 
@@ -1556,7 +1561,7 @@ import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
 import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, qualifiedToString)
 import Simplify.CallStyle as CallStyle exposing (FunctionCallStyle)
-import Simplify.CoreHelpers exposing (countUnique, countUniqueBy, findMap, findMapAndAllBefore, findMapNeighboring, indexedFindMap, isJust, isNothing, listAll2, listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList, listIndexedFilterMap, listLast, onNothing, traverse, traverseConcat, uniqueByThenMap)
+import Simplify.CoreHelpers exposing (consIf, countUnique, countUniqueBy, findMap, findMapAndAllBefore, findMapNeighboring, indexedFindMap, isJust, isNothing, listAll2, listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList, listIndexedFilterMap, listLast, onNothing, traverse, traverseConcat, uniqueByThenMap)
 import Simplify.Evaluate as Evaluate
 import Simplify.HashExpression as HashExpression
 import Simplify.Infer as Infer
@@ -4286,7 +4291,7 @@ intDivideChecks checkInfo =
 
 plusplusChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 plusplusChecks checkInfo =
-    appendEmptyStringCheck checkInfo
+    appendStringCheck checkInfo
         |> onNothing
             (\() ->
                 checkOperationFromBothSides checkInfo
@@ -4341,46 +4346,6 @@ plusplusChecks checkInfo =
             )
 
 
-appendEmptyStringCheck : OperatorApplicationCheckInfo -> Maybe (Error {})
-appendEmptyStringCheck checkInfo =
-    case Node.value checkInfo.left of
-        Expression.Literal leftContents ->
-            case findNextStringLiteral checkInfo.right checkInfo.left of
-                Just { left, right } ->
-                    if String.isEmpty leftContents then
-                        Just
-                            (Rule.errorWithFix
-                                (appendEmptyErrorDetails "right" stringCollection)
-                                checkInfo.operatorRange
-                                [ Fix.removeRange
-                                    { start = (Node.range checkInfo.left).start
-                                    , end = (Node.range checkInfo.right).start
-                                    }
-                                ]
-                            )
-
-                    else if String.isEmpty (Node.value right) then
-                        Just
-                            (Rule.errorWithFix
-                                (appendEmptyErrorDetails "left" stringCollection)
-                                checkInfo.operatorRange
-                                [ Fix.removeRange
-                                    { start = left.end
-                                    , end = (Node.range right).end
-                                    }
-                                ]
-                            )
-
-                    else
-                        Nothing
-
-                Nothing ->
-                    Nothing
-
-        _ ->
-            Nothing
-
-
 findNextStringLiteral : Node Expression -> Node Expression -> Maybe { left : Range, right : Node String }
 findNextStringLiteral (Node range node) previousNode =
     case node of
@@ -4399,6 +4364,116 @@ findNextStringLiteral (Node range node) previousNode =
             Nothing
 
 
+appendStringCheck : OperatorApplicationCheckInfo -> Maybe (Error {})
+appendStringCheck checkInfo =
+    case Node.value checkInfo.left of
+        Expression.Literal leftContents ->
+            appendEmptyStringCheck checkInfo leftContents
+                |> onNothing (\() -> appendStringLiteralsCheck checkInfo (Node.range checkInfo.left))
+
+        _ ->
+            Nothing
+
+
+appendStringLiteralsCheck : OperatorApplicationCheckInfo -> Range -> Maybe (Error {})
+appendStringLiteralsCheck checkInfo leftRange =
+    let
+        otherNode : Maybe (Node Expression)
+        otherNode =
+            case Node.value checkInfo.right of
+                Expression.Literal _ ->
+                    Just checkInfo.right
+
+                Expression.OperatorApplication "++" _ ((Node _ (Expression.Literal _)) as left) _ ->
+                    Just left
+
+                _ ->
+                    Nothing
+    in
+    case otherNode of
+        Just (Node rightRange _) ->
+            if leftRange.end.row == rightRange.start.row then
+                let
+                    leftUsesTripleQuotes : Bool
+                    leftUsesTripleQuotes =
+                        usesTripleQuotes checkInfo.extractSourceCode leftRange
+
+                    rightUsesTripleQuotes : Bool
+                    rightUsesTripleQuotes =
+                        usesTripleQuotes checkInfo.extractSourceCode rightRange
+                in
+                Just
+                    (Rule.errorWithFix
+                        { message = checkInfo.operator ++ " on " ++ stringCollection.represents ++ " literals can be turned into a single " ++ stringCollection.represents ++ " literal"
+                        , details = [ "Try moving all the elements into a single " ++ stringCollection.represents ++ " literal." ]
+                        }
+                        checkInfo.operatorRange
+                        ([ Fix.removeRange
+                            { start = { row = leftRange.end.row, column = leftRange.end.column - sizeOfQuotes leftUsesTripleQuotes }
+                            , end = { row = rightRange.start.row, column = rightRange.start.column + sizeOfQuotes rightUsesTripleQuotes }
+                            }
+                         ]
+                            |> consIf (leftUsesTripleQuotes && not rightUsesTripleQuotes) (\() -> Fix.insertAt rightRange.end "\"\"")
+                            |> consIf (not leftUsesTripleQuotes && rightUsesTripleQuotes) (\() -> Fix.insertAt leftRange.start "\"\"")
+                        )
+                    )
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
+
+
+usesTripleQuotes : (Range -> String) -> Range -> Bool
+usesTripleQuotes extractSourceCode range =
+    String.startsWith "\"\"\"" (extractSourceCode range)
+
+
+sizeOfQuotes : Bool -> number
+sizeOfQuotes isTripleQuotes =
+    if isTripleQuotes then
+        3
+
+    else
+        1
+
+
+appendEmptyStringCheck : OperatorApplicationCheckInfo -> String -> Maybe (Error {})
+appendEmptyStringCheck checkInfo leftContents =
+    case findNextStringLiteral checkInfo.right checkInfo.left of
+        Just { left, right } ->
+            if String.isEmpty leftContents then
+                Just
+                    (Rule.errorWithFix
+                        (appendEmptyErrorDetails "right" stringCollection)
+                        checkInfo.operatorRange
+                        [ Fix.removeRange
+                            { start = (Node.range checkInfo.left).start
+                            , end = (Node.range checkInfo.right).start
+                            }
+                        ]
+                    )
+
+            else if String.isEmpty (Node.value right) then
+                Just
+                    (Rule.errorWithFix
+                        (appendEmptyErrorDetails "left" stringCollection)
+                        checkInfo.operatorRange
+                        [ Fix.removeRange
+                            { start = left.end
+                            , end = (Node.range right).end
+                            }
+                        ]
+                    )
+
+            else
+                Nothing
+
+        Nothing ->
+            Nothing
+
+
 appendEmptyCheck :
     { side | node : Node Expression, otherNode : Node Expression, otherDescription : String }
     -> TypeProperties (EmptiableProperties empty otherProperties)
@@ -4408,7 +4483,9 @@ appendEmptyCheck side collection checkInfo =
     if isInTypeSubset collection.empty checkInfo side.node then
         Just
             (Rule.errorWithFix
-                (appendEmptyErrorDetails side.otherDescription collection)
+                (appendEmptyErrorDetails side.otherDescription
+                    collection
+                )
                 checkInfo.operatorRange
                 (keepOnlyFix
                     { keep = Node.range side.otherNode

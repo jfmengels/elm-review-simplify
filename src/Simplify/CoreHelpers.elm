@@ -1,6 +1,6 @@
 module Simplify.CoreHelpers exposing
     ( isJust, isNothing, onNothing
-    , countUnique, countUniqueBy, findMap, indexedFindMap, findMapAndAllBefore, findMapNeighboring, listAll2, list2AreSameLengthAndAll, drop2EndingsWhile, listIndexedFilterMap, listLast, traverse, traverseConcat, uniqueByThenMap, listMapToStringsThenJoin
+    , consIf, countUnique, countUniqueBy, findMap, indexedFindMap, findMapAndAllBefore, findMapNeighboring, listAll2, list2AreSameLengthAndAll, drop2EndingsWhile, listIndexedFilterMap, listLast, traverse, traverseConcat, uniqueByThenMap, listMapToStringsThenJoin
     , listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList
     )
 
@@ -15,7 +15,7 @@ moved to a separate module for easier testing etc.
 
 ## List
 
-@docs countUnique, countUniqueBy, findMap, indexedFindMap, findMapAndAllBefore, findMapNeighboring, listAll2, list2AreSameLengthAndAll, drop2EndingsWhile, listIndexedFilterMap, listLast, traverse, traverseConcat, uniqueByThenMap, listMapToStringsThenJoin
+@docs consIf, countUnique, countUniqueBy, findMap, indexedFindMap, findMapAndAllBefore, findMapNeighboring, listAll2, list2AreSameLengthAndAll, drop2EndingsWhile, listIndexedFilterMap, listLast, traverse, traverseConcat, uniqueByThenMap, listMapToStringsThenJoin
 
 
 ## `( a, List a )`
@@ -25,6 +25,15 @@ moved to a separate module for easier testing etc.
 -}
 
 -- LIST HELPERS
+
+
+consIf : Bool -> (() -> a) -> List a -> List a
+consIf condition fn list =
+    if condition then
+        fn () :: list
+
+    else
+        list
 
 
 listLast : List a -> Maybe a

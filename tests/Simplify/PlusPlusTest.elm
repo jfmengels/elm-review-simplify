@@ -136,6 +136,183 @@ a = "" ++ "a"
 a = "a"
 """
                         ]
+        , test """should replace "a" ++ "b" by "ab" if they're on the same line""" <|
+            \() ->
+                """module A exposing (..)
+a = "a" ++ "b"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "++ on string literals can be turned into a single string literal"
+                            , details = [ "Try moving all the elements into a single string literal." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = "ab"
+"""
+                        ]
+        , test """should replace "a" ++ "b" ++ x by "ab" ++ x""" <|
+            \() ->
+                """module A exposing (..)
+a = "a" ++ "b" ++ x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "++ on string literals can be turned into a single string literal"
+                            , details = [ "Try moving all the elements into a single string literal." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 9 }, end = { row = 2, column = 11 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = "ab" ++ x
+"""
+                        ]
+        , test """should not replace "a" ++ x ++ "b\"""" <|
+            \() ->
+                """module A exposing (..)
+a = "a" ++ x ++ "b"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test """should replace x ++ "a" ++ "b" by x ++ "ab\"""" <|
+            \() ->
+                """module A exposing (..)
+a = x ++ "a" ++ "b"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "++ on string literals can be turned into a single string literal"
+                            , details = [ "Try moving all the elements into a single string literal." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 14 }, end = { row = 2, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x ++ "ab"
+"""
+                        ]
+        , test """should not replace "a" ++ "b" if they're on distinct lines (single quotes)""" <|
+            \() ->
+                """module A exposing (..)
+a = "a"
+    ++ "b"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test """should not replace "a" ++ "b" if they're on distinct lines (triple quotes)""" <|
+            \() ->
+                """module A exposing (..)
+a = \"\"\"a\"\"\"
+    ++ \"\"\"b\"\"\"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test """should replace \"\"\"a\"\"\" ++ \"\"\"b\"\"\" by \"\"\"ab\"\"\" if they're on the same line""" <|
+            \() ->
+                """module A exposing (..)
+a = \"\"\"a\"\"\" ++ \"\"\"b\"\"\"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "++ on string literals can be turned into a single string literal"
+                            , details = [ "Try moving all the elements into a single string literal." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = \"\"\"ab\"\"\"
+"""
+                        ]
+        , test """should replace "a" ++ \"\"\"b\"\"\" by \"\"\"ab\"\"\" if they're on the same line""" <|
+            \() ->
+                """module A exposing (..)
+a = "a" ++ \"\"\"b\"\"\"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "++ on string literals can be turned into a single string literal"
+                            , details = [ "Try moving all the elements into a single string literal." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = \"\"\"ab\"\"\"
+"""
+                        ]
+        , test """should replace \"\"\"a\"\"\" ++ "b" by \"\"\"ab\"\"\" if they're on the same line""" <|
+            \() ->
+                """module A exposing (..)
+a = \"\"\"a\"\"\" ++ "b"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "++ on string literals can be turned into a single string literal"
+                            , details = [ "Try moving all the elements into a single string literal." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = \"\"\"ab\"\"\"
+"""
+                        ]
+        , test """should replace "a" ++ "b" if they share a line ("a" uses triple quotes)""" <|
+            \() ->
+                """module A exposing (..)
+a = \"\"\"a
+    \"\"\" ++ "b"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "++ on string literals can be turned into a single string literal"
+                            , details = [ "Try moving all the elements into a single string literal." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = \"\"\"a
+    b\"\"\"
+"""
+                        ]
+        , test """should replace "a" ++ "b" if they share a line ("b" uses triple quotes)""" <|
+            \() ->
+                """module A exposing (..)
+a = "a" ++ \"\"\"b
+            \"\"\"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "++ on string literals can be turned into a single string literal"
+                            , details = [ "Try moving all the elements into a single string literal." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = \"\"\"ab
+            \"\"\"
+"""
+                        ]
+        , test """should replace "a" ++ "b" if they share a line (both use triple quotes)""" <|
+            \() ->
+                """module A exposing (..)
+a = \"\"\"a
+    \"\"\" ++ \"\"\"b
+            \"\"\"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "++ on string literals can be turned into a single string literal"
+                            , details = [ "Try moving all the elements into a single string literal." ]
+                            , under = "++"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = \"\"\"a
+    b
+            \"\"\"
+"""
+                        ]
         , test "should report concatenating two list literals" <|
             \() ->
                 """module A exposing (..)
