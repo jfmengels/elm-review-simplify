@@ -7367,7 +7367,7 @@ dictMemberChecks =
 
 dictInsertChecks : IntoFnCheck
 dictInsertChecks =
-    operationMakesPreviousOperationWithEqualFirstArgUnnecessaryCheck { firstArgDescription = "key" }
+    operationOverridesPreviousOperationWithEqualFirstArgCheck { firstArgDescription = "key" }
 
 
 dictRemoveChecks : IntoFnCheck
@@ -11519,7 +11519,7 @@ collectionSetChecks : TypeProperties (CollectionProperties (EmptiableProperties 
 collectionSetChecks collection =
     intoFnChecksFirstThatConstructsError
         [ unnecessaryOnEmptyCheck collection
-        , operationMakesPreviousOperationWithEqualFirstArgUnnecessaryCheck { firstArgDescription = "index" }
+        , operationOverridesPreviousOperationWithEqualFirstArgCheck { firstArgDescription = "index" }
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 case Evaluate.getInt checkInfo checkInfo.firstArg of
@@ -11556,8 +11556,8 @@ Use `operationDoesNotChangeResultOfOperationCheck`
 when _all arguments_ need to be the same, even if there is just one argument
 
 -}
-operationMakesPreviousOperationWithEqualFirstArgUnnecessaryCheck : { firstArgDescription : String } -> IntoFnCheck
-operationMakesPreviousOperationWithEqualFirstArgUnnecessaryCheck config =
+operationOverridesPreviousOperationWithEqualFirstArgCheck : { firstArgDescription : String } -> IntoFnCheck
+operationOverridesPreviousOperationWithEqualFirstArgCheck config =
     { call =
         \checkInfo ->
             case
@@ -11583,7 +11583,7 @@ operationMakesPreviousOperationWithEqualFirstArgUnnecessaryCheck config =
                                 Normalize.ConfirmedEquality ->
                                     Just
                                         (Rule.errorWithFix
-                                            (operationMakesPreviousOperationWithEqualFirstArgUnnecessaryErrorInfo config checkInfo.fn)
+                                            (operationOverridesPreviousOperationWithEqualFirstArgErrorInfo config checkInfo.fn)
                                             checkInfo.fnRange
                                             (replaceBySubExpressionFix lastArgOperationCall.nodeRange
                                                 lastArgOperationCallLastArg
@@ -11605,7 +11605,7 @@ operationMakesPreviousOperationWithEqualFirstArgUnnecessaryCheck config =
                                 case Normalize.compare checkInfo laterFirstArg earlierFirstArg of
                                     Normalize.ConfirmedEquality ->
                                         Just
-                                            { info = operationMakesPreviousOperationWithEqualFirstArgUnnecessaryErrorInfo config checkInfo.later.fn
+                                            { info = operationOverridesPreviousOperationWithEqualFirstArgErrorInfo config checkInfo.later.fn
                                             , fix = [ Fix.removeRange checkInfo.earlier.removeRange ]
                                             }
 
@@ -11623,8 +11623,8 @@ operationMakesPreviousOperationWithEqualFirstArgUnnecessaryCheck config =
     }
 
 
-operationMakesPreviousOperationWithEqualFirstArgUnnecessaryErrorInfo : { firstArgDescription : String } -> ( ModuleName, String ) -> { message : String, details : List String }
-operationMakesPreviousOperationWithEqualFirstArgUnnecessaryErrorInfo config fn =
+operationOverridesPreviousOperationWithEqualFirstArgErrorInfo : { firstArgDescription : String } -> ( ModuleName, String ) -> { message : String, details : List String }
+operationOverridesPreviousOperationWithEqualFirstArgErrorInfo config fn =
     { message =
         qualifiedToString fn
             ++ " on "
