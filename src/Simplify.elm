@@ -5225,7 +5225,7 @@ basicsMinChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
             callWithTwoEqualArgumentsReturnsEitherArgumentCheck
-                { argumentsDescription = "arguments" }
+                { representsPlural = "arguments" }
                 checkInfo
         )
 
@@ -5235,7 +5235,7 @@ basicsMaxChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
             callWithTwoEqualArgumentsReturnsEitherArgumentCheck
-                { argumentsDescription = "arguments" }
+                { representsPlural = "arguments" }
                 checkInfo
         )
 
@@ -7234,7 +7234,6 @@ setUnionChecks : IntoFnCheck
 setUnionChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = True } setCollection)
-        , withTwoEqualArgumentsReturnsLastCheck
         , unionWithFirstArgWrappedCanBeCombinedInto
             { combinedFn = Fn.Set.insert
             , wrapFn = Fn.Set.singleton
@@ -7306,6 +7305,8 @@ setUnionChecks =
                                                ]
                                         )
                                 )
+                            |> onNothing
+                                (\() -> callWithTwoEqualArgumentsReturnsEitherArgumentCheck setCollection checkInfo)
             )
         ]
 
@@ -7458,6 +7459,7 @@ dictMemberChecks =
                     (\() ->
                         knownMemberChecks
                             { represents = "dict"
+                            , representsPlural = "dicts"
                             , elements =
                                 { countDescription = "size"
                                 , elementDescription = "key"
@@ -7611,8 +7613,11 @@ dictDiffChecks =
 dictUnionChecks : IntoFnCheck
 dictUnionChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall (collectionUnionChecks { leftElementsStayOnTheLeft = False } dictCollection)
-        , withTwoEqualArgumentsReturnsLastCheck
+        [ intoFnCheckOnlyCall
+            (\checkInfo ->
+                collectionUnionChecks { leftElementsStayOnTheLeft = False } dictCollection checkInfo
+                    |> onNothing (\() -> callWithTwoEqualArgumentsReturnsEitherArgumentCheck dictCollection checkInfo)
+            )
         , unionWithFirstArgWrappedCanBeCombinedInto
             { combinedFn = Fn.Dict.insert
             , wrapFn = Fn.Dict.singleton
@@ -7949,6 +7954,7 @@ testConcatChecks =
 type alias TypeProperties properties =
     { properties
         | represents : String
+        , representsPlural : String
     }
 
 
@@ -8336,6 +8342,7 @@ emptyAsString qualifyResources emptiable =
 boolForAndProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
 boolForAndProperties =
     { represents = "bool"
+    , representsPlural = "bools"
     , empty = { specific = boolTrueConstant, kind = Constant }
     , absorbing = boolFalseConstant
     }
@@ -8344,6 +8351,7 @@ boolForAndProperties =
 boolForOrProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
 boolForOrProperties =
     { represents = "bool"
+    , representsPlural = "bools"
     , empty = { specific = boolFalseConstant, kind = Constant }
     , absorbing = boolTrueConstant
     }
@@ -8378,6 +8386,7 @@ determinedFalse =
 numberForAddProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
 numberForAddProperties =
     { represents = "number"
+    , representsPlural = "numbers"
     , empty = { specific = number0ConstantSpecific, kind = Constant }
     , absorbing = numberNaNConstantSpecific
     }
@@ -8395,6 +8404,7 @@ If `expectingNaN` is not enabled, use `numberNotExpectingNaNForMultiplyPropertie
 numberForMultiplyProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
 numberForMultiplyProperties =
     { represents = "number"
+    , representsPlural = "numbers"
     , empty = { specific = number1ConstantSpecific, kind = Constant }
     , absorbing = numberNaNConstantSpecific
     }
@@ -8418,6 +8428,7 @@ Not having `expectingNaN` enabled however, 0 _is_ absorbing, so we can now simpl
 numberNotExpectingNaNForMultiplyProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
 numberNotExpectingNaNForMultiplyProperties =
     { represents = "number"
+    , representsPlural = "numbers"
     , empty = { specific = number1ConstantSpecific, kind = Constant }
     , absorbing = number0ConstantSpecific
     }
@@ -8458,6 +8469,7 @@ numberNaNConstantSpecific =
 randomGeneratorWrapper : TypeProperties (NonEmptiableProperties (WrapperProperties (MappableProperties {})))
 randomGeneratorWrapper =
     { represents = "random generator"
+    , representsPlural = "random generators"
     , wrap = randomGeneratorConstantConstruct
     , empty = { invalid = () }
     , mapFn = Fn.Random.map
@@ -8472,6 +8484,7 @@ randomGeneratorConstantConstruct =
 maybeWithJustAsWrap : TypeProperties (EmptiableProperties ConstantProperties (WrapperProperties (MappableProperties {})))
 maybeWithJustAsWrap =
     { represents = "maybe"
+    , representsPlural = "maybes"
     , empty = { specific = constantFnProperties Fn.Maybe.nothingVariant, kind = Constant }
     , wrap = maybeJustConstruct
     , mapFn = Fn.Maybe.map
@@ -8486,6 +8499,7 @@ maybeJustConstruct =
 resultWithOkAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneValueProperties (MappableProperties {})))
 resultWithOkAsWrap =
     { represents = "result"
+    , representsPlural = "results"
     , wrap = resultOkayConstruct
     , empty = { specific = resultErrorConstruct, kind = ConstructWithOneValue }
     , mapFn = Fn.Result.map
@@ -8505,6 +8519,7 @@ resultErrorConstruct =
 resultWithErrAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneValueProperties (MappableProperties {})))
 resultWithErrAsWrap =
     { represents = "result"
+    , representsPlural = "results"
     , wrap = resultErrorConstruct
     , empty = { specific = resultOkayConstruct, kind = ConstructWithOneValue }
     , mapFn = Fn.Result.mapError
@@ -8514,6 +8529,7 @@ resultWithErrAsWrap =
 taskWithSucceedAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneValueProperties (MappableProperties {})))
 taskWithSucceedAsWrap =
     { represents = "task"
+    , representsPlural = "tasks"
     , wrap = taskSucceedingConstruct
     , empty = { specific = taskFailingConstruct, kind = ConstructWithOneValue }
     , mapFn = Fn.Task.map
@@ -8533,6 +8549,7 @@ taskFailingConstruct =
 taskWithFailAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneValueProperties (MappableProperties {})))
 taskWithFailAsWrap =
     { represents = "task"
+    , representsPlural = "tasks"
     , wrap = taskFailingConstruct
     , empty = { specific = taskSucceedingConstruct, kind = ConstructWithOneValue }
     , mapFn = Fn.Task.mapError
@@ -8542,6 +8559,7 @@ taskWithFailAsWrap =
 jsonDecoderWithSucceedAsWrap : TypeProperties (WrapperProperties (EmptiableProperties ConstructWithOneValueProperties (MappableProperties {})))
 jsonDecoderWithSucceedAsWrap =
     { represents = "json decoder"
+    , representsPlural = "json decoders"
     , wrap = jsonDecoderSucceedingConstruct
     , empty = { specific = jsonDecoderFailingConstruct, kind = ConstructWithOneValue }
     , mapFn = Fn.Json.Decode.map
@@ -8561,6 +8579,7 @@ jsonDecoderFailingConstruct =
 listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties (MappableProperties {})))))
 listCollection =
     { represents = "list"
+    , representsPlural = "lists"
     , empty = { specific = listEmptyConstantSpecific, kind = Constant }
     , elements =
         { get = listGetElements
@@ -8715,6 +8734,7 @@ listDetermineLength resources expressionNode =
 stringCollection : TypeProperties (CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties {}))))
 stringCollection =
     { represents = "string"
+    , representsPlural = "strings"
     , empty = { specific = stringEmptyConstantSpecific, kind = Constant }
     , elements =
         { countDescription = "length"
@@ -8816,6 +8836,7 @@ stringGetElements resources expressionNode =
 arrayCollection : TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties ConstantProperties {})))
 arrayCollection =
     { represents = "array"
+    , representsPlural = "arrays"
     , empty = { specific = constantFnProperties Fn.Array.empty, kind = Constant }
     , elements =
         { countDescription = "length"
@@ -8895,6 +8916,7 @@ arrayDetermineLength resources expressionNode =
 setCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties {}))))
 setCollection =
     { represents = "set"
+    , representsPlural = "sets"
     , empty = { specific = constantFnProperties Fn.Set.empty, kind = Constant }
     , elements =
         { countDescription = "size"
@@ -9019,6 +9041,7 @@ setDetermineSize resources expressionNode =
 dictCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties {})))
 dictCollection =
     { represents = "dict"
+    , representsPlural = "dicts"
     , empty = { specific = constantFnProperties Fn.Dict.empty, kind = Constant }
     , elements =
         { countDescription = "size"
@@ -9219,6 +9242,7 @@ dictGetKeys resources expressionNode =
 cmdCollection : TypeProperties (EmptiableProperties ConstantProperties {})
 cmdCollection =
     { represents = "command"
+    , representsPlural = "commands"
     , empty = { specific = constantFnProperties Fn.Platform.Cmd.none, kind = Constant }
     }
 
@@ -9226,6 +9250,7 @@ cmdCollection =
 subCollection : TypeProperties (EmptiableProperties ConstantProperties {})
 subCollection =
     { represents = "subscription"
+    , representsPlural = "subscriptions"
     , empty = { specific = constantFnProperties Fn.Platform.Sub.none, kind = Constant }
     }
 
@@ -12737,40 +12762,6 @@ operationDoesNotChangeResultOfOperationCheck =
     }
 
 
-{-| When a function's first 2 arguments are equal it will return the last argument.
-
-    f a a
-    --> a
-
-Example:
-
-    Dict.union dict dict
-    --> dict
-
--}
-withTwoEqualArgumentsReturnsLastCheck : IntoFnCheck
-withTwoEqualArgumentsReturnsLastCheck =
-    intoFnCheckOnlyCall
-        (\checkInfo ->
-            case secondArg checkInfo of
-                Just secondArg_ ->
-                    case Normalize.compare checkInfo checkInfo.firstArg secondArg_ of
-                        Normalize.ConfirmedEquality ->
-                            Just
-                                (returnsArgError
-                                    (qualifiedToString checkInfo.fn ++ " with equal first and second arguments")
-                                    { arg = secondArg_, argRepresents = "last argument" }
-                                    checkInfo
-                                )
-
-                        _ ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
-        )
-
-
 {-| When a function's first 2 arguments are equal it will return either argument.
 
     f a a
@@ -12781,15 +12772,18 @@ Examples:
     Basics.max dict dict
     --> dict
 
-    Dict.intersect set set
+    Set.union set set
     --> set
+
+    Dict.intersect dict dict
+    --> dict
 
 -}
 callWithTwoEqualArgumentsReturnsEitherArgumentCheck :
-    { argumentsDescription : String }
+    { argumentProperties | representsPlural : String }
     -> CallCheckInfo
     -> Maybe (Error {})
-callWithTwoEqualArgumentsReturnsEitherArgumentCheck config checkInfo =
+callWithTwoEqualArgumentsReturnsEitherArgumentCheck argumentProperties checkInfo =
     case secondArg checkInfo of
         Nothing ->
             Nothing
@@ -12799,8 +12793,13 @@ callWithTwoEqualArgumentsReturnsEitherArgumentCheck config checkInfo =
                 Normalize.ConfirmedEquality ->
                     Just
                         (Rule.errorWithFix
-                            { message = qualifiedToString checkInfo.fn ++ " with two equal " ++ config.argumentsDescription ++ " can be replaced by one of them"
-                            , details = [ "You can replace this call by one of its arguments." ]
+                            { message =
+                                qualifiedToString checkInfo.fn
+                                    ++ " with two equal "
+                                    ++ argumentProperties.representsPlural
+                                    ++ " can be replaced by one of them"
+                            , details =
+                                [ "You can replace this call by one of its arguments." ]
                             }
                             checkInfo.fnRange
                             (replaceBySubExpressionFix checkInfo.parentRange
@@ -13434,7 +13433,7 @@ collectionSliceChecks collection =
         ]
 
 
-collectionIntersectChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> IntoFnCheck
+collectionIntersectChecks : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties otherProperties)) -> IntoFnCheck
 collectionIntersectChecks collection =
     intoFnChecksFirstThatConstructsError
         [ unnecessaryOnEmptyCheck collection
@@ -13449,9 +13448,8 @@ collectionIntersectChecks collection =
                         )
 
                 else
-                    Nothing
+                    callWithTwoEqualArgumentsReturnsEitherArgumentCheck collection checkInfo
             )
-        , withTwoEqualArgumentsReturnsLastCheck
         ]
 
 
@@ -16117,7 +16115,7 @@ Use `returnsArgError` with the given last arg as `arg` when the last arg is alre
 -}
 alwaysReturnsLastArgError :
     String
-    -> TypeProperties otherProperties
+    -> { lastArgProperties | represents : String }
     -> QualifyResources { a | fnRange : Range, parentRange : Range, argCount : Int, firstArg : Node Expression, argsAfterFirst : List (Node Expression) }
     -> Error {}
 alwaysReturnsLastArgError usingSpecificSituation lastArgProperties checkInfo =

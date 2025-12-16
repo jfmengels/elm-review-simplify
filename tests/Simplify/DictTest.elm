@@ -1757,8 +1757,8 @@ a = Dict.intersect dict dict
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.intersect with equal first and second arguments will always return the same given last argument"
-                            , details = [ "You can replace this call by the last argument itself." ]
+                            { message = "Dict.intersect with two equal dicts can be replaced by one of them"
+                            , details = [ "You can replace this call by one of its arguments." ]
                             , under = "Dict.intersect"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1775,13 +1775,13 @@ a = value.field |> Dict.intersect (.field value)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.intersect with equal first and second arguments will always return the same given last argument"
-                            , details = [ "You can replace this call by the last argument itself." ]
+                            { message = "Dict.intersect with two equal dicts can be replaced by one of them"
+                            , details = [ "You can replace this call by one of its arguments." ]
                             , under = "Dict.intersect"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = value.field
+a = (.field value)
 """
                         ]
         ]
@@ -2215,8 +2215,8 @@ a = Dict.union dict dict
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union with equal first and second arguments will always return the same given last argument"
-                            , details = [ "You can replace this call by the last argument itself." ]
+                            { message = "Dict.union with two equal dicts can be replaced by one of them"
+                            , details = [ "You can replace this call by one of its arguments." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2233,13 +2233,13 @@ a = value.field |> Dict.union (.field value)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Dict.union with equal first and second arguments will always return the same given last argument"
-                            , details = [ "You can replace this call by the last argument itself." ]
+                            { message = "Dict.union with two equal dicts can be replaced by one of them"
+                            , details = [ "You can replace this call by one of its arguments." ]
                             , under = "Dict.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = value.field
+a = (.field value)
 """
                         ]
         , test "should replace Dict.union (Dict.singleton k v) dict by (Dict.insert k v)" <|
