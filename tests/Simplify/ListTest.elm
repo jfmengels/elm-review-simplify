@@ -8039,6 +8039,7 @@ listTakeTests =
                 """module A exposing (..)
 a = List.take 2 list
 b = List.take y [ 1, 2, 3 ]
+b = List.take n0 (List.take n1 list)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -8088,6 +8089,57 @@ a = List.take 0
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always []
+"""
+                        ]
+        , test "should replace List.take n (List.take n list) by List.take n list" <|
+            \() ->
+                """module A exposing (..)
+a = List.take n (List.take n list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.take after equivalent List.take"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "List.take"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.take n list)
+"""
+                        ]
+        , test "should replace List.take n >> List.take n by List.take n" <|
+            \() ->
+                """module A exposing (..)
+a = List.take n >> List.take n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.take after equivalent List.take"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "List.take"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 20 }, end = { row = 2, column = 29 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.take n
+"""
+                        ]
+        , test "should replace List.take n << List.take n by List.take n" <|
+            \() ->
+                """module A exposing (..)
+a = List.take n << List.take n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.take after equivalent List.take"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "List.take"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.take n
 """
                         ]
         , test "should replace List.take -literal by always []" <|
