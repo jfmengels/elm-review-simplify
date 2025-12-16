@@ -17,6 +17,8 @@ The rule now simplifies:
 - `Set.filter f (Set.filter f set)` to `Set.filter f set`
 - `Dict.filter f (Dict.filter f dict)` to `Dict.filter f dict`
 - `Set.insert k (Set.insert k set)` to `Set.insert k set`
+- `Dict.insert k v1 (Dict.insert k v0 dict)` to `Dict.insert k v1 dict`
+- `Array.set i v1 (Array.set i v0 array)` to `Array.set i v1 array`
 - `Set.remove k (Set.remove k set)` to `Set.remove k set`
 - `Dict.remove k (Dict.remove k dict)` to `Dict.remove k dict`
 - `List.take n (List.take n list)` to `List.take n list`
