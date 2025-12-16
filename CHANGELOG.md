@@ -19,6 +19,8 @@ The rule now simplifies:
 - `Set.insert k (Set.insert k set)` to `Set.insert k set`
 - `Set.remove k (Set.remove k set)` to `Set.remove k set`
 - `Dict.remove k (Dict.remove k dict)` to `Dict.remove k dict`
+- `List.take n (List.take n list)` to `List.take n list`
+- `String.left n (String.left n string)` to `String.left n string`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",

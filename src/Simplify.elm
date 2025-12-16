@@ -427,6 +427,9 @@ Destructuring using case expressions
     String.left n ""
     --> ""
 
+    String.left n (String.left n str)
+    --> String.left n str
+
     String.right 0 str
     --> ""
 
@@ -832,6 +835,9 @@ Destructuring using case expressions
 
     List.take 0 list
     --> []
+
+    List.take n (List.take n list)
+    --> List.take n list
 
     List.drop 0 list
     --> list
@@ -5656,23 +5662,7 @@ stringReverseChecks =
 
 stringLeftChecks : IntoFnCheck
 stringLeftChecks =
-    intoFnChecksFirstThatConstructsError
-        [ unnecessaryOnEmptyCheck stringCollection
-        , intoFnCheckOnlyCall
-            (\checkInfo ->
-                case Evaluate.getInt checkInfo checkInfo.firstArg of
-                    Just length ->
-                        callWithNonPositiveIntCanBeReplacedByCheck
-                            { int = length
-                            , intDescription = "length"
-                            , replacement = stringCollection.empty.specific.asString
-                            }
-                            checkInfo
-
-                    Nothing ->
-                        Nothing
-            )
-        ]
+    collectionTakeChecks stringCollection
 
 
 stringRightChecks : IntoFnCheck
@@ -6796,23 +6786,7 @@ listSortWithChecks =
 
 listTakeChecks : IntoFnCheck
 listTakeChecks =
-    intoFnChecksFirstThatConstructsError
-        [ unnecessaryOnEmptyCheck listCollection
-        , intoFnCheckOnlyCall
-            (\checkInfo ->
-                case Evaluate.getInt checkInfo checkInfo.firstArg of
-                    Just length ->
-                        callWithNonPositiveIntCanBeReplacedByCheck
-                            { int = length
-                            , intDescription = "length"
-                            , replacement = listCollection.empty.specific.asString
-                            }
-                            checkInfo
-
-                    Nothing ->
-                        Nothing
-            )
-        ]
+    collectionTakeChecks listCollection
 
 
 listDropChecks : IntoFnCheck
@@ -13544,6 +13518,38 @@ collectionSizeChecks collection checkInfo =
 
         _ ->
             Nothing
+
+
+{-| On a "take" operation that returns a given number of elements from the beginning.
+Checks:
+
+    take n emptyCollection --> emptyCollection
+
+    take n (take n collection) --> take n collection
+
+    take nonPositiveLiteral collection --> emptyCollection
+
+-}
+collectionTakeChecks : CollectionProperties (EmptiableProperties ConstantProperties collection) -> IntoFnCheck
+collectionTakeChecks collection =
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryOnEmptyCheck collection
+        , operationDoesNotChangeResultOfOperationCheck
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case Evaluate.getInt checkInfo checkInfo.firstArg of
+                    Just length ->
+                        callWithNonPositiveIntCanBeReplacedByCheck
+                            { int = length
+                            , intDescription = collection.elements.countDescription
+                            , replacement = collection.empty.specific.asString
+                            }
+                            checkInfo
+
+                    Nothing ->
+                        Nothing
+            )
+        ]
 
 
 emptiableFromListChecks : EmptiableProperties ConstantProperties otherProperties -> CallCheckInfo -> Maybe (Error {})
