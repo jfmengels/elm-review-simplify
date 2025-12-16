@@ -2311,6 +2311,7 @@ listFilterTests =
             \() ->
                 """module A exposing (..)
 a = List.filter f x
+b = List.filter f (List.filter g x)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -2360,6 +2361,57 @@ a = [] |> List.filter f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
+"""
+                        ]
+        , test "should replace List.filter f (List.filter f list) by List.filter f list" <|
+            \() ->
+                """module A exposing (..)
+a = List.filter f (List.filter f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.filter after equivalent List.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "List.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.filter f list)
+"""
+                        ]
+        , test "should replace List.filter f >> List.filter f by List.filter f" <|
+            \() ->
+                """module A exposing (..)
+a = List.filter f >> List.filter f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.filter after equivalent List.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "List.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 22 }, end = { row = 2, column = 33 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.filter f
+"""
+                        ]
+        , test "should replace List.filter f << List.filter f by List.filter f" <|
+            \() ->
+                """module A exposing (..)
+a = List.filter f << List.filter f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.filter after equivalent List.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "List.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.filter f
 """
                         ]
         , test "should replace List.filter (always True) x by x" <|

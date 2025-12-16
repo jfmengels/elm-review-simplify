@@ -619,6 +619,9 @@ Destructuring using case expressions
     List.map f [ a ]
     --> [ f a ]
 
+    List.filter f (List.filter f list)
+    --> List.filter f list
+
     List.filter (always True) list
     --> list
 
@@ -958,6 +961,15 @@ Destructuring using case expressions
     Array.length (Array.initialize n f)
     --> max 0 n
 
+    Array.filter f (Array.filter f array)
+    --> Array.filter f array
+
+    Array.filter (\_ -> True) array
+    --> array
+
+    Array.filter (\_ -> False) array
+    --> Array.empty
+
     Array.append Array.empty array
     --> array
 
@@ -1124,6 +1136,9 @@ Destructuring using case expressions
     List.foldl f x (Set.toList set)
     --> Set.foldl f x set
 
+    Set.filter f (Set.filter f set)
+    --> Set.filter f set
+
     Set.filter (\_ -> True) set
     --> set
 
@@ -1205,6 +1220,9 @@ Destructuring using case expressions
 
     Dict.filter f Dict.empty
     --> Dict.empty
+
+    Dict.filter f (Dict.filter f dict)
+    --> Dict.filter f dict
 
     Dict.filter (\_ _ -> True) dict
     --> dict
@@ -13042,6 +13060,8 @@ onWrappedReturnsJustItsValueCheck wrapper =
 
     keepWhen f empty --> empty
 
+    keepWhen f (keepWhen f emptiable) --> keepWhen f emptiable
+
     keepWhen (\_ -> True) emptiable --> emptiable
 
     keepWhen (\_ -> False) emptiable --> empty
@@ -13052,7 +13072,8 @@ If your function only takes two arguments like `Dict.filter`, use `emptiableKeep
 emptiableKeepWhenChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> IntoFnCheck
 emptiableKeepWhenChecks emptiable =
     intoFnChecksFirstThatConstructsError
-        [ unnecessaryOnEmptyCheck emptiable
+        [ operationDoesNotChangeResultOfOperationCheck
+        , unnecessaryOnEmptyCheck emptiable
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
@@ -13092,6 +13113,8 @@ keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkI
 
     keepWhenWithExtraArg f empty --> empty
 
+    keepWhenWithExtraArg f (keepWhenWithExtraArg f emptiable) --> keepWhenWithExtraArg f emptiable
+
     keepWhenWithExtraArg (\_ _ -> True) emptiable --> emptiable
 
     keepWhenWithExtraArg (\_ _ -> False) emptiable --> empty
@@ -13102,7 +13125,8 @@ If your function only takes one argument like `List.filter`, use `emptiableKeepW
 emptiableKeepWhenWithExtraArgChecks : TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> IntoFnCheck
 emptiableKeepWhenWithExtraArgChecks emptiable =
     intoFnChecksFirstThatConstructsError
-        [ unnecessaryOnEmptyCheck emptiable
+        [ operationDoesNotChangeResultOfOperationCheck
+        , unnecessaryOnEmptyCheck emptiable
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 let

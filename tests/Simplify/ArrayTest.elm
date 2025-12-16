@@ -821,6 +821,7 @@ arrayFilterTests =
                 """module A exposing (..)
 import Array
 a = Array.filter f array
+b = Array.filter f (Array.filter g array)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -876,6 +877,63 @@ a = Array.empty |> Array.filter f
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = Array.empty
+"""
+                        ]
+        , test "should replace Array.filter f (Array.filter f array) by Array.filter f array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter f (Array.filter f array)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Array.filter after equivalent Array.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 17 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (Array.filter f array)
+"""
+                        ]
+        , test "should replace Array.filter f >> Array.filter f by Array.filter f" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter f >> Array.filter f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Array.filter after equivalent Array.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 23 }, end = { row = 3, column = 35 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.filter f
+"""
+                        ]
+        , test "should replace Array.filter f << Array.filter f by Array.filter f" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.filter f << Array.filter f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Array.filter after equivalent Array.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Array.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 17 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.filter f
 """
                         ]
         , test "should replace Array.filter (always True) array by array" <|
