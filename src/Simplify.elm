@@ -235,6 +235,12 @@ Destructuring using case expressions
     round (toFloat n) -- same for ceiling, floor and truncate
     --> n
 
+    min n n
+    --> n
+
+    max n n
+    --> n
+
 
 ### Lambdas
 
@@ -3643,6 +3649,8 @@ intoFnChecks =
     , ( Fn.Basics.ceiling, ( 1, intToIntChecks ) )
     , ( Fn.Basics.floor, ( 1, intToIntChecks ) )
     , ( Fn.Basics.truncate, ( 1, intToIntChecks ) )
+    , ( Fn.Basics.min, ( 2, basicsMinChecks ) )
+    , ( Fn.Basics.max, ( 2, basicsMaxChecks ) )
     , ( Fn.Tuple.first, ( 1, tupleFirstChecks ) )
     , ( Fn.Tuple.second, ( 1, tupleSecondChecks ) )
     , ( Fn.Tuple.pair, ( 2, tuplePairChecks ) )
@@ -5210,6 +5218,26 @@ intToIntChecks =
         [ intoFnCheckOnlyCall unnecessaryConversionToIntOnIntCheck
         , onSpecificFnCallReturnsItsLastArgCheck Fn.Basics.toFloat
         ]
+
+
+basicsMinChecks : IntoFnCheck
+basicsMinChecks =
+    intoFnCheckOnlyCall
+        (\checkInfo ->
+            callWithTwoEqualArgumentsReturnsEitherArgumentCheck
+                { argumentsDescription = "arguments" }
+                checkInfo
+        )
+
+
+basicsMaxChecks : IntoFnCheck
+basicsMaxChecks =
+    intoFnCheckOnlyCall
+        (\checkInfo ->
+            callWithTwoEqualArgumentsReturnsEitherArgumentCheck
+                { argumentsDescription = "arguments" }
+                checkInfo
+        )
 
 
 unnecessaryConversionToIntOnIntCheck : CallCheckInfo -> Maybe (Error {})
@@ -12714,13 +12742,10 @@ operationDoesNotChangeResultOfOperationCheck =
     f a a
     --> a
 
-Examples:
+Example:
 
     Dict.union dict dict
     --> dict
-
-    Set.intersect set set
-    --> set
 
 -}
 withTwoEqualArgumentsReturnsLastCheck : IntoFnCheck
@@ -12744,6 +12769,49 @@ withTwoEqualArgumentsReturnsLastCheck =
                 Nothing ->
                     Nothing
         )
+
+
+{-| When a function's first 2 arguments are equal it will return either argument.
+
+    f a a
+    --> a
+
+Examples:
+
+    Basics.max dict dict
+    --> dict
+
+    Dict.intersect set set
+    --> set
+
+-}
+callWithTwoEqualArgumentsReturnsEitherArgumentCheck :
+    { argumentsDescription : String }
+    -> CallCheckInfo
+    -> Maybe (Error {})
+callWithTwoEqualArgumentsReturnsEitherArgumentCheck config checkInfo =
+    case secondArg checkInfo of
+        Nothing ->
+            Nothing
+
+        Just rightArg ->
+            case Normalize.compare checkInfo checkInfo.firstArg rightArg of
+                Normalize.ConfirmedEquality ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " with two equal " ++ config.argumentsDescription ++ " can be replaced by one of them"
+                            , details = [ "You can replace this call by one of its arguments." ]
+                            }
+                            checkInfo.fnRange
+                            (replaceBySubExpressionFix checkInfo.parentRange
+                                -- choosing to keep the first argument is arbitrary.
+                                -- we could instead also choose based on some heuristic
+                                checkInfo.firstArg
+                            )
+                        )
+
+                _ ->
+                    Nothing
 
 
 toggleFnChecks : IntoFnCheck

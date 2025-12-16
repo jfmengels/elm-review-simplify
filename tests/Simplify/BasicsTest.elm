@@ -15,6 +15,8 @@ all =
         , ceilingTests
         , floorTests
         , truncateTests
+        , minTests
+        , maxTests
         ]
 
 
@@ -732,6 +734,68 @@ a = truncate << toFloat
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = identity
+"""
+                        ]
+        ]
+
+
+minTests : Test
+minTests =
+    describe "Basics.min"
+        [ test "should not report okay function calls" <|
+            \() ->
+                """module A exposing (..)
+a0 = min
+a1 = min n
+a2 = min n m
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should simplify min n n by n" <|
+            \() ->
+                """module A exposing (..)
+a = min n n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.min with two equal arguments can be replaced by one of them"
+                            , details = [ "You can replace this call by one of its arguments." ]
+                            , under = "min"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
+"""
+                        ]
+        ]
+
+
+maxTests : Test
+maxTests =
+    describe "Basics.max"
+        [ test "should not report okay function calls" <|
+            \() ->
+                """module A exposing (..)
+a0 = max
+a1 = max n
+a2 = max n m
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should simplify max n n by n" <|
+            \() ->
+                """module A exposing (..)
+a = max n n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.max with two equal arguments can be replaced by one of them"
+                            , details = [ "You can replace this call by one of its arguments." ]
+                            , under = "max"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = n
 """
                         ]
         ]
