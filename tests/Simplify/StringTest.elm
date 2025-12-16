@@ -543,11 +543,10 @@ a0 = String.replace
 a1 = String.replace from
 a2 = String.replace from to
 a3 = String.replace from to str
-a3 = String.replace from to (String.replace from to str) -- because
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should not report String.replace on String.replace with same arguments because the replaced string could contain a patterns that would get replaced" <|
+        , test "should not report String.replace on String.replace with same arguments because the replaced string could contain a pattern that would get replaced" <|
             \() ->
                 """module A exposing (..)
 a = String.replace from to (String.replace from to str)

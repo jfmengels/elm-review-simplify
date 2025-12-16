@@ -6935,7 +6935,7 @@ h = List.sortBy (\\({x,y} as r) -> {r|x=y,y=x})
         , test "should not report List.sortBy with a function that reconstructs all destructured record fields, as record patterns do not have to be exhaustive, e.g. {x,y} can match {x=x,y=y,z=z} values" <|
             \() ->
                 """module A exposing (..)
-a = List.sortBy (\\{x,y} -> {x=x,y=y}) -- because 
+a = List.sortBy (\\{x,y} -> {x=x,y=y})
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
