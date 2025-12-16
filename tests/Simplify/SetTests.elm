@@ -2434,6 +2434,7 @@ setInsertTests =
                 """module A exposing (..)
 import Set
 a = Set.insert x set
+b = Set.insert k0 (Set.insert k1 set)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -2471,6 +2472,63 @@ a = Set.empty |> Set.insert x
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
 a = Set.singleton x
+"""
+                        ]
+        , test "should replace Set.insert k (Set.insert k set) by Set.insert k set" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.insert k (Set.insert k set)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.insert after equivalent Set.insert"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Set.insert"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 15 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = (Set.insert k set)
+"""
+                        ]
+        , test "should replace Set.insert k >> Set.insert k by Set.insert k" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.insert k >> Set.insert k
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.insert after equivalent Set.insert"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Set.insert"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 21 }, end = { row = 3, column = 31 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.insert k
+"""
+                        ]
+        , test "should replace Set.insert k << Set.insert k by Set.insert k" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.insert k << Set.insert k
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.insert after equivalent Set.insert"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Set.insert"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 15 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.insert k
 """
                         ]
         ]
