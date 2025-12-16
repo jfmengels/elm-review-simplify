@@ -1634,6 +1634,7 @@ setRemoveTests =
                 """module A exposing (..)
 import Set
 a = Set.remove x set
+b = Set.remove k0 (Set.remove k1 set)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -1653,6 +1654,63 @@ a = Set.remove x Set.empty
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
 a = Set.empty
+"""
+                        ]
+        , test "should replace Set.remove k (Set.remove k set) by Set.remove k set" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.remove k (Set.remove k set)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.remove after equivalent Set.remove"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Set.remove"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 15 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = (Set.remove k set)
+"""
+                        ]
+        , test "should replace Set.remove k >> Set.remove k by Set.remove k" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.remove k >> Set.remove k
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.remove after equivalent Set.remove"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Set.remove"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 21 }, end = { row = 3, column = 31 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.remove k
+"""
+                        ]
+        , test "should replace Set.remove k << Set.remove k by Set.remove k" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.remove k << Set.remove k
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.remove after equivalent Set.remove"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Set.remove"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 15 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.remove k
 """
                         ]
         ]
