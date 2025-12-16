@@ -841,6 +841,7 @@ import Dict
 a0 = Dict.remove
 a1 = Dict.remove k
 a2 = Dict.remove k dict
+a3 = Dict.remove k0 (Dict.remove k1 dict)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -860,6 +861,63 @@ a = Dict.remove k Dict.empty
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = Dict.empty
+"""
+                        ]
+        , test "should replace Dict.remove k (Dict.remove k dict) by Dict.remove k dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.remove k (Dict.remove k dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Dict.remove after equivalent Dict.remove"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Dict.remove"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.remove k dict)
+"""
+                        ]
+        , test "should replace Dict.remove k >> Dict.remove k by Dict.remove k" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.remove k >> Dict.remove k
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Dict.remove after equivalent Dict.remove"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Dict.remove"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 22 }, end = { row = 3, column = 33 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.remove k
+"""
+                        ]
+        , test "should replace Dict.remove k << Dict.remove k by Dict.remove k" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.remove k << Dict.remove k
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Dict.remove after equivalent Dict.remove"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Dict.remove"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.remove k
 """
                         ]
         ]

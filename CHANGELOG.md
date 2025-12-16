@@ -17,6 +17,8 @@ The rule now simplifies:
 - `Set.filter f (Set.filter f set)` to `Set.filter f set`
 - `Dict.filter f (Dict.filter f dict)` to `Dict.filter f dict`
 - `Set.insert k (Set.insert k set)` to `Set.insert k set`
+- `Set.remove k (Set.remove k set)` to `Set.remove k set`
+- `Dict.remove k (Dict.remove k dict)` to `Dict.remove k dict`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",

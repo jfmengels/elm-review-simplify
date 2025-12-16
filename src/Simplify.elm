@@ -1135,6 +1135,9 @@ Destructuring using case expressions
     Set.insert k (Set.insert k set)
     --> Set.insert k set
 
+    Set.remove k (Set.remove k set)
+    --> Set.remove k set
+
     -- same for foldr
     List.foldl f x (Set.toList set)
     --> Set.foldl f x set
@@ -1211,6 +1214,9 @@ Destructuring using case expressions
 
     Dict.remove k Dict.empty
     --> Dict.empty
+
+    Dict.remove k (Dict.remove k dict)
+    --> Dict.remove k dict
 
     Dict.update k identity dict
     --> dict
@@ -7128,7 +7134,7 @@ setInsertChecks =
 
 setRemoveChecks : IntoFnCheck
 setRemoveChecks =
-    collectionRemoveChecks setCollection
+    collectionRemoveElementChecks setCollection
 
 
 setFilterChecks : IntoFnCheck
@@ -7393,7 +7399,7 @@ dictMemberChecks =
 
 dictRemoveChecks : IntoFnCheck
 dictRemoveChecks =
-    collectionRemoveChecks dictCollection
+    collectionRemoveElementChecks dictCollection
 
 
 dictUpdateChecks : IntoFnCheck
@@ -13149,9 +13155,12 @@ emptiableKeepWhenWithExtraArgChecks emptiable =
         ]
 
 
-collectionRemoveChecks : CollectionProperties (EmptiableProperties empty otherProperties) -> IntoFnCheck
-collectionRemoveChecks collection =
-    unnecessaryOnEmptyCheck collection
+collectionRemoveElementChecks : CollectionProperties (EmptiableProperties empty otherProperties) -> IntoFnCheck
+collectionRemoveElementChecks collection =
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryOnEmptyCheck collection
+        , operationDoesNotChangeResultOfOperationCheck
+        ]
 
 
 collectionSliceChecks : EmptiableProperties ConstantProperties otherProperties -> IntoFnCheck
