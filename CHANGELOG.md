@@ -21,6 +21,7 @@ The rule now simplifies:
 - `Dict.remove k (Dict.remove k dict)` to `Dict.remove k dict`
 - `List.take n (List.take n list)` to `List.take n list`
 - `String.left n (String.left n string)` to `String.left n string`
+- `String.right n (String.right n string)` to `String.right n string`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",

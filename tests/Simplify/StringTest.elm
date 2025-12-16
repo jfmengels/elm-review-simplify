@@ -1890,10 +1890,62 @@ stringRightTests =
         [ test "should not report String.right that contains variables or expressions" <|
             \() ->
                 """module A exposing (..)
-a = String.right b c
+a = String.right n string
+a = String.right n0 (String.right n1 string)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should replace String.right n (String.right n string) by String.right n string" <|
+            \() ->
+                """module A exposing (..)
+a = String.right n (String.right n string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.right after equivalent String.right"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "String.right"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 17 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (String.right n string)
+"""
+                        ]
+        , test "should replace String.right n >> String.right n by String.right n" <|
+            \() ->
+                """module A exposing (..)
+a = String.right n >> String.right n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.right after equivalent String.right"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "String.right"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 23 }, end = { row = 2, column = 35 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.right n
+"""
+                        ]
+        , test "should replace String.right n << String.right n by String.right n" <|
+            \() ->
+                """module A exposing (..)
+a = String.right n << String.right n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.right after equivalent String.right"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "String.right"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 17 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.right n
+"""
+                        ]
         , test "should replace String.right 0 str by \"\"" <|
             \() ->
                 """module A exposing (..)
