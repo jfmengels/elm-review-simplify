@@ -25,6 +25,8 @@ The rule now simplifies:
 - `List.take n (List.take n list)` to `List.take n list`
 - `String.left n (String.left n string)` to `String.left n string`
 - `String.right n (String.right n string)` to `String.right n string`
+- `Basics.min n n` to `n`
+- `Basics.max n n` to `n`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",
