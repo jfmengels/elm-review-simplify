@@ -1914,8 +1914,8 @@ a = Set.intersect set set
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.intersect with equal first and second arguments will always return the same given last argument"
-                            , details = [ "You can replace this call by the last argument itself." ]
+                            { message = "Set.intersect with two equal sets can be replaced by one of them"
+                            , details = [ "You can replace this call by one of its arguments." ]
                             , under = "Set.intersect"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1932,13 +1932,13 @@ a = value.field |> Set.intersect (.field value)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.intersect with equal first and second arguments will always return the same given last argument"
-                            , details = [ "You can replace this call by the last argument itself." ]
+                            { message = "Set.intersect with two equal sets can be replaced by one of them"
+                            , details = [ "You can replace this call by one of its arguments." ]
                             , under = "Set.intersect"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = value.field
+a = (.field value)
 """
                         ]
         ]
@@ -2266,8 +2266,8 @@ a = Set.union set set
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.union with equal first and second arguments will always return the same given last argument"
-                            , details = [ "You can replace this call by the last argument itself." ]
+                            { message = "Set.union with two equal sets can be replaced by one of them"
+                            , details = [ "You can replace this call by one of its arguments." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2284,13 +2284,13 @@ a = value.field |> Set.union (.field value)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.union with equal first and second arguments will always return the same given last argument"
-                            , details = [ "You can replace this call by the last argument itself." ]
+                            { message = "Set.union with two equal sets can be replaced by one of them"
+                            , details = [ "You can replace this call by one of its arguments." ]
                             , under = "Set.union"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = value.field
+a = (.field value)
 """
                         ]
         , test "should replace Set.union (Set.singleton k) set by (Set.insert k)" <|
