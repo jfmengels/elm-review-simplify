@@ -13,6 +13,7 @@ all =
         , dictToListTests
         , dictSizeTests
         , dictMemberTests
+        , dictInsertTests
         , dictRemoveTests
         , dictUpdateTests
         , dictFilterTests
@@ -828,6 +829,100 @@ a = Dict.member reference (Dict.fromList [ ( 2, () ), ( 3, () ), ( reference, ()
 """
                     |> Review.Test.run ruleExpectingNaN
                     |> Review.Test.expectNoErrors
+        ]
+
+
+dictInsertTests : Test
+dictInsertTests =
+    describe "Dict.insert"
+        [ test "should not report Dict.remove used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a0 = Dict.insert
+a1 = Dict.insert k
+a2 = Dict.insert k dict
+a3 = Dict.insert k1 v1 (Dict.insert k0 v0 dict)
+a4 = Dict.insert k1 v1 << Dict.insert k0 v0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.insert k v1 (Dict.insert k v0 dict) by Dict.insert k v1 dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.insert k v1 (Dict.insert k v0 dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.insert on Dict.insert with the same key makes the earlier operation unnecessary"
+                            , details = [ "You can remove the earlier operation." ]
+                            , under = "Dict.insert"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.insert k v1 dict
+"""
+                        ]
+        , test "Dict.insert k v1 (Dict.insert k v0 <| f <| x) by Dict.insert k v1 (f <| x)" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.insert k v1 (Dict.insert k v0 <| f <| x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.insert on Dict.insert with the same key makes the earlier operation unnecessary"
+                            , details = [ "You can remove the earlier operation." ]
+                            , under = "Dict.insert"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.insert k v1 (f <| x)
+"""
+                        ]
+        , test "should replace Dict.insert k v1 << Dict.insert k v0 by Dict.insert k v1" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.insert k v1 << Dict.insert k v0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.insert on Dict.insert with the same key makes the earlier operation unnecessary"
+                            , details = [ "You can remove the earlier operation." ]
+                            , under = "Dict.insert"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.insert k v1
+"""
+                        ]
+        , test "should replace Dict.insert k v0 >> Dict.insert k v1 by Dict.insert k v1" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.insert k v0 >> Dict.insert k v1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.insert on Dict.insert with the same key makes the earlier operation unnecessary"
+                            , details = [ "You can remove the earlier operation." ]
+                            , under = "Dict.insert"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 25 }, end = { row = 3, column = 36 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.insert k v1
+"""
+                        ]
         ]
 
 

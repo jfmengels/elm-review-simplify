@@ -1027,6 +1027,9 @@ Destructuring using case expressions
     Array.set n x Array.empty
     --> Array.empty
 
+    Array.set i v1 (Array.set i v0 array)
+    --> Array.set i v1 array
+
     Array.set -1 x array
     --> array
 
@@ -1220,6 +1223,9 @@ Destructuring using case expressions
 
     Dict.member -999 [ ( 0, v0 ), ( 1, v1 ) ]
     --> False
+
+    Dict.insert k v1 (Dict.insert k v0 dict)
+    --> Dict.insert k v1 dict
 
     Dict.remove k Dict.empty
     --> Dict.empty
@@ -3723,6 +3729,7 @@ intoFnChecks =
     , ( Fn.Dict.toList, ( 1, dictToListChecks ) )
     , ( Fn.Dict.size, ( 1, dictSizeChecks ) )
     , ( Fn.Dict.member, ( 2, dictMemberChecks ) )
+    , ( Fn.Dict.insert, ( 3, dictInsertChecks ) )
     , ( Fn.Dict.remove, ( 2, dictRemoveChecks ) )
     , ( Fn.Dict.update, ( 3, dictUpdateChecks ) )
     , ( Fn.Dict.filter, ( 2, dictFilterChecks ) )
@@ -6934,7 +6941,7 @@ arrayLengthOnArrayRepeatOrInitializeChecks checkInfo =
 
 arraySetChecks : IntoFnCheck
 arraySetChecks =
-    setChecks arrayCollection
+    collectionSetChecks arrayCollection
 
 
 arraySliceChecks : IntoFnCheck
@@ -7356,6 +7363,11 @@ dictMemberChecks =
                             checkInfo
                     )
         )
+
+
+dictInsertChecks : IntoFnCheck
+dictInsertChecks =
+    operationMakesPreviousOperationWithEqualFirstArgUnnecessaryCheck { firstArgDescription = "key" }
 
 
 dictRemoveChecks : IntoFnCheck
@@ -11503,10 +11515,11 @@ indexAccessChecks collection checkInfo n =
                 Nothing
 
 
-setChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> IntoFnCheck
-setChecks collection =
+collectionSetChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> IntoFnCheck
+collectionSetChecks collection =
     intoFnChecksFirstThatConstructsError
         [ unnecessaryOnEmptyCheck collection
+        , operationMakesPreviousOperationWithEqualFirstArgUnnecessaryCheck { firstArgDescription = "index" }
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 case Evaluate.getInt checkInfo checkInfo.firstArg of
@@ -11531,6 +11544,96 @@ setChecks collection =
                         Nothing
             )
         ]
+
+
+{-| Checks that when the first arguments of consecutive calls of the same function are equal,
+the effect of the earlier call gets "overwritten". For example
+
+    array |> Array.set 1 0 |> Array.set 1 100
+    --> array |> Array.set 1 100
+
+Use `operationDoesNotChangeResultOfOperationCheck`
+when _all arguments_ need to be the same, even if there is just one argument
+
+-}
+operationMakesPreviousOperationWithEqualFirstArgUnnecessaryCheck : { firstArgDescription : String } -> IntoFnCheck
+operationMakesPreviousOperationWithEqualFirstArgUnnecessaryCheck config =
+    { call =
+        \checkInfo ->
+            case
+                Maybe.andThen (AstHelpers.getSpecificFnCall checkInfo.fn checkInfo)
+                    (fullyAppliedLastArg checkInfo)
+            of
+                Nothing ->
+                    Nothing
+
+                Just lastArgOperationCall ->
+                    case
+                        fullyAppliedLastArg
+                            { firstArg = lastArgOperationCall.firstArg
+                            , argsAfterFirst = lastArgOperationCall.argsAfterFirst
+                            , argCount = checkInfo.argCount
+                            }
+                    of
+                        Nothing ->
+                            Nothing
+
+                        Just lastArgOperationCallLastArg ->
+                            case Normalize.compare checkInfo checkInfo.firstArg lastArgOperationCall.firstArg of
+                                Normalize.ConfirmedEquality ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            (operationMakesPreviousOperationWithEqualFirstArgUnnecessaryErrorInfo config checkInfo.fn)
+                                            checkInfo.fnRange
+                                            (replaceBySubExpressionFix lastArgOperationCall.nodeRange
+                                                lastArgOperationCallLastArg
+                                            )
+                                        )
+
+                                _ ->
+                                    Nothing
+    , composition =
+        \checkInfo ->
+            if
+                onlyLastArgIsCurried checkInfo.later
+                    && (checkInfo.earlier.fn == checkInfo.later.fn)
+            then
+                case checkInfo.later.args of
+                    laterFirstArg :: _ ->
+                        case checkInfo.earlier.args of
+                            earlierFirstArg :: _ ->
+                                case Normalize.compare checkInfo laterFirstArg earlierFirstArg of
+                                    Normalize.ConfirmedEquality ->
+                                        Just
+                                            { info = operationMakesPreviousOperationWithEqualFirstArgUnnecessaryErrorInfo config checkInfo.later.fn
+                                            , fix = [ Fix.removeRange checkInfo.earlier.removeRange ]
+                                            }
+
+                                    _ ->
+                                        Nothing
+
+                            [] ->
+                                Nothing
+
+                    [] ->
+                        Nothing
+
+            else
+                Nothing
+    }
+
+
+operationMakesPreviousOperationWithEqualFirstArgUnnecessaryErrorInfo : { firstArgDescription : String } -> ( ModuleName, String ) -> { message : String, details : List String }
+operationMakesPreviousOperationWithEqualFirstArgUnnecessaryErrorInfo config fn =
+    { message =
+        qualifiedToString fn
+            ++ " on "
+            ++ qualifiedToString fn
+            ++ " with the same "
+            ++ config.firstArgDescription
+            ++ " makes the earlier operation unnecessary"
+    , details = [ "You can remove the earlier operation." ]
+    }
 
 
 setOnKnownElementChecks :

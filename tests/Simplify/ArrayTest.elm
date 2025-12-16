@@ -2570,6 +2570,8 @@ c = Array.set n x
 d = Array.set 1
 e = Array.set 1 x
 f = Array.set n x (Array.fromList [ 1 ])
+g = Array.set i v1 (Array.set j v0 array)
+h = Array.set i v1 << Array.set j v0
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -2589,6 +2591,82 @@ a = Array.set n x Array.empty
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = Array.empty
+"""
+                        ]
+        , test "should replace Array.set i v1 (Array.set i v0 array) by Array.set i v1 array" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.set i v1 (Array.set i v0 array)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.set on Array.set with the same index makes the earlier operation unnecessary"
+                            , details = [ "You can remove the earlier operation." ]
+                            , under = "Array.set"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.set i v1 array
+"""
+                        ]
+        , test "Array.set i v1 (Array.set i v0 <| f <| x) by Array.set i v1 (f <| x)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.set i v1 (Array.set i v0 <| f <| x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.set on Array.set with the same index makes the earlier operation unnecessary"
+                            , details = [ "You can remove the earlier operation." ]
+                            , under = "Array.set"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.set i v1 (f <| x)
+"""
+                        ]
+        , test "should replace Array.set i v1 << Array.set i v0 by Array.set i v1" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.set i v1 << Array.set i v0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.set on Array.set with the same index makes the earlier operation unnecessary"
+                            , details = [ "You can remove the earlier operation." ]
+                            , under = "Array.set"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.set i v1
+"""
+                        ]
+        , test "should replace Array.set i v0 >> Array.set i v1 by Array.set i v1" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.set i v0 >> Array.set i v1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.set on Array.set with the same index makes the earlier operation unnecessary"
+                            , details = [ "You can remove the earlier operation." ]
+                            , under = "Array.set"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 23 }, end = { row = 3, column = 32 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.set i v1
 """
                         ]
         , test "should replace Array.set -1 x array by array" <|
