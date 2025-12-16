@@ -439,6 +439,9 @@ Destructuring using case expressions
     String.right n ""
     --> ""
 
+    String.right n (String.right n str)
+    --> String.right n str
+
     String.slice 2 1 str
     --> ""
 
@@ -5667,23 +5670,7 @@ stringLeftChecks =
 
 stringRightChecks : IntoFnCheck
 stringRightChecks =
-    intoFnChecksFirstThatConstructsError
-        [ unnecessaryOnEmptyCheck stringCollection
-        , intoFnCheckOnlyCall
-            (\checkInfo ->
-                case Evaluate.getInt checkInfo checkInfo.firstArg of
-                    Just length ->
-                        callWithNonPositiveIntCanBeReplacedByCheck
-                            { int = length
-                            , intDescription = "length"
-                            , replacement = stringCollection.empty.specific.asString
-                            }
-                            checkInfo
-
-                    Nothing ->
-                        Nothing
-            )
-        ]
+    collectionTakeChecks stringCollection
 
 
 stringReplaceChecks : IntoFnCheck
@@ -13520,7 +13507,8 @@ collectionSizeChecks collection checkInfo =
             Nothing
 
 
-{-| On a "take" operation that returns a given number of elements from the beginning.
+{-| On a "take" operation that returns a given number of elements _from the either side_
+(for example `String.right` or `List.take`).
 Checks:
 
     take n emptyCollection --> emptyCollection
@@ -13538,9 +13526,9 @@ collectionTakeChecks collection =
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 case Evaluate.getInt checkInfo checkInfo.firstArg of
-                    Just length ->
+                    Just elementCount ->
                         callWithNonPositiveIntCanBeReplacedByCheck
-                            { int = length
+                            { int = elementCount
                             , intDescription = collection.elements.countDescription
                             , replacement = collection.empty.specific.asString
                             }
