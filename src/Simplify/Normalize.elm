@@ -234,7 +234,8 @@ normalize resources node =
             toNode (Expression.ListExpr (List.map (\element -> normalize resources element) elements))
 
         Expression.RecordAccess expr (Node _ field) ->
-            toNode (Expression.RecordAccess (normalize resources expr) (toNode field))
+            toNodeAndInfer resources
+                (Expression.RecordAccess (normalize resources expr) (toNode field))
 
         Expression.RecordExpr fields ->
             fields
