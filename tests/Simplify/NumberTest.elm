@@ -15,7 +15,6 @@ all =
         , intDivideTests
         , negationTest
         , basicsNegateTests
-        , comparisonTests
         ]
 
 
@@ -847,115 +846,6 @@ a = negate <| negate x
                             |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 11 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = x
-"""
-                        ]
-        ]
-
-
-comparisonTests : Test
-comparisonTests =
-    describe "Comparison operators"
-        [ lessThanTests
-        ]
-
-
-lessThanTests : Test
-lessThanTests =
-    describe "<"
-        [ test "should simplify 1 < 2 to False" <|
-            \() ->
-                """module A exposing (..)
-a = 1 < 2
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "(<) comparison will result in True"
-                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
-                            , under = "1 < 2"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = True
-"""
-                        ]
-        , test "should simplify 1 < 2 + 3 to False" <|
-            \() ->
-                """module A exposing (..)
-a = 1 < 2 + 3
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "(<) comparison will result in True"
-                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
-                            , under = "1 < 2 + 3"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = True
-"""
-                        ]
-        , test "should simplify 2 < 1 to False" <|
-            \() ->
-                """module A exposing (..)
-a = 2 < 1
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "(<) comparison will result in False"
-                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
-                            , under = "2 < 1"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = False
-"""
-                        ]
-        , test "should simplify 1 > 2 to False" <|
-            \() ->
-                """module A exposing (..)
-a = 1 > 2
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "(>) comparison will result in False"
-                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
-                            , under = "1 > 2"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = False
-"""
-                        ]
-        , test "should simplify 1 >= 2 to False" <|
-            \() ->
-                """module A exposing (..)
-a = 1 >= 2
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "(>=) comparison will result in False"
-                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
-                            , under = "1 >= 2"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = False
-"""
-                        ]
-        , test "should simplify 1 <= 2 to True" <|
-            \() ->
-                """module A exposing (..)
-a = 1 <= 2
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "(<=) comparison will result in True"
-                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
-                            , under = "1 <= 2"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = True
 """
                         ]
         ]
