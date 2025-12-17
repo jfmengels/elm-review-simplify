@@ -3675,10 +3675,10 @@ intoFnChecks =
     , ( Fn.Basics.not, ( 1, basicsNotChecks ) )
     , ( Fn.Basics.negate, ( 1, basicsNegateChecks ) )
     , ( Fn.Basics.toFloat, ( 1, basicsToFloatChecks ) )
-    , ( Fn.Basics.round, ( 1, intToIntChecks Basics.round ) )
-    , ( Fn.Basics.ceiling, ( 1, intToIntChecks Basics.ceiling ) )
-    , ( Fn.Basics.floor, ( 1, intToIntChecks Basics.floor ) )
-    , ( Fn.Basics.truncate, ( 1, intToIntChecks Basics.truncate ) )
+    , ( Fn.Basics.round, ( 1, floatToIntConversionChecks Basics.round ) )
+    , ( Fn.Basics.ceiling, ( 1, floatToIntConversionChecks Basics.ceiling ) )
+    , ( Fn.Basics.floor, ( 1, floatToIntConversionChecks Basics.floor ) )
+    , ( Fn.Basics.truncate, ( 1, floatToIntConversionChecks Basics.truncate ) )
     , ( Fn.Basics.min, ( 2, basicsMinChecks ) )
     , ( Fn.Basics.max, ( 2, basicsMaxChecks ) )
     , ( Fn.Basics.compare, ( 2, basicsCompareChecks ) )
@@ -5381,8 +5381,8 @@ basicsToFloatChecks =
         )
 
 
-intToIntChecks : (Float -> Int) -> IntoFnCheck
-intToIntChecks operation =
+floatToIntConversionChecks : (Float -> Int) -> IntoFnCheck
+floatToIntConversionChecks operation =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall
             (\checkInfo -> evaluateConversionToIntOnNumberCheck operation checkInfo)
