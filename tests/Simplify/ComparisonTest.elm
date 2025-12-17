@@ -47,10 +47,49 @@ a = n > n
 a = False
 """
                         ]
-        , test "should not report n < n when expect NaN is enabled" <|
+        , test "should simplify n >= n to True, expect NaN enabled" <|
+            \() ->
+                """module A exposing (..)
+a = n >= n
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>=) with two equal operands results in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = ">="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify n <= n to True, expect NaN not enabled" <|
+            \() ->
+                """module A exposing (..)
+a = n <= n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) with two equal operands results in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should not report n > n when expect NaN is enabled" <|
             \() ->
                 """module A exposing (..)
 a = n > n
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should not report n <= n when expect NaN is enabled" <|
+            \() ->
+                """module A exposing (..)
+a = n <= n
 """
                     |> Review.Test.run ruleExpectingNaN
                     |> Review.Test.expectNoErrors
@@ -61,10 +100,24 @@ a = x > y
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not report >= with okay operands" <|
+            \() ->
+                """module A exposing (..)
+a = x >= y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should not report < with okay operands" <|
             \() ->
                 """module A exposing (..)
 a = x < y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report <= with okay operands" <|
+            \() ->
+                """module A exposing (..)
+a = x <= y
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -284,9 +337,9 @@ a = 1 >= 2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "(>=) comparison will result in False"
-                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
-                            , under = "1 >= 2"
+                            { message = "(>=) with a left value less than the right results in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = ">="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = False
@@ -300,9 +353,9 @@ a = 1 <= 2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "(<=) comparison will result in True"
-                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
-                            , under = "1 <= 2"
+                            { message = "(<=) with a left value less than the right results in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "<="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = True
