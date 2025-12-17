@@ -748,10 +748,12 @@ minTests =
 a0 = min
 a1 = min n
 a2 = min n m
+a3 = min 3 m
+a4 = min n 4
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should simplify min n n by n" <|
+        , test "should replace min n n by n" <|
             \() ->
                 """module A exposing (..)
 a = min n n
@@ -767,6 +769,38 @@ a = min n n
 a = n
 """
                         ]
+        , test "should replace min 3 4 by 3" <|
+            \() ->
+                """module A exposing (..)
+a = min 3 4
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.min with a first value that is less than the second value results in the first value"
+                            , details = [ "You can replace this call by the its first argument." ]
+                            , under = "min"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 3
+"""
+                        ]
+        , test "should replace min 4 3 by 3" <|
+            \() ->
+                """module A exposing (..)
+a = min 4 3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.min with a first value that is greater than the second value results in the second value"
+                            , details = [ "You can replace this call by the its second argument." ]
+                            , under = "min"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 3
+"""
+                        ]
         ]
 
 
@@ -779,10 +813,12 @@ maxTests =
 a0 = max
 a1 = max n
 a2 = max n m
+a3 = max 3 m
+a4 = max n 4
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should simplify max n n by n" <|
+        , test "should replace max n n by n" <|
             \() ->
                 """module A exposing (..)
 a = max n n
@@ -796,6 +832,38 @@ a = max n n
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
+"""
+                        ]
+        , test "should replace max 3 4 by 4" <|
+            \() ->
+                """module A exposing (..)
+a = max 3 4
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.max with a first value that is less than the second value results in the second value"
+                            , details = [ "You can replace this call by the its second argument." ]
+                            , under = "max"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 4
+"""
+                        ]
+        , test "should replace max 4 3 by 4" <|
+            \() ->
+                """module A exposing (..)
+a = max 4 3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.max with a first value that is greater than the second value results in the first value"
+                            , details = [ "You can replace this call by the its first argument." ]
+                            , under = "max"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 4
 """
                         ]
         ]
