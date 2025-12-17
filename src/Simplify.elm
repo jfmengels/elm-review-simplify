@@ -5240,6 +5240,118 @@ basicsMaxChecks =
         )
 
 
+evaluateCompare : Infer.Resources a -> Node Expression -> Node Expression -> Match Order
+evaluateCompare resources left right =
+    case expressionToComparable resources left of
+        Just leftComparable ->
+            case expressionToComparable resources right of
+                Nothing ->
+                    Undetermined
+
+                Just rightComparable ->
+                    compareComparableExpressions leftComparable rightComparable
+
+        Nothing ->
+            Undetermined
+
+
+{-| If you just want to check for equality, use == or better
+if possible skip the "to comparable" and use Normalize.areTheSame
+-}
+compareComparableExpressions : ComparableExpression -> ComparableExpression -> Match Order
+compareComparableExpressions left right =
+    case left of
+        ComparableNumber leftNumber ->
+            case right of
+                ComparableNumber rightNumber ->
+                    Determined (compare leftNumber rightNumber)
+
+                _ ->
+                    Undetermined
+
+        ComparableChar leftChar ->
+            case right of
+                ComparableChar rightChar ->
+                    Determined (compare leftChar rightChar)
+
+                _ ->
+                    Undetermined
+
+        ComparableString leftString ->
+            case right of
+                ComparableString rightString ->
+                    Determined (compare leftString rightString)
+
+                _ ->
+                    Undetermined
+
+        ComparableTuple leftFirst leftSecond ->
+            case right of
+                ComparableTuple rightFirst rightSecond ->
+                    case compareComparableExpressions leftFirst rightFirst of
+                        Determined EQ ->
+                            compareComparableExpressions leftSecond rightSecond
+
+                        firstOrderMatchNotEqual ->
+                            firstOrderMatchNotEqual
+
+                _ ->
+                    Undetermined
+
+        ComparableTriple leftFirst leftSecond leftThird ->
+            case right of
+                ComparableTriple rightFirst rightSecond rightThird ->
+                    case compareComparableExpressions leftFirst rightFirst of
+                        Determined EQ ->
+                            case compareComparableExpressions leftSecond rightSecond of
+                                Determined EQ ->
+                                    compareComparableExpressions leftThird rightThird
+
+                                firstOrderMatchNotEqual ->
+                                    firstOrderMatchNotEqual
+
+                        firstOrderMatchNotEqual ->
+                            firstOrderMatchNotEqual
+
+                _ ->
+                    Undetermined
+
+        ComparableList leftList ->
+            case right of
+                ComparableList rightList ->
+                    compareComparableExpressionLists leftList rightList
+
+                _ ->
+                    Undetermined
+
+
+compareComparableExpressionLists : List ComparableExpression -> List ComparableExpression -> Match Order
+compareComparableExpressionLists leftList rightList =
+    case leftList of
+        [] ->
+            Determined
+                (case rightList of
+                    [] ->
+                        EQ
+
+                    _ :: _ ->
+                        LT
+                )
+
+        leftHead :: leftTail ->
+            case rightList of
+                [] ->
+                    Determined GT
+
+                rightHead :: rightTail ->
+                    case compareComparableExpressions leftHead rightHead of
+                        Determined EQ ->
+                            compareComparableExpressionLists leftTail rightTail
+
+                        headOrderMatchNotEqual ->
+                            headOrderMatchNotEqual
+
+
 unnecessaryConversionToIntOnIntCheck : CallCheckInfo -> Maybe (Error {})
 unnecessaryConversionToIntOnIntCheck checkInfo =
     case Evaluate.getInt checkInfo checkInfo.firstArg of
@@ -8957,7 +9069,7 @@ setGetElements resources expressionNode =
                     Just fromListCall ->
                         case listGetElements resources fromListCall.firstArg of
                             Just listElements ->
-                                case traverse getComparableWithExpressionNode listElements.known of
+                                case traverse (\element -> getComparableWithExpressionNode resources element) listElements.known of
                                     Just comparableElements ->
                                         Just
                                             { known = uniqueByThenMap .comparable .expressionNode comparableElements
@@ -8975,9 +9087,12 @@ setGetElements resources expressionNode =
             )
 
 
-getComparableWithExpressionNode : Node Expression -> Maybe { comparable : List Expression, expressionNode : Node Expression }
-getComparableWithExpressionNode expressionNode =
-    getComparableExpression expressionNode
+getComparableWithExpressionNode :
+    Infer.Resources a
+    -> Node Expression
+    -> Maybe { comparable : ComparableExpression, expressionNode : Node Expression }
+getComparableWithExpressionNode resources expressionNode =
+    expressionToComparable resources expressionNode
         |> Maybe.map (\comparable -> { comparable = comparable, expressionNode = expressionNode })
 
 
@@ -9007,7 +9122,7 @@ setDetermineSize resources expressionNode =
                         case listGetElements resources fromListCall.firstArg of
                             Just listElements ->
                                 if listElements.allKnown then
-                                    case traverse getComparableExpression listElements.known of
+                                    case traverse (\element -> expressionToComparable resources element) listElements.known of
                                         Just comparableListElements ->
                                             comparableListElements |> countUnique |> Exactly |> Just
 
@@ -9085,7 +9200,7 @@ dictDetermineSize resources expressionNode =
                         case listGetElements resources fromListCall.firstArg of
                             Just listElements ->
                                 if listElements.allKnown then
-                                    case traverse (getTupleWithComparableFirst resources.lookupTable) listElements.known of
+                                    case traverse (\element -> getTupleWithComparableFirst resources element) listElements.known of
                                         Just comparableKeyExpressions ->
                                             comparableKeyExpressions |> countUniqueBy .comparableFirst |> Exactly |> Just
 
@@ -9147,7 +9262,7 @@ dictGetValues resources expressionNode =
                             case listGetElements resources fromListCall.firstArg of
                                 Just listElements ->
                                     if listElements.allKnown then
-                                        case traverse (getTupleWithComparableFirst resources.lookupTable) listElements.known of
+                                        case traverse (getTupleWithComparableFirst resources) listElements.known of
                                             Just tuplesWithComparableKey ->
                                                 Just
                                                     { known = uniqueByThenMap .comparableFirst .second tuplesWithComparableKey
@@ -9167,18 +9282,18 @@ dictGetValues resources expressionNode =
 
 
 getTupleWithComparableFirst :
-    ModuleNameLookupTable
+    Infer.Resources a
     -> Node Expression
     ->
         Maybe
-            { comparableFirst : List Expression
+            { comparableFirst : ComparableExpression
             , first : Node Expression
             , second : Node Expression
             }
-getTupleWithComparableFirst lookupTable expressionNode =
-    case AstHelpers.getTuple2 lookupTable expressionNode of
+getTupleWithComparableFirst resources expressionNode =
+    case AstHelpers.getTuple2 resources.lookupTable expressionNode of
         Just tuple ->
-            case getComparableExpression tuple.first of
+            case expressionToComparable resources tuple.first of
                 Just comparableFirst ->
                     Just
                         { comparableFirst = comparableFirst
@@ -9219,7 +9334,7 @@ dictGetKeys resources expressionNode =
                             case listGetElements resources fromListCall.firstArg of
                                 Just listElements ->
                                     if listElements.allKnown then
-                                        case traverse (getTupleWithComparableFirst resources.lookupTable) listElements.known of
+                                        case traverse (\element -> getTupleWithComparableFirst resources element) listElements.known of
                                             Just tuplesWithComparableKey ->
                                                 Just
                                                     { known =
@@ -16617,40 +16732,103 @@ trueInAllBranches isSpecific baseExpressionNode =
                 False
 
 
-getComparableExpression : Node Expression -> Maybe (List Expression)
-getComparableExpression expressionNode =
-    getComparableExpressionHelper 1 expressionNode
+expressionToComparable : Infer.Resources a -> Node Expression -> Maybe ComparableExpression
+expressionToComparable resources expressionNode =
+    expressionToComparableHelp 1 resources expressionNode
 
 
-getComparableExpressionHelper : Int -> Node Expression -> Maybe (List Expression)
-getComparableExpressionHelper sign (Node _ expression) =
+type ComparableExpression
+    = -- in theory also Time.Posix
+      ComparableNumber Float
+    | ComparableChar Char
+    | ComparableString String
+    | ComparableTuple ComparableExpression ComparableExpression
+    | ComparableTriple ComparableExpression ComparableExpression ComparableExpression
+    | ComparableList (List ComparableExpression)
+
+
+expressionToComparableHelp : Int -> Infer.Resources a -> Node Expression -> Maybe ComparableExpression
+expressionToComparableHelp sign resources (Node expressionRange expression) =
     case expression of
         Expression.Integer int ->
-            Just [ Expression.Integer (sign * int) ]
+            Just (ComparableNumber (Basics.toFloat (sign * int)))
 
         Expression.Hex hex ->
-            Just [ Expression.Integer (sign * hex) ]
+            Just (ComparableNumber (Basics.toFloat (sign * hex)))
 
         Expression.Floatable float ->
-            Just [ Expression.Floatable (toFloat sign * float) ]
+            Just (ComparableNumber (toFloat sign * float))
 
         Expression.Negation expr ->
-            getComparableExpressionHelper (-1 * sign) expr
+            expressionToComparableHelp (-1 * sign) resources expr
 
         Expression.Literal string ->
-            Just [ Expression.Literal string ]
+            Just (ComparableString string)
 
         Expression.CharLiteral char ->
-            Just [ Expression.CharLiteral char ]
+            Just (ComparableChar char)
 
         Expression.ParenthesizedExpression expr ->
-            getComparableExpressionHelper 1 expr
+            expressionToComparableHelp sign resources expr
 
-        Expression.TupledExpression exprs ->
-            exprs |> traverseConcat (getComparableExpressionHelper 1)
+        Expression.TupledExpression [ first, second ] ->
+            case expressionToComparableHelp 1 resources first of
+                Nothing ->
+                    Nothing
 
-        Expression.ListExpr exprs ->
-            exprs |> traverseConcat (getComparableExpressionHelper 1)
+                Just firstComparable ->
+                    expressionToComparableHelp 1 resources second
+                        |> Maybe.map
+                            (\secondComparable ->
+                                ComparableTuple firstComparable secondComparable
+                            )
+
+        Expression.TupledExpression [ first, second, third ] ->
+            case expressionToComparableHelp 1 resources first of
+                Nothing ->
+                    Nothing
+
+                Just firstComparable ->
+                    case expressionToComparableHelp 1 resources second of
+                        Nothing ->
+                            Nothing
+
+                        Just secondComparable ->
+                            expressionToComparableHelp 1 resources third
+                                |> Maybe.map
+                                    (\thirdComparable ->
+                                        ComparableTriple firstComparable secondComparable thirdComparable
+                                    )
+
+        Expression.ListExpr elements ->
+            Maybe.map ComparableList
+                (traverse (\eleemnt -> expressionToComparableHelp 1 resources eleemnt) elements)
+
+        Expression.FunctionOrValue _ name ->
+            case
+                ModuleNameLookupTable.moduleNameAt resources.lookupTable expressionRange
+                    |> Maybe.andThen
+                        (\moduleOrigin ->
+                            Infer.get (Expression.FunctionOrValue moduleOrigin name)
+                                (Tuple.first resources.inferredConstants)
+                        )
+            of
+                Nothing ->
+                    Nothing
+
+                Just inferred ->
+                    case inferred of
+                        Infer.DTrue ->
+                            Nothing
+
+                        Infer.DFalse ->
+                            Nothing
+
+                        Infer.DNumber float ->
+                            Just (ComparableNumber float)
+
+                        Infer.DString string ->
+                            Just (ComparableString string)
 
         _ ->
             Nothing
