@@ -4636,34 +4636,7 @@ equalityChecks isEqual checkInfo =
             )
         |> onNothing
             (\() ->
-                let
-                    inferred : Infer.Inferred
-                    inferred =
-                        Tuple.first checkInfo.inferredConstants
-
-                    normalizeAndInfer : Node Expression -> Node Expression
-                    normalizeAndInfer expressionNode =
-                        let
-                            normalizedExpressionNode : Node Expression
-                            normalizedExpressionNode =
-                                Normalize.normalize checkInfo expressionNode
-                        in
-                        case Infer.getAsExpression (Node.value normalizedExpressionNode) inferred of
-                            Just expr ->
-                                Node Range.emptyRange expr
-
-                            Nothing ->
-                                normalizedExpressionNode
-
-                    normalizedLeft : Node Expression
-                    normalizedLeft =
-                        normalizeAndInfer checkInfo.left
-
-                    normalizedRight : Node Expression
-                    normalizedRight =
-                        normalizeAndInfer checkInfo.right
-                in
-                case Normalize.compareWithoutNormalization normalizedLeft normalizedRight of
+                case Normalize.compare checkInfo checkInfo.left checkInfo.right of
                     Normalize.ConfirmedEquality ->
                         if
                             checkInfo.expectNaN
