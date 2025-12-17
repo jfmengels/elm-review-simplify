@@ -16800,17 +16800,11 @@ normalizedExpressionToComparableWithSign sign (Node _ expression) =
         Expression.Floatable float ->
             Just (ComparableNumber (toFloat sign * float))
 
-        Expression.Negation expr ->
-            normalizedExpressionToComparableWithSign (-1 * sign) expr
-
         Expression.Literal string ->
             Just (ComparableString string)
 
         Expression.CharLiteral char ->
             Just (ComparableChar char)
-
-        Expression.ParenthesizedExpression expr ->
-            normalizedExpressionToComparableWithSign sign expr
 
         Expression.TupledExpression [ first, second ] ->
             case normalizedExpressionToComparableWithSign 1 first of
@@ -16844,6 +16838,56 @@ normalizedExpressionToComparableWithSign sign (Node _ expression) =
         Expression.ListExpr elements ->
             Maybe.map ComparableList
                 (traverse (\element -> normalizedExpressionToComparableWithSign 1 element) elements)
+
+        Expression.ParenthesizedExpression expr ->
+            normalizedExpressionToComparableWithSign sign expr
+
+        Expression.Negation expr ->
+            normalizedExpressionToComparableWithSign (-1 * sign) expr
+
+        Expression.OperatorApplication operator _ left right ->
+            case numberOperationForSymbol operator of
+                Nothing ->
+                    Nothing
+
+                Just numberOperation ->
+                    case normalizedExpressionToComparableWithSign 1 left of
+                        Just (ComparableNumber leftNumber) ->
+                            case normalizedExpressionToComparableWithSign 1 right of
+                                Just (ComparableNumber rightNumber) ->
+                                    Just (ComparableNumber (Basics.toFloat sign * numberOperation leftNumber rightNumber))
+
+                                _ ->
+                                    Nothing
+
+                        _ ->
+                            Nothing
+
+        _ ->
+            Nothing
+
+
+numberOperationForSymbol : String -> Maybe (Float -> Float -> Float)
+numberOperationForSymbol operator =
+    case operator of
+        "+" ->
+            Just (+)
+
+        "-" ->
+            Just (-)
+
+        "*" ->
+            Just (*)
+
+        "/" ->
+            Just (/)
+
+        "//" ->
+            Just
+                (\l r ->
+                    -- not truncate because that would drop bits above 32
+                    Basics.toFloat (Basics.round l // Basics.round r)
+                )
 
         _ ->
             Nothing
