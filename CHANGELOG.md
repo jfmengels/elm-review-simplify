@@ -26,7 +26,9 @@ The rule now simplifies:
 - `String.left n (String.left n string)` to `String.left n string`
 - `String.right n (String.right n string)` to `String.right n string`
 - `Basics.min n n` to `n`
+- `Basics.min 3 4` to `3`
 - `Basics.max n n` to `n`
+- `Basics.max 3 4` to `4`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",

@@ -238,8 +238,14 @@ Destructuring using case expressions
     min n n
     --> n
 
+    min 3 4
+    --> 3
+
     max n n
     --> n
+
+    max 3 4
+    --> 4
 
 
 ### Lambdas
@@ -5227,6 +5233,37 @@ basicsMinChecks =
             callWithTwoEqualArgumentsReturnsEitherArgumentCheck
                 { representsPlural = "arguments" }
                 checkInfo
+                |> onNothing
+                    (\() ->
+                        case secondArg checkInfo of
+                            Nothing ->
+                                Nothing
+
+                            Just rightArg ->
+                                case evaluateCompare checkInfo checkInfo.firstArg rightArg of
+                                    Determined LT ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = qualifiedToString checkInfo.fn ++ " with a first value that is less than the second value results in the first value"
+                                                , details = [ "You can replace this call by the its first argument." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg)
+                                            )
+
+                                    Determined GT ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = qualifiedToString checkInfo.fn ++ " with a first value that is greater than the second value results in the second value"
+                                                , details = [ "You can replace this call by the its second argument." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (replaceBySubExpressionFix checkInfo.parentRange rightArg)
+                                            )
+
+                                    _ ->
+                                        Nothing
+                    )
         )
 
 
@@ -5237,6 +5274,37 @@ basicsMaxChecks =
             callWithTwoEqualArgumentsReturnsEitherArgumentCheck
                 { representsPlural = "arguments" }
                 checkInfo
+                |> onNothing
+                    (\() ->
+                        case secondArg checkInfo of
+                            Nothing ->
+                                Nothing
+
+                            Just rightArg ->
+                                case evaluateCompare checkInfo checkInfo.firstArg rightArg of
+                                    Determined GT ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = qualifiedToString checkInfo.fn ++ " with a first value that is greater than the second value results in the first value"
+                                                , details = [ "You can replace this call by the its first argument." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg)
+                                            )
+
+                                    Determined LT ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = qualifiedToString checkInfo.fn ++ " with a first value that is less than the second value results in the second value"
+                                                , details = [ "You can replace this call by the its second argument." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (replaceBySubExpressionFix checkInfo.parentRange rightArg)
+                                            )
+
+                                    _ ->
+                                        Nothing
+                    )
         )
 
 
