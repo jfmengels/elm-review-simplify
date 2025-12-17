@@ -83,6 +83,19 @@ Below is the list of all kinds of simplifications this rule applies.
     x == Array.empty -- same for Dict or Set
     --> Array.isEmpty x
 
+    n < n
+    --> False
+
+    1 < 2 -- same for any comparable
+    --> True
+
+    -- when `expectNaN` is not enabled
+    n > n
+    --> False
+
+    1 > 2 -- same for any comparable
+    --> False
+
 
 ### If expressions
 
@@ -736,7 +749,7 @@ Destructuring using case expressions
     List.product [ a, 1, b ]
     --> List.product [ a, b ]
 
-    --  when `expectNaN` is not enabled
+    -- when `expectNaN` is not enabled
     List.product [ a, 0, b ]
     --> 0
 
@@ -3489,10 +3502,10 @@ operatorApplicationChecks operator checkInfo =
             equalityChecks False checkInfo
 
         "<" ->
-            numberComparisonChecks (<) checkInfo
+            lessThanChecks checkInfo
 
         ">" ->
-            numberComparisonChecks (>) checkInfo
+            greaterThanChecks checkInfo
 
         "<=" ->
             numberComparisonChecks (<=) checkInfo
@@ -4947,6 +4960,112 @@ isEmpty lookupTable node =
 
 
 -- COMPARISONS
+
+
+lessThanChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
+lessThanChecks checkInfo =
+    case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+        Normalize.ConfirmedEquality ->
+            -- also: NaN < NaN --> False
+            Just
+                (Rule.errorWithFix
+                    { message =
+                        "(" ++ checkInfo.operator ++ ") with two equal operands results in False"
+                    , details = [ "You can replace this call by False." ]
+                    }
+                    checkInfo.operatorRange
+                    [ Fix.replaceRangeBy checkInfo.parentRange
+                        (qualifiedToString (qualify Fn.Basics.falseVariant checkInfo))
+                    ]
+                )
+
+        _ ->
+            comparisonOperatorCheck (\order -> order == LT) checkInfo
+
+
+greaterThanChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
+greaterThanChecks checkInfo =
+    case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+        Normalize.ConfirmedEquality ->
+            -- because: NaN > NaN --> True (unlike <)
+            if
+                checkInfo.expectNaN
+                    && (AstHelpers.couldBeValueContainingNaN checkInfo.left
+                            || AstHelpers.couldBeValueContainingNaN checkInfo.right
+                       )
+            then
+                Nothing
+
+            else
+                Just
+                    (Rule.errorWithFix
+                        { message =
+                            "(" ++ checkInfo.operator ++ ") with two equal operands results in False"
+                        , details = [ "You can replace this call by False." ]
+                        }
+                        checkInfo.operatorRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify Fn.Basics.falseVariant checkInfo))
+                        ]
+                    )
+
+        _ ->
+            comparisonOperatorCheck (\order -> order == GT) checkInfo
+
+
+comparisonOperatorCheck : (Order -> Bool) -> OperatorApplicationCheckInfo -> Maybe (Error {})
+comparisonOperatorCheck orderSatisfiesOperator checkInfo =
+    case evaluateCompare checkInfo checkInfo.left checkInfo.right of
+        Undetermined ->
+            Nothing
+
+        Determined order ->
+            let
+                result : Bool
+                result =
+                    orderSatisfiesOperator order
+
+                resultReference : ( ModuleName, String )
+                resultReference =
+                    if result then
+                        Fn.Basics.trueVariant
+
+                    else
+                        Fn.Basics.falseVariant
+            in
+            Just
+                (Rule.errorWithFix
+                    { message =
+                        "("
+                            ++ checkInfo.operator
+                            ++ ") with a left value "
+                            ++ oOrderToCompareOperationDescription order
+                            ++ " the right results in "
+                            ++ qualifiedToString (qualify resultReference defaultQualifyResources)
+                    , details =
+                        [ "You can replace this call by "
+                            ++ qualifiedToString (qualify resultReference defaultQualifyResources)
+                            ++ "."
+                        ]
+                    }
+                    checkInfo.operatorRange
+                    [ Fix.replaceRangeBy checkInfo.parentRange
+                        (qualifiedToString (qualify resultReference checkInfo))
+                    ]
+                )
+
+
+oOrderToCompareOperationDescription : Order -> String
+oOrderToCompareOperationDescription order =
+    case order of
+        LT ->
+            "less than"
+
+        EQ ->
+            "equal to"
+
+        GT ->
+            "greater than"
 
 
 numberComparisonChecks : (Float -> Float -> Bool) -> OperatorApplicationCheckInfo -> Maybe (Error {})

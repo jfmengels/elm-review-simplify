@@ -29,12 +29,15 @@ The rule now simplifies:
 - `Basics.min 3 4` to `3`
 - `Basics.max n n` to `n`
 - `Basics.max 3 4` to `4`
+- `n < n` to `False`
+- `n > n` to `False` when [`expectNaN`] is not enabled
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",
   to catch issues like `Maybe.map (\(x, y) -> (x, y))`
 - Now recognizes more `if`s as equal or different,
   to for example fix `(if c then 2 else 3) == (if c then 1 else 4)` to `False`
+- Now evaluates `<` and `>` for any two comparable operands to for example fix `"a" < "b"` to `True`
 
 ## [2.1.10] - 2025-11-21
 
