@@ -83,18 +83,22 @@ Below is the list of all kinds of simplifications this rule applies.
     x == Array.empty -- same for Dict or Set
     --> Array.isEmpty x
 
+    1 < 2 -- same for >=, <=, < for any comparable operands
+    --> True
+
     n < n
     --> False
-
-    1 < 2 -- same for any comparable
-    --> True
 
     -- when `expectNaN` is not enabled
     n > n
     --> False
 
-    1 > 2 -- same for any comparable
-    --> False
+    -- when `expectNaN` is not enabled
+    n <= n
+    --> True
+
+    n >= n
+    --> True
 
 
 ### If expressions
@@ -3508,10 +3512,10 @@ operatorApplicationChecks operator checkInfo =
             greaterThanChecks checkInfo
 
         "<=" ->
-            numberComparisonChecks (<=) checkInfo
+            lessThanOrEqualToChecks checkInfo
 
         ">=" ->
-            numberComparisonChecks (>=) checkInfo
+            greaterThanOrEqualToChecks checkInfo
 
         _ ->
             Nothing
@@ -4983,6 +4987,48 @@ lessThanChecks checkInfo =
             comparisonOperatorCheck (\order -> order == LT) checkInfo
 
 
+lessThanOrEqualToChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
+lessThanOrEqualToChecks checkInfo =
+    case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+        Normalize.ConfirmedEquality ->
+            -- because: NaN <= NaN --> False
+            if
+                checkInfo.expectNaN
+                    && (AstHelpers.couldBeValueContainingNaN checkInfo.left
+                            || AstHelpers.couldBeValueContainingNaN checkInfo.right
+                       )
+            then
+                Nothing
+
+            else
+                Just
+                    (Rule.errorWithFix
+                        { message =
+                            "(" ++ checkInfo.operator ++ ") with two equal operands results in True"
+                        , details = [ "You can replace this call by True." ]
+                        }
+                        checkInfo.operatorRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (qualifiedToString (qualify Fn.Basics.trueVariant checkInfo))
+                        ]
+                    )
+
+        _ ->
+            comparisonOperatorCheck
+                (\order ->
+                    case order of
+                        LT ->
+                            True
+
+                        EQ ->
+                            True
+
+                        GT ->
+                            False
+                )
+                checkInfo
+
+
 greaterThanChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 greaterThanChecks checkInfo =
     case Normalize.compare checkInfo checkInfo.left checkInfo.right of
@@ -5011,6 +5057,39 @@ greaterThanChecks checkInfo =
 
         _ ->
             comparisonOperatorCheck (\order -> order == GT) checkInfo
+
+
+greaterThanOrEqualToChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
+greaterThanOrEqualToChecks checkInfo =
+    case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+        Normalize.ConfirmedEquality ->
+            -- also: NaN >= NaN --> True
+            Just
+                (Rule.errorWithFix
+                    { message =
+                        "(" ++ checkInfo.operator ++ ") with two equal operands results in True"
+                    , details = [ "You can replace this call by True." ]
+                    }
+                    checkInfo.operatorRange
+                    [ Fix.replaceRangeBy checkInfo.parentRange
+                        (qualifiedToString (qualify Fn.Basics.trueVariant checkInfo))
+                    ]
+                )
+
+        _ ->
+            comparisonOperatorCheck
+                (\order ->
+                    case order of
+                        LT ->
+                            False
+
+                        EQ ->
+                            True
+
+                        GT ->
+                            True
+                )
+                checkInfo
 
 
 comparisonOperatorCheck : (Order -> Bool) -> OperatorApplicationCheckInfo -> Maybe (Error {})
@@ -5066,22 +5145,6 @@ oOrderToCompareOperationDescription order =
 
         GT ->
             "greater than"
-
-
-numberComparisonChecks : (Float -> Float -> Bool) -> OperatorApplicationCheckInfo -> Maybe (Error {})
-numberComparisonChecks operatorFunction operatorCheckInfo =
-    case Normalize.getNumberValue operatorCheckInfo.left of
-        Nothing ->
-            Nothing
-
-        Just leftNumber ->
-            Normalize.getNumberValue operatorCheckInfo.right
-                |> Maybe.map
-                    (\rightNumber ->
-                        comparisonError
-                            (operatorFunction leftNumber rightNumber)
-                            operatorCheckInfo
-                    )
 
 
 comparisonError : Bool -> QualifyResources { a | parentRange : Range, operator : String } -> Error {}
