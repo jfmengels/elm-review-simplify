@@ -2,7 +2,7 @@ module Simplify.BasicsTest exposing (all)
 
 import Review.Test
 import Test exposing (Test, describe, test)
-import TestHelpers exposing (ruleWithDefaults)
+import TestHelpers exposing (ruleExpectingNaN, ruleWithDefaults)
 
 
 all : Test
@@ -17,6 +17,7 @@ all =
         , truncateTests
         , minTests
         , maxTests
+        , compareTests
         ]
 
 
@@ -928,6 +929,78 @@ a = max 4 3
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 4
+"""
+                        ]
+        ]
+
+
+compareTests : Test
+compareTests =
+    describe "Basics.compare"
+        [ test "should not report okay function calls" <|
+            \() ->
+                """module A exposing (..)
+a0 = compare
+a1 = compare n
+a2 = compare n m
+a3 = compare 3 m
+a4 = compare n 4
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report compare n n when expect NaN is enabled" <|
+            \() ->
+                """module A exposing (..)
+a = compare n n
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should replace compare n n by EQ when expect NaN not enabled" <|
+            \() ->
+                """module A exposing (..)
+a = compare n n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.compare with two equal arguments results in EQ"
+                            , details = [ "You can replace this call by EQ." ]
+                            , under = "compare"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = EQ
+"""
+                        ]
+        , test "should replace compare 3 4 by LT" <|
+            \() ->
+                """module A exposing (..)
+a = compare 3 4
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.compare with a left value less than the right results in LT"
+                            , details = [ "You can replace this call by LT." ]
+                            , under = "compare"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = LT
+"""
+                        ]
+        , test "should replace compare 4 3 by GT" <|
+            \() ->
+                """module A exposing (..)
+a = compare 4 3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.compare with a left value greater than the right results in GT"
+                            , details = [ "You can replace this call by GT." ]
+                            , under = "compare"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = GT
 """
                         ]
         ]

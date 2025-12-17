@@ -264,6 +264,13 @@ Destructuring using case expressions
     max 3 4
     --> 4
 
+    -- when `expectNaN` is not enabled
+    compare n n
+    --> EQ
+
+    compare 3 4
+    --> LT
+
 
 ### Lambdas
 
@@ -3674,6 +3681,7 @@ intoFnChecks =
     , ( Fn.Basics.truncate, ( 1, intToIntChecks Basics.truncate ) )
     , ( Fn.Basics.min, ( 2, basicsMinChecks ) )
     , ( Fn.Basics.max, ( 2, basicsMaxChecks ) )
+    , ( Fn.Basics.compare, ( 2, basicsCompareChecks ) )
     , ( Fn.Tuple.first, ( 1, tupleFirstChecks ) )
     , ( Fn.Tuple.second, ( 1, tupleSecondChecks ) )
     , ( Fn.Tuple.pair, ( 2, tuplePairChecks ) )
@@ -5462,6 +5470,84 @@ basicsMaxChecks =
                                         Nothing
                     )
         )
+
+
+basicsCompareChecks : IntoFnCheck
+basicsCompareChecks =
+    intoFnCheckOnlyCall
+        (\checkInfo ->
+            case secondArg checkInfo of
+                Nothing ->
+                    Nothing
+
+                Just rightArg ->
+                    case Normalize.compare checkInfo checkInfo.firstArg rightArg of
+                        Normalize.ConfirmedEquality ->
+                            -- because: compare NaN NaN --> GT
+                            if
+                                checkInfo.expectNaN
+                                    && (AstHelpers.couldBeValueContainingNaN checkInfo.firstArg
+                                            || AstHelpers.couldBeValueContainingNaN rightArg
+                                       )
+                            then
+                                Nothing
+
+                            else
+                                Just
+                                    (Rule.errorWithFix
+                                        { message =
+                                            qualifiedToString checkInfo.fn ++ " with two equal arguments results in EQ"
+                                        , details = [ "You can replace this call by EQ." ]
+                                        }
+                                        checkInfo.fnRange
+                                        [ Fix.replaceRangeBy checkInfo.parentRange
+                                            (qualifiedToString (qualify Fn.Basics.eQVariant checkInfo))
+                                        ]
+                                    )
+
+                        _ ->
+                            case evaluateCompare checkInfo checkInfo.firstArg rightArg of
+                                Undetermined ->
+                                    Nothing
+
+                                Determined result ->
+                                    let
+                                        resultReference : ( ModuleName, String )
+                                        resultReference =
+                                            orderToReference result
+
+                                        resultAsString : String
+                                        resultAsString =
+                                            qualifiedToString (qualify resultReference checkInfo)
+                                    in
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                qualifiedToString checkInfo.fn
+                                                    ++ " with a left value "
+                                                    ++ oOrderToCompareOperationDescription result
+                                                    ++ " the right results in "
+                                                    ++ qualifiedToString (qualify resultReference defaultQualifyResources)
+                                            , details = [ "You can replace this call by " ++ resultAsString ++ "." ]
+                                            }
+                                            checkInfo.fnRange
+                                            [ Fix.replaceRangeBy checkInfo.parentRange resultAsString
+                                            ]
+                                        )
+        )
+
+
+orderToReference : Basics.Order -> ( ModuleName, String )
+orderToReference order =
+    case order of
+        LT ->
+            Fn.Basics.lTVariant
+
+        EQ ->
+            Fn.Basics.eQVariant
+
+        GT ->
+            Fn.Basics.gTVariant
 
 
 evaluateCompare : Infer.Resources a -> Node Expression -> Node Expression -> Match Order

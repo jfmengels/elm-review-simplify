@@ -29,6 +29,8 @@ The rule now simplifies:
 - `Basics.min 3 4` to `3`
 - `Basics.max n n` to `n`
 - `Basics.max 3 4` to `4`
+- `Basics.compare n n` to `EQ` when [`expectNaN`] is not enabled
+- `Basics.compare 3 4` to `LT`
 - `n < n` to `False`
 - `n > n` to `False` when [`expectNaN`] is not enabled
 - `n <= n` to `False` when [`expectNaN`] is not enabled
