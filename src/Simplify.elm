@@ -5126,7 +5126,7 @@ comparisonOperatorCheck orderSatisfiesOperator checkInfo =
                         "("
                             ++ checkInfo.operator
                             ++ ") with a left value "
-                            ++ oOrderToCompareOperationDescription order
+                            ++ orderToCompareOperationDescription order
                             ++ " the right results in "
                             ++ qualifiedToString (qualify resultReference defaultQualifyResources)
                     , details =
@@ -5142,8 +5142,8 @@ comparisonOperatorCheck orderSatisfiesOperator checkInfo =
                 )
 
 
-oOrderToCompareOperationDescription : Order -> String
-oOrderToCompareOperationDescription order =
+orderToCompareOperationDescription : Order -> String
+orderToCompareOperationDescription order =
     case order of
         LT ->
             "less than"
@@ -5525,7 +5525,7 @@ basicsCompareChecks =
                                             { message =
                                                 qualifiedToString checkInfo.fn
                                                     ++ " with a left value "
-                                                    ++ oOrderToCompareOperationDescription result
+                                                    ++ orderToCompareOperationDescription result
                                                     ++ " the right results in "
                                                     ++ qualifiedToString (qualify resultReference defaultQualifyResources)
                                             , details = [ "You can replace this call by " ++ resultAsString ++ "." ]
