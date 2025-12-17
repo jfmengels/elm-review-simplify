@@ -16775,7 +16775,7 @@ trueInAllBranches isSpecific baseExpressionNode =
 
 expressionToComparable : Infer.Resources a -> Node Expression -> Maybe ComparableExpression
 expressionToComparable resources expressionNode =
-    expressionToComparableHelp 1 resources expressionNode
+    normalizedExpressionToComparableWithSign 1 (Normalize.normalize resources expressionNode)
 
 
 type ComparableExpression
@@ -16788,8 +16788,8 @@ type ComparableExpression
     | ComparableList (List ComparableExpression)
 
 
-expressionToComparableHelp : Int -> Infer.Resources a -> Node Expression -> Maybe ComparableExpression
-expressionToComparableHelp sign resources (Node expressionRange expression) =
+normalizedExpressionToComparableWithSign : Int -> Node Expression -> Maybe ComparableExpression
+normalizedExpressionToComparableWithSign sign (Node _ expression) =
     case expression of
         Expression.Integer int ->
             Just (ComparableNumber (Basics.toFloat (sign * int)))
@@ -16801,7 +16801,7 @@ expressionToComparableHelp sign resources (Node expressionRange expression) =
             Just (ComparableNumber (toFloat sign * float))
 
         Expression.Negation expr ->
-            expressionToComparableHelp (-1 * sign) resources expr
+            normalizedExpressionToComparableWithSign (-1 * sign) expr
 
         Expression.Literal string ->
             Just (ComparableString string)
@@ -16810,32 +16810,32 @@ expressionToComparableHelp sign resources (Node expressionRange expression) =
             Just (ComparableChar char)
 
         Expression.ParenthesizedExpression expr ->
-            expressionToComparableHelp sign resources expr
+            normalizedExpressionToComparableWithSign sign expr
 
         Expression.TupledExpression [ first, second ] ->
-            case expressionToComparableHelp 1 resources first of
+            case normalizedExpressionToComparableWithSign 1 first of
                 Nothing ->
                     Nothing
 
                 Just firstComparable ->
-                    expressionToComparableHelp 1 resources second
+                    normalizedExpressionToComparableWithSign 1 second
                         |> Maybe.map
                             (\secondComparable ->
                                 ComparableTuple firstComparable secondComparable
                             )
 
         Expression.TupledExpression [ first, second, third ] ->
-            case expressionToComparableHelp 1 resources first of
+            case normalizedExpressionToComparableWithSign 1 first of
                 Nothing ->
                     Nothing
 
                 Just firstComparable ->
-                    case expressionToComparableHelp 1 resources second of
+                    case normalizedExpressionToComparableWithSign 1 second of
                         Nothing ->
                             Nothing
 
                         Just secondComparable ->
-                            expressionToComparableHelp 1 resources third
+                            normalizedExpressionToComparableWithSign 1 third
                                 |> Maybe.map
                                     (\thirdComparable ->
                                         ComparableTriple firstComparable secondComparable thirdComparable
@@ -16843,33 +16843,7 @@ expressionToComparableHelp sign resources (Node expressionRange expression) =
 
         Expression.ListExpr elements ->
             Maybe.map ComparableList
-                (traverse (\eleemnt -> expressionToComparableHelp 1 resources eleemnt) elements)
-
-        Expression.FunctionOrValue _ name ->
-            case
-                ModuleNameLookupTable.moduleNameAt resources.lookupTable expressionRange
-                    |> Maybe.andThen
-                        (\moduleOrigin ->
-                            Infer.get (Expression.FunctionOrValue moduleOrigin name)
-                                (Tuple.first resources.inferredConstants)
-                        )
-            of
-                Nothing ->
-                    Nothing
-
-                Just inferred ->
-                    case inferred of
-                        Infer.DTrue ->
-                            Nothing
-
-                        Infer.DFalse ->
-                            Nothing
-
-                        Infer.DNumber float ->
-                            Just (ComparableNumber float)
-
-                        Infer.DString string ->
-                            Just (ComparableString string)
+                (traverse (\element -> normalizedExpressionToComparableWithSign 1 element) elements)
 
         _ ->
             Nothing
