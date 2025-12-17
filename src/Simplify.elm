@@ -237,16 +237,16 @@ Destructuring using case expressions
     toFloat 1
     --> 1
 
-    round 1
+    round 1.1
     --> 1
 
-    ceiling 1
+    ceiling 0.9
     --> 1
 
-    floor 1
+    floor 1.1
     --> 1
 
-    truncate 1
+    truncate 1.1
     --> 1
 
     round (toFloat n) -- same for ceiling, floor and truncate
@@ -3668,10 +3668,10 @@ intoFnChecks =
     , ( Fn.Basics.not, ( 1, basicsNotChecks ) )
     , ( Fn.Basics.negate, ( 1, basicsNegateChecks ) )
     , ( Fn.Basics.toFloat, ( 1, basicsToFloatChecks ) )
-    , ( Fn.Basics.round, ( 1, intToIntChecks ) )
-    , ( Fn.Basics.ceiling, ( 1, intToIntChecks ) )
-    , ( Fn.Basics.floor, ( 1, intToIntChecks ) )
-    , ( Fn.Basics.truncate, ( 1, intToIntChecks ) )
+    , ( Fn.Basics.round, ( 1, intToIntChecks Basics.round ) )
+    , ( Fn.Basics.ceiling, ( 1, intToIntChecks Basics.ceiling ) )
+    , ( Fn.Basics.floor, ( 1, intToIntChecks Basics.floor ) )
+    , ( Fn.Basics.truncate, ( 1, intToIntChecks Basics.truncate ) )
     , ( Fn.Basics.min, ( 2, basicsMinChecks ) )
     , ( Fn.Basics.max, ( 2, basicsMaxChecks ) )
     , ( Fn.Tuple.first, ( 1, tupleFirstChecks ) )
@@ -5373,10 +5373,11 @@ basicsToFloatChecks =
         )
 
 
-intToIntChecks : IntoFnCheck
-intToIntChecks =
+intToIntChecks : (Float -> Int) -> IntoFnCheck
+intToIntChecks operation =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall unnecessaryConversionToIntOnIntCheck
+        [ intoFnCheckOnlyCall
+            (\checkInfo -> evaluateConversionToIntOnNumberCheck operation checkInfo)
         , onSpecificFnCallReturnsItsLastArgCheck Fn.Basics.toFloat
         ]
 
@@ -5575,8 +5576,8 @@ compareComparableExpressionLists leftList rightList =
                             headOrderMatchNotEqual
 
 
-unnecessaryConversionToIntOnIntCheck : CallCheckInfo -> Maybe (Error {})
-unnecessaryConversionToIntOnIntCheck checkInfo =
+evaluateConversionToIntOnNumberCheck : (Float -> Int) -> CallCheckInfo -> Maybe (Error {})
+evaluateConversionToIntOnNumberCheck operation checkInfo =
     case Evaluate.getInt checkInfo checkInfo.firstArg of
         Just _ ->
             Just
@@ -5592,7 +5593,26 @@ unnecessaryConversionToIntOnIntCheck checkInfo =
                 )
 
         Nothing ->
-            Nothing
+            -- this is a superset of the first rule.
+            -- The first check only exists to preserve int style like
+            --     toInt 0x1 --> 0x1
+            case AstHelpers.getUncomputedNumberValue checkInfo.firstArg of
+                Just number ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " on a number literal can be evaluated"
+                            , details =
+                                [ "You replace this call by the resulting Int value."
+                                ]
+                            }
+                            checkInfo.fnRange
+                            [ Fix.replaceRangeBy checkInfo.parentRange
+                                (String.fromInt (operation number))
+                            ]
+                        )
+
+                Nothing ->
+                    Nothing
 
 
 orChecks : OperatorApplicationCheckInfo -> Maybe (Error {})

@@ -33,6 +33,7 @@ The rule now simplifies:
 - `n > n` to `False` when [`expectNaN`] is not enabled
 - `n <= n` to `False` when [`expectNaN`] is not enabled
 - `n >= n` to `False`
+- `Basics.truncate 23.4` to `23` (same for `round`, `floor`, `ceiling`)
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",

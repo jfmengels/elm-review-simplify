@@ -395,6 +395,22 @@ a = round 0x1
 a = 0x1
 """
                         ]
+        , test "should simplify round 1.1 to 1" <|
+            \() ->
+                """module A exposing (..)
+a = round 1.1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.round on a number literal can be evaluated"
+                            , details = [ "You replace this call by the resulting Int value." ]
+                            , under = "round"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
+"""
+                        ]
         , test "should simplify round <| toFloat <| n to n" <|
             \() ->
                 """module A exposing (..)
@@ -496,6 +512,22 @@ a = ceiling 0x1
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0x1
+"""
+                        ]
+        , test "should simplify ceiling 0.9 to 1" <|
+            \() ->
+                """module A exposing (..)
+a = ceiling 0.9
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.ceiling on a number literal can be evaluated"
+                            , details = [ "You replace this call by the resulting Int value." ]
+                            , under = "ceiling"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
 """
                         ]
         , test "should simplify ceiling <| toFloat <| n to n" <|
@@ -601,6 +633,22 @@ a = floor 0x1
 a = 0x1
 """
                         ]
+        , test "should simplify floor 1.1 to 1" <|
+            \() ->
+                """module A exposing (..)
+a = floor 1.1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.floor on a number literal can be evaluated"
+                            , details = [ "You replace this call by the resulting Int value." ]
+                            , under = "floor"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
+"""
+                        ]
         , test "should simplify floor <| toFloat <| n to n" <|
             \() ->
                 """module A exposing (..)
@@ -702,6 +750,22 @@ a = truncate 0x1
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0x1
+"""
+                        ]
+        , test "should simplify truncate 1.1 to 1" <|
+            \() ->
+                """module A exposing (..)
+a = truncate 1.1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.truncate on a number literal can be evaluated"
+                            , details = [ "You replace this call by the resulting Int value." ]
+                            , under = "truncate"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
 """
                         ]
         , test "should simplify truncate <| toFloat <| n to n" <|
