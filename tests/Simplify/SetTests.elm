@@ -1938,7 +1938,61 @@ a = value.field |> Set.intersect (.field value)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = (.field value)
+a = value.field
+"""
+                        ]
+        , test "should replace intersect (intersect (intersect set2 set3) set0) (intersect set1 set0) by intersect (intersect set2 set3) (intersect set1 set0)" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (intersect)
+a = Set.intersect (intersect (intersect set2 set3) set0) (intersect set1 set0)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "nested Set.intersect contains unnecessary equal sets across both arguments"
+                            , details = [ "You can replace the call that has an equal argument by its other argument." ]
+                            , under = "Set.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (intersect)
+a = Set.intersect (intersect set2 set3) (intersect set1 set0)
+"""
+                        ]
+        , test "should replace intersect set0 << intersect set0 by intersect set0" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (intersect)
+a = Set.intersect set0 << intersect set0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.intersect on Set.intersect with an equal set"
+                            , details = [ "You can replace this composition by either its left or right function as both are equivalent." ]
+                            , under = "Set.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (intersect)
+a = intersect set0
+"""
+                        ]
+        , test "should replace intersect set0 >> intersect set0 by intersect set0" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (intersect)
+a = intersect set0 >> Set.intersect set0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.intersect on Set.intersect with an equal set"
+                            , details = [ "You can replace this composition by either its left or right function as both are equivalent." ]
+                            , under = "Set.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (intersect)
+a = intersect set0
 """
                         ]
         ]
@@ -2020,6 +2074,7 @@ setUnionTests =
                 """module A exposing (..)
 import Set
 a = Set.union set1 set2
+b = Set.union (Set.union set0 set1) (Set.union set2 set3)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -2290,7 +2345,61 @@ a = value.field |> Set.union (.field value)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = (.field value)
+a = value.field
+"""
+                        ]
+        , test "should replace union (union (union set2 set3) set0) (union set1 set0) by union (union set2 set3) (union set1 set0)" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (union)
+a = Set.union (union (union set2 set3) set0) (union set1 set0)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "nested Set.union contains unnecessary equal sets across both arguments"
+                            , details = [ "You can replace the call that has an equal argument by its other argument." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (union)
+a = Set.union (union set2 set3) (union set1 set0)
+"""
+                        ]
+        , test "should replace union set0 << union set0 by union set0" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (union)
+a = Set.union set0 << union set0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.union on Set.union with an equal set"
+                            , details = [ "You can replace this composition by either its left or right function as both are equivalent." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (union)
+a = union set0
+"""
+                        ]
+        , test "should replace union set0 >> union set0 by union set0" <|
+            \() ->
+                """module A exposing (..)
+import Set exposing (union)
+a = union set0 >> Set.union set0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.union on Set.union with an equal set"
+                            , details = [ "You can replace this composition by either its left or right function as both are equivalent." ]
+                            , under = "Set.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set exposing (union)
+a = union set0
 """
                         ]
         , test "should replace Set.union (Set.singleton k) set by (Set.insert k)" <|
