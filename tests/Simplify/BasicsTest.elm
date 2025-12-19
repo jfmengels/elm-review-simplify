@@ -815,6 +815,7 @@ a1 = min n
 a2 = min n m
 a3 = min 3 m
 a4 = min n 4
+a5 = min (min n0 n1) (min n2 n3)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -826,12 +827,172 @@ a = min n n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Basics.min with two equal arguments can be replaced by one of them"
+                            { message = "Basics.min with two equal values can be replaced by one of them"
                             , details = [ "You can replace this call by one of its arguments." ]
                             , under = "min"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
+"""
+                        ]
+        , test "should replace min (min n m) n by n" <|
+            \() ->
+                """module A exposing (..)
+a = Basics.min (min n m) n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "nested Basics.min contains unnecessary equal values across both arguments"
+                            , details = [ "You can replace the call that has an equal argument by its other argument." ]
+                            , under = "Basics.min"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Basics.min m n
+"""
+                        ]
+        , test "should replace min (min m n) n by n" <|
+            \() ->
+                """module A exposing (..)
+a = Basics.min (min m n) n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "nested Basics.min contains unnecessary equal values across both arguments"
+                            , details = [ "You can replace the call that has an equal argument by its other argument." ]
+                            , under = "Basics.min"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Basics.min m n
+"""
+                        ]
+        , test "should replace min n (min n m) by n" <|
+            \() ->
+                """module A exposing (..)
+a = Basics.min n (min n m)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "nested Basics.min contains unnecessary equal values across both arguments"
+                            , details = [ "You can replace the call that has an equal argument by its other argument." ]
+                            , under = "Basics.min"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (min n m)
+"""
+                        ]
+        , test "should replace min n (min m n) by n" <|
+            \() ->
+                """module A exposing (..)
+a = Basics.min n (min m n)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "nested Basics.min contains unnecessary equal values across both arguments"
+                            , details = [ "You can replace the call that has an equal argument by its other argument." ]
+                            , under = "Basics.min"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (min m n)
+"""
+                        ]
+        , test "should replace min (min (min o p) n) (min m n) by min (min o p) (min m n)" <|
+            \() ->
+                """module A exposing (..)
+a = Basics.min (min (min o p) n) (min m n)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "nested Basics.min contains unnecessary equal values across both arguments"
+                            , details = [ "You can replace the call that has an equal argument by its other argument." ]
+                            , under = "Basics.min"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Basics.min (min o p) (min m n)
+"""
+                        ]
+        , test "should replace min n << min n by min n" <|
+            \() ->
+                """module A exposing (..)
+a = Basics.min n << min n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Basics.min on Basics.min with an equal value"
+                            , details = [ "You can replace this composition by either its left or right function as both are equivalent." ]
+                            , under = "Basics.min"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = min n
+"""
+                        ]
+        , test "should replace min n >> min n by min n" <|
+            \() ->
+                """module A exposing (..)
+a = min n >> Basics.min n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Basics.min on Basics.min with an equal value"
+                            , details = [ "You can replace this composition by either its left or right function as both are equivalent." ]
+                            , under = "Basics.min"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = min n
+"""
+                        ]
+        , test "should replace min (min n m) << min n by min (min n m)" <|
+            \() ->
+                """module A exposing (..)
+a = Basics.min (min n m) << min n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "nested Basics.min contains unnecessary equal values across the arguments of the composed functions"
+                            , details = [ "You can remove the operation that has an equal argument." ]
+                            , under = "Basics.min"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Basics.min (min n m)
+"""
+                        ]
+        , test "should replace min n << min (min n m) by min (min n m)" <|
+            \() ->
+                """module A exposing (..)
+a = Basics.min n << min (min n m)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "nested Basics.min contains unnecessary equal values across the arguments of the composed functions"
+                            , details = [ "You can remove the operation that has an equal argument." ]
+                            , under = "Basics.min"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = min (min n m)
+"""
+                        ]
+        , test "should replace min (min n0 n1) << min (min n2 (min n3 n1)) by min n0 << min (min n2 (min n3 n1))" <|
+            \() ->
+                """module A exposing (..)
+a = Basics.min (min n0 n1) << min (min n2 (min n3 n1))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "nested Basics.min contains unnecessary equal values across the arguments of the composed functions"
+                            , details = [ "You can replace the inner call that has an equal argument by its other argument." ]
+                            , under = "Basics.min"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Basics.min n0 << min (min n2 (min n3 n1))
 """
                         ]
         , test "should replace min 3 4 by 3" <|
@@ -880,6 +1041,7 @@ a1 = max n
 a2 = max n m
 a3 = max 3 m
 a4 = max n 4
+a5 = max (max n0 n1) (max n2 n3)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -891,12 +1053,60 @@ a = max n n
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Basics.max with two equal arguments can be replaced by one of them"
+                            { message = "Basics.max with two equal values can be replaced by one of them"
                             , details = [ "You can replace this call by one of its arguments." ]
                             , under = "max"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
+"""
+                        ]
+        , test "should replace max (max (max o p) n) (max m n) by max (max o p) (max m n)" <|
+            \() ->
+                """module A exposing (..)
+a = Basics.max (max (max o p) n) (max m n)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "nested Basics.max contains unnecessary equal values across both arguments"
+                            , details = [ "You can replace the call that has an equal argument by its other argument." ]
+                            , under = "Basics.max"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Basics.max (max o p) (max m n)
+"""
+                        ]
+        , test "should replace max n << max n by max n" <|
+            \() ->
+                """module A exposing (..)
+a = Basics.max n << max n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Basics.max on Basics.max with an equal value"
+                            , details = [ "You can replace this composition by either its left or right function as both are equivalent." ]
+                            , under = "Basics.max"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = max n
+"""
+                        ]
+        , test "should replace max n >> max n by max n" <|
+            \() ->
+                """module A exposing (..)
+a = max n >> Basics.max n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Basics.max on Basics.max with an equal value"
+                            , details = [ "You can replace this composition by either its left or right function as both are equivalent." ]
+                            , under = "Basics.max"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = max n
 """
                         ]
         , test "should replace max 3 4 by 4" <|

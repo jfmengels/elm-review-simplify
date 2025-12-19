@@ -26,8 +26,10 @@ The rule now simplifies:
 - `String.left n (String.left n string)` to `String.left n string`
 - `String.right n (String.right n string)` to `String.right n string`
 - `Basics.min n n` to `n`
+- `Basics.min (Basics.min n0 n1) n0` to `Basics.min n0 n1` (any equal inner values across the two arguments, or composition)
 - `Basics.min 3 4` to `3`
 - `Basics.max n n` to `n`
+- `Basics.max (Basics.max n0 n1) n0` to `Basics.max n0 n1` (any equal inner values across the two arguments, or composition)
 - `Basics.max 3 4` to `4`
 - `Basics.compare n n` to `EQ` when [`expectNaN`] is not enabled
 - `Basics.compare 3 4` to `LT`
@@ -36,6 +38,10 @@ The rule now simplifies:
 - `n <= n` to `False` when [`expectNaN`] is not enabled
 - `n >= n` to `False`
 - `Basics.truncate 23.4` to `23` (same for `round`, `floor`, `ceiling`)
+- `Set.union (Set.union set0 set1) set0` to `Set.union set0 set1` (any equal inner values across the two arguments, or composition)
+- `Set.intersect (Set.intersect set0 set1) set0` to `Set.intersect set0 set1` (any equal inner values across the two arguments, or composition)
+- `Dict.union (Dict.union dict0 dict1) dict0` to `Dict.union dict0 dict1` (any equal inner values across the two arguments, or composition)
+- `Dict.intersect (Dict.intersect dict0 dict1) dict0` to `Dict.intersect dict0 dict1` (any equal inner values across the two arguments, or composition)
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",

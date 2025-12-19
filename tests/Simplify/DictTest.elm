@@ -1691,6 +1691,7 @@ import Dict
 a = Dict.intersect
 b = Dict.intersect x
 c = Dict.intersect x y
+d = Dict.intersect (Dict.intersect dict0 dict1) (Dict.union dict2 dict3)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -1781,7 +1782,61 @@ a = value.field |> Dict.intersect (.field value)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = (.field value)
+a = value.field
+"""
+                        ]
+        , test "should replace intersect (intersect (intersect dict2 dict3) dict0) (intersect dict1 dict0) by intersect (intersect dict2 dict3) (intersect dict1 dict0)" <|
+            \() ->
+                """module A exposing (..)
+import Dict exposing (intersect)
+a = Dict.intersect (intersect (intersect dict2 dict3) dict0) (intersect dict1 dict0)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "nested Dict.intersect contains unnecessary equal dicts across both arguments"
+                            , details = [ "You can replace the call that has an equal argument by its other argument." ]
+                            , under = "Dict.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict exposing (intersect)
+a = Dict.intersect (intersect dict2 dict3) (intersect dict1 dict0)
+"""
+                        ]
+        , test "should replace intersect dict0 << intersect dict0 by intersect dict0" <|
+            \() ->
+                """module A exposing (..)
+import Dict exposing (intersect)
+a = Dict.intersect dict0 << intersect dict0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Dict.intersect on Dict.intersect with an equal dict"
+                            , details = [ "You can replace this composition by either its left or right function as both are equivalent." ]
+                            , under = "Dict.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict exposing (intersect)
+a = intersect dict0
+"""
+                        ]
+        , test "should replace intersect dict0 >> intersect dict0 by intersect dict0" <|
+            \() ->
+                """module A exposing (..)
+import Dict exposing (intersect)
+a = intersect dict0 >> Dict.intersect dict0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Dict.intersect on Dict.intersect with an equal dict"
+                            , details = [ "You can replace this composition by either its left or right function as both are equivalent." ]
+                            , under = "Dict.intersect"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict exposing (intersect)
+a = intersect dict0
 """
                         ]
         ]
@@ -1969,6 +2024,7 @@ dictUnionTests =
                 """module A exposing (..)
 import Dict
 a = Dict.union x y
+b = Dict.union (Dict.union dict0 dict1) (Dict.union dict2 dict3)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -2239,7 +2295,61 @@ a = value.field |> Dict.union (.field value)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = (.field value)
+a = value.field
+"""
+                        ]
+        , test "should replace union (union (union dict2 dict3) dict0) (union dict1 dict0) by union (union dict2 dict3) (union dict1 dict0)" <|
+            \() ->
+                """module A exposing (..)
+import Dict exposing (union)
+a = Dict.union (union (union dict2 dict3) dict0) (union dict1 dict0)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "nested Dict.union contains unnecessary equal dicts across both arguments"
+                            , details = [ "You can replace the call that has an equal argument by its other argument." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict exposing (union)
+a = Dict.union (union dict2 dict3) (union dict1 dict0)
+"""
+                        ]
+        , test "should replace union dict0 << union dict0 by union dict0" <|
+            \() ->
+                """module A exposing (..)
+import Dict exposing (union)
+a = Dict.union dict0 << union dict0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Dict.union on Dict.union with an equal dict"
+                            , details = [ "You can replace this composition by either its left or right function as both are equivalent." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict exposing (union)
+a = union dict0
+"""
+                        ]
+        , test "should replace union dict0 >> union dict0 by union dict0" <|
+            \() ->
+                """module A exposing (..)
+import Dict exposing (union)
+a = union dict0 >> Dict.union dict0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Dict.union on Dict.union with an equal dict"
+                            , details = [ "You can replace this composition by either its left or right function as both are equivalent." ]
+                            , under = "Dict.union"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict exposing (union)
+a = union dict0
 """
                         ]
         , test "should replace Dict.union (Dict.singleton k v) dict by (Dict.insert k v)" <|

@@ -1,6 +1,6 @@
 module Simplify.CoreHelpers exposing
-    ( isJust, isNothing, onNothing
-    , consIf, countUnique, countUniqueBy, findMap, indexedFindMap, findMapAndAllBefore, findMapNeighboring, listAll2, list2AreSameLengthAndAll, drop2EndingsWhile, listIndexedFilterMap, listLast, traverse, traverseConcat, uniqueByThenMap, listMapToStringsThenJoin
+    ( isJust, isNothing, onNothing, maybeWithDefaultLazy
+    , consIf, countUnique, countUniqueBy, findMap, listFind, indexedFindMap, findMapAndAllBefore, findMapNeighboring, listAll2, list2AreSameLengthAndAll, drop2EndingsWhile, listIndexedFilterMap, listLast, traverse, traverseConcat, uniqueByThenMap, listMapToStringsThenJoin
     , listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList
     )
 
@@ -10,12 +10,12 @@ moved to a separate module for easier testing etc.
 
 ## Maybe
 
-@docs isJust, isNothing, onNothing
+@docs isJust, isNothing, onNothing, maybeWithDefaultLazy
 
 
 ## List
 
-@docs consIf, countUnique, countUniqueBy, findMap, indexedFindMap, findMapAndAllBefore, findMapNeighboring, listAll2, list2AreSameLengthAndAll, drop2EndingsWhile, listIndexedFilterMap, listLast, traverse, traverseConcat, uniqueByThenMap, listMapToStringsThenJoin
+@docs consIf, countUnique, countUniqueBy, findMap, listFind, indexedFindMap, findMapAndAllBefore, findMapNeighboring, listAll2, list2AreSameLengthAndAll, drop2EndingsWhile, listIndexedFilterMap, listLast, traverse, traverseConcat, uniqueByThenMap, listMapToStringsThenJoin
 
 
 ## `( a, List a )`
@@ -141,6 +141,20 @@ findMap mapper nodes =
 
                 Nothing ->
                     findMap mapper rest
+
+
+listFind : (a -> Bool) -> List a -> Maybe a
+listFind isFound list =
+    case list of
+        [] ->
+            Nothing
+
+        head :: tail ->
+            if isFound head then
+                Just head
+
+            else
+                listFind isFound tail
 
 
 indexedFindMap : (Int -> a -> Maybe b) -> List a -> Maybe b
@@ -446,6 +460,18 @@ listMapToStringsThenJoinAfter soFar elementToString separator list =
 
 
 -- MAYBE HELPERS
+
+
+{-| `Maybe.withDefault` evaluates its value eagerly, which results in wasted computation
+-}
+maybeWithDefaultLazy : (() -> a) -> Maybe a -> a
+maybeWithDefaultLazy fallbackOnNothing maybe =
+    case maybe of
+        Just value ->
+            value
+
+        Nothing ->
+            fallbackOnNothing ()
 
 
 {-| Like `Maybe.andThen` but for the `Nothing` case.

@@ -255,11 +255,17 @@ Destructuring using case expressions
     min n n
     --> n
 
+    min (min n0 n1) n0
+    --> min n0 n1
+
     min 3 4
     --> 3
 
     max n n
     --> n
+
+    max (max n0 n1) n0
+    --> max n0 n1
 
     max 3 4
     --> 4
@@ -1161,6 +1167,9 @@ Destructuring using case expressions
     Set.intersect set set
     --> set
 
+    Set.intersect (Set.intersect set0 set1) set0
+    --> Set.intersect set0 set1
+
     Set.diff Set.empty set
     --> Set.empty
 
@@ -1172,6 +1181,9 @@ Destructuring using case expressions
 
     Set.union set set
     --> set
+
+    Set.union (Set.union set0 set1) set0
+    --> Set.union set0 set1
 
     Set.union (Set.singleton a) set
     --> Set.insert a set
@@ -1307,6 +1319,9 @@ Destructuring using case expressions
     Dict.intersect dict dict
     --> dict
 
+    Dict.intersect (Dict.intersect dict0 dict1) dict0
+    --> Dict.intersect dict0 dict1
+
     Dict.diff Dict.empty dict
     --> Dict.empty
 
@@ -1318,6 +1333,9 @@ Destructuring using case expressions
 
     Dict.union dict dict
     --> dict
+
+    Dict.union (Dict.union dict0 dict1) dict0
+    --> Dict.union dict0 dict1
 
     Dict.union (Dict.singleton k v) dict
     --> Dict.insert k v dict
@@ -1597,7 +1615,7 @@ import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
 import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, qualifiedToString)
 import Simplify.CallStyle as CallStyle exposing (FunctionCallStyle)
-import Simplify.CoreHelpers exposing (consIf, countUnique, countUniqueBy, findMap, findMapAndAllBefore, findMapNeighboring, indexedFindMap, isJust, isNothing, listAll2, listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList, listIndexedFilterMap, listLast, onNothing, traverse, traverseConcat, uniqueByThenMap)
+import Simplify.CoreHelpers exposing (consIf, countUnique, countUniqueBy, findMap, findMapAndAllBefore, findMapNeighboring, indexedFindMap, isJust, isNothing, listAll2, listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList, listFind, listIndexedFilterMap, listLast, maybeWithDefaultLazy, onNothing, traverse, traverseConcat, uniqueByThenMap)
 import Simplify.Evaluate as Evaluate
 import Simplify.HashExpression as HashExpression
 import Simplify.Infer as Infer
@@ -5392,84 +5410,84 @@ floatToIntConversionChecks operation =
 
 basicsMinChecks : IntoFnCheck
 basicsMinChecks =
-    intoFnCheckOnlyCall
-        (\checkInfo ->
-            callWithTwoEqualArgumentsReturnsEitherArgumentCheck
-                { representsPlural = "arguments" }
-                checkInfo
-                |> onNothing
-                    (\() ->
-                        case secondArg checkInfo of
-                            Nothing ->
+    intoFnChecksFirstThatConstructsError
+        [ callWithTwoEqualArgumentsReturnsEitherArgumentCheck
+            { represents = "value"
+            , representsPlural = "values"
+            }
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case secondArg checkInfo of
+                    Nothing ->
+                        Nothing
+
+                    Just rightArg ->
+                        case evaluateCompare checkInfo checkInfo.firstArg rightArg of
+                            Determined LT ->
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = qualifiedToString checkInfo.fn ++ " with a first value that is less than the second value results in the first value"
+                                        , details = [ "You can replace this call by the its first argument." ]
+                                        }
+                                        checkInfo.fnRange
+                                        (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg)
+                                    )
+
+                            Determined GT ->
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = qualifiedToString checkInfo.fn ++ " with a first value that is greater than the second value results in the second value"
+                                        , details = [ "You can replace this call by the its second argument." ]
+                                        }
+                                        checkInfo.fnRange
+                                        (replaceBySubExpressionFix checkInfo.parentRange rightArg)
+                                    )
+
+                            _ ->
                                 Nothing
-
-                            Just rightArg ->
-                                case evaluateCompare checkInfo checkInfo.firstArg rightArg of
-                                    Determined LT ->
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message = qualifiedToString checkInfo.fn ++ " with a first value that is less than the second value results in the first value"
-                                                , details = [ "You can replace this call by the its first argument." ]
-                                                }
-                                                checkInfo.fnRange
-                                                (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg)
-                                            )
-
-                                    Determined GT ->
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message = qualifiedToString checkInfo.fn ++ " with a first value that is greater than the second value results in the second value"
-                                                , details = [ "You can replace this call by the its second argument." ]
-                                                }
-                                                checkInfo.fnRange
-                                                (replaceBySubExpressionFix checkInfo.parentRange rightArg)
-                                            )
-
-                                    _ ->
-                                        Nothing
-                    )
-        )
+            )
+        ]
 
 
 basicsMaxChecks : IntoFnCheck
 basicsMaxChecks =
-    intoFnCheckOnlyCall
-        (\checkInfo ->
-            callWithTwoEqualArgumentsReturnsEitherArgumentCheck
-                { representsPlural = "arguments" }
-                checkInfo
-                |> onNothing
-                    (\() ->
-                        case secondArg checkInfo of
-                            Nothing ->
+    intoFnChecksFirstThatConstructsError
+        [ callWithTwoEqualArgumentsReturnsEitherArgumentCheck
+            { represents = "value"
+            , representsPlural = "values"
+            }
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case secondArg checkInfo of
+                    Nothing ->
+                        Nothing
+
+                    Just rightArg ->
+                        case evaluateCompare checkInfo checkInfo.firstArg rightArg of
+                            Determined GT ->
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = qualifiedToString checkInfo.fn ++ " with a first value that is greater than the second value results in the first value"
+                                        , details = [ "You can replace this call by the its first argument." ]
+                                        }
+                                        checkInfo.fnRange
+                                        (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg)
+                                    )
+
+                            Determined LT ->
+                                Just
+                                    (Rule.errorWithFix
+                                        { message = qualifiedToString checkInfo.fn ++ " with a first value that is less than the second value results in the second value"
+                                        , details = [ "You can replace this call by the its second argument." ]
+                                        }
+                                        checkInfo.fnRange
+                                        (replaceBySubExpressionFix checkInfo.parentRange rightArg)
+                                    )
+
+                            _ ->
                                 Nothing
-
-                            Just rightArg ->
-                                case evaluateCompare checkInfo checkInfo.firstArg rightArg of
-                                    Determined GT ->
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message = qualifiedToString checkInfo.fn ++ " with a first value that is greater than the second value results in the first value"
-                                                , details = [ "You can replace this call by the its first argument." ]
-                                                }
-                                                checkInfo.fnRange
-                                                (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg)
-                                            )
-
-                                    Determined LT ->
-                                        Just
-                                            (Rule.errorWithFix
-                                                { message = qualifiedToString checkInfo.fn ++ " with a first value that is less than the second value results in the second value"
-                                                , details = [ "You can replace this call by the its second argument." ]
-                                                }
-                                                checkInfo.fnRange
-                                                (replaceBySubExpressionFix checkInfo.parentRange rightArg)
-                                            )
-
-                                    _ ->
-                                        Nothing
-                    )
-        )
+            )
+        ]
 
 
 basicsCompareChecks : IntoFnCheck
@@ -7746,9 +7764,8 @@ setUnionChecks =
                                                ]
                                         )
                                 )
-                            |> onNothing
-                                (\() -> callWithTwoEqualArgumentsReturnsEitherArgumentCheck setCollection checkInfo)
             )
+        , callWithTwoEqualArgumentsReturnsEitherArgumentCheck setCollection
         ]
 
 
@@ -8057,8 +8074,8 @@ dictUnionChecks =
         [ intoFnCheckOnlyCall
             (\checkInfo ->
                 collectionUnionChecks { leftElementsStayOnTheLeft = False } dictCollection checkInfo
-                    |> onNothing (\() -> callWithTwoEqualArgumentsReturnsEitherArgumentCheck dictCollection checkInfo)
             )
+        , callWithTwoEqualArgumentsReturnsEitherArgumentCheck dictCollection
         , unionWithFirstArgWrappedCanBeCombinedInto
             { combinedFn = Fn.Dict.insert
             , wrapFn = Fn.Dict.singleton
@@ -13213,44 +13230,294 @@ operationDoesNotChangeResultOfOperationCheck =
 
 Examples:
 
-    Basics.max dict dict
-    --> dict
+    Basics.max n n
+    --> n
 
-    Set.union set set
-    --> set
+    Set.union (Set.union set0 set1) set0
+    --> Set.union set0 set1
 
-    Dict.intersect dict dict
-    --> dict
+    Dict.intersect dict0 << Dict.intersect (Dict.intersect dict0 dict1)
+    --> Dict.intersect (Dict.intersect dict0 dict1)
 
 -}
-callWithTwoEqualArgumentsReturnsEitherArgumentCheck :
-    { argumentProperties | representsPlural : String }
-    -> CallCheckInfo
-    -> Maybe (Error {})
-callWithTwoEqualArgumentsReturnsEitherArgumentCheck argumentProperties checkInfo =
-    case secondArg checkInfo of
+callWithTwoEqualArgumentsReturnsEitherArgumentCheck : TypeProperties argumentProperties -> IntoFnCheck
+callWithTwoEqualArgumentsReturnsEitherArgumentCheck argumentProperties =
+    { call =
+        \checkInfo ->
+            case secondArg checkInfo of
+                Nothing ->
+                    Nothing
+
+                Just rightArg ->
+                    let
+                        maybeLeftInnerArgs : Maybe (List { parentRange : Range, arg : Node Expression, otherArg : Node Expression })
+                        maybeLeftInnerArgs =
+                            collectArgsNestedInSpecificFnCallsWith2Args checkInfo checkInfo.firstArg
+
+                        maybeRightInnerArgs : Maybe (List { parentRange : Range, arg : Node Expression, otherArg : Node Expression })
+                        maybeRightInnerArgs =
+                            collectArgsNestedInSpecificFnCallsWith2Args checkInfo rightArg
+
+                        argsInLeft : List { parentRange : Range, arg : Node Expression, otherArg : Node Expression }
+                        argsInLeft =
+                            maybeLeftInnerArgs
+                                |> maybeWithDefaultLazy
+                                    (\() ->
+                                        [ { parentRange = checkInfo.parentRange
+                                          , arg = checkInfo.firstArg
+                                          , otherArg = rightArg
+                                          }
+                                        ]
+                                    )
+
+                        argsInRight : List { parentRange : Range, arg : Node Expression, otherArg : Node Expression }
+                        argsInRight =
+                            maybeRightInnerArgs
+                                |> maybeWithDefaultLazy
+                                    (\() ->
+                                        [ { parentRange = checkInfo.parentRange
+                                          , arg = rightArg
+                                          , otherArg = checkInfo.firstArg
+                                          }
+                                        ]
+                                    )
+                    in
+                    case
+                        listFind
+                            (\argInLeft ->
+                                List.any
+                                    (\argInRight ->
+                                        Normalize.compare checkInfo argInLeft.arg argInRight.arg
+                                            == Normalize.ConfirmedEquality
+                                    )
+                                    argsInRight
+                            )
+                            argsInLeft
+                    of
+                        Just argInLeftEqualToArgInRight ->
+                            let
+                                isInSingleCall : Bool
+                                isInSingleCall =
+                                    isNothing maybeLeftInnerArgs && isNothing maybeRightInnerArgs
+                            in
+                            Just
+                                (Rule.errorWithFix
+                                    (if isInSingleCall then
+                                        { message =
+                                            qualifiedToString checkInfo.fn
+                                                ++ " with two equal "
+                                                ++ argumentProperties.representsPlural
+                                                ++ " can be replaced by one of them"
+                                        , details =
+                                            [ "You can replace this call by one of its arguments." ]
+                                        }
+
+                                     else
+                                        { message =
+                                            "nested "
+                                                ++ qualifiedToString checkInfo.fn
+                                                ++ " contains unnecessary equal "
+                                                ++ argumentProperties.representsPlural
+                                                ++ " across both arguments"
+                                        , details =
+                                            [ "You can replace the call that has an equal argument by its other argument." ]
+                                        }
+                                    )
+                                    checkInfo.fnRange
+                                    (replaceBySubExpressionFix argInLeftEqualToArgInRight.parentRange
+                                        -- choosing to replace the left argument is arbitrary.
+                                        -- we could instead also choose based on some heuristic
+                                        argInLeftEqualToArgInRight.otherArg
+                                    )
+                                )
+
+                        Nothing ->
+                            Nothing
+    , composition =
+        \checkInfo ->
+            if checkInfo.earlier.fn == checkInfo.later.fn then
+                case checkInfo.earlier.args of
+                    [ earlierArg ] ->
+                        case checkInfo.later.args of
+                            [ laterArg ] ->
+                                let
+                                    maybeEarlierInnerArgs : Maybe (List { parentRange : Range, arg : Node Expression, otherArg : Node Expression })
+                                    maybeEarlierInnerArgs =
+                                        collectArgsNestedInSpecificFnCallsWith2Args
+                                            { lookupTable = checkInfo.lookupTable
+                                            , fn = checkInfo.later.fn
+                                            }
+                                            earlierArg
+
+                                    maybeLaterInnerArgs : Maybe (List { parentRange : Range, arg : Node Expression, otherArg : Node Expression })
+                                    maybeLaterInnerArgs =
+                                        collectArgsNestedInSpecificFnCallsWith2Args
+                                            { lookupTable = checkInfo.lookupTable
+                                            , fn = checkInfo.later.fn
+                                            }
+                                            laterArg
+                                in
+                                case maybeLaterInnerArgs of
+                                    Just laterInnerArgs ->
+                                        case maybeEarlierInnerArgs of
+                                            Just earlierInnerArgs ->
+                                                case
+                                                    listFind
+                                                        (\laterInnerArg ->
+                                                            List.any
+                                                                (\earlierInnerArg ->
+                                                                    Normalize.compare checkInfo laterInnerArg.arg earlierInnerArg.arg
+                                                                        == Normalize.ConfirmedEquality
+                                                                )
+                                                                earlierInnerArgs
+                                                        )
+                                                        laterInnerArgs
+                                                of
+                                                    Nothing ->
+                                                        Nothing
+
+                                                    Just innerArgInEarlierEqualToInnerArgInLater ->
+                                                        Just
+                                                            { info =
+                                                                { message =
+                                                                    "nested "
+                                                                        ++ qualifiedToString checkInfo.later.fn
+                                                                        ++ " contains unnecessary equal "
+                                                                        ++ argumentProperties.representsPlural
+                                                                        ++ " across the arguments of the composed functions"
+                                                                , details =
+                                                                    [ "You can replace the inner call that has an equal argument by its other argument." ]
+                                                                }
+                                                            , fix =
+                                                                replaceBySubExpressionFix innerArgInEarlierEqualToInnerArgInLater.parentRange
+                                                                    -- choosing to replace the left argument is arbitrary.
+                                                                    -- we could instead also choose based on some heuristic
+                                                                    innerArgInEarlierEqualToInnerArgInLater.otherArg
+                                                            }
+
+                                            Nothing ->
+                                                if
+                                                    List.any
+                                                        (\laterInnerArg ->
+                                                            Normalize.compare checkInfo laterInnerArg.arg earlierArg == Normalize.ConfirmedEquality
+                                                        )
+                                                        laterInnerArgs
+                                                then
+                                                    Just
+                                                        { info =
+                                                            { message =
+                                                                "nested "
+                                                                    ++ qualifiedToString checkInfo.later.fn
+                                                                    ++ " contains unnecessary equal "
+                                                                    ++ argumentProperties.representsPlural
+                                                                    ++ " across the arguments of the composed functions"
+                                                            , details =
+                                                                [ "You can remove the operation that has an equal argument." ]
+                                                            }
+                                                        , fix =
+                                                            [ Fix.removeRange checkInfo.earlier.removeRange ]
+                                                        }
+
+                                                else
+                                                    Nothing
+
+                                    Nothing ->
+                                        case maybeEarlierInnerArgs of
+                                            Nothing ->
+                                                case Normalize.compare checkInfo earlierArg laterArg of
+                                                    Normalize.ConfirmedEquality ->
+                                                        Just
+                                                            { info =
+                                                                { message =
+                                                                    "Unnecessary "
+                                                                        ++ qualifiedToString checkInfo.later.fn
+                                                                        ++ " on "
+                                                                        ++ qualifiedToString checkInfo.later.fn
+                                                                        ++ " with an equal "
+                                                                        ++ argumentProperties.represents
+                                                                , details =
+                                                                    [ "You can replace this composition by either its left or right function as both are equivalent." ]
+                                                                }
+                                                            , fix =
+                                                                [ Fix.removeRange checkInfo.later.removeRange ]
+                                                            }
+
+                                                    _ ->
+                                                        Nothing
+
+                                            Just earlierInnerArgs ->
+                                                if
+                                                    List.any
+                                                        (\earlierInnerArg ->
+                                                            Normalize.compare checkInfo earlierInnerArg.arg laterArg == Normalize.ConfirmedEquality
+                                                        )
+                                                        earlierInnerArgs
+                                                then
+                                                    Just
+                                                        { info =
+                                                            { message =
+                                                                "nested "
+                                                                    ++ qualifiedToString checkInfo.later.fn
+                                                                    ++ " contains unnecessary equal "
+                                                                    ++ argumentProperties.representsPlural
+                                                                    ++ " across the arguments of the composed functions"
+                                                            , details =
+                                                                [ "You can remove the operation that has an equal argument." ]
+                                                            }
+                                                        , fix =
+                                                            [ Fix.removeRange checkInfo.later.removeRange ]
+                                                        }
+
+                                                else
+                                                    Nothing
+
+                            _ ->
+                                Nothing
+
+                    _ ->
+                        Nothing
+
+            else
+                Nothing
+    }
+
+
+collectArgsNestedInSpecificFnCallsWith2Args :
+    { config
+        | fn : ( ModuleName, String )
+        , lookupTable : ModuleNameLookupTable
+    }
+    -> Node Expression
+    -> Maybe (List { parentRange : Range, arg : Node Expression, otherArg : Node Expression })
+collectArgsNestedInSpecificFnCallsWith2Args config expressionNode =
+    case AstHelpers.getSpecificUnreducedFnCall config.fn config.lookupTable expressionNode of
         Nothing ->
             Nothing
 
-        Just rightArg ->
-            case Normalize.compare checkInfo checkInfo.firstArg rightArg of
-                Normalize.ConfirmedEquality ->
+        Just specificFnCall ->
+            case specificFnCall.argsAfterFirst of
+                [ specificFnCallSecondArg ] ->
                     Just
-                        (Rule.errorWithFix
-                            { message =
-                                qualifiedToString checkInfo.fn
-                                    ++ " with two equal "
-                                    ++ argumentProperties.representsPlural
-                                    ++ " can be replaced by one of them"
-                            , details =
-                                [ "You can replace this call by one of its arguments." ]
-                            }
-                            checkInfo.fnRange
-                            (replaceBySubExpressionFix checkInfo.parentRange
-                                -- choosing to keep the first argument is arbitrary.
-                                -- we could instead also choose based on some heuristic
-                                checkInfo.firstArg
-                            )
+                        ((collectArgsNestedInSpecificFnCallsWith2Args config specificFnCall.firstArg
+                            |> maybeWithDefaultLazy
+                                (\() ->
+                                    [ { parentRange = specificFnCall.nodeRange
+                                      , arg = specificFnCall.firstArg
+                                      , otherArg = specificFnCallSecondArg
+                                      }
+                                    ]
+                                )
+                         )
+                            ++ (collectArgsNestedInSpecificFnCallsWith2Args config specificFnCallSecondArg
+                                    |> maybeWithDefaultLazy
+                                        (\() ->
+                                            [ { parentRange = specificFnCall.nodeRange
+                                              , arg = specificFnCallSecondArg
+                                              , otherArg = specificFnCall.firstArg
+                                              }
+                                            ]
+                                        )
+                               )
                         )
 
                 _ ->
@@ -13892,8 +14159,9 @@ collectionIntersectChecks collection =
                         )
 
                 else
-                    callWithTwoEqualArgumentsReturnsEitherArgumentCheck collection checkInfo
+                    Nothing
             )
+        , callWithTwoEqualArgumentsReturnsEitherArgumentCheck collection
         ]
 
 
