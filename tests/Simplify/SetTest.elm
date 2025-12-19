@@ -1,4 +1,4 @@
-module Simplify.SetTests exposing (all)
+module Simplify.SetTest exposing (all)
 
 import Review.Test
 import Test exposing (Test, describe, test)

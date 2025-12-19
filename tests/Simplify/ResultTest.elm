@@ -1,4 +1,4 @@
-module Simplify.ResultTests exposing (all)
+module Simplify.ResultTest exposing (all)
 
 import Review.Test
 import Test exposing (Test, describe, test)
