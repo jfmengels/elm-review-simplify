@@ -6891,16 +6891,16 @@ listMaximumChecks =
 
 listFoldlChecks : IntoFnCheck
 listFoldlChecks =
-    listFoldAnyDirectionChecks
+    listFoldChecks "foldl"
 
 
 listFoldrChecks : IntoFnCheck
 listFoldrChecks =
-    listFoldAnyDirectionChecks
+    listFoldChecks "foldr"
 
 
-listFoldAnyDirectionChecks : IntoFnCheck
-listFoldAnyDirectionChecks =
+listFoldChecks : String -> IntoFnCheck
+listFoldChecks foldFnName =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (emptiableFoldChecks listCollection)
         , intoFnCheckOnlyCall
@@ -7034,50 +7034,76 @@ listFoldAnyDirectionChecks =
                                     else
                                         Nothing
             )
-        , { call =
-                \checkInfo ->
-                    case thirdArg checkInfo of
-                        Just listArg ->
-                            case AstHelpers.getSpecificUnreducedFnCall Fn.Set.toList checkInfo.lookupTable listArg of
-                                Just setToListCall ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = "To fold a set, you don't need to convert to a List"
-                                            , details = [ "Using " ++ qualifiedToString ( [ "Set" ], AstHelpers.qualifiedName checkInfo.fn ) ++ " directly is meant for this exact purpose and will also be faster." ]
-                                            }
-                                            checkInfo.fnRange
-                                            (replaceBySubExpressionFix setToListCall.nodeRange setToListCall.firstArg
-                                                ++ [ Fix.replaceRangeBy checkInfo.fnRange
-                                                        (qualifiedToString (qualify ( [ "Set" ], AstHelpers.qualifiedName checkInfo.fn ) checkInfo))
-                                                   ]
-                                            )
-                                        )
+        , foldOnConversionFnCallCanBeCombinedCheck
+            { originalRepresentsIndefinite = "a set"
+            , convertFn = Fn.Set.toList
+            , convertedRepresentsIndefinite = "a List"
+            , combinedFn = ( [ "Set" ], foldFnName )
+            }
+        ]
 
-                                Nothing ->
-                                    Nothing
+
+foldOnConversionFnCallCanBeCombinedCheck :
+    { originalRepresentsIndefinite : String
+    , convertFn : ( ModuleName, String )
+    , convertedRepresentsIndefinite : String
+    , combinedFn : ( ModuleName, String )
+    }
+    -> IntoFnCheck
+foldOnConversionFnCallCanBeCombinedCheck config =
+    { call =
+        \checkInfo ->
+            case thirdArg checkInfo of
+                Just convertedArg ->
+                    case AstHelpers.getSpecificUnreducedFnCall config.convertFn checkInfo.lookupTable convertedArg of
+                        Just conversionCall ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message =
+                                        "To fold "
+                                            ++ config.originalRepresentsIndefinite
+                                            ++ ", you don't need to convert to "
+                                            ++ config.convertedRepresentsIndefinite
+                                    , details = [ "Using " ++ qualifiedToString config.combinedFn ++ " directly is meant for this exact purpose and will also be faster." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (replaceBySubExpressionFix conversionCall.nodeRange conversionCall.firstArg
+                                        ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                                (qualifiedToString (qualify config.combinedFn checkInfo))
+                                           ]
+                                    )
+                                )
 
                         Nothing ->
                             Nothing
-          , composition =
-                \checkInfo ->
-                    case checkInfo.earlier.fn of
-                        ( [ "Set" ], "toList" ) ->
-                            Just
-                                { info =
-                                    { message = "To fold a set, you don't need to convert to a List"
-                                    , details = [ "Using " ++ qualifiedToString ( [ "Set" ], AstHelpers.qualifiedName checkInfo.later.fn ) ++ " directly is meant for this exact purpose and will also be faster." ]
-                                    }
-                                , fix =
-                                    [ Fix.replaceRangeBy checkInfo.later.fnRange
-                                        (qualifiedToString (qualify ( [ "Set" ], AstHelpers.qualifiedName checkInfo.later.fn ) checkInfo))
-                                    , Fix.removeRange checkInfo.earlier.removeRange
-                                    ]
-                                }
 
-                        _ ->
-                            Nothing
-          }
-        ]
+                Nothing ->
+                    Nothing
+    , composition =
+        \checkInfo ->
+            if
+                (checkInfo.earlier.fn == config.convertFn)
+                    && onlyLastArgIsCurried checkInfo.later
+            then
+                Just
+                    { info =
+                        { message =
+                            "To fold "
+                                ++ config.originalRepresentsIndefinite
+                                ++ ", you don't need to convert to "
+                                ++ config.convertedRepresentsIndefinite
+                        , details = [ "Using " ++ qualifiedToString config.combinedFn ++ " directly is meant for this exact purpose and will also be faster." ]
+                        }
+                    , fix =
+                        [ Fix.replaceRangeBy checkInfo.later.fnRange
+                            (qualifiedToString (qualify config.combinedFn checkInfo))
+                        , Fix.removeRange checkInfo.earlier.removeRange
+                        ]
+                    }
+
+            else
+                Nothing
+    }
 
 
 listIsEmptyChecks : IntoFnCheck
