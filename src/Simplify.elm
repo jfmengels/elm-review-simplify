@@ -1093,6 +1093,10 @@ Destructuring using case expressions
     Array.foldl (\_ soFar -> soFar) initial array
     --> initial
 
+    -- same for foldr
+    List.foldl f x (Array.toList array)
+    --> Array.foldl f x array
+
     Array.toIndexedList Array.empty
     --> []
 
@@ -7039,6 +7043,12 @@ listFoldChecks foldFnName =
             , convertFn = Fn.Set.toList
             , convertedRepresentsIndefinite = "a list"
             , combinedFn = ( [ "Set" ], foldFnName )
+            }
+        , foldOnConversionFnCallCanBeCombinedCheck
+            { originalRepresentsIndefinite = "an array"
+            , convertFn = Fn.Array.toList
+            , convertedRepresentsIndefinite = "a list"
+            , combinedFn = ( [ "Array" ], foldFnName )
             }
         ]
 
