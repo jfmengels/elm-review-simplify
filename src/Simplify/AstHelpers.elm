@@ -10,7 +10,7 @@ module Simplify.AstHelpers exposing
     , getCollapsedCons, getListLiteral, isListLiteral, getListSingleton
     , getTuple2, getTuple2Literal
     , boolToString, emptyStringAsString
-    , moduleNameFromString, qualifiedName, qualifiedModuleName, qualifiedToString, moduleNameToString
+    , moduleNameFromString, qualifiedModuleName, qualifiedToString, moduleNameToString
     , declarationListBindings, patternBindings, patternListBindings, typeUsesVariable
     , nameOfExpose
     , couldBeValueContainingNaN
@@ -52,7 +52,7 @@ module Simplify.AstHelpers exposing
 
 ### qualification
 
-@docs moduleNameFromString, qualifiedName, qualifiedModuleName, qualifiedToString, moduleNameToString
+@docs moduleNameFromString, qualifiedModuleName, qualifiedToString, moduleNameToString
 
 
 ### misc
@@ -1481,11 +1481,6 @@ qualifiedToString ( moduleName, name ) =
 
         _ :: _ ->
             moduleNameToString moduleName ++ "." ++ name
-
-
-qualifiedName : ( ModuleName, String ) -> String
-qualifiedName ( _, name ) =
-    name
 
 
 qualifiedModuleName : ( ModuleName, String ) -> ModuleName
