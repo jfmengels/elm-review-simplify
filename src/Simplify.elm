@@ -1096,7 +1096,6 @@ Destructuring using case expressions
     Array.foldl (\_ soFar -> soFar) initial array
     --> initial
 
-    -- same for foldr
     List.foldl f x (Array.toList array)
     --> Array.foldl f x array
 
