@@ -820,6 +820,9 @@ Destructuring using case expressions
     List.foldl (||) True list
     --> True
 
+    Array.foldl f x (Array.fromList list)
+    --> List.foldl f x array
+
     List.all f []
     --> True
 
@@ -7561,12 +7564,25 @@ arrayAppendChecks =
 
 arrayFoldlChecks : IntoFnCheck
 arrayFoldlChecks =
-    intoFnCheckOnlyCall (emptiableFoldChecks arrayCollection)
+    arrayFoldChecks "foldl"
 
 
 arrayFoldrChecks : IntoFnCheck
 arrayFoldrChecks =
-    intoFnCheckOnlyCall (emptiableFoldChecks arrayCollection)
+    arrayFoldChecks "foldr"
+
+
+arrayFoldChecks : String -> IntoFnCheck
+arrayFoldChecks foldFnName =
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (\checkInfo -> emptiableFoldChecks arrayCollection checkInfo)
+        , foldOnConversionFnCallCanBeCombinedCheck
+            { originalRepresentsIndefinite = "a list"
+            , convertFn = Fn.Array.fromList
+            , convertedRepresentsIndefinite = "an array"
+            , combinedFn = ( [ "List" ], foldFnName )
+            }
+        ]
 
 
 
