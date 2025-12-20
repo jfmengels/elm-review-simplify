@@ -32,7 +32,7 @@ a = List.foldl f x << Set.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -49,7 +49,7 @@ a = List.foldl f x << toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -67,7 +67,7 @@ a = List.foldl f x << Set.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -85,7 +85,7 @@ a = List.foldl f x << UniqueList.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -103,7 +103,7 @@ a = List.foldl f x << toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -121,7 +121,7 @@ a = List.foldl f x << toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -139,7 +139,7 @@ a = List.foldl f x << UniqueList.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -165,7 +165,7 @@ foldl = ()
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -206,7 +206,7 @@ a foldl = List.foldl f x << Set.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -224,7 +224,7 @@ a = \\( _, Node _ ({ foldl } :: _) ) -> List.foldl f x << Set.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -248,7 +248,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -278,7 +278,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -308,7 +308,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -337,7 +337,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -368,7 +368,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -399,7 +399,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -427,7 +427,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -455,7 +455,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }
@@ -484,7 +484,7 @@ a =
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "To fold a set, you don't need to convert to a List"
+                            { message = "To fold a set, you don't need to convert to a list"
                             , details = [ "Using Set.foldl directly is meant for this exact purpose and will also be faster." ]
                             , under = "List.foldl"
                             }

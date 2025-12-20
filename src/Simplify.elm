@@ -7037,7 +7037,7 @@ listFoldChecks foldFnName =
         , foldOnConversionFnCallCanBeCombinedCheck
             { originalRepresentsIndefinite = "a set"
             , convertFn = Fn.Set.toList
-            , convertedRepresentsIndefinite = "a List"
+            , convertedRepresentsIndefinite = "a list"
             , combinedFn = ( [ "Set" ], foldFnName )
             }
         ]
