@@ -3015,6 +3015,54 @@ import Array
 a = always
 """
                         ]
+        , test "should replace Array.foldl f x (Array.fromList list) by List.foldl f x list" <|
+            \() ->
+                """module A exposing (..)
+a = Array.foldl f x (Array.fromList list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a list, you don't need to convert to an array"
+                            , details = [ "Using List.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "Array.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.foldl f x list
+"""
+                        ]
+        , test "should replace Array.foldl f x << Array.fromList by Array.foldl f x" <|
+            \() ->
+                """module A exposing (..)
+a = Array.foldl f x << Array.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a list, you don't need to convert to an array"
+                            , details = [ "Using List.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "Array.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.foldl f x
+"""
+                        ]
+        , test "should replace Array.fromList >> Array.foldl f x by Array.foldl f x" <|
+            \() ->
+                """module A exposing (..)
+a = Array.fromList >> Array.foldl f x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a list, you don't need to convert to an array"
+                            , details = [ "Using List.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "Array.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.foldl f x
+"""
+                        ]
         ]
 
 
@@ -3102,6 +3150,54 @@ a = Array.foldr (always identity)
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = always
+"""
+                        ]
+        , test "should replace Array.foldr f x (Array.fromList list) by List.foldr f x list" <|
+            \() ->
+                """module A exposing (..)
+a = Array.foldr f x (Array.fromList list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a list, you don't need to convert to an array"
+                            , details = [ "Using List.foldr directly is meant for this exact purpose and will also be faster." ]
+                            , under = "Array.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.foldr f x list
+"""
+                        ]
+        , test "should replace Array.foldr f x << Array.fromList by Array.foldr f x" <|
+            \() ->
+                """module A exposing (..)
+a = Array.foldr f x << Array.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a list, you don't need to convert to an array"
+                            , details = [ "Using List.foldr directly is meant for this exact purpose and will also be faster." ]
+                            , under = "Array.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.foldr f x
+"""
+                        ]
+        , test "should replace Array.fromList >> Array.foldr f x by Array.foldr f x" <|
+            \() ->
+                """module A exposing (..)
+a = Array.fromList >> Array.foldr f x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a list, you don't need to convert to an array"
+                            , details = [ "Using List.foldr directly is meant for this exact purpose and will also be faster." ]
+                            , under = "Array.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.foldr f x
 """
                         ]
         ]
