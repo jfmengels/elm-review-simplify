@@ -44,6 +44,8 @@ The rule now simplifies:
 - `Dict.intersect (Dict.intersect dict0 dict1) dict0` to `Dict.intersect dict0 dict1` (any equal inner values across the two arguments, or composition)
 - `List.foldl f x (Array.toList array)` to `Array.foldl f x array` (same for `foldr`)
 - `Array.foldl f x (Array.fromList list)` to `List.foldl f x array` (same for `foldr`)
+- `List.member x (Set.toList set)` to `Set.member x set` when [`expectNaN`] is not enabled
+- `Set.member x (Set.fromList list)` to `List.member x list` when [`expectNaN`] is not enabled
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",
