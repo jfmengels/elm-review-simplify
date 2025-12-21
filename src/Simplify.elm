@@ -823,6 +823,9 @@ Destructuring using case expressions
     Array.foldl f x (Array.fromList list)
     --> List.foldl f x array
 
+    Set.member x (Set.fromList list)
+    --> List.member x list
+
     List.all f []
     --> True
 
@@ -1212,6 +1215,9 @@ Destructuring using case expressions
     -- same for foldr
     List.foldl f x (Set.toList set)
     --> Set.foldl f x set
+
+    List.member x (Set.toList set)
+    --> Set.member x set
 
     Set.filter f (Set.filter f set)
     --> Set.filter f set
@@ -3149,7 +3155,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         Expression.OperatorApplication ">>" _ earlier composedLater ->
             onlyMaybeError
                 (compositionChecks
-                    (toCompositionCheckInfo context { earlier = earlier, later = composedLater })
+                    (toCompositionCheckInfo config context { earlier = earlier, later = composedLater })
                 )
 
         ----------
@@ -3158,7 +3164,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
         Expression.OperatorApplication "<<" _ composedLater earlier ->
             onlyMaybeError
                 (compositionChecks
-                    (toCompositionCheckInfo context { earlier = earlier, later = composedLater })
+                    (toCompositionCheckInfo config context { earlier = earlier, later = composedLater })
                 )
 
         ---------------------
@@ -3432,13 +3438,14 @@ toCallCheckInfo config context checkInfo =
 
 
 toCompositionCheckInfo :
-    ModuleContext
+    { config | expectNaN : Bool }
+    -> ModuleContext
     ->
         { earlier : Node Expression
         , later : Node Expression
         }
     -> CompositionCheckInfo
-toCompositionCheckInfo context compositionSpecific =
+toCompositionCheckInfo config context compositionSpecific =
     let
         innerComposition :
             { earlier :
@@ -3450,7 +3457,8 @@ toCompositionCheckInfo context compositionSpecific =
         innerComposition =
             getInnerComposition compositionSpecific
     in
-    { lookupTable = context.lookupTable
+    { expectNaN = config.expectNaN
+    , lookupTable = context.lookupTable
     , importLookup = context.importLookup
     , importRecordTypeAliases = context.importRecordTypeAliases
     , moduleRecordTypeAliases = context.moduleRecordTypeAliases
@@ -3602,7 +3610,8 @@ thirdArg checkInfo =
 
 
 type alias CompositionIntoCheckInfo =
-    { lookupTable : ModuleNameLookupTable
+    { expectNaN : Bool
+    , lookupTable : ModuleNameLookupTable
     , importLookup : ImportLookup
     , importCustomTypes :
         Dict
@@ -3873,7 +3882,8 @@ functionCallChecks =
 
 
 type alias CompositionCheckInfo =
-    { lookupTable : ModuleNameLookupTable
+    { expectNaN : Bool
+    , lookupTable : ModuleNameLookupTable
     , importLookup : ImportLookup
     , importRecordTypeAliases : Dict ModuleName (Dict String (List String))
     , moduleRecordTypeAliases : Dict String (List String)
@@ -3925,7 +3935,8 @@ compositionChecks checkInfo =
                                                 case Dict.get ( laterFnModuleName, laterFnOrCall.fnName ) compositionIntoChecks of
                                                     Just ( laterArgCount, compositionIntoChecksForSpecificLater ) ->
                                                         compositionIntoChecksForSpecificLater
-                                                            { lookupTable = checkInfo.lookupTable
+                                                            { expectNaN = checkInfo.expectNaN
+                                                            , lookupTable = checkInfo.lookupTable
                                                             , importLookup = checkInfo.importLookup
                                                             , importCustomTypes = checkInfo.importCustomTypes
                                                             , moduleCustomTypes = checkInfo.moduleCustomTypes
@@ -6806,15 +6817,95 @@ listMapOnSingletonCheck =
 
 listMemberChecks : IntoFnCheck
 listMemberChecks =
-    intoFnCheckOnlyCall
-        (\checkInfo ->
-            callOnEmptyReturnsCheck
-                { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
-                listCollection
-                checkInfo
-                |> onNothing (\() -> knownMemberChecks listCollection checkInfo)
-                |> onNothing (\() -> wrapperMemberChecks listCollection checkInfo)
-        )
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (\checkInfo ->
+                callOnEmptyReturnsCheck
+                    { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
+                    listCollection
+                    checkInfo
+                    |> onNothing (\() -> knownMemberChecks listCollection checkInfo)
+                    |> onNothing (\() -> wrapperMemberChecks listCollection checkInfo)
+            )
+        , containsElementOnConversionFnCallCanBeCombinedCheck
+            { combinedOperationRepresents = "check for a set member"
+            , convertFn = Fn.Set.toList
+            , convertedRepresentsIndefinite = "a list"
+            , combinedFn = Fn.Set.member
+            }
+        ]
+
+
+containsElementOnConversionFnCallCanBeCombinedCheck :
+    { combinedOperationRepresents : String
+    , convertFn : ( ModuleName, String )
+    , convertedRepresentsIndefinite : String
+    , combinedFn : ( ModuleName, String )
+    }
+    -> IntoFnCheck
+containsElementOnConversionFnCallCanBeCombinedCheck config =
+    { call =
+        \checkInfo ->
+            if checkInfo.expectNaN && AstHelpers.couldBeValueContainingNaN checkInfo.firstArg then
+                Nothing
+
+            else
+                case fullyAppliedLastArg checkInfo of
+                    Just convertedArg ->
+                        case AstHelpers.getSpecificUnreducedFnCall config.convertFn checkInfo.lookupTable convertedArg of
+                            Just conversionCall ->
+                                if checkInfo.expectNaN && AstHelpers.couldBeValueContainingNaN conversionCall.firstArg then
+                                    Nothing
+
+                                else
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                "To "
+                                                    ++ config.combinedOperationRepresents
+                                                    ++ ", you don't need to convert to "
+                                                    ++ config.convertedRepresentsIndefinite
+                                            , details = [ "Using " ++ qualifiedToString config.combinedFn ++ " directly is meant for this exact purpose and will also be faster." ]
+                                            }
+                                            checkInfo.fnRange
+                                            (replaceBySubExpressionFix conversionCall.nodeRange conversionCall.firstArg
+                                                ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                                        (qualifiedToString (qualify config.combinedFn checkInfo))
+                                                   ]
+                                            )
+                                        )
+
+                            Nothing ->
+                                Nothing
+
+                    Nothing ->
+                        Nothing
+    , composition =
+        \checkInfo ->
+            if
+                Basics.not checkInfo.expectNaN
+                    && (checkInfo.earlier.fn == config.convertFn)
+                    && onlyLastArgIsCurried checkInfo.later
+            then
+                Just
+                    { info =
+                        { message =
+                            "To "
+                                ++ config.combinedOperationRepresents
+                                ++ ", you don't need to convert to "
+                                ++ config.convertedRepresentsIndefinite
+                        , details = [ "Using " ++ qualifiedToString config.combinedFn ++ " directly is meant for this exact purpose and will also be faster." ]
+                        }
+                    , fix =
+                        [ Fix.replaceRangeBy checkInfo.later.fnRange
+                            (qualifiedToString (qualify config.combinedFn checkInfo))
+                        , Fix.removeRange checkInfo.earlier.removeRange
+                        ]
+                    }
+
+            else
+                Nothing
+    }
 
 
 listSumChecks : IntoFnCheck
@@ -7065,7 +7156,7 @@ foldOnConversionFnCallCanBeCombinedCheck :
 foldOnConversionFnCallCanBeCombinedCheck config =
     { call =
         \checkInfo ->
-            case thirdArg checkInfo of
+            case fullyAppliedLastArg checkInfo of
                 Just convertedArg ->
                     case AstHelpers.getSpecificUnreducedFnCall config.convertFn checkInfo.lookupTable convertedArg of
                         Just conversionCall ->
@@ -7699,15 +7790,23 @@ setSizeChecks =
 
 setMemberChecks : IntoFnCheck
 setMemberChecks =
-    intoFnCheckOnlyCall
-        (\checkInfo ->
-            callOnEmptyReturnsCheck
-                { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
-                setCollection
-                checkInfo
-                |> onNothing (\() -> knownMemberChecks setCollection checkInfo)
-                |> onNothing (\() -> wrapperMemberChecks setCollection checkInfo)
-        )
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (\checkInfo ->
+                callOnEmptyReturnsCheck
+                    { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
+                    setCollection
+                    checkInfo
+                    |> onNothing (\() -> knownMemberChecks setCollection checkInfo)
+                    |> onNothing (\() -> wrapperMemberChecks setCollection checkInfo)
+            )
+        , containsElementOnConversionFnCallCanBeCombinedCheck
+            { combinedOperationRepresents = "check for a list member"
+            , convertFn = Fn.Set.fromList
+            , convertedRepresentsIndefinite = "a set"
+            , combinedFn = Fn.List.member
+            }
+        ]
 
 
 setInsertChecks : IntoFnCheck

@@ -1663,6 +1663,76 @@ a = List.member 0 [ 2, 3, 1 ]
 a = False
 """
                         ]
+        , test "should not replace List.member 2 (Set.toList set) when expectNaN is enabled" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.member 2 (Set.toList set)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should not replace List.member 2 << Set.toList when expectNaN is enabled" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.member 2 << Set.toList
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.member x (Set.toList set) by Set.member x set when expectNaN is not enabled" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.member x (Set.toList set)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To check for a set member, you don't need to convert to a list"
+                            , details = [ "Using Set.member directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.member x set
+"""
+                        ]
+        , test "should replace List.member x << Set.toList by Set.member x when expectNaN is not enabled" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.member x << Set.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To check for a set member, you don't need to convert to a list"
+                            , details = [ "Using Set.member directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.member x
+"""
+                        ]
+        , test "should replace Set.toList >> List.member x by Set.member x when expectNaN is not enabled" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.toList >> List.member x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To check for a set member, you don't need to convert to a list"
+                            , details = [ "Using Set.member directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.member x
+"""
+                        ]
         ]
 
 
