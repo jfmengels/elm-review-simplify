@@ -1283,10 +1283,10 @@ Destructuring using case expressions
     Dict.member x Dict.empty
     --> False
 
-    Dict.member x [ ( y, v0 ), ( x, v1 ) ]
+    Dict.member x (Dict.fromList [ ( y, v0 ), ( x, v1 ) ])
     --> True
 
-    Dict.member -999 [ ( 0, v0 ), ( 1, v1 ) ]
+    Dict.member -999 (Dict.fromList [ ( 0, v0 ), ( 1, v1 ) ])
     --> False
 
     Dict.insert k v1 (Dict.insert k v0 dict)

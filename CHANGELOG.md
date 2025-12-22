@@ -86,7 +86,7 @@ The rule now simplifies:
 - `Set.member -999 (Set.fromList [ 0, 1 ])` to `False`
 - `Dict.fromList [ a, a ]` to `Dict.fromList [ a ]`
 - `Dict.fromList [ ( a, v0 ), ( a, v1 ) ]` to `Dict.fromList [ ( a, v1 ) ]`
-- `Dict.member x [ ( y, v0 ), ( x, v1 ) ]` to `True`
+- `Dict.member x (Dict.fromList [ ( y, v0 ), ( x, v1 ) ])` to `True`
 - `Dict.member -999 [ ( 0, v0 ), ( 1, v1 ) ]` to `False`
 - `List.member -999 [ 0, 1 ]` to `False`
 
