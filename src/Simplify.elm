@@ -7233,14 +7233,14 @@ listFoldChecks foldFnName =
                                     else
                                         Nothing
             )
-        , foldOnConversionFnCallCanBeCombinedCheck
-            { originalRepresentsIndefinite = "a set"
+        , onConversionFnCallCanBeCombinedCheck
+            { combinedOperationRepresents = "fold a set"
             , convertFn = Fn.Set.toList
             , convertedRepresentsIndefinite = "a list"
             , combinedFn = ( [ "Set" ], foldFnName )
             }
-        , foldOnConversionFnCallCanBeCombinedCheck
-            { originalRepresentsIndefinite = "an array"
+        , onConversionFnCallCanBeCombinedCheck
+            { combinedOperationRepresents = "fold an array"
             , convertFn = Fn.Array.toList
             , convertedRepresentsIndefinite = "a list"
             , combinedFn = ( [ "Array" ], foldFnName )
@@ -7248,14 +7248,14 @@ listFoldChecks foldFnName =
         ]
 
 
-foldOnConversionFnCallCanBeCombinedCheck :
-    { originalRepresentsIndefinite : String
+onConversionFnCallCanBeCombinedCheck :
+    { combinedOperationRepresents : String
     , convertFn : ( ModuleName, String )
     , convertedRepresentsIndefinite : String
     , combinedFn : ( ModuleName, String )
     }
     -> IntoFnCheck
-foldOnConversionFnCallCanBeCombinedCheck config =
+onConversionFnCallCanBeCombinedCheck config =
     { call =
         \checkInfo ->
             case fullyAppliedLastArg checkInfo of
@@ -7265,8 +7265,8 @@ foldOnConversionFnCallCanBeCombinedCheck config =
                             Just
                                 (Rule.errorWithFix
                                     { message =
-                                        "To fold "
-                                            ++ config.originalRepresentsIndefinite
+                                        "To "
+                                            ++ config.combinedOperationRepresents
                                             ++ ", you don't need to convert to "
                                             ++ config.convertedRepresentsIndefinite
                                     , details = [ "Using " ++ qualifiedToString config.combinedFn ++ " directly is meant for this exact purpose and will also be faster." ]
@@ -7293,8 +7293,8 @@ foldOnConversionFnCallCanBeCombinedCheck config =
                 Just
                     { info =
                         { message =
-                            "To fold "
-                                ++ config.originalRepresentsIndefinite
+                            "To "
+                                ++ config.combinedOperationRepresents
                                 ++ ", you don't need to convert to "
                                 ++ config.convertedRepresentsIndefinite
                         , details = [ "Using " ++ qualifiedToString config.combinedFn ++ " directly is meant for this exact purpose and will also be faster." ]
@@ -7768,8 +7768,8 @@ arrayFoldChecks : String -> IntoFnCheck
 arrayFoldChecks foldFnName =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (\checkInfo -> emptiableFoldChecks arrayCollection checkInfo)
-        , foldOnConversionFnCallCanBeCombinedCheck
-            { originalRepresentsIndefinite = "a list"
+        , onConversionFnCallCanBeCombinedCheck
+            { combinedOperationRepresents = "fold a list"
             , convertFn = Fn.Array.fromList
             , convertedRepresentsIndefinite = "an array"
             , combinedFn = ( [ "List" ], foldFnName )
