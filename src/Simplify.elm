@@ -1499,6 +1499,18 @@ All of these also apply for `Sub`.
     --> Html.Attributes.class onlyOneThing
 
 
+### Json.Encode
+
+    Json.Encode.list f (Array.toList array)
+    --> Json.Encode.array f array
+
+    Json.Encode.array f (Array.fromList list)
+    --> Json.Encode.list f list
+
+    Json.Encode.list f (Set.toList set)
+    --> Json.Encode.set f set
+
+
 ### Json.Decode
 
     Json.Decode.map identity decoder
@@ -1612,6 +1624,7 @@ import Fn.Basics
 import Fn.Dict
 import Fn.Html.Attributes
 import Fn.Json.Decode
+import Fn.Json.Encode
 import Fn.List
 import Fn.Maybe
 import Fn.Parser
@@ -3950,6 +3963,8 @@ intoFnChecks =
     , ( Fn.Task.mapError, ( 2, taskMapErrorChecks ) )
     , ( Fn.Task.onError, ( 2, taskOnErrorChecks ) )
     , ( Fn.Task.sequence, ( 1, taskSequenceChecks ) )
+    , ( Fn.Json.Encode.list, ( 2, jsonEncodeListChecks ) )
+    , ( Fn.Json.Encode.array, ( 2, jsonEncodeArrayChecks ) )
     , ( Fn.Json.Decode.oneOf, ( 1, jsonDecodeOneOfChecks ) )
     , ( Fn.Json.Decode.map, ( 2, jsonDecodeMapChecks ) )
     , ( Fn.Json.Decode.map2, ( 3, jsonDecodeMapNChecks ) )
@@ -8717,6 +8732,38 @@ htmlAttributesClassListChecks =
                                 Nothing
                     )
         )
+
+
+
+-- JSON.ENCODE FUNCTIONS
+
+
+jsonEncodeListChecks : IntoFnCheck
+jsonEncodeListChecks =
+    intoFnChecksFirstThatConstructsError
+        [ onConversionFnCallCanBeCombinedCheck
+            { combinedOperationRepresents = "encode an array"
+            , convertFn = Fn.Array.toList
+            , convertedRepresentsIndefinite = "a list"
+            , combinedFn = Fn.Json.Encode.array
+            }
+        , onConversionFnCallCanBeCombinedCheck
+            { combinedOperationRepresents = "encode a set"
+            , convertFn = Fn.Set.toList
+            , convertedRepresentsIndefinite = "a list"
+            , combinedFn = Fn.Json.Encode.set
+            }
+        ]
+
+
+jsonEncodeArrayChecks : IntoFnCheck
+jsonEncodeArrayChecks =
+    onConversionFnCallCanBeCombinedCheck
+        { combinedOperationRepresents = "encode a list"
+        , convertFn = Fn.Array.fromList
+        , convertedRepresentsIndefinite = "an array"
+        , combinedFn = Fn.Json.Encode.list
+        }
 
 
 

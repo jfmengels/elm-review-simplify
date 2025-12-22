@@ -47,6 +47,9 @@ The rule now simplifies:
 - `List.member x (Set.toList set)` to `Set.member x set` when [`expectNaN`] is not enabled
 - `Set.member x (Set.fromList list)` to `List.member x list` when [`expectNaN`] is not enabled
 - `Dict.member x (Dict.fromList list)` to `List.any (\( k, _ ) -> k == x) list` when [`expectNaN`] is not enabled
+- `Json.Encode.list f (Array.toList array)` to `Json.Encode.array f array`
+- `Json.Encode.array f (Array.fromList list)` to `Json.Encode.list f list`
+- `Json.Encode.list f (Set.toList set)` to `Json.Encode.set f set`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",
