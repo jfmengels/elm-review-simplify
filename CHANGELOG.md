@@ -46,6 +46,7 @@ The rule now simplifies:
 - `Array.foldl f x (Array.fromList list)` to `List.foldl f x array` (same for `foldr`)
 - `List.member x (Set.toList set)` to `Set.member x set` when [`expectNaN`] is not enabled
 - `Set.member x (Set.fromList list)` to `List.member x list` when [`expectNaN`] is not enabled
+- `Dict.member x (Dict.fromList list)` to `List.any (\( k, _ ) -> k == x) list` when [`expectNaN`] is not enabled
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",
