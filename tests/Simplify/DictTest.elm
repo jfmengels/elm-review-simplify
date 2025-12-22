@@ -821,7 +821,7 @@ a = Dict.member reference (Dict.fromList [ ( 2, () ), ( 3, () ), ( reference, ()
 """
                     |> Review.Test.run ruleExpectingNaN
                     |> Review.Test.expectNoErrors
-        , test "should replace Dict.member 0 (Dict.fromList list) by List.any (\\( key, _ ) -> key == 0) list when expectNaN is not enabled" <|
+        , test "should replace Dict.member 0 (Dict.fromList list) by List.any (Tuple.first >> (==) 0) list when expectNaN is not enabled" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -831,131 +831,16 @@ a = Dict.member 0 (Dict.fromList list)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.member on Dict.fromList can be replaced by List.any with a function comparing the key"
-                            , details = [ "You can replace these calls by List.any comparing the key which is both simpler and faster. Be aware that the value you're comparing against is currently eagerly executed, so if it is expensive to compute, please move it to a let variable before the new call." ]
+                            , details = [ "You can replace these calls by List.any comparing the key which is both simpler and faster. The automatic fix suggests Tuple.first >> (==) ... to only evaluate the member to check for once. However, if it is a variable, a simpler alternative might be using a lambda like \\( k, _ ) -> k == ..." ]
                             , under = "Dict.member"
                             }
                             |> Review.Test.whenFixed
                                 """module A exposing (..)
 import Dict
-a = List.any (\\( key, _ ) -> key == 0) list
+a = List.any (Tuple.first >> (==) 0) list
 """
                         ]
-        , test "should replace Dict.member 0 (Dict.fromList list) by List.any (\\( key_, _ ) -> key_ == 0) list when key is taken locally and expectNaN is not enabled" <|
-            \() ->
-                """module A exposing (..)
-import Dict
-a key = Dict.member 0 (Dict.fromList list)
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Dict.member on Dict.fromList can be replaced by List.any with a function comparing the key"
-                            , details = [ "You can replace these calls by List.any comparing the key which is both simpler and faster. Be aware that the value you're comparing against is currently eagerly executed, so if it is expensive to compute, please move it to a let variable before the new call." ]
-                            , under = "Dict.member"
-                            }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
-import Dict
-a key = List.any (\\( key_, _ ) -> key_ == 0) list
-"""
-                        ]
-        , test "should replace Dict.member 0 (Dict.fromList list) by List.any (\\( key__, _ ) -> key__ == 0) list when key & key_ are taken locally and expectNaN is not enabled" <|
-            \() ->
-                """module A exposing (..)
-import Dict
-a key key_ = Dict.member 0 (Dict.fromList list)
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Dict.member on Dict.fromList can be replaced by List.any with a function comparing the key"
-                            , details = [ "You can replace these calls by List.any comparing the key which is both simpler and faster. Be aware that the value you're comparing against is currently eagerly executed, so if it is expensive to compute, please move it to a let variable before the new call." ]
-                            , under = "Dict.member"
-                            }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
-import Dict
-a key key_ = List.any (\\( key__, _ ) -> key__ == 0) list
-"""
-                        ]
-        , test "should replace Dict.member 0 (Dict.fromList list) by List.any (\\( key_, _ ) -> key_ == 0) list when key is taken module-wide and expectNaN is not enabled" <|
-            \() ->
-                """module A exposing (..)
-import Dict
-key = 1
-a = Dict.member 0 (Dict.fromList list)
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Dict.member on Dict.fromList can be replaced by List.any with a function comparing the key"
-                            , details = [ "You can replace these calls by List.any comparing the key which is both simpler and faster. Be aware that the value you're comparing against is currently eagerly executed, so if it is expensive to compute, please move it to a let variable before the new call." ]
-                            , under = "Dict.member"
-                            }
-                            |> Review.Test.whenFixed
-                                """module A exposing (..)
-import Dict
-key = 1
-a = List.any (\\( key_, _ ) -> key_ == 0) list
-"""
-                        ]
-        , test "should replace Dict.member 0 (Dict.fromList list) by List.any (\\( key_, _ ) -> key_ == 0) list when key is taken due to explicit import expose and expectNaN is not enabled" <|
-            \() ->
-                [ """module Key exposing (..)
-key = 1
-"""
-                , """module A exposing (..)
-import Key exposing (key)
-import Dict
-a = Dict.member 0 (Dict.fromList list)
-"""
-                ]
-                    |> Review.Test.runOnModules ruleWithDefaults
-                    |> Review.Test.expectErrorsForModules
-                        [ ( "A"
-                          , [ Review.Test.error
-                                { message = "Dict.member on Dict.fromList can be replaced by List.any with a function comparing the key"
-                                , details = [ "You can replace these calls by List.any comparing the key which is both simpler and faster. Be aware that the value you're comparing against is currently eagerly executed, so if it is expensive to compute, please move it to a let variable before the new call." ]
-                                , under = "Dict.member"
-                                }
-                                |> Review.Test.whenFixed
-                                    """module A exposing (..)
-import Key exposing (key)
-import Dict
-a = List.any (\\( key_, _ ) -> key_ == 0) list
-"""
-                            ]
-                          )
-                        ]
-        , test "should replace Dict.member 0 (Dict.fromList list) by List.any (\\( key_, _ ) -> key_ == 0) list when key is taken due to import exposing (..) and expectNaN is not enabled" <|
-            \() ->
-                [ """module Key exposing (..)
-key = 1
-"""
-                , """module A exposing (..)
-import Key exposing (..)
-import Dict
-a = Dict.member 0 (Dict.fromList list)
-"""
-                ]
-                    |> Review.Test.runOnModules ruleWithDefaults
-                    |> Review.Test.expectErrorsForModules
-                        [ ( "A"
-                          , [ Review.Test.error
-                                { message = "Dict.member on Dict.fromList can be replaced by List.any with a function comparing the key"
-                                , details = [ "You can replace these calls by List.any comparing the key which is both simpler and faster. Be aware that the value you're comparing against is currently eagerly executed, so if it is expensive to compute, please move it to a let variable before the new call." ]
-                                , under = "Dict.member"
-                                }
-                                |> Review.Test.whenFixed
-                                    """module A exposing (..)
-import Key exposing (..)
-import Dict
-a = List.any (\\( key_, _ ) -> key_ == 0) list
-"""
-                            ]
-                          )
-                        ]
-        , test "should replace Dict.member (let ...) (Dict.fromList list) by List.any (\\( key, _ ) -> let ... == 0) list _with correct let indentation_ when expectNaN is not enabled" <|
+        , test "should replace Dict.member (let ...) (Dict.fromList list) by List.any (Tuple.first >> (==) (let ...)) list _with correct let indentation_ when expectNaN is not enabled" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -966,18 +851,18 @@ a = Dict.member (let x = 0
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.member on Dict.fromList can be replaced by List.any with a function comparing the key"
-                            , details = [ "You can replace these calls by List.any comparing the key which is both simpler and faster. Be aware that the value you're comparing against is currently eagerly executed, so if it is expensive to compute, please move it to a let variable before the new call." ]
+                            , details = [ "You can replace these calls by List.any comparing the key which is both simpler and faster. The automatic fix suggests Tuple.first >> (==) ... to only evaluate the member to check for once. However, if it is a variable, a simpler alternative might be using a lambda like \\( k, _ ) -> k == ..." ]
                             , under = "Dict.member"
                             }
                             |> Review.Test.whenFixed
                                 """module A exposing (..)
 import Dict
-a = List.any (\\( key, _ ) -> key ==
+a = List.any (Tuple.first >> (==)
                 (let x = 0
                      y = 1 in x + y)) list
 """
                         ]
-        , test "should replace Dict.member 0 << Dict.fromList by List.any (\\( key, _ ) -> key == (0)) when expectNaN is not enabled" <|
+        , test "should replace Dict.member 0 << Dict.fromList by List.any (Tuple.first >> (==) (0)) when expectNaN is not enabled" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -987,16 +872,16 @@ a = Dict.member 0 << Dict.fromList
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.member on Dict.fromList can be replaced by List.any with a function comparing the key"
-                            , details = [ "You can replace this composition by List.any comparing the key which is both simpler and faster. Be aware that the value you're comparing against is currently eagerly executed, so if it is expensive to compute, please move it to a let variable before the new call." ]
+                            , details = [ "You can replace this composition by List.any comparing the key which is both simpler and faster. The automatic fix suggests Tuple.first >> (==) ... to only evaluate the member to check for once. However, if it is a variable, a simpler alternative might be using a lambda like \\( k, _ ) -> k == ..." ]
                             , under = "Dict.member"
                             }
                             |> Review.Test.whenFixed
                                 """module A exposing (..)
 import Dict
-a = List.any (\\( key, _ ) -> key == (0))
+a = List.any (Tuple.first >> (==) (0))
 """
                         ]
-        , test "should replace (Dict.member <| let ...) << Dict.fromList by List.any (\\( key, _ ) -> key == (let ...)) _with correct let indentation and inserted parens_ when expectNaN is not enabled" <|
+        , test "should replace (Dict.member <| let ...) << Dict.fromList by List.any (Tuple.first >> (==) (let ...)) _with correct let indentation and inserted parens_ when expectNaN is not enabled" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -1007,18 +892,18 @@ a=(Dict.member<| let x = 0
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.member on Dict.fromList can be replaced by List.any with a function comparing the key"
-                            , details = [ "You can replace this composition by List.any comparing the key which is both simpler and faster. Be aware that the value you're comparing against is currently eagerly executed, so if it is expensive to compute, please move it to a let variable before the new call." ]
+                            , details = [ "You can replace this composition by List.any comparing the key which is both simpler and faster. The automatic fix suggests Tuple.first >> (==) ... to only evaluate the member to check for once. However, if it is a variable, a simpler alternative might be using a lambda like \\( k, _ ) -> k == ..." ]
                             , under = "Dict.member"
                             }
                             |> Review.Test.whenFixed
                                 """module A exposing (..)
 import Dict
-a=(List.any<| (\\( key, _ ) -> key == (
+a=(List.any<| (Tuple.first >> (==) (
                  let x = 0
                      y = 1 in x + y)))
 """
                         ]
-        , test "should replace Dict.fromList >> (Dict.member <| let ...) by List.any (\\( key, _ ) -> key == (let ...)) _with correct let indentation and inserted parens_ when expectNaN is not enabled" <|
+        , test "should replace Dict.fromList >> (Dict.member <| let ...) by List.any (Tuple.first >> (==) (let ...)) _with correct let indentation and inserted parens_ when expectNaN is not enabled" <|
             \() ->
                 """module A exposing (..)
 import Dict
@@ -1030,13 +915,13 @@ a=Dict.fromList >>
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.member on Dict.fromList can be replaced by List.any with a function comparing the key"
-                            , details = [ "You can replace this composition by List.any comparing the key which is both simpler and faster. Be aware that the value you're comparing against is currently eagerly executed, so if it is expensive to compute, please move it to a let variable before the new call." ]
+                            , details = [ "You can replace this composition by List.any comparing the key which is both simpler and faster. The automatic fix suggests Tuple.first >> (==) ... to only evaluate the member to check for once. However, if it is a variable, a simpler alternative might be using a lambda like \\( k, _ ) -> k == ..." ]
                             , under = "Dict.member"
                             }
                             |> Review.Test.whenFixed
                                 """module A exposing (..)
 import Dict
-a=(List.any<| (\\( key, _ ) -> key == (
+a=(List.any<| (Tuple.first >> (==) (
                  let x = 0
                      y = 1 in x + y)))
 """
