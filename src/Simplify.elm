@@ -1289,6 +1289,10 @@ Destructuring using case expressions
     Dict.member -999 (Dict.fromList [ ( 0, v0 ), ( 1, v1 ) ])
     --> False
 
+    -- when `expectNaN` is enabled
+    Dict.member x (Dict.fromList list)
+    --> List.any (\( k, _ ) -> k == x) list
+
     Dict.insert k v1 (Dict.insert k v0 dict)
     --> Dict.insert k v1 dict
 
@@ -1592,7 +1596,7 @@ All of these also apply for `Sub`.
 import Dict exposing (Dict)
 import Elm.Docs
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
-import Elm.Syntax.Exposing as Exposing
+import Elm.Syntax.Exposing as Exposing exposing (Exposing)
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Import exposing (Import)
 import Elm.Syntax.Module
@@ -1789,6 +1793,7 @@ expectNaN (Configuration config) =
 
 type alias ProjectContext =
     { customTypesToReportInCases : Set ( ModuleName, ConstructorName )
+    , exposedNames : Dict ModuleName (Set String)
     , exposedVariants : Dict ModuleName (Set String)
     , exposedRecordTypeAliases : Dict ModuleName (Dict String (List String))
     , exposedCustomTypes :
@@ -1825,6 +1830,7 @@ type alias ModuleContext =
             { variantNames : Set String
             , allParametersAreUsedInVariants : Bool
             }
+    , importModuleExposes : Dict ModuleName (Set String)
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
     , branchLocalBindings : RangeDict (Set String)
@@ -1899,6 +1905,7 @@ type alias Constructor =
 initialContext : ProjectContext
 initialContext =
     { customTypesToReportInCases = Set.empty
+    , exposedNames = Dict.empty
     , exposedVariants = Dict.empty
     , exposedRecordTypeAliases = Dict.empty
     , exposedCustomTypes = Dict.empty
@@ -1908,8 +1915,16 @@ initialContext =
 fromModuleToProject : Rule.ContextCreator ModuleContext ProjectContext
 fromModuleToProject =
     Rule.initContextCreator
-        (\moduleContext ->
+        (\moduleSyntax moduleContext ->
             { customTypesToReportInCases = Set.empty
+            , exposedNames =
+                Dict.singleton moduleContext.moduleName
+                    (moduleExposedNames
+                        (Elm.Syntax.Module.exposingList
+                            (Node.value moduleSyntax.moduleDefinition)
+                        )
+                        moduleContext
+                    )
             , exposedVariants =
                 Dict.singleton moduleContext.moduleName
                     moduleContext.exposedVariants
@@ -1953,6 +1968,45 @@ fromModuleToProject =
                     )
             }
         )
+        |> Rule.withFullAst
+
+
+moduleExposedNames : Exposing -> ModuleContext -> Set String
+moduleExposedNames moduleExposing moduleContext =
+    case moduleExposing of
+        Exposing.All _ ->
+            moduleContext.moduleBindings
+
+        Exposing.Explicit exposes ->
+            exposes
+                |> List.foldl
+                    (\(Node _ expose) soFar ->
+                        case expose of
+                            Exposing.FunctionExpose name ->
+                                Set.insert name soFar
+
+                            Exposing.InfixExpose symbol ->
+                                Set.insert symbol soFar
+
+                            Exposing.TypeOrAliasExpose name ->
+                                Set.insert name soFar
+
+                            Exposing.TypeExpose typeExpose ->
+                                Set.insert typeExpose.name
+                                    (case typeExpose.open of
+                                        Nothing ->
+                                            soFar
+
+                                        Just _ ->
+                                            case Dict.get typeExpose.name moduleContext.moduleCustomTypes of
+                                                Nothing ->
+                                                    soFar
+
+                                                Just originChoiceType ->
+                                                    Set.union originChoiceType.variantNames soFar
+                                    )
+                    )
+                    Set.empty
 
 
 fromProjectToModule : Rule.ContextCreator ProjectContext ModuleContext
@@ -1983,6 +2037,7 @@ fromProjectToModule =
             , moduleRecordTypeAliases = Dict.empty
             , importCustomTypes = projectContext.exposedCustomTypes
             , moduleCustomTypes = Dict.empty
+            , importModuleExposes = projectContext.exposedNames
             , moduleBindings = Set.empty
             , localBindings = RangeDict.empty
             , branchLocalBindings = RangeDict.empty
@@ -2109,6 +2164,7 @@ exposingSomeContextEmpty =
 foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
 foldProjectContexts newContext previousContext =
     { customTypesToReportInCases = Set.empty
+    , exposedNames = Dict.union newContext.exposedNames previousContext.exposedNames
     , exposedVariants = Dict.union newContext.exposedVariants previousContext.exposedVariants
     , exposedRecordTypeAliases = Dict.union newContext.exposedRecordTypeAliases previousContext.exposedRecordTypeAliases
     , exposedCustomTypes = Dict.union newContext.exposedCustomTypes previousContext.exposedCustomTypes
@@ -2180,7 +2236,41 @@ updateContextWithModuleInterface typeNamesAsStrings moduleDocs withDependencySoF
         moduleName =
             AstHelpers.moduleNameFromString moduleDocs.name
     in
-    { exposedVariants =
+    { exposedNames =
+        Dict.insert
+            (AstHelpers.moduleNameFromString moduleDocs.name)
+            (moduleDocs.unions
+                |> List.foldl
+                    (\union moduleNamesSoFar ->
+                        union.tags
+                            |> List.foldl
+                                (\( variantName, _ ) withVariantsSoFar ->
+                                    Set.insert variantName withVariantsSoFar
+                                )
+                                (Set.insert union.name moduleNamesSoFar)
+                    )
+                    (moduleDocs.aliases
+                        |> List.foldl
+                            (\typeAlias moduleNamesSoFar ->
+                                Set.insert typeAlias.name moduleNamesSoFar
+                            )
+                            (moduleDocs.values
+                                |> List.foldl
+                                    (\valueOrFunction moduleNamesSoFar ->
+                                        Set.insert valueOrFunction.name moduleNamesSoFar
+                                    )
+                                    (moduleDocs.binops
+                                        |> List.foldl
+                                            (\operator moduleNamesSoFar ->
+                                                Set.insert operator.name moduleNamesSoFar
+                                            )
+                                            Set.empty
+                                    )
+                            )
+                    )
+            )
+            withDependencySoFar.exposedNames
+    , exposedVariants =
         Dict.insert
             (AstHelpers.moduleNameFromString moduleDocs.name)
             (moduleDocs.unions
@@ -2498,6 +2588,7 @@ expressionVisitor node config context =
               , importRecordTypeAliases = context.importRecordTypeAliases
               , moduleRecordTypeAliases = context.moduleRecordTypeAliases
               , importCustomTypes = context.importCustomTypes
+              , importModuleExposes = context.importModuleExposes
               , moduleCustomTypes = context.moduleCustomTypes
               , moduleBindings = context.moduleBindings
               , customTypesToReportInCases = context.customTypesToReportInCases
@@ -2552,6 +2643,7 @@ expressionVisitor node config context =
                             , moduleRecordTypeAliases = context.moduleRecordTypeAliases
                             , importCustomTypes = context.importCustomTypes
                             , moduleCustomTypes = context.moduleCustomTypes
+                            , importModuleExposes = context.importModuleExposes
                             , moduleBindings = context.moduleBindings
                             , rangesToIgnore = context.rangesToIgnore
                             , rightSidesOfPlusPlus = context.rightSidesOfPlusPlus
@@ -2582,6 +2674,7 @@ expressionVisitor node config context =
                             , moduleRecordTypeAliases = context.moduleRecordTypeAliases
                             , importCustomTypes = context.importCustomTypes
                             , moduleCustomTypes = context.moduleCustomTypes
+                            , importModuleExposes = context.importModuleExposes
                             , moduleBindings = context.moduleBindings
                             , rangesToIgnore = context.rangesToIgnore
                             , rightSidesOfPlusPlus = context.rightSidesOfPlusPlus
@@ -2629,6 +2722,7 @@ expressionVisitor node config context =
               , moduleRecordTypeAliases = contextWithInferredConstantsAndLocalBindings.moduleRecordTypeAliases
               , importCustomTypes = contextWithInferredConstantsAndLocalBindings.importCustomTypes
               , moduleCustomTypes = contextWithInferredConstantsAndLocalBindings.moduleCustomTypes
+              , importModuleExposes = context.importModuleExposes
               , moduleBindings = contextWithInferredConstantsAndLocalBindings.moduleBindings
               , customTypesToReportInCases = contextWithInferredConstantsAndLocalBindings.customTypesToReportInCases
               , localIgnoredCustomTypes = contextWithInferredConstantsAndLocalBindings.localIgnoredCustomTypes
@@ -2846,6 +2940,7 @@ expressionExitVisitor (Node expressionRange _) context =
     , moduleRecordTypeAliases = context.moduleRecordTypeAliases
     , importCustomTypes = context.importCustomTypes
     , moduleCustomTypes = context.moduleCustomTypes
+    , importModuleExposes = context.importModuleExposes
     , moduleBindings = context.moduleBindings
     , branchLocalBindings = context.branchLocalBindings
     , rangesToIgnore = context.rangesToIgnore
@@ -3409,9 +3504,10 @@ toCallCheckInfo config context checkInfo =
             , importLookup = context.importLookup
             , moduleCustomTypes = context.moduleCustomTypes
             , importCustomTypes = context.importCustomTypes
-            , commentRanges = context.commentRanges
+            , importModuleExposes = context.importModuleExposes
             , moduleBindings = context.moduleBindings
             , localBindings = context.localBindings
+            , commentRanges = context.commentRanges
             , inferredConstants = context.inferredConstants
             }
 
@@ -3430,9 +3526,10 @@ toCallCheckInfo config context checkInfo =
             , importLookup = context.importLookup
             , moduleCustomTypes = context.moduleCustomTypes
             , importCustomTypes = context.importCustomTypes
-            , commentRanges = context.commentRanges
+            , importModuleExposes = context.importModuleExposes
             , moduleBindings = context.moduleBindings
             , localBindings = context.localBindings
+            , commentRanges = context.commentRanges
             , inferredConstants = context.inferredConstants
             }
 
@@ -3464,10 +3561,11 @@ toCompositionCheckInfo config context compositionSpecific =
     , moduleRecordTypeAliases = context.moduleRecordTypeAliases
     , moduleCustomTypes = context.moduleCustomTypes
     , importCustomTypes = context.importCustomTypes
-    , inferredConstants = context.inferredConstants
+    , importModuleExposes = context.importModuleExposes
     , moduleBindings = context.moduleBindings
     , localBindings = context.localBindings
     , extractSourceCode = context.extractSourceCode
+    , inferredConstants = context.inferredConstants
     , earlier = innerComposition.earlier
     , later = innerComposition.later
     , isEmbeddedInComposition = innerComposition.isEmbeddedInComposition
@@ -3579,10 +3677,11 @@ type alias CallCheckInfo =
             { variantNames : Set String
             , allParametersAreUsedInVariants : Bool
             }
-    , extractSourceCode : Range -> String
-    , commentRanges : List Range
+    , importModuleExposes : Dict ModuleName (Set String)
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
+    , extractSourceCode : Range -> String
+    , commentRanges : List Range
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , parentRange : Range
     , fnRange : Range
@@ -3628,10 +3727,11 @@ type alias CompositionIntoCheckInfo =
             { variantNames : Set String
             , allParametersAreUsedInVariants : Bool
             }
-    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
+    , importModuleExposes : Dict ModuleName (Set String)
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
     , extractSourceCode : Range -> String
+    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , later :
         { range : Range
         , fn : ( ModuleName, String )
@@ -3902,10 +4002,11 @@ type alias CompositionCheckInfo =
             { variantNames : Set String
             , allParametersAreUsedInVariants : Bool
             }
-    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
+    , importModuleExposes : Dict ModuleName (Set String)
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
     , extractSourceCode : Range -> String
+    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , earlier :
         { node : Node Expression
         , removeRange : Range
@@ -3940,10 +4041,11 @@ compositionChecks checkInfo =
                                                             , importLookup = checkInfo.importLookup
                                                             , importCustomTypes = checkInfo.importCustomTypes
                                                             , moduleCustomTypes = checkInfo.moduleCustomTypes
-                                                            , inferredConstants = checkInfo.inferredConstants
+                                                            , importModuleExposes = checkInfo.importModuleExposes
                                                             , moduleBindings = checkInfo.moduleBindings
                                                             , localBindings = checkInfo.localBindings
                                                             , extractSourceCode = checkInfo.extractSourceCode
+                                                            , inferredConstants = checkInfo.inferredConstants
                                                             , later =
                                                                 { range = laterFnOrCall.nodeRange
                                                                 , fn = ( laterFnModuleName, laterFnOrCall.fnName )
@@ -8057,27 +8159,189 @@ dictSizeChecks =
 
 dictMemberChecks : IntoFnCheck
 dictMemberChecks =
-    intoFnCheckOnlyCall
-        (\checkInfo ->
-            callOnEmptyReturnsCheck
-                { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
-                dictCollection
-                checkInfo
-                |> onNothing
-                    (\() ->
-                        knownMemberChecks
-                            { represents = "dict"
-                            , representsPlural = "dicts"
-                            , elements =
-                                { countDescription = "size"
-                                , elementDescription = "key"
-                                , determineCount = dictDetermineSize
-                                , get = dictGetKeys
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (\checkInfo ->
+                callOnEmptyReturnsCheck
+                    { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
+                    dictCollection
+                    checkInfo
+                    |> onNothing
+                        (\() ->
+                            knownMemberChecks
+                                { represents = "dict"
+                                , representsPlural = "dicts"
+                                , elements =
+                                    { countDescription = "size"
+                                    , elementDescription = "key"
+                                    , determineCount = dictDetermineSize
+                                    , get = dictGetKeys
+                                    }
                                 }
+                                checkInfo
+                        )
+            )
+        , dictMemberOnFromListToListAnyChecks
+        ]
+
+
+dictMemberOnFromListToListAnyChecks : IntoFnCheck
+dictMemberOnFromListToListAnyChecks =
+    { call =
+        \checkInfo ->
+            if checkInfo.expectNaN && AstHelpers.couldBeValueContainingNaN checkInfo.firstArg then
+                Nothing
+
+            else
+                case fullyAppliedLastArg checkInfo of
+                    Just convertedArg ->
+                        case AstHelpers.getSpecificUnreducedFnCall Fn.Dict.fromList checkInfo.lookupTable convertedArg of
+                            Just conversionCall ->
+                                if checkInfo.expectNaN && AstHelpers.couldBeValueContainingNaN conversionCall.firstArg then
+                                    Nothing
+
+                                else
+                                    let
+                                        keyVariable : String
+                                        keyVariable =
+                                            findNewVariableNameInScope checkInfo "key"
+
+                                        needleArgRange : Range
+                                        needleArgRange =
+                                            Node.range checkInfo.firstArg
+                                    in
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                qualifiedToString checkInfo.fn
+                                                    ++ " on "
+                                                    ++ qualifiedToString Fn.Dict.fromList
+                                                    ++ " can be replaced by List.any with a function comparing the key"
+                                            , details =
+                                                [ "You can replace these calls by "
+                                                    ++ qualifiedToString Fn.List.any
+                                                    ++ " comparing the key which is both simpler and faster. Be aware that the value you're comparing against is currently eagerly executed, so if it is expensive to compute, please move it to a let variable before the new call."
+                                                ]
+                                            }
+                                            checkInfo.fnRange
+                                            (replaceBySubExpressionFix conversionCall.nodeRange conversionCall.firstArg
+                                                ++ [ Fix.replaceRangeBy checkInfo.fnRange
+                                                        (qualifiedToString (qualify Fn.List.any checkInfo))
+                                                   , Fix.insertAt needleArgRange.start
+                                                        ("(\\( "
+                                                            ++ keyVariable
+                                                            ++ ", _ ) -> "
+                                                            ++ keyVariable
+                                                            ++ " =="
+                                                            ++ (if needleArgRange.start.row == needleArgRange.end.row then
+                                                                    " "
+
+                                                                else
+                                                                    "\n" ++ String.repeat (needleArgRange.start.column - 1) " "
+                                                               )
+                                                        )
+                                                   , Fix.insertAt needleArgRange.end ")"
+                                                   ]
+                                            )
+                                        )
+
+                            Nothing ->
+                                Nothing
+
+                    Nothing ->
+                        Nothing
+    , composition =
+        \checkInfo ->
+            if
+                Basics.not checkInfo.expectNaN
+                    && (checkInfo.earlier.fn == Fn.Dict.fromList)
+            then
+                case checkInfo.later.args of
+                    [ needleArg ] ->
+                        let
+                            keyVariable : String
+                            keyVariable =
+                                findNewVariableNameInScope checkInfo "key"
+
+                            needleArgRange : Range
+                            needleArgRange =
+                                Node.range needleArg
+                        in
+                        Just
+                            { info =
+                                { message =
+                                    qualifiedToString checkInfo.later.fn
+                                        ++ " on "
+                                        ++ qualifiedToString Fn.Dict.fromList
+                                        ++ " can be replaced by List.any with a function comparing the key"
+                                , details =
+                                    [ "You can replace this composition by "
+                                        ++ qualifiedToString Fn.List.any
+                                        ++ " comparing the key which is both simpler and faster. Be aware that the value you're comparing against is currently eagerly executed, so if it is expensive to compute, please move it to a let variable before the new call."
+                                    ]
+                                }
+                            , fix =
+                                [ Fix.removeRange checkInfo.earlier.removeRange
+                                , Fix.replaceRangeBy checkInfo.later.fnRange
+                                    (qualifiedToString (qualify Fn.List.any checkInfo))
+                                , Fix.insertAt needleArgRange.start
+                                    ("(\\( "
+                                        ++ keyVariable
+                                        ++ ", _ ) -> "
+                                        ++ keyVariable
+                                        ++ " == ("
+                                        ++ (if needleArgRange.start.row == needleArgRange.end.row then
+                                                ""
+
+                                            else
+                                                "\n" ++ String.repeat (needleArgRange.start.column - 1) " "
+                                           )
+                                    )
+                                , Fix.insertAt needleArgRange.end "))"
+                                ]
                             }
-                            checkInfo
-                    )
-        )
+
+                    _ ->
+                        Nothing
+
+            else
+                Nothing
+    }
+
+
+findNewVariableNameInScope :
+    QualifyResources { a | importModuleExposes : Dict ModuleName (Set String) }
+    -> String
+    -> String
+findNewVariableNameInScope scope preferredName =
+    if
+        Set.member preferredName scope.moduleBindings
+            || RangeDict.any (\bindings -> Set.member preferredName bindings) scope.localBindings
+            || dictAny
+                (\imortModuleName import_ ->
+                    case import_.exposed of
+                        ExposedAll ->
+                            case Dict.get imortModuleName scope.importModuleExposes of
+                                Nothing ->
+                                    False
+
+                                Just importedModuleExposes ->
+                                    Set.member preferredName importedModuleExposes
+
+                        ExposedSome exposedSet ->
+                            Set.member preferredName exposedSet
+                )
+                scope.importLookup
+    then
+        findNewVariableNameInScope scope (preferredName ++ "_")
+
+    else
+        preferredName
+
+
+dictAny : (k -> v -> Bool) -> Dict k v -> Bool
+dictAny isNeedle dict =
+    Dict.foldl (\k v soFar -> soFar || isNeedle k v) False dict
 
 
 dictInsertChecks : IntoFnCheck
