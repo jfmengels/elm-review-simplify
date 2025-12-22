@@ -1292,7 +1292,7 @@ Destructuring using case expressions
 
     -- when `expectNaN` is enabled
     Dict.member x (Dict.fromList list)
-    --> List.any (\( k, _ ) -> k == x) list
+    --> List.any (Tuple.first >> (==) x) list
 
     Dict.insert k v1 (Dict.insert k v0 dict)
     --> Dict.insert k v1 dict
@@ -8218,10 +8218,6 @@ dictMemberOnFromListToListAnyChecks =
 
                                 else
                                     let
-                                        keyVariable : String
-                                        keyVariable =
-                                            findNewVariableNameInScope checkInfo "key"
-
                                         needleArgRange : Range
                                         needleArgRange =
                                             Node.range checkInfo.firstArg
@@ -8236,7 +8232,7 @@ dictMemberOnFromListToListAnyChecks =
                                             , details =
                                                 [ "You can replace these calls by "
                                                     ++ qualifiedToString Fn.List.any
-                                                    ++ " comparing the key which is both simpler and faster. Be aware that the value you're comparing against is currently eagerly executed, so if it is expensive to compute, please move it to a let variable before the new call."
+                                                    ++ " comparing the key which is both simpler and faster. The automatic fix suggests Tuple.first >> (==) ... to only evaluate the member to check for once. However, if it is a variable, a simpler alternative might be using a lambda like \\( k, _ ) -> k == ..."
                                                 ]
                                             }
                                             checkInfo.fnRange
@@ -8244,11 +8240,9 @@ dictMemberOnFromListToListAnyChecks =
                                                 ++ [ Fix.replaceRangeBy checkInfo.fnRange
                                                         (qualifiedToString (qualify Fn.List.any checkInfo))
                                                    , Fix.insertAt needleArgRange.start
-                                                        ("(\\( "
-                                                            ++ keyVariable
-                                                            ++ ", _ ) -> "
-                                                            ++ keyVariable
-                                                            ++ " =="
+                                                        ("("
+                                                            ++ qualifiedToString (qualify Fn.Tuple.first checkInfo)
+                                                            ++ " >> (==)"
                                                             ++ (if needleArgRange.start.row == needleArgRange.end.row then
                                                                     " "
 
@@ -8275,10 +8269,6 @@ dictMemberOnFromListToListAnyChecks =
                 case checkInfo.later.args of
                     [ needleArg ] ->
                         let
-                            keyVariable : String
-                            keyVariable =
-                                findNewVariableNameInScope checkInfo "key"
-
                             needleArgRange : Range
                             needleArgRange =
                                 Node.range needleArg
@@ -8293,7 +8283,7 @@ dictMemberOnFromListToListAnyChecks =
                                 , details =
                                     [ "You can replace this composition by "
                                         ++ qualifiedToString Fn.List.any
-                                        ++ " comparing the key which is both simpler and faster. Be aware that the value you're comparing against is currently eagerly executed, so if it is expensive to compute, please move it to a let variable before the new call."
+                                        ++ " comparing the key which is both simpler and faster. The automatic fix suggests Tuple.first >> (==) ... to only evaluate the member to check for once. However, if it is a variable, a simpler alternative might be using a lambda like \\( k, _ ) -> k == ..."
                                     ]
                                 }
                             , fix =
@@ -8301,11 +8291,9 @@ dictMemberOnFromListToListAnyChecks =
                                 , Fix.replaceRangeBy checkInfo.later.fnRange
                                     (qualifiedToString (qualify Fn.List.any checkInfo))
                                 , Fix.insertAt needleArgRange.start
-                                    ("(\\( "
-                                        ++ keyVariable
-                                        ++ ", _ ) -> "
-                                        ++ keyVariable
-                                        ++ " == ("
+                                    ("("
+                                        ++ qualifiedToString (qualify Fn.Tuple.first checkInfo)
+                                        ++ " >> (==) ("
                                         ++ (if needleArgRange.start.row == needleArgRange.end.row then
                                                 ""
 
@@ -8323,41 +8311,6 @@ dictMemberOnFromListToListAnyChecks =
             else
                 Nothing
     }
-
-
-findNewVariableNameInScope :
-    QualifyResources { a | importModuleExposes : Dict ModuleName (Set String) }
-    -> String
-    -> String
-findNewVariableNameInScope scope preferredName =
-    if
-        Set.member preferredName scope.moduleBindings
-            || RangeDict.any (\bindings -> Set.member preferredName bindings) scope.localBindings
-            || dictAny
-                (\imortModuleName import_ ->
-                    case import_.exposed of
-                        ExposedAll ->
-                            case Dict.get imortModuleName scope.importModuleExposes of
-                                Nothing ->
-                                    False
-
-                                Just importedModuleExposes ->
-                                    Set.member preferredName importedModuleExposes
-
-                        ExposedSome exposedSet ->
-                            Set.member preferredName exposedSet
-                )
-                scope.importLookup
-    then
-        findNewVariableNameInScope scope (preferredName ++ "_")
-
-    else
-        preferredName
-
-
-dictAny : (k -> v -> Bool) -> Dict k v -> Bool
-dictAny isNeedle dict =
-    Dict.foldl (\k v soFar -> soFar || isNeedle k v) False dict
 
 
 dictInsertChecks : IntoFnCheck
