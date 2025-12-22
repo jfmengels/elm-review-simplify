@@ -823,6 +823,7 @@ Destructuring using case expressions
     Array.foldl f x (Array.fromList list)
     --> List.foldl f x array
 
+    -- when `expectNaN` is not enabled
     Set.member x (Set.fromList list)
     --> List.member x list
 
