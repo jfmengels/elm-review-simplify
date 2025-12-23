@@ -1510,10 +1510,19 @@ All of these also apply for `Sub`.
     Json.Encode.list f (Array.toList array)
     --> Json.Encode.array f array
 
+    Json.Encode.array identity (Array.map f array)
+    --> Json.Encode.array f array
+
     Json.Encode.array f (Array.fromList list)
     --> Json.Encode.list f list
 
+    Json.Encode.list identity (List.map f list)
+    --> Json.Encode.list f list
+
     Json.Encode.list f (Set.toList set)
+    --> Json.Encode.set f set
+
+    Json.Encode.set identity (Set.map f set)
     --> Json.Encode.set f set
 
 
@@ -3875,6 +3884,7 @@ intoFnChecks =
     , ( Fn.Task.sequence, ( 1, taskSequenceChecks ) )
     , ( Fn.Json.Encode.list, ( 2, jsonEncodeListChecks ) )
     , ( Fn.Json.Encode.array, ( 2, jsonEncodeArrayChecks ) )
+    , ( Fn.Json.Encode.set, ( 2, jsonEncodeSetChecks ) )
     , ( Fn.Json.Decode.oneOf, ( 1, jsonDecodeOneOfChecks ) )
     , ( Fn.Json.Decode.map, ( 2, jsonDecodeMapChecks ) )
     , ( Fn.Json.Decode.map2, ( 3, jsonDecodeMapNChecks ) )
@@ -8603,17 +8613,26 @@ jsonEncodeListChecks =
             , convertedRepresentsIndefinite = "a list"
             , combinedFn = Fn.Json.Encode.set
             }
+        , mapToOperationWithIdentityCanBeCombinedToOperationChecks listCollection
         ]
 
 
 jsonEncodeArrayChecks : IntoFnCheck
 jsonEncodeArrayChecks =
-    onConversionFnCallCanBeCombinedCheck
-        { combinedOperationRepresents = "encode a list"
-        , convertFn = Fn.Array.fromList
-        , convertedRepresentsIndefinite = "an array"
-        , combinedFn = Fn.Json.Encode.list
-        }
+    intoFnChecksFirstThatConstructsError
+        [ onConversionFnCallCanBeCombinedCheck
+            { combinedOperationRepresents = "encode a list"
+            , convertFn = Fn.Array.fromList
+            , convertedRepresentsIndefinite = "an array"
+            , combinedFn = Fn.Json.Encode.list
+            }
+        , mapToOperationWithIdentityCanBeCombinedToOperationChecks arrayCollection
+        ]
+
+
+jsonEncodeSetChecks : IntoFnCheck
+jsonEncodeSetChecks =
+    mapToOperationWithIdentityCanBeCombinedToOperationChecks setCollection
 
 
 
@@ -9603,7 +9622,7 @@ stringGetElements resources expressionNode =
             )
 
 
-arrayCollection : TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties ConstantProperties {})))
+arrayCollection : TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties ConstantProperties (MappableProperties {}))))
 arrayCollection =
     { represents = "array"
     , representsPlural = "arrays"
@@ -9615,6 +9634,7 @@ arrayCollection =
         , get = arrayGetElements
         }
     , fromList = ConstructionFromListCall Fn.Array.fromList
+    , mapFn = Fn.Array.map
     }
 
 
@@ -9683,7 +9703,7 @@ arrayDetermineLength resources expressionNode =
             )
 
 
-setCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties {}))))
+setCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties (MappableProperties {})))))
 setCollection =
     { represents = "set"
     , representsPlural = "sets"
@@ -9696,6 +9716,7 @@ setCollection =
         }
     , wrap = setSingletonConstruct
     , fromList = ConstructionFromListCall Fn.Set.fromList
+    , mapFn = Fn.Set.map
     }
 
 
