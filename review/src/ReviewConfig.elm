@@ -67,6 +67,7 @@ config =
     , NoUnused.Patterns.rule
     , NoUnused.Variables.rule
     , Simplify.rule Simplify.defaults
+        |> Rule.ignoreErrorsForFiles [ "tests/Simplify/SimplificationCorrectnessTest.elm" ]
     , ConvertQualifiedToFromFnModule.rule
         |> Rule.ignoreErrorsForDirectories [ "src/Fn" ]
     ]

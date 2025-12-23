@@ -50,6 +50,8 @@ The rule now simplifies:
 - `Json.Encode.list f (Array.toList array)` to `Json.Encode.array f array`
 - `Json.Encode.array f (Array.fromList list)` to `Json.Encode.list f list`
 - `Json.Encode.list f (Set.toList set)` to `Json.Encode.set f set`
+- `List.sort (Set.toList set)` to `Set.toList set`
+- `List.sort (Dict.toList dict)` to `Dict.toList dict`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",
