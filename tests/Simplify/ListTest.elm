@@ -7078,6 +7078,102 @@ a = List.repeat n >> List.sort
 a = List.repeat n
 """
                         ]
+        , test "should replace List.sort (Set.toList set) by Set.toList set" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort (Set.toList set)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort on a Set.toList call"
+                            , details = [ "You can replace this call by the given Set.toList call." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Set.toList set)
+"""
+                        ]
+        , test "should replace List.sort << Set.toList by Set.toList" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort << Set.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort on a Set.toList call"
+                            , details = [ "You can replace this composition by the given Set.toList function." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.toList
+"""
+                        ]
+        , test "should replace Set.toList >> List.sort by Set.toList" <|
+            \() ->
+                """module A exposing (..)
+a = Set.toList >> List.sort
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort on a Set.toList call"
+                            , details = [ "You can replace this composition by the given Set.toList function." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Set.toList
+"""
+                        ]
+        , test "should replace List.sort (Dict.toList dict) by Dict.toList dict" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort (Dict.toList dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort on a Dict.toList call"
+                            , details = [ "You can replace this call by the given Dict.toList call." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Dict.toList dict)
+"""
+                        ]
+        , test "should replace List.sort << Dict.toList by Dict.toList" <|
+            \() ->
+                """module A exposing (..)
+a = List.sort << Dict.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort on a Dict.toList call"
+                            , details = [ "You can replace this composition by the given Dict.toList function." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.toList
+"""
+                        ]
+        , test "should replace Dict.toList >> List.sort by Dict.toList" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.toList >> List.sort
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort on a Dict.toList call"
+                            , details = [ "You can replace this composition by the given Dict.toList function." ]
+                            , under = "List.sort"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.toList
+"""
+                        ]
         ]
 
 
