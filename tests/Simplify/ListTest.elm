@@ -499,7 +499,7 @@ a = List.concat << List.singleton
 a = identity
 """
                         ]
-        , test "should report List.concat that only contains list literals" <|
+        , test "should report List.concat that only contains list literals if they're all on the same line" <|
             \() ->
                 """module A exposing (..)
 a = List.concat [ [ 1, 2, 3 ], [ 4, 5, 6] ]
@@ -513,6 +513,38 @@ a = List.concat [ [ 1, 2, 3 ], [ 4, 5, 6] ]
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [  1, 2, 3 ,  4, 5, 6 ]
+"""
+                        ]
+        , test "should report List.concat that only contains list literals if they're all on different lines" <|
+            \() ->
+                """module A exposing (..)
+a = List.concat
+    [ [ 1
+      , 2
+      , 3
+      ]
+    , [ 4
+      , 5
+      , 6
+      ]
+    ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Expression could be simplified to be a single List"
+                            , details = [ "Try moving all the elements into a single list." ]
+                            , under = "List.concat"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [  1
+      , 2
+      , 3
+
+    ,  4
+      , 5
+      , 6
+    ]
 """
                         ]
         , test "should report List.concat that only contains list literals, using (<|)" <|
@@ -531,6 +563,17 @@ a = List.concat <| [ [ 1, 2, 3 ], [ 4, 5, 6 ] ]
 a = [  1, 2, 3 ,  4, 5, 6  ]
 """
                         ]
+        , test "should not report List.concat that only contains list literals if sub-lists are on different lines (potential intent to organize sub-lists)" <|
+            \() ->
+                """module A exposing (..)
+a =
+    List.concat
+        [ [ 1, 2, 3 ]
+        , [ 4, 5, 6]
+        ]
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should report List.concat that only contains list literals, using (|>)" <|
             \() ->
                 """module A exposing (..)

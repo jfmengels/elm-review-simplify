@@ -6556,25 +6556,34 @@ listConcatChecks =
             (\checkInfo ->
                 case fromListGetLiteral listCollection checkInfo.lookupTable checkInfo.firstArg of
                     Just listLiteral ->
-                        if List.all AstHelpers.isListLiteral listLiteral.elements then
+                        let
+                            (Node firstArgRange _) =
+                                checkInfo.firstArg
+                        in
+                        if
+                            (firstArgRange.start.row /= firstArgRange.end.row)
+                                && not (List.all (\(Node itemRange _) -> itemRange.start.row /= itemRange.end.row) listLiteral.elements)
+                        then
+                            Nothing
+
+                        else if List.all AstHelpers.isListLiteral listLiteral.elements then
                             Just
                                 (Rule.errorWithFix
                                     { message = "Expression could be simplified to be a single List"
                                     , details = [ "Try moving all the elements into a single list." ]
                                     }
                                     checkInfo.fnRange
-                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = firstArgRange }
                                         ++ List.concatMap removeBoundariesFix listLiteral.elements
                                     )
                                 )
 
                         else
-                            Nothing
+                            mergeConsecutiveFromListLiteralsCheck listCollection checkInfo
 
                     Nothing ->
                         Nothing
             )
-        , intoFnCheckOnlyCall (mergeConsecutiveFromListLiteralsCheck listCollection)
         ]
 
 
