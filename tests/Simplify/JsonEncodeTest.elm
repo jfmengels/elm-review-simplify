@@ -141,60 +141,6 @@ import Json.Encode
 a = Json.Encode.array f
 """
                         ]
-        , test "should replace Json.Encode.list f (Set.toList set) by Json.Encode.set f set" <|
-            \() ->
-                """module A exposing (..)
-import Json.Encode
-a = Json.Encode.list f (Set.toList set)
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "To encode a set, you don't need to convert to a list"
-                            , details = [ "Using Json.Encode.set directly is meant for this exact purpose and will also be faster." ]
-                            , under = "Json.Encode.list"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-import Json.Encode
-a = Json.Encode.set f set
-"""
-                        ]
-        , test "should replace Json.Encode.list f << Set.toList by Json.Encode.set f" <|
-            \() ->
-                """module A exposing (..)
-import Json.Encode
-a = Json.Encode.list f << Set.toList
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "To encode a set, you don't need to convert to a list"
-                            , details = [ "Using Json.Encode.set directly is meant for this exact purpose and will also be faster." ]
-                            , under = "Json.Encode.list"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-import Json.Encode
-a = Json.Encode.set f
-"""
-                        ]
-        , test "should replace Set.toList >> Json.Encode.list f by Json.Encode.set f" <|
-            \() ->
-                """module A exposing (..)
-import Json.Encode
-a = Set.toList >> Json.Encode.list f
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "To encode a set, you don't need to convert to a list"
-                            , details = [ "Using Json.Encode.set directly is meant for this exact purpose and will also be faster." ]
-                            , under = "Json.Encode.list"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-import Json.Encode
-a = Json.Encode.set f
-"""
-                        ]
         ]
 
 
@@ -263,6 +209,60 @@ a = Array.toList >> Json.Encode.list f
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Encode
 a = Json.Encode.array f
+"""
+                        ]
+        , test "should replace Json.Encode.list f (Set.toList set) by Json.Encode.set f set" <|
+            \() ->
+                """module A exposing (..)
+import Json.Encode
+a = Json.Encode.list f (Set.toList set)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To encode a set, you don't need to convert to a list"
+                            , details = [ "Using Json.Encode.set directly is meant for this exact purpose and will also be faster." ]
+                            , under = "Json.Encode.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Encode
+a = Json.Encode.set f set
+"""
+                        ]
+        , test "should replace Json.Encode.list f << Set.toList by Json.Encode.set f" <|
+            \() ->
+                """module A exposing (..)
+import Json.Encode
+a = Json.Encode.list f << Set.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To encode a set, you don't need to convert to a list"
+                            , details = [ "Using Json.Encode.set directly is meant for this exact purpose and will also be faster." ]
+                            , under = "Json.Encode.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Encode
+a = Json.Encode.set f
+"""
+                        ]
+        , test "should replace Set.toList >> Json.Encode.list f by Json.Encode.set f" <|
+            \() ->
+                """module A exposing (..)
+import Json.Encode
+a = Set.toList >> Json.Encode.list f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To encode a set, you don't need to convert to a list"
+                            , details = [ "Using Json.Encode.set directly is meant for this exact purpose and will also be faster." ]
+                            , under = "Json.Encode.list"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Json.Encode
+a = Json.Encode.set f
 """
                         ]
         , test "should replace Json.Encode.list identity (List.map f list) by Json.Encode.list f list" <|
