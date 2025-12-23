@@ -6579,7 +6579,7 @@ listConcatChecks =
                                 )
 
                         else
-                            mergeConsecutiveFromListLiteralsCheck listCollection checkInfo
+                            mergeConsecutiveFromListLiteralsCheck listCollection listLiteral.elements checkInfo
 
                     Nothing ->
                         Nothing
@@ -11026,26 +11026,25 @@ callOnFromListWithIrrelevantEmptyElement situation ( constructibleFromList, empt
         ]
 
 -}
-mergeConsecutiveFromListLiteralsCheck : ConstructibleFromListProperties otherProperties -> CallCheckInfo -> Maybe (Error {})
-mergeConsecutiveFromListLiteralsCheck constructibleFromList checkInfo =
-    case Maybe.andThen (\lastArg -> fromListGetLiteral constructibleFromList checkInfo.lookupTable lastArg) (fullyAppliedLastArg checkInfo) of
-        Just listLiteral ->
-            case mergeConsecutiveFromListLiteralsFixWithBeforeEndingIn Nothing [] constructibleFromList checkInfo listLiteral.elements of
-                [] ->
-                    Nothing
-
-                (_ :: _) as fixes ->
-                    Just
-                        (Rule.errorWithFix
-                            { message = "Consecutive " ++ constructionFromListOnLiteralDescription constructibleFromList.fromList ++ "s can be merged"
-                            , details = [ "Try moving all the elements from consecutive " ++ constructionFromListOnLiteralDescription constructibleFromList.fromList ++ "s so that they form a single list." ]
-                            }
-                            checkInfo.fnRange
-                            fixes
-                        )
-
-        Nothing ->
+mergeConsecutiveFromListLiteralsCheck :
+    ConstructibleFromListProperties otherProperties
+    -> List (Node Expression)
+    -> CallCheckInfo
+    -> Maybe (Error {})
+mergeConsecutiveFromListLiteralsCheck constructibleFromList listElements checkInfo =
+    case mergeConsecutiveFromListLiteralsFixWithBeforeEndingIn Nothing [] constructibleFromList checkInfo listElements of
+        [] ->
             Nothing
+
+        (_ :: _) as fixes ->
+            Just
+                (Rule.errorWithFix
+                    { message = "Consecutive " ++ constructionFromListOnLiteralDescription constructibleFromList.fromList ++ "s can be merged"
+                    , details = [ "Try moving all the elements from consecutive " ++ constructionFromListOnLiteralDescription constructibleFromList.fromList ++ "s so that they form a single list." ]
+                    }
+                    checkInfo.fnRange
+                    fixes
+                )
 
 
 mergeConsecutiveFromListLiteralsFixWithBeforeEndingIn : Maybe { literalInsertLocation : Location, elementEndLocation : Location } -> List Fix -> ConstructibleFromListProperties otherProperties -> { resources | lookupTable : ModuleNameLookupTable, extractSourceCode : Range -> String } -> List (Node Expression) -> List Fix
