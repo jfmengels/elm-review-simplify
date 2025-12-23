@@ -153,7 +153,7 @@ jsonEncodeListTests =
 import Json.Encode
 a0 = Json.Encode.list
 a1 = Json.Encode.list f
-a2 = Json.Encode.list f array
+a2 = Json.Encode.list f list
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
