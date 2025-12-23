@@ -48,8 +48,11 @@ The rule now simplifies:
 - `Set.member x (Set.fromList list)` to `List.member x list` when [`expectNaN`] is not enabled
 - `Dict.member x (Dict.fromList list)` to `List.any (Tuple.first >> (==) x) list` when [`expectNaN`] is not enabled
 - `Json.Encode.list f (Array.toList array)` to `Json.Encode.array f array`
+- `Json.Encode.array identity (Array.map f array)` to `Json.Encode.array f array`
 - `Json.Encode.array f (Array.fromList list)` to `Json.Encode.list f list`
+- `Json.Encode.list identity (List.map f list)` to `Json.Encode.list f list`
 - `Json.Encode.list f (Set.toList set)` to `Json.Encode.set f set`
+- `Json.Encode.set identity (Set.map f set)` to `Json.Encode.set f set`
 - `List.sort (Set.toList set)` to `Set.toList set`
 - `List.sort (Dict.toList dict)` to `Dict.toList dict`
 
