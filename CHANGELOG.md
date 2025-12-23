@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-Disabled `List.concat` simplifications that merged `List.concat` without structure.
+- Disabled `List.concat` simplifications that merged `List.concat` without structure.
 ```elm
 grid =
     List.concat
@@ -16,7 +16,8 @@ grid =
 ```
 This simplification made it sometimes harder to understand the data, and is therefore getting removed.
 It will however still apply when there doesn't seem to be any structure,
-i.e. when the list is one line or when all sub-items are on different lines. 
+i.e. when the list is one line or when all sub-items are on different lines.
+- `[ 1, 2 ] ++ [ 3, 4 ]` has also partially been disabled with similar logic.
 
 The rule now simplifies:
 - `Maybe.withDefault Nothing (Maybe.map f maybe)` to `Maybe.andThen f maybe`

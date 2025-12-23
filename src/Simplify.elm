@@ -14687,30 +14687,39 @@ collectionUnionWithLiteralsChecks config operationInfo collection checkInfo =
         Just literalListSecond ->
             case fromListGetLiteral collection checkInfo.lookupTable operationInfo.first of
                 Just literalListFirst ->
-                    let
-                        fromListLiteralDescription : String
-                        fromListLiteralDescription =
-                            constructionFromListOnLiteralDescription collection.fromList
-                    in
-                    Just
-                        (Rule.errorWithFix
-                            { message = operationInfo.operation ++ " on " ++ fromListLiteralDescription ++ "s can be turned into a single " ++ fromListLiteralDescription
-                            , details = [ "Try moving all the elements into a single " ++ fromListLiteralDescription ++ "." ]
-                            }
-                            operationInfo.operationRange
-                            (if config.leftElementsStayOnTheLeft then
-                                Fix.insertAt
-                                    (rangeWithoutBoundaries literalListSecond.literalRange).start
-                                    (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListFirst.literalRange) ++ ",")
-                                    :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range operationInfo.second }
+                    if
+                        (literalListFirst.literalRange.start.row == literalListSecond.literalRange.end.row)
+                            || ((literalListFirst.literalRange.start.row /= literalListFirst.literalRange.end.row)
+                                    && (literalListSecond.literalRange.start.row /= literalListSecond.literalRange.end.row)
+                               )
+                    then
+                        let
+                            fromListLiteralDescription : String
+                            fromListLiteralDescription =
+                                constructionFromListOnLiteralDescription collection.fromList
+                        in
+                        Just
+                            (Rule.errorWithFix
+                                { message = operationInfo.operation ++ " on " ++ fromListLiteralDescription ++ "s can be turned into a single " ++ fromListLiteralDescription
+                                , details = [ "Try moving all the elements into a single " ++ fromListLiteralDescription ++ "." ]
+                                }
+                                operationInfo.operationRange
+                                (if config.leftElementsStayOnTheLeft then
+                                    Fix.insertAt
+                                        (rangeWithoutBoundaries literalListSecond.literalRange).start
+                                        (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListFirst.literalRange) ++ ",")
+                                        :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range operationInfo.second }
 
-                             else
-                                Fix.insertAt
-                                    (rangeWithoutBoundaries literalListFirst.literalRange).start
-                                    (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListSecond.literalRange) ++ ",")
-                                    :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range operationInfo.first }
+                                 else
+                                    Fix.insertAt
+                                        (rangeWithoutBoundaries literalListFirst.literalRange).start
+                                        (checkInfo.extractSourceCode (rangeWithoutBoundaries literalListSecond.literalRange) ++ ",")
+                                        :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range operationInfo.first }
+                                )
                             )
-                        )
+
+                    else
+                        Nothing
 
                 Nothing ->
                     Nothing
