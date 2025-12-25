@@ -74,6 +74,8 @@ The rule now simplifies:
 - `List.sort (Dict.toList dict)` to `Dict.toList dict`
 - `List.foldl (\v s -> f v s) init (Dict.values dict)` to `Dict.foldl (\_ v s -> f v s) init dict` (same for `foldr`)
 - `List.foldl (\k s -> f k s) init (Dict.keys dict)` to `Dict.foldl (\k _ s -> f k s) init dict` (same for `foldr`)
+- `Tuple.first (Tuple.mapFirst f tuple)` to `f (Tuple.first tuple)`
+- `Tuple.second (Tuple.mapSecond f tuple)` to `f (Tuple.second tuple)`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",
@@ -81,6 +83,7 @@ Other improvements:
 - Now recognizes more `if`s as equal or different,
   to for example fix `(if c then 2 else 3) == (if c then 1 else 4)` to `False`
 - Now evaluates `<`, `<=`, `>=`, `>` for any two comparable operands to for example fix `"a" < "b"` to `True`
+- Now fixes `Tuple.first (Tuple.mapBoth changeFirst changeSecond tuple)` to `changeFirst (Tuple.first tuple)` instead of `Tuple.first (Tuple.mapFirst changeFirst tuple)` (same for second)
 
 ## [2.1.10] - 2025-11-21
 

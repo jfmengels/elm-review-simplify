@@ -349,8 +349,11 @@ Destructuring using case expressions
     Tuple.first (Tuple.mapSecond changeFirst tuple)
     --> Tuple.first tuple
 
+    Tuple.first (Tuple.mapFirst changeFirst tuple)
+    --> changeFirst (Tuple.first tuple)
+
     Tuple.first (Tuple.mapBoth changeFirst changeSecond tuple)
-    --> Tuple.first (Tuple.mapFirst changeFirst tuple)
+    --> changeFirst (Tuple.first tuple)
 
     Tuple.second ( a, b )
     --> b
@@ -358,8 +361,11 @@ Destructuring using case expressions
     Tuple.second (Tuple.mapFirst changeFirst tuple)
     --> Tuple.second tuple
 
+    Tuple.second (Tuple.mapSecond changeSecond tuple)
+    --> changeSecond (Tuple.second tuple)
+
     Tuple.second (Tuple.mapBoth changeFirst changeSecond tuple)
-    --> Tuple.second (Tuple.mapSecond changeSecond tuple)
+    --> changeSecond (Tuple.second tuple)
 
 
 ### Strings
@@ -6017,6 +6023,7 @@ tupleFirstChecks =
             , description = "first"
             , mapUnrelatedFn = Fn.Tuple.mapSecond
             , mapFn = Fn.Tuple.mapFirst
+            , mapBothArgIndex = 0
             }
         , intoFnCheckOnlyComposition
             (\checkInfo ->
@@ -6054,6 +6061,7 @@ tupleSecondChecks =
             , description = "second"
             , mapFn = Fn.Tuple.mapSecond
             , mapUnrelatedFn = Fn.Tuple.mapFirst
+            , mapBothArgIndex = 1
             }
         , intoFnCheckOnlyComposition
             (\checkInfo ->
@@ -6081,6 +6089,7 @@ tuplePartChecks :
     , description : String
     , mapFn : ( ModuleName, String )
     , mapUnrelatedFn : ( ModuleName, String )
+    , mapBothArgIndex : Int
     }
     -> IntoFnCheck
 tuplePartChecks partConfig =
@@ -6108,68 +6117,8 @@ tuplePartChecks partConfig =
             )
         , tuplePartOnMapUnrelatedCheck partConfig.mapUnrelatedFn
         , tuplePartOnMapPartCheck partConfig.mapFn
-        , intoFnCheckOnlyCall
-            (\checkInfo ->
-                case AstHelpers.getSpecificUnreducedFnCall Fn.Tuple.mapBoth checkInfo.lookupTable checkInfo.firstArg of
-                    Just tupleMapBothCall ->
-                        case tupleMapBothCall.argsAfterFirst of
-                            [ secondMapperArg, _ ] ->
-                                Just
-                                    (Rule.errorWithFix
-                                        { message = qualifiedToString Fn.Tuple.mapBoth ++ " before " ++ qualifiedToString checkInfo.fn ++ " is the same as " ++ qualifiedToString partConfig.mapFn
-                                        , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the " ++ qualifiedToString Fn.Tuple.mapBoth ++ " call by " ++ qualifiedToString partConfig.mapFn ++ " with the same " ++ partConfig.description ++ " mapping and tuple." ]
-                                        }
-                                        checkInfo.fnRange
-                                        (case partConfig.part of
-                                            TupleFirst ->
-                                                Fix.replaceRangeBy tupleMapBothCall.fnRange
-                                                    (qualifiedToString (qualify partConfig.mapFn checkInfo))
-                                                    :: keepOnlyFix
-                                                        { parentRange = Range.combine [ tupleMapBothCall.fnRange, Node.range tupleMapBothCall.firstArg, Node.range secondMapperArg ]
-                                                        , keep = Range.combine [ tupleMapBothCall.fnRange, Node.range tupleMapBothCall.firstArg ]
-                                                        }
-
-                                            TupleSecond ->
-                                                [ Fix.replaceRangeBy (Range.combine [ tupleMapBothCall.fnRange, Node.range tupleMapBothCall.firstArg ])
-                                                    (qualifiedToString (qualify partConfig.mapFn checkInfo))
-                                                ]
-                                        )
-                                    )
-
-                            _ ->
-                                Nothing
-
-                    Nothing ->
-                        Nothing
-            )
-        , intoFnCheckOnlyComposition
-            (\checkInfo ->
-                case ( checkInfo.earlier.fn, checkInfo.earlier.args ) of
-                    ( ( [ "Tuple" ], "mapBoth" ), firstMapperArg :: _ :: [] ) ->
-                        Just
-                            { info =
-                                { message = qualifiedToString Fn.Tuple.mapBoth ++ " before " ++ qualifiedToString checkInfo.later.fn ++ " is the same as " ++ qualifiedToString partConfig.mapFn
-                                , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the " ++ qualifiedToString Fn.Tuple.mapBoth ++ " call by " ++ qualifiedToString partConfig.mapFn ++ " with the same " ++ partConfig.description ++ " mapping." ]
-                                }
-                            , fix =
-                                case partConfig.part of
-                                    TupleFirst ->
-                                        Fix.replaceRangeBy checkInfo.earlier.fnRange
-                                            (qualifiedToString (qualify partConfig.mapFn checkInfo))
-                                            :: keepOnlyFix
-                                                { parentRange = checkInfo.earlier.range
-                                                , keep = Range.combine [ checkInfo.earlier.fnRange, Node.range firstMapperArg ]
-                                                }
-
-                                    TupleSecond ->
-                                        [ Fix.replaceRangeBy (Range.combine [ checkInfo.earlier.fnRange, Node.range firstMapperArg ])
-                                            (qualifiedToString (qualify partConfig.mapFn checkInfo))
-                                        ]
-                            }
-
-                    _ ->
-                        Nothing
-            )
+        , tuplePartMapOnMapBothCheck
+            { argIndex = partConfig.mapBothArgIndex }
         ]
 
 
@@ -6327,6 +6276,119 @@ tuplePartOnMapPartCheck mapPartFn =
 
                     _ ->
                         Nothing
+
+            else
+                Nothing
+    }
+
+
+tuplePartMapOnMapBothCheck : { argIndex : Int } -> IntoFnCheck
+tuplePartMapOnMapBothCheck config =
+    { call =
+        \checkInfo ->
+            case AstHelpers.getSpecificUnreducedFnCall Fn.Tuple.mapBoth checkInfo.lookupTable checkInfo.firstArg of
+                Just mapBothCall ->
+                    case mapBothCall.argsAfterFirst of
+                        [ _, tupleArg ] ->
+                            case List.drop config.argIndex (mapBothCall.firstArg :: mapBothCall.argsAfterFirst) of
+                                [] ->
+                                    Nothing
+
+                                partChangeFunctionArg :: _ ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                qualifiedToString checkInfo.fn
+                                                    ++ " on "
+                                                    ++ qualifiedToString Fn.Tuple.mapBoth
+                                                    ++ " can be replaced by directly calling the given function on the accessed tuple part"
+                                            , details =
+                                                [ "You can take the "
+                                                    ++ indexthToString config.argIndex
+                                                    ++ " function argument of the the "
+                                                    ++ qualifiedToString Fn.Tuple.mapBoth
+                                                    ++ " call and call it with the accessed tuple part."
+                                                ]
+                                            }
+                                            checkInfo.fnRange
+                                            (Fix.insertAt (Node.range tupleArg).start
+                                                ("("
+                                                    ++ qualifiedToString (qualify checkInfo.fn checkInfo)
+                                                    ++ " "
+                                                )
+                                                :: Fix.insertAt (Node.range tupleArg).end
+                                                    ")"
+                                                :: replaceBy2SubExpressionsFix
+                                                    (Node.range checkInfo.firstArg)
+                                                    partChangeFunctionArg
+                                                    tupleArg
+                                                ++ replaceBySubExpressionFix
+                                                    checkInfo.parentRange
+                                                    checkInfo.firstArg
+                                            )
+                                        )
+
+                        _ ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+    , composition =
+        \checkInfo ->
+            if
+                (checkInfo.earlier.fn == Fn.Tuple.mapBoth)
+                    && onlyLastArgIsCurried { args = checkInfo.earlier.args, argCount = 3 }
+            then
+                case List.drop config.argIndex checkInfo.earlier.args of
+                    [] ->
+                        Nothing
+
+                    partChangeFunctionArg :: _ ->
+                        Just
+                            { info =
+                                { message =
+                                    qualifiedToString checkInfo.later.fn
+                                        ++ " on "
+                                        ++ qualifiedToString Fn.Tuple.mapBoth
+                                        ++ " can be replaced by directly calling the given function on the accessed tuple part"
+                                , details =
+                                    [ "You can take the "
+                                        ++ indexthToString config.argIndex
+                                        ++ " function argument of the the "
+                                        ++ qualifiedToString Fn.Tuple.mapBoth
+                                        ++ " call and compose it after the tuple part access."
+                                    ]
+                                }
+                            , fix =
+                                -- Tuple.first << Tuple.mapFirst f
+                                --> f << Tuple.first
+                                --
+                                -- Tuple.mapFirst f >> Tuple.first
+                                --> Tuple.first >> f
+                                Fix.removeRange checkInfo.later.removeRange
+                                    :: (if Range.compareLocations checkInfo.earlier.range.start checkInfo.later.range.start == LT then
+                                            [ Fix.insertAt checkInfo.earlier.range.start
+                                                ("("
+                                                    ++ qualifiedToString (qualify checkInfo.later.fn checkInfo)
+                                                    ++ " >> "
+                                                )
+                                            , Fix.insertAt checkInfo.earlier.range.end ")"
+                                            ]
+
+                                        else
+                                            [ Fix.insertAt checkInfo.earlier.range.start
+                                                "("
+                                            , Fix.insertAt checkInfo.earlier.range.end
+                                                (" << "
+                                                    ++ qualifiedToString (qualify checkInfo.later.fn checkInfo)
+                                                    ++ ")"
+                                                )
+                                            ]
+                                       )
+                                    ++ replaceBySubExpressionFix
+                                        checkInfo.earlier.range
+                                        partChangeFunctionArg
+                            }
 
             else
                 Nothing
@@ -17205,6 +17267,66 @@ replaceBySubExpressionFix outerRange (Node exprRange exprValue) =
 
     else
         keepOnlyFix { parentRange = outerRange, keep = exprRange }
+
+
+replaceBy2SubExpressionsFix : Range -> Node Expression -> Node Expression -> List Fix
+replaceBy2SubExpressionsFix parentRange subA subB =
+    let
+        ( leftSub, rightSub ) =
+            case Range.compareLocations (Node.range subA).start (Node.range subB).end of
+                LT ->
+                    ( subA, subB )
+
+                _ ->
+                    ( subB, subA )
+
+        leftSubNeedsParens : Bool
+        leftSubNeedsParens =
+            needsParens (Node.value leftSub)
+
+        rightSubNeedsParens : Bool
+        rightSubNeedsParens =
+            needsParens (Node.value rightSub)
+    in
+    [ Fix.replaceRangeBy
+        { start = parentRange.start
+        , end = (Node.range leftSub).start
+        }
+        (if leftSubNeedsParens then
+            "("
+
+         else
+            ""
+        )
+    , Fix.replaceRangeBy
+        { start = (Node.range leftSub).end
+        , end = (Node.range rightSub).start
+        }
+        ((if leftSubNeedsParens then
+            ")"
+
+          else
+            ""
+         )
+            ++ " "
+            ++ (if rightSubNeedsParens then
+                    "("
+
+                else
+                    ""
+               )
+        )
+    , Fix.replaceRangeBy
+        { start = (Node.range rightSub).end
+        , end = parentRange.end
+        }
+        (if rightSubNeedsParens then
+            ")"
+
+         else
+            ""
+        )
+    ]
 
 
 replaceSubExpressionByRecordAccessFix : String -> Node Expression -> List Fix
