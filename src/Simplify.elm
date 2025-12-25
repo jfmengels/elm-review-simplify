@@ -1507,6 +1507,12 @@ All of these also apply for `Sub`.
     Task.sequence [ task ]
     --> Task.map List.singleton task
 
+    Task.attempt identity (Task.map f task)
+    --> Task.attempt f task
+
+    Task.perform identity (Task.map f task)
+    --> Task.perform f task
+
 
 ### Html.Attributes
 
@@ -3894,6 +3900,8 @@ intoFnChecks =
     , ( Fn.Task.mapError, ( 2, taskMapErrorChecks ) )
     , ( Fn.Task.onError, ( 2, taskOnErrorChecks ) )
     , ( Fn.Task.sequence, ( 1, taskSequenceChecks ) )
+    , ( Fn.Task.perform, ( 2, taskPerformChecks ) )
+    , ( Fn.Task.attempt, ( 2, taskAttemptChecks ) )
     , ( Fn.Json.Encode.list, ( 2, jsonEncodeListChecks ) )
     , ( Fn.Json.Encode.array, ( 2, jsonEncodeArrayChecks ) )
     , ( Fn.Json.Encode.set, ( 2, jsonEncodeSetChecks ) )
@@ -8884,6 +8892,16 @@ taskSequenceChecks =
         , intoFnCheckOnlyCall
             (sequenceOrFirstEmptyChecks ( listCollection, taskWithSucceedAsWrap ))
         ]
+
+
+taskPerformChecks : IntoFnCheck
+taskPerformChecks =
+    mapToOperationWithIdentityCanBeCombinedToOperationChecks taskWithSucceedAsWrap
+
+
+taskAttemptChecks : IntoFnCheck
+taskAttemptChecks =
+    mapToOperationWithIdentityCanBeCombinedToOperationChecks taskWithSucceedAsWrap
 
 
 
