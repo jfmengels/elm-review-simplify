@@ -7330,8 +7330,7 @@ ignoreFirstIncomingFix resources functionExpressionNode =
             lambdas
                 |> List.map
                     (\lambda ->
-                        Fix.insertAt { row = lambda.range.start.row, column = lambda.range.start.column + 1 }
-                            "_ "
+                        Fix.insertAt (Node.range lambda.firstParameter).start "_ "
                     )
 
 
@@ -7384,16 +7383,16 @@ ignoreSecondIncomingFix resources functionExpressionNode =
                     )
 
 
-getLambda : Node Expression -> Maybe { range : Range, firstParameter : Node Pattern }
+getLambda : Node Expression -> Maybe { firstParameter : Node Pattern }
 getLambda expressionNode =
     case AstHelpers.removeParens expressionNode of
-        Node lambdaRange (Expression.LambdaExpression lambda) ->
+        Node _ (Expression.LambdaExpression lambda) ->
             case lambda.args of
                 [] ->
                     Nothing
 
                 firstParameter :: _ ->
-                    Just { range = lambdaRange, firstParameter = firstParameter }
+                    Just { firstParameter = firstParameter }
 
         _ ->
             Nothing
