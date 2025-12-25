@@ -72,6 +72,8 @@ The rule now simplifies:
 - `Json.Encode.set identity (Set.map f set)` to `Json.Encode.set f set`
 - `List.sort (Set.toList set)` to `Set.toList set`
 - `List.sort (Dict.toList dict)` to `Dict.toList dict`
+- `List.foldl (\v s -> f v s) init (Dict.values dict)` to `Dict.foldl (\_ v s -> f v s) init dict` (same for `foldr`)
+- `List.foldl (\k s -> f k s) init (Dict.keys dict)` to `Dict.foldl (\k _ s -> f k s) init dict` (same for `foldr`)
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",

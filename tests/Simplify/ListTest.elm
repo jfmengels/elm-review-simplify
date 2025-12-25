@@ -4235,6 +4235,159 @@ a = Array.toList >> List.foldl f x
 a = Array.foldl f x
 """
                         ]
+        , test "should replace List.foldl (\\a s -> f a s) init (Dict.values dict) by Dict.foldl (\\_ a s -> f a s) init dict" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (\\a s -> f a s) init (Dict.values dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict values, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldl and ignore the first incoming value in the reduce function." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldl (\\_ a s -> f a s) init dict
+"""
+                        ]
+        , test "should replace List.foldl (if c then \\a s -> f a s else \\a -> f a) init (Dict.values dict) by Dict.foldl (if c then \\_ a s -> f a s else \\_ a -> f a) init dict" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (if c then \\a s -> f a s else \\a -> f a) init (Dict.values dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict values, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldl and ignore the first incoming value in the reduce function." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldl (if c then \\_ a s -> f a s else \\_ a -> f a) init dict
+"""
+                        ]
+        , test "should replace List.foldl f init (Dict.values dict) by Dict.foldl (always f) init dict" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl f init (Dict.values dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict values, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldl and ignore the first incoming value in the reduce function." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldl (always f) init dict
+"""
+                        ]
+        , test "should replace List.foldl (\\a s -> f a s) init << Dict.values by Dict.foldl (\\_ a s -> f a s) init" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (\\a s -> f a s) init << Dict.values
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict values, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace this composition by Dict.foldl and ignore the first incoming value in the reduce function." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldl (\\_ a s -> f a s) init
+"""
+                        ]
+        , test "should replace Dict.values >> List.foldl (\\a s -> f a s) init by Dict.foldl (\\_ a s -> f a s) init" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.values >> List.foldl (\\a s -> f a s) init
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict values, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace this composition by Dict.foldl and ignore the first incoming value in the reduce function." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldl (\\_ a s -> f a s) init
+"""
+                        ]
+        , test "should replace List.foldl (\\a s -> f a s) init (Dict.keys dict) by Dict.foldl (\\a _ s -> f a s) init dict" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (\\a s -> f a s) init (Dict.keys dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict keys, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldl and ignore the second incoming value in the reduce function." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldl (\\a _ s -> f a s) init dict
+"""
+                        ]
+        , test "should replace List.foldl f init (Dict.keys dict) by Dict.foldl (always f) init dict" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl f init (Dict.keys dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict keys, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldl and ignore the second incoming value in the reduce function." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldl (always << f) init dict
+"""
+                        ]
+        , test "should replace List.foldl (\\a s -> f a s) init << Dict.keys by Dict.foldl (\\a _ s -> f a s) init" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (\\a s -> f a s) init << Dict.keys
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict keys, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace this composition by Dict.foldl and ignore the second incoming value in the reduce function." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldl (\\a _ s -> f a s) init
+"""
+                        ]
+        , test "should replace Dict.keys >> List.foldl (\\a s -> f a s) init by Dict.foldl (\\a _ s -> f a s) init" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.keys >> List.foldl (\\a s -> f a s) init
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict keys, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace this composition by Dict.foldl and ignore the second incoming value in the reduce function." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldl (\\a _ s -> f a s) init
+"""
+                        ]
         , listFoldlSumTests
         , listFoldlProductTests
         , listFoldlAllTests
@@ -5276,6 +5429,159 @@ a = Array.toList >> List.foldr f x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Array.foldr f x
+"""
+                        ]
+        , test "should replace List.foldr (\\a s -> f a s) init (Dict.values dict) by Dict.foldr (\\_ a s -> f a s) init dict" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\a s -> f a s) init (Dict.values dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict values, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldr and ignore the first incoming value in the reduce function." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldr (\\_ a s -> f a s) init dict
+"""
+                        ]
+        , test "should replace List.foldr (if c then \\a s -> f a s else \\a -> f a) init (Dict.values dict) by Dict.foldr (if c then \\_ a s -> f a s else \\_ a -> f a) init dict" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (if c then \\a s -> f a s else \\a -> f a) init (Dict.values dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict values, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldr and ignore the first incoming value in the reduce function." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldr (if c then \\_ a s -> f a s else \\_ a -> f a) init dict
+"""
+                        ]
+        , test "should replace List.foldr f init (Dict.values dict) by Dict.foldr (always f) init dict" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr f init (Dict.values dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict values, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldr and ignore the first incoming value in the reduce function." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldr (always f) init dict
+"""
+                        ]
+        , test "should replace List.foldr (\\a s -> f a s) init << Dict.values by Dict.foldr (\\_ a s -> f a s) init" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\a s -> f a s) init << Dict.values
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict values, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace this composition by Dict.foldr and ignore the first incoming value in the reduce function." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldr (\\_ a s -> f a s) init
+"""
+                        ]
+        , test "should replace Dict.values >> List.foldr (\\a s -> f a s) init by Dict.foldr (\\_ a s -> f a s) init" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.values >> List.foldr (\\a s -> f a s) init
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict values, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace this composition by Dict.foldr and ignore the first incoming value in the reduce function." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldr (\\_ a s -> f a s) init
+"""
+                        ]
+        , test "should replace List.foldr (\\a s -> f a s) init (Dict.keys dict) by Dict.foldr (\\a _ s -> f a s) init dict" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\a s -> f a s) init (Dict.keys dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict keys, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldr and ignore the second incoming value in the reduce function." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldr (\\a _ s -> f a s) init dict
+"""
+                        ]
+        , test "should replace List.foldr f init (Dict.keys dict) by Dict.foldr (always f) init dict" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr f init (Dict.keys dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict keys, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldr and ignore the second incoming value in the reduce function." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldr (always << f) init dict
+"""
+                        ]
+        , test "should replace List.foldr (\\a s -> f a s) init << Dict.keys by Dict.foldr (\\a _ s -> f a s) init" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\a s -> f a s) init << Dict.keys
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict keys, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace this composition by Dict.foldr and ignore the second incoming value in the reduce function." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldr (\\a _ s -> f a s) init
+"""
+                        ]
+        , test "should replace Dict.keys >> List.foldr (\\a s -> f a s) init by Dict.foldr (\\a _ s -> f a s) init" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.keys >> List.foldr (\\a s -> f a s) init
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict keys, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace this composition by Dict.foldr and ignore the second incoming value in the reduce function." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldr (\\a _ s -> f a s) init
 """
                         ]
         , listFoldrSumTests

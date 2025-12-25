@@ -1384,12 +1384,18 @@ Destructuring using case expressions
     List.map Tuple.second (Dict.toList dict)
     --> Dict.values dict
 
-    -- same for foldr
+    -- The following foldl simplifications also work for foldr
     Dict.foldl f initial Dict.empty
     --> initial
 
     Dict.foldl (\_ soFar -> soFar) initial dict
     --> initial
+
+    List.foldl (\v s -> f v s) init (Dict.values dict)
+    --> Dict.foldl (\_ v s -> f v s) init dict
+
+    List.foldl (\k s -> f k s) init (Dict.keys dict)
+    --> Dict.foldl (\k _ s -> f k s) init dict
 
     -- The following simplification also works for Dict.keys, Dict.values
     List.length (Dict.toList dict)
@@ -7181,7 +7187,216 @@ listFoldChecks foldFnName =
             , convertedRepresentsIndefinite = "a list"
             , combinedFn = ( [ "Array" ], foldFnName )
             }
+        , listFoldOnDictEntryPartListChecks
+            { combinedFn = ( [ "Dict" ], foldFnName )
+            }
         ]
+
+
+listFoldOnDictEntryPartListChecks : { combinedFn : ( ModuleName, String ) } -> IntoFnCheck
+listFoldOnDictEntryPartListChecks config =
+    { composition =
+        \checkInfo ->
+            case checkInfo.later.args of
+                [ reduceArg, _ ] ->
+                    case checkInfo.earlier.fn of
+                        ( [ "Dict" ], "values" ) ->
+                            Just
+                                { info =
+                                    { message = "To fold over dict values, you don't need to convert to a list"
+                                    , details =
+                                        [ "You can replace this composition by "
+                                            ++ qualifiedToString config.combinedFn
+                                            ++ " and ignore the first incoming value in the reduce function."
+                                        ]
+                                    }
+                                , fix =
+                                    Fix.replaceRangeBy checkInfo.later.fnRange
+                                        (qualifiedToString (qualify config.combinedFn checkInfo))
+                                        :: Fix.removeRange checkInfo.earlier.removeRange
+                                        :: ignoreFirstIncomingFix checkInfo reduceArg
+                                }
+
+                        ( [ "Dict" ], "keys" ) ->
+                            Just
+                                { info =
+                                    { message = "To fold over dict keys, you don't need to convert to a list"
+                                    , details =
+                                        [ "You can replace this composition by "
+                                            ++ qualifiedToString config.combinedFn
+                                            ++ " and ignore the second incoming value in the reduce function."
+                                        ]
+                                    }
+                                , fix =
+                                    Fix.replaceRangeBy checkInfo.later.fnRange
+                                        (qualifiedToString (qualify config.combinedFn checkInfo))
+                                        :: Fix.removeRange checkInfo.earlier.removeRange
+                                        :: ignoreSecondIncomingFix checkInfo reduceArg
+                                }
+
+                        _ ->
+                            Nothing
+
+                _ ->
+                    Nothing
+    , call =
+        \checkInfo ->
+            case checkInfo.argsAfterFirst of
+                [ _, foldedOverArg ] ->
+                    case AstHelpers.getSpecificUnreducedFnCall Fn.Dict.values checkInfo.lookupTable foldedOverArg of
+                        Just dictValuesCall ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = "To fold over dict values, you don't need to convert to a list"
+                                    , details =
+                                        [ "You can replace these calls by "
+                                            ++ qualifiedToString config.combinedFn
+                                            ++ " and ignore the first incoming value in the reduce function."
+                                        ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.replaceRangeBy checkInfo.fnRange
+                                        (qualifiedToString (qualify config.combinedFn checkInfo))
+                                        :: ignoreFirstIncomingFix checkInfo checkInfo.firstArg
+                                        ++ replaceBySubExpressionFix
+                                            (Node.range foldedOverArg)
+                                            dictValuesCall.firstArg
+                                    )
+                                )
+
+                        Nothing ->
+                            case AstHelpers.getSpecificUnreducedFnCall Fn.Dict.keys checkInfo.lookupTable foldedOverArg of
+                                Just dictKeysCall ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = "To fold over dict keys, you don't need to convert to a list"
+                                            , details =
+                                                [ "You can replace these calls by "
+                                                    ++ qualifiedToString config.combinedFn
+                                                    ++ " and ignore the second incoming value in the reduce function."
+                                                ]
+                                            }
+                                            checkInfo.fnRange
+                                            (Fix.replaceRangeBy checkInfo.fnRange
+                                                (qualifiedToString (qualify config.combinedFn checkInfo))
+                                                :: ignoreSecondIncomingFix checkInfo checkInfo.firstArg
+                                                ++ replaceBySubExpressionFix
+                                                    (Node.range foldedOverArg)
+                                                    dictKeysCall.firstArg
+                                            )
+                                        )
+
+                                Nothing ->
+                                    Nothing
+
+                _ ->
+                    Nothing
+    }
+
+
+ignoreFirstIncomingFix : QualifyResources a -> Node Expression -> List Fix
+ignoreFirstIncomingFix resources functionExpressionNode =
+    case sameInAllBranches getLambda functionExpressionNode of
+        Nothing ->
+            -- not \_ -> to preserve eager evaluation of the function expression
+            let
+                functionExpressionNeedsParens : Bool
+                functionExpressionNeedsParens =
+                    needsParens (Node.value functionExpressionNode)
+            in
+            [ Fix.insertAt (Node.range functionExpressionNode).start
+                ("("
+                    ++ qualifiedToString (qualify Fn.Basics.always resources)
+                    ++ " "
+                    ++ (if functionExpressionNeedsParens then
+                            "("
+
+                        else
+                            ""
+                       )
+                )
+            , Fix.insertAt (Node.range functionExpressionNode).end
+                ((if functionExpressionNeedsParens then
+                    ")"
+
+                  else
+                    ""
+                 )
+                    ++ ")"
+                )
+            ]
+
+        Just lambdas ->
+            lambdas
+                |> List.map
+                    (\lambda ->
+                        Fix.insertAt { row = lambda.range.start.row, column = lambda.range.start.column + 1 }
+                            "_ "
+                    )
+
+
+ignoreSecondIncomingFix : QualifyResources a -> Node Expression -> List Fix
+ignoreSecondIncomingFix resources functionExpressionNode =
+    case sameInAllBranches getLambda functionExpressionNode of
+        Nothing ->
+            -- don't fix to a lambda to preserve eager evaluation of the function expression
+            let
+                functionExpressionNeedsParens : Bool
+                functionExpressionNeedsParens =
+                    needsParens (Node.value functionExpressionNode)
+            in
+            [ Fix.insertAt (Node.range functionExpressionNode).start
+                -- always << f  is the equivalent point-free version of
+                -- \f a _ -> f a
+                -- Think:
+                --  always << reduce
+                --> (\f _ -> f) << reduce
+                --> \a -> (\f _ -> f) <| reduce a
+                --> \a -> \_ -> reduce a
+                --> \a _ acc -> reduce a acc
+                ("("
+                    ++ qualifiedToString (qualify Fn.Basics.always resources)
+                    ++ " << "
+                    ++ (if functionExpressionNeedsParens then
+                            "("
+
+                        else
+                            ""
+                       )
+                )
+            , Fix.insertAt (Node.range functionExpressionNode).end
+                ((if functionExpressionNeedsParens then
+                    ")"
+
+                  else
+                    ""
+                 )
+                    ++ ")"
+                )
+            ]
+
+        Just lambdas ->
+            lambdas
+                |> List.map
+                    (\lambda ->
+                        Fix.insertAt (Node.range lambda.firstParameter).end
+                            " _"
+                    )
+
+
+getLambda : Node Expression -> Maybe { range : Range, firstParameter : Node Pattern }
+getLambda expressionNode =
+    case AstHelpers.removeParens expressionNode of
+        Node lambdaRange (Expression.LambdaExpression lambda) ->
+            case lambda.args of
+                [] ->
+                    Nothing
+
+                firstParameter :: _ ->
+                    Just { range = lambdaRange, firstParameter = firstParameter }
+
+        _ ->
+            Nothing
 
 
 onConversionFnCallCanBeCombinedCheck :

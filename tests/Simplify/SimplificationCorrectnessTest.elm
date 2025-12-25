@@ -38,6 +38,22 @@ all =
                     (dict |> Set.toList |> List.sort)
                     |> Expect.equal EQ
             )
+        , Test.fuzz
+            (Fuzz.map Dict.fromList
+                (Fuzz.list (Fuzz.pair Fuzz.int Fuzz.int))
+            )
+            "Dict.keys >> List.foldl reduce is the same as Dict.foldl (((<<) always))"
+            (\dict ->
+                dict
+                    |> Dict.keys
+                    |> List.foldl (::) []
+                    |> Expect.equalLists
+                        (dict
+                            |> Dict.foldl
+                                (always << (::))
+                                []
+                        )
+            )
         ]
 
 
