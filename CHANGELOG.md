@@ -76,6 +76,8 @@ The rule now simplifies:
 - `List.foldl (\k s -> f k s) init (Dict.keys dict)` to `Dict.foldl (\k _ s -> f k s) init dict` (same for `foldr`)
 - `Tuple.first (Tuple.mapFirst f tuple)` to `f (Tuple.first tuple)`
 - `Tuple.second (Tuple.mapSecond f tuple)` to `f (Tuple.second tuple)`
+- `Task.attempt identity (Task.map f task)` to `Task.attempt f task`
+- `Task.perform identity (Task.map f task)` to `Task.perform f task`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",
