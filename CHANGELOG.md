@@ -78,6 +78,8 @@ The rule now simplifies:
 - `Tuple.second (Tuple.mapSecond f tuple)` to `f (Tuple.second tuple)`
 - `Task.attempt identity (Task.map f task)` to `Task.attempt f task`
 - `Task.perform identity (Task.map f task)` to `Task.perform f task`
+- `Cmd.map f (Task.perform identity task)` to `Task.perform f task`
+- `Cmd.map f (Task.attempt identity task)` to `Task.attempt f task`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",

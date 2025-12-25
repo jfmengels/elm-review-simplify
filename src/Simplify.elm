@@ -1513,6 +1513,12 @@ All of these also apply for `Sub`.
     Task.perform identity (Task.map f task)
     --> Task.perform f task
 
+    Cmd.map f (Task.perform identity task)
+    --> Task.perform f task
+
+    Cmd.map f (Task.attempt identity task)
+    --> Task.attempt f task
+
 
 ### Html.Attributes
 
@@ -8823,7 +8829,99 @@ platformCmdBatchChecks =
 
 platformCmdMapChecks : IntoFnCheck
 platformCmdMapChecks =
-    emptiableMapChecks cmdCollection
+    intoFnChecksFirstThatConstructsError
+        [ emptiableMapChecks cmdCollection
+        , mapAfterConvertMapIdentityCanBeCombinedCheck { convertMapFn = Fn.Task.perform }
+        , mapAfterConvertMapIdentityCanBeCombinedCheck { convertMapFn = Fn.Task.attempt }
+        ]
+
+
+mapAfterConvertMapIdentityCanBeCombinedCheck :
+    { config | convertMapFn : ( ModuleName, String ) }
+    -> IntoFnCheck
+mapAfterConvertMapIdentityCanBeCombinedCheck config =
+    { composition =
+        \checkInfo ->
+            let
+                earlierIsConvertMapIdentity : Bool
+                earlierIsConvertMapIdentity =
+                    (checkInfo.earlier.fn == config.convertMapFn)
+                        && (case checkInfo.earlier.args of
+                                [ changeFunctionArg ] ->
+                                    AstHelpers.isIdentity checkInfo changeFunctionArg
+
+                                _ ->
+                                    False
+                           )
+            in
+            if earlierIsConvertMapIdentity then
+                Just
+                    { info =
+                        { message =
+                            qualifiedToString checkInfo.later.fn
+                                ++ " on "
+                                ++ qualifiedToString config.convertMapFn
+                                ++ " with an identity function can be combined"
+                        , details =
+                            [ "You can replace this composition by "
+                                ++ qualifiedToString config.convertMapFn
+                                ++ " with the function given to "
+                                ++ qualifiedToString (qualify checkInfo.later.fn checkInfo)
+                                ++ "."
+                            ]
+                        }
+                    , fix =
+                        [ Fix.removeRange checkInfo.earlier.removeRange
+                        , Fix.replaceRangeBy
+                            checkInfo.later.fnRange
+                            (qualifiedToString (qualify config.convertMapFn checkInfo))
+                        ]
+                    }
+
+            else
+                Nothing
+    , call =
+        \checkInfo ->
+            case fullyAppliedLastArg checkInfo of
+                Nothing ->
+                    Nothing
+
+                Just cmdArg ->
+                    case AstHelpers.getSpecificUnreducedFnCall config.convertMapFn checkInfo.lookupTable cmdArg of
+                        Nothing ->
+                            Nothing
+
+                        Just convertMapFnCall ->
+                            case convertMapFnCall.argsAfterFirst of
+                                [ toConvertArg ] ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                qualifiedToString checkInfo.fn
+                                                    ++ " on "
+                                                    ++ qualifiedToString config.convertMapFn
+                                                    ++ " with an identity function can be combined"
+                                            , details =
+                                                [ "You can replace these operations by "
+                                                    ++ qualifiedToString config.convertMapFn
+                                                    ++ " with the function given to "
+                                                    ++ qualifiedToString (qualify checkInfo.fn checkInfo)
+                                                    ++ "."
+                                                ]
+                                            }
+                                            checkInfo.fnRange
+                                            (Fix.replaceRangeBy
+                                                checkInfo.fnRange
+                                                (qualifiedToString (qualify config.convertMapFn checkInfo))
+                                                :: replaceBySubExpressionFix
+                                                    (Node.range cmdArg)
+                                                    toConvertArg
+                                            )
+                                        )
+
+                                _ ->
+                                    Nothing
+    }
 
 
 
