@@ -4252,6 +4252,23 @@ a = List.foldl (\\a s -> f a s) init (Dict.values dict)
 a = Dict.foldl (\\_ a s -> f a s) init dict
 """
                         ]
+        , test "should replace List.foldl (\\a -> f a) init (Dict.values dict) by Dict.foldl (\\_ a -> f a) init dict" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (\\a -> f a) init (Dict.values dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict values, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldl and ignore the first incoming value in the reduce function." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldl (\\_ a -> f a) init dict
+"""
+                        ]
         , test "should replace List.foldl (if c then \\a s -> f a s else \\a -> f a) init (Dict.values dict) by Dict.foldl (if c then \\_ a s -> f a s else \\_ a -> f a) init dict" <|
             \() ->
                 """module A exposing (..)
@@ -5446,6 +5463,23 @@ a = List.foldr (\\a s -> f a s) init (Dict.values dict)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Dict.foldr (\\_ a s -> f a s) init dict
+"""
+                        ]
+        , test "should replace List.foldr (\\a -> f a) init (Dict.values dict) by Dict.foldr (\\_ a -> f a) init dict" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\a -> f a) init (Dict.values dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict values, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldr and ignore the first incoming value in the reduce function." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldr (\\_ a -> f a) init dict
 """
                         ]
         , test "should replace List.foldr (if c then \\a s -> f a s else \\a -> f a) init (Dict.values dict) by Dict.foldr (if c then \\_ a s -> f a s else \\_ a -> f a) init dict" <|
