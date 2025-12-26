@@ -16287,7 +16287,7 @@ caseVariantOfWithUnreachableCasesChecks config checkInfo =
                 , cases : List { patternRange : Range, name : String, attachments : List (Node Pattern), expressionNode : Node Expression }
                 }
         maybeVariantCaseOf =
-            case AstHelpers.getValueOrFnOrFnCall checkInfo config.casedExpressionNode of
+            case AstHelpers.getUnreducedValueOrFnOrFnCall config.casedExpressionNode of
                 Nothing ->
                     Nothing
 
