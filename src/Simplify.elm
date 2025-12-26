@@ -17031,7 +17031,7 @@ fullyAppliedPrefixOperatorError checkInfo =
 appliedLambdaError : { nodeRange : Range, lambdaRange : Range, lambda : Expression.Lambda } -> Maybe (Error {})
 appliedLambdaError checkInfo =
     case checkInfo.lambda.args of
-        (Node unitRange Pattern.UnitPattern) :: otherPatterns ->
+        (Node patternRange Pattern.UnitPattern) :: otherPatterns ->
             Just
                 (Rule.errorWithFix
                     { message = "Unnecessary unit argument"
@@ -17040,18 +17040,18 @@ appliedLambdaError checkInfo =
                         , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
                         ]
                     }
-                    unitRange
+                    patternRange
                     (case otherPatterns of
                         [] ->
                             replaceBySubExpressionFix checkInfo.nodeRange checkInfo.lambda.expression
 
                         secondPattern :: _ ->
-                            Fix.removeRange { start = unitRange.start, end = (Node.range secondPattern).start }
+                            Fix.removeRange { start = patternRange.start, end = (Node.range secondPattern).start }
                                 :: keepOnlyAndParenthesizeFix { parentRange = checkInfo.nodeRange, keep = checkInfo.lambdaRange }
                     )
                 )
 
-        (Node allRange Pattern.AllPattern) :: otherPatterns ->
+        (Node patternRange Pattern.AllPattern) :: otherPatterns ->
             Just
                 (Rule.errorWithFix
                     { message = "Unnecessary wildcard argument argument"
@@ -17060,13 +17060,13 @@ appliedLambdaError checkInfo =
                         , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
                         ]
                     }
-                    allRange
+                    patternRange
                     (case otherPatterns of
                         [] ->
                             replaceBySubExpressionFix checkInfo.nodeRange checkInfo.lambda.expression
 
                         secondPattern :: _ ->
-                            Fix.removeRange { start = allRange.start, end = (Node.range secondPattern).start }
+                            Fix.removeRange { start = patternRange.start, end = (Node.range secondPattern).start }
                                 :: keepOnlyAndParenthesizeFix { parentRange = checkInfo.nodeRange, keep = checkInfo.lambdaRange }
                     )
                 )
