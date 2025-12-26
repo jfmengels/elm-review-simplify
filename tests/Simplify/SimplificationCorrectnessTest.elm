@@ -78,6 +78,39 @@ all =
                             |> List.foldl (::) []
                         )
             )
+        , Test.fuzz
+            (Fuzz.list Fuzz.string)
+            "List.foldr String.append \"\" is the same as String.concat"
+            (\strings ->
+                strings
+                    |> List.foldr String.append ""
+                    |> Expect.equal
+                        (strings
+                            |> String.concat
+                        )
+            )
+        , Test.fuzz
+            (Fuzz.list Fuzz.string)
+            "List.foldr (++) \"\" is the same as String.concat"
+            (\strings ->
+                strings
+                    |> List.foldr (++) ""
+                    |> Expect.equal
+                        (strings
+                            |> String.concat
+                        )
+            )
+        , Test.fuzz
+            (Fuzz.list (Fuzz.list Fuzz.string))
+            "List.foldr List.append [] is the same as List.concat"
+            (\strings ->
+                strings
+                    |> List.foldr List.append []
+                    |> Expect.equal
+                        (strings
+                            |> List.concat
+                        )
+            )
         ]
 
 
