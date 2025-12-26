@@ -792,11 +792,11 @@ Destructuring using case expressions
     List.maximum [ a ]
     --> Just a
 
-    List.foldr (++) ""
-    --> String.concat
+    List.foldr (++) "" list
+    --> String.concat list
 
-    List.foldr (++) []
-    --> List.concat
+    List.foldr (++) [] list
+    --> List.concat list
 
     -- The following simplifications for List.foldl also work for List.foldr
     List.foldl f x []
