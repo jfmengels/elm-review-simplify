@@ -13113,7 +13113,7 @@ operationOverridesPreviousOperationWithEqualFirstArgCheck config =
     { call =
         \checkInfo ->
             case
-                Maybe.andThen (AstHelpers.getSpecificFnCall checkInfo.fn checkInfo)
+                Maybe.andThen (AstHelpers.getSpecificUnreducedFnCall checkInfo.fn checkInfo.lookupTable)
                     (fullyAppliedLastArg checkInfo)
             of
                 Nothing ->
@@ -13765,7 +13765,10 @@ onSpecificFnCallCanBeCombinedCheck config =
     in
     { call =
         \checkInfo ->
-            case Maybe.andThen (\lastArg -> AstHelpers.getSpecificFnCall config.earlierFn checkInfo lastArg) (fullyAppliedLastArg checkInfo) of
+            case
+                Maybe.andThen (\lastArg -> AstHelpers.getSpecificUnreducedFnCall config.earlierFn checkInfo.lookupTable lastArg)
+                    (fullyAppliedLastArg checkInfo)
+            of
                 Just fromFnCall ->
                     if laterInitArgsAreValidForOperation (listFilledInit ( checkInfo.firstArg, checkInfo.argsAfterFirst )) checkInfo then
                         Just
