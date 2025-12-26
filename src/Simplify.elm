@@ -826,6 +826,9 @@ Destructuring using case expressions
     List.foldl (||) True list
     --> True
 
+    List.foldl f initial (List.reverse list)
+    --> List.foldr f initial list
+
     Array.foldl f x (Array.fromList list)
     --> List.foldl f x array
 
@@ -7235,16 +7238,16 @@ listMaximumChecks =
 
 listFoldlChecks : IntoFnCheck
 listFoldlChecks =
-    listFoldChecks "foldl"
+    listFoldChecks "foldl" "foldr"
 
 
 listFoldrChecks : IntoFnCheck
 listFoldrChecks =
-    listFoldChecks "foldr"
+    listFoldChecks "foldr" "foldl"
 
 
-listFoldChecks : String -> IntoFnCheck
-listFoldChecks foldFnName =
+listFoldChecks : String -> String -> IntoFnCheck
+listFoldChecks foldFnName reverseFoldFnName =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (emptiableFoldChecks listCollection)
         , intoFnCheckOnlyCall
@@ -7378,6 +7381,12 @@ listFoldChecks foldFnName =
                                     else
                                         Nothing
             )
+        , onConversionFnCallCanBeCombinedCheck
+            { combinedOperationRepresents = "fold a list"
+            , convertFn = Fn.List.reverse
+            , actionRepresents = "reverse it"
+            , combinedFn = ( [ "List" ], reverseFoldFnName )
+            }
         , onConversionFnCallCanBeCombinedCheck
             { combinedOperationRepresents = "fold a set"
             , convertFn = Fn.Set.toList

@@ -54,6 +54,30 @@ all =
                                 []
                         )
             )
+        , Test.fuzz
+            (Fuzz.list Fuzz.string)
+            "List.reverse >> List.foldl is the same as List.foldr"
+            (\list ->
+                list
+                    |> List.reverse
+                    |> List.foldl (::) []
+                    |> Expect.equalLists
+                        (list
+                            |> List.foldr (::) []
+                        )
+            )
+        , Test.fuzz
+            (Fuzz.list Fuzz.string)
+            "List.reverse >> List.foldr is the same as List.foldl"
+            (\list ->
+                list
+                    |> List.reverse
+                    |> List.foldr (::) []
+                    |> Expect.equalLists
+                        (list
+                            |> List.foldl (::) []
+                        )
+            )
         ]
 
 

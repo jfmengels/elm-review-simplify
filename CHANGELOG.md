@@ -59,6 +59,7 @@ The rule now simplifies:
 - `Set.intersect (Set.intersect set0 set1) set0` to `Set.intersect set0 set1` (any equal inner values across the two arguments, or composition)
 - `Dict.union (Dict.union dict0 dict1) dict0` to `Dict.union dict0 dict1` (any equal inner values across the two arguments, or composition)
 - `Dict.intersect (Dict.intersect dict0 dict1) dict0` to `Dict.intersect dict0 dict1` (any equal inner values across the two arguments, or composition)
+- `List.foldl f x (List.reverse list)` to `List.foldr f x list` (same for `foldr`)
 - `List.foldl f x (Array.toList array)` to `Array.foldl f x array` (same for `foldr`)
 - `Array.foldl f x (Array.fromList list)` to `List.foldl f x array` (same for `foldr`)
 - `List.member x (Set.toList set)` to `Set.member x set` when [`expectNaN`] is not enabled

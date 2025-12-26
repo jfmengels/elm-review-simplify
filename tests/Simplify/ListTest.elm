@@ -4405,6 +4405,38 @@ a = Dict.keys >> List.foldl (\\a s -> f a s) init
 a = Dict.foldl (\\a _ s -> f a s) init
 """
                         ]
+        , test "should replace List.foldl f x << List.reverse by List.foldr f x" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl f x << List.reverse
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a list, you don't need to reverse it"
+                            , details = [ "Using List.foldr directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.foldr f x
+"""
+                        ]
+        , test "should replace List.foldl f x (List.reverse list) by List.foldr f x list" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl f x (List.reverse list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a list, you don't need to reverse it"
+                            , details = [ "Using List.foldr directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.foldr f x list
+"""
+                        ]
         , listFoldlSumTests
         , listFoldlProductTests
         , listFoldlAllTests
@@ -5616,6 +5648,38 @@ a = Dict.keys >> List.foldr (\\a s -> f a s) init
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Dict.foldr (\\a _ s -> f a s) init
+"""
+                        ]
+        , test "should replace List.foldr f x (List.reverse list) by List.foldl f x list" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr f x (List.reverse list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a list, you don't need to reverse it"
+                            , details = [ "Using List.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.foldl f x list
+"""
+                        ]
+        , test "should replace List.foldr f x << List.reverse by List.foldl f x" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr f x << List.reverse
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold a list, you don't need to reverse it"
+                            , details = [ "Using List.foldl directly is meant for this exact purpose and will also be faster." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.foldl f x
 """
                         ]
         , listFoldrSumTests
