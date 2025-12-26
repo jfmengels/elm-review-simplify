@@ -1,7 +1,7 @@
 module Simplify.AstHelpers exposing
     ( ReduceLambdaResources
     , removeParens, removeParensFromPattern
-    , getValueOrFnOrFnCall
+    , getValueOrFnOrFnCall, getUnreducedValueOrFnOrFnCall
     , getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
@@ -31,7 +31,7 @@ module Simplify.AstHelpers exposing
 
 ### value/function/function call/composition
 
-@docs getValueOrFnOrFnCall
+@docs getValueOrFnOrFnCall, getUnreducedValueOrFnOrFnCall
 @docs getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
 
 
@@ -198,14 +198,14 @@ getSpecificUnreducedFnCall :
             }
 getSpecificUnreducedFnCall reference lookupTable expressionNode =
     Maybe.andThen (\valOrFn -> valueOrFunctionCallToSpecificFnCall reference lookupTable valOrFn)
-        (getCollapsedUnreducedValueOrFunctionCall expressionNode)
+        (getUnreducedValueOrFnOrFnCall expressionNode)
 
 
 {-| Like `getSpecificUnreducedFnCall` without returning any info
 -}
 isSpecificUnreducedFnCall : ( ModuleName, String ) -> ModuleNameLookupTable -> Node Expression -> Bool
 isSpecificUnreducedFnCall ( specificModuleOrigin, specificName ) lookupTable expressionNode =
-    case getCollapsedUnreducedValueOrFunctionCall expressionNode of
+    case getUnreducedValueOrFnOrFnCall expressionNode of
         Nothing ->
             False
 
@@ -280,13 +280,13 @@ getValueOrFnOrFnCall :
             , args : List (Node Expression)
             , callStyle : FunctionCallStyle
             }
-getValueOrFnOrFnCall lookupTable expressionNode =
-    case getCollapsedUnreducedValueOrFunctionCall expressionNode of
+getValueOrFnOrFnCall resources expressionNode =
+    case getUnreducedValueOrFnOrFnCall expressionNode of
         (Just _) as justValueOrCall ->
             justValueOrCall
 
         Nothing ->
-            case getReducedLambda lookupTable expressionNode of
+            case getReducedLambda resources expressionNode of
                 Just reducedLambda ->
                     case reducedLambda.lambdaPatterns of
                         [] ->
@@ -382,7 +382,10 @@ isSpecificValueReference lookupTable ( moduleOriginToCheckFor, nameToCheckFor ) 
             False
 
 
-getCollapsedUnreducedValueOrFunctionCall :
+{-| Like `getValueOrFnOrFnCall` but skipping the check for a reduced lambda.
+Use when parsing a fully applied value/function
+-}
+getUnreducedValueOrFnOrFnCall :
     Node Expression
     ->
         Maybe
@@ -392,7 +395,7 @@ getCollapsedUnreducedValueOrFunctionCall :
             , args : List (Node Expression)
             , callStyle : FunctionCallStyle
             }
-getCollapsedUnreducedValueOrFunctionCall baseNode =
+getUnreducedValueOrFnOrFnCall baseNode =
     case removeParens baseNode of
         Node fnRange (Expression.FunctionOrValue _ fnName) ->
             Just
@@ -413,7 +416,7 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
                     , callStyle = CallStyle.Application
                     }
                 )
-                (getCollapsedUnreducedValueOrFunctionCall fedNode)
+                (getUnreducedValueOrFnOrFnCall fedNode)
 
         Node _ (Expression.OperatorApplication "|>" _ firstArg fedNode) ->
             Maybe.map
@@ -425,7 +428,7 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
                     , callStyle = CallStyle.pipeLeftToRight
                     }
                 )
-                (getCollapsedUnreducedValueOrFunctionCall fedNode)
+                (getUnreducedValueOrFnOrFnCall fedNode)
 
         Node _ (Expression.OperatorApplication "<|" _ fedNode firstArg) ->
             Maybe.map
@@ -437,7 +440,7 @@ getCollapsedUnreducedValueOrFunctionCall baseNode =
                     , callStyle = CallStyle.pipeRightToLeft
                     }
                 )
-                (getCollapsedUnreducedValueOrFunctionCall fedNode)
+                (getUnreducedValueOrFnOrFnCall fedNode)
 
         _ ->
             Nothing
