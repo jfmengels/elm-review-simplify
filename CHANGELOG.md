@@ -81,6 +81,8 @@ The rule now simplifies:
 - `Task.perform identity (Task.map f task)` to `Task.perform f task`
 - `Cmd.map f (Task.perform identity task)` to `Task.perform f task`
 - `Cmd.map f (Task.attempt identity task)` to `Task.attempt f task`
+- `List.foldr (++) ""` to `String.concat`
+- `List.foldr (++) []` to `List.concat`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",
