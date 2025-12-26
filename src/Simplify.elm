@@ -7263,7 +7263,7 @@ listFoldrChecks =
                                 && isStringAppendFunction checkInfo checkInfo.firstArg
                         then
                             Just
-                                (callWithSpecificArgsIsTheSameAsFnError
+                                (operationWithSpecificArgsIsEquivalentToFnError
                                     { specificArgsDescription = "(++) \"\""
                                     , replacementFn = Fn.String.concat
                                     }
@@ -7275,7 +7275,7 @@ listFoldrChecks =
                                 && isListAppendFunction checkInfo checkInfo.firstArg
                         then
                             Just
-                                (callWithSpecificArgsIsTheSameAsFnError
+                                (operationWithSpecificArgsIsEquivalentToFnError
                                     { specificArgsDescription = "(++) []"
                                     , replacementFn = Fn.List.concat
                                     }
@@ -7285,34 +7285,6 @@ listFoldrChecks =
                         else
                             Nothing
             )
-        ]
-
-
-{-| Subtly different from `alwaysResultsInUnparenthesizedConstantError`,
-whose error says "results in"
-whereas this error says "is the same as", making it more correct for simplifying to a different operation
--}
-callWithSpecificArgsIsTheSameAsFnError :
-    { specificArgsDescription : String, replacementFn : ( ModuleName, String ) }
-    -> CallCheckInfo
-    -> Error {}
-callWithSpecificArgsIsTheSameAsFnError config checkInfo =
-    Rule.errorWithFix
-        { message =
-            qualifiedToString checkInfo.fn
-                ++ " "
-                ++ config.specificArgsDescription
-                ++ " is the same as "
-                ++ qualifiedToString config.replacementFn
-        , details =
-            [ "You can replace this call by "
-                ++ qualifiedToString config.replacementFn
-                ++ " which is meant for this exact purpose."
-            ]
-        }
-        checkInfo.fnRange
-        [ Fix.replaceRangeBy checkInfo.parentRange
-            (qualifiedToString (qualify config.replacementFn checkInfo))
         ]
 
 
@@ -11827,6 +11799,64 @@ operationWithFirstArgIsEquivalentToFnError config checkInfo =
             (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
             (qualifiedToString (qualify config.replacementFn checkInfo))
         ]
+
+
+operationWithSpecificArgsIsEquivalentToFnError :
+    { specificArgsDescription : String, replacementFn : ( ModuleName, String ) }
+    -> CallCheckInfo
+    -> Error {}
+operationWithSpecificArgsIsEquivalentToFnError config checkInfo =
+    Rule.errorWithFix
+        { message =
+            qualifiedToString checkInfo.fn
+                ++ " "
+                ++ config.specificArgsDescription
+                ++ " is the same as "
+                ++ qualifiedToString config.replacementFn
+        , details =
+            [ "You can replace this call by "
+                ++ qualifiedToString config.replacementFn
+                ++ " which is meant for this exact purpose."
+            ]
+        }
+        checkInfo.fnRange
+        (case fullyAppliedLastArg checkInfo of
+            Just lastArg ->
+                fixToCall
+                    { fn = config.replacementFn
+                    , style = checkInfo.callStyle
+                    , argRange = checkInfo.parentRange
+                    }
+                    checkInfo
+                    :: replaceBySubExpressionFix checkInfo.parentRange
+                        lastArg
+
+            Nothing ->
+                [ Fix.replaceRangeBy checkInfo.parentRange
+                    (qualifiedToString (qualify config.replacementFn checkInfo))
+                ]
+        )
+
+
+fixToCall :
+    { fn : ( ModuleName, String ), style : FunctionCallStyle, argRange : Range }
+    -> QualifyResources a
+    -> Fix
+fixToCall config resources =
+    let
+        fnAsString : String
+        fnAsString =
+            qualifiedToString (qualify config.fn resources)
+    in
+    case config.style of
+        CallStyle.Application ->
+            Fix.insertAt config.argRange.start (fnAsString ++ " ")
+
+        CallStyle.Pipe CallStyle.RightToLeft ->
+            Fix.insertAt config.argRange.start (fnAsString ++ " <| ")
+
+        CallStyle.Pipe CallStyle.LeftToRight ->
+            Fix.insertAt config.argRange.end (" |> " ++ fnAsString)
 
 
 {-| Map where the usual map function has an extra argument with special information.

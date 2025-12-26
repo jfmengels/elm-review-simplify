@@ -5682,6 +5682,54 @@ a = List.foldr f x << List.reverse
 a = List.foldl f x
 """
                         ]
+        , test "should replace List.foldr (++) \"\" list by String.concat list" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (++) "" list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (++) \"\" is the same as String.concat"
+                            , details = [ "You can replace this call by String.concat which is meant for this exact purpose." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.concat list
+"""
+                        ]
+        , test "should replace List.foldr (++) \"\" <| f <| a by String.concat <| f <| a" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (++) "" <| f <| a
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (++) \"\" is the same as String.concat"
+                            , details = [ "You can replace this call by String.concat which is meant for this exact purpose." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.concat <| (f <| a)
+"""
+                        ]
+        , test "should replace a |> f |> List.foldr (++) \"\" by a |> f |> String.concat" <|
+            \() ->
+                """module A exposing (..)
+a = a |> f |> List.foldr (++) ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (++) \"\" is the same as String.concat"
+                            , details = [ "You can replace this call by String.concat which is meant for this exact purpose." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (a |> f) |> String.concat
+"""
+                        ]
         , test "should replace List.foldr (++) \"\" by String.concat" <|
             \() ->
                 """module A exposing (..)
