@@ -17041,14 +17041,7 @@ appliedLambdaError checkInfo =
                         ]
                     }
                     patternRange
-                    (case otherPatterns of
-                        [] ->
-                            replaceBySubExpressionFix checkInfo.nodeRange checkInfo.lambda.expression
-
-                        secondPattern :: _ ->
-                            Fix.removeRange { start = patternRange.start, end = (Node.range secondPattern).start }
-                                :: keepOnlyAndParenthesizeFix { parentRange = checkInfo.nodeRange, keep = checkInfo.lambdaRange }
-                    )
+                    (appliedLambdaErrorFix patternRange otherPatterns checkInfo)
                 )
 
         (Node patternRange Pattern.AllPattern) :: otherPatterns ->
@@ -17061,18 +17054,26 @@ appliedLambdaError checkInfo =
                         ]
                     }
                     patternRange
-                    (case otherPatterns of
-                        [] ->
-                            replaceBySubExpressionFix checkInfo.nodeRange checkInfo.lambda.expression
-
-                        secondPattern :: _ ->
-                            Fix.removeRange { start = patternRange.start, end = (Node.range secondPattern).start }
-                                :: keepOnlyAndParenthesizeFix { parentRange = checkInfo.nodeRange, keep = checkInfo.lambdaRange }
-                    )
+                    (appliedLambdaErrorFix patternRange otherPatterns checkInfo)
                 )
 
         _ ->
             Nothing
+
+
+appliedLambdaErrorFix :
+    Range
+    -> List (Node Pattern)
+    -> { nodeRange : Range, lambdaRange : Range, lambda : Expression.Lambda, args : List (Node Expression) }
+    -> List Fix
+appliedLambdaErrorFix patternRange otherPatterns checkInfo =
+    case otherPatterns of
+        [] ->
+            replaceBySubExpressionFix checkInfo.nodeRange checkInfo.lambda.expression
+
+        secondPattern :: _ ->
+            Fix.removeRange { start = patternRange.start, end = (Node.range secondPattern).start }
+                :: keepOnlyAndParenthesizeFix { parentRange = checkInfo.nodeRange, keep = checkInfo.lambdaRange }
 
 
 
