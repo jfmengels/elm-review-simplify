@@ -315,7 +315,7 @@ isSpecificValueOrFn :
     -> Node Expression
     -> Bool
 isSpecificValueOrFn ( specificModuleOrigin, specificName ) context expressionNode =
-    case getValueOrFunction context expressionNode of
+    case getValueOrFn context expressionNode of
         Just valueOrFn ->
             (valueOrFn.name == specificName)
                 && (case ModuleNameLookupTable.moduleNameAt context.lookupTable valueOrFn.range of
@@ -332,11 +332,11 @@ isSpecificValueOrFn ( specificModuleOrigin, specificName ) context expressionNod
 
 {-| Parse either a value reference, a function reference without arguments or a lambda that is reducible to a function without arguments
 -}
-getValueOrFunction :
+getValueOrFn :
     ReduceLambdaResources context
     -> Node Expression
     -> Maybe { name : String, range : Range }
-getValueOrFunction lookupTable expressionNode =
+getValueOrFn lookupTable expressionNode =
     case removeParens expressionNode of
         Node rangeInParens (Expression.FunctionOrValue _ foundName) ->
             Just { range = rangeInParens, name = foundName }
