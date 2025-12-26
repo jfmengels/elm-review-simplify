@@ -2,7 +2,7 @@ module Simplify.AstHelpers exposing
     ( ReduceLambdaResources
     , removeParens, removeParensFromPattern
     , getValueOrFnOrFnCall
-    , getSpecificFnCall, getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
+    , getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
     , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
     , isTupleFirstAccess, isTupleSecondAccess
     , getAccessingRecord, getRecordAccessFunction
@@ -32,7 +32,7 @@ module Simplify.AstHelpers exposing
 ### value/function/function call/composition
 
 @docs getValueOrFnOrFnCall
-@docs getSpecificFnCall, getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
+@docs getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
 
 
 ### certain kind
