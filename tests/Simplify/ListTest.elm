@@ -5770,6 +5770,13 @@ a = List.foldr (\\l r -> r |> String.append l) ""
 a = String.concat
 """
                         ]
+        , test "should not replace List.foldr (\\l r -> l |> String.append r) \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\l r -> l |> String.append r) ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should replace List.foldr (++) [] by List.concat" <|
             \() ->
                 """module A exposing (..)
@@ -8684,6 +8691,29 @@ a = List.repeat n >> List.sortWith f
 a = List.repeat n
 """
                         ]
+        , test "should replace (\\v -> List.repeat n v) >> List.sortWith f by (\\v -> List.repeat n v)" <|
+            \() ->
+                """module A exposing (..)
+a = (\\v -> List.repeat n v) >> List.sortWith f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortWith on a List.repeat call"
+                            , details = [ "You can replace this composition by the given List.repeat call." ]
+                            , under = "List.sortWith"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (\\v -> List.repeat n v)
+"""
+                        ]
+        , test "should not replace (\\n -> List.repeat n n) >> List.sortWith f" <|
+            \() ->
+                """module A exposing (..)
+a = (\\n -> List.repeat n n) >> List.sortWith f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
