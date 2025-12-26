@@ -792,6 +792,12 @@ Destructuring using case expressions
     List.maximum [ a ]
     --> Just a
 
+    List.foldr (++) ""
+    --> String.concat
+
+    List.foldr (++) []
+    --> List.concat
+
     -- The following simplifications for List.foldl also work for List.foldr
     List.foldl f x []
     --> x
@@ -7243,7 +7249,85 @@ listFoldlChecks =
 
 listFoldrChecks : IntoFnCheck
 listFoldrChecks =
-    listFoldChecks "foldr" "foldl"
+    intoFnChecksFirstThatConstructsError
+        [ listFoldChecks "foldr" "foldl"
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case secondArg checkInfo of
+                    Nothing ->
+                        Nothing
+
+                    Just initialArg ->
+                        if
+                            isEmptyString initialArg
+                                && isStringAppendFunction checkInfo checkInfo.firstArg
+                        then
+                            Just
+                                (callWithSpecificArgsIsTheSameAsFnError
+                                    { specificArgsDescription = "(++) \"\""
+                                    , replacementFn = Fn.String.concat
+                                    }
+                                    checkInfo
+                                )
+
+                        else if
+                            isEmptyList initialArg
+                                && isListAppendFunction checkInfo checkInfo.firstArg
+                        then
+                            Just
+                                (callWithSpecificArgsIsTheSameAsFnError
+                                    { specificArgsDescription = "(++) []"
+                                    , replacementFn = Fn.List.concat
+                                    }
+                                    checkInfo
+                                )
+
+                        else
+                            Nothing
+            )
+        ]
+
+
+callWithSpecificArgsIsTheSameAsFnError :
+    { specificArgsDescription : String, replacementFn : ( ModuleName, String ) }
+    -> CallCheckInfo
+    -> Error {}
+callWithSpecificArgsIsTheSameAsFnError config checkInfo =
+    Rule.errorWithFix
+        { message =
+            qualifiedToString checkInfo.fn
+                ++ " "
+                ++ config.specificArgsDescription
+                ++ " is the same as "
+                ++ qualifiedToString config.replacementFn
+        , details =
+            [ "You can replace this call by "
+                ++ qualifiedToString config.replacementFn
+                ++ " which is meant for this exact purpose."
+            ]
+        }
+        checkInfo.fnRange
+        [ Fix.replaceRangeBy checkInfo.parentRange
+            (qualifiedToString (qualify config.replacementFn checkInfo))
+        ]
+
+
+isStringAppendFunction :
+    Infer.Resources (AstHelpers.ReduceLambdaResources a)
+    -> Node Expression
+    -> Bool
+isStringAppendFunction resources expressionNode =
+    AstHelpers.isSpecificUnappliedBinaryOperation "++" resources expressionNode
+        || AstHelpers.isSpecificValueOrFn Fn.String.append resources expressionNode
+
+
+isListAppendFunction :
+    Infer.Resources (AstHelpers.ReduceLambdaResources a)
+    -> Node Expression
+    -> Bool
+isListAppendFunction resources expressionNode =
+    AstHelpers.isSpecificUnappliedBinaryOperation "++" resources expressionNode
+        || AstHelpers.isSpecificValueOrFn Fn.List.append resources expressionNode
 
 
 listFoldChecks : String -> String -> IntoFnCheck
@@ -9922,16 +10006,22 @@ listCollection =
 listEmptyConstantSpecific : ConstantProperties
 listEmptyConstantSpecific =
     { description = "[]"
-    , is =
-        \_ expressionNode ->
-            case AstHelpers.removeParens expressionNode of
-                Node _ (Expression.ListExpr []) ->
-                    True
-
-                _ ->
-                    False
+    , is = \_ expressionNode -> isEmptyList expressionNode
     , asString = \_ -> "[]"
     }
+
+
+isEmptyList : Node Expression -> Bool
+isEmptyList (Node _ expression) =
+    case expression of
+        Expression.ParenthesizedExpression inParens ->
+            isEmptyList inParens
+
+        Expression.ListExpr [] ->
+            True
+
+        _ ->
+            False
 
 
 listSingletonConstruct : ConstructWithOneValueProperties
@@ -10077,15 +10167,21 @@ stringEmptyConstantSpecific : ConstantProperties
 stringEmptyConstantSpecific =
     { description = emptyStringAsString
     , asString = \_ -> emptyStringAsString
-    , is =
-        \_ (Node _ expr) ->
-            case expr of
-                Expression.Literal "" ->
-                    True
-
-                _ ->
-                    False
+    , is = \_ expressionNode -> isEmptyString expressionNode
     }
+
+
+isEmptyString : Node Expression -> Bool
+isEmptyString (Node _ expression) =
+    case expression of
+        Expression.ParenthesizedExpression inParens ->
+            isEmptyString inParens
+
+        Expression.Literal "" ->
+            True
+
+        _ ->
+            False
 
 
 singleCharConstruct : ConstructWithOneValueProperties

@@ -5682,6 +5682,182 @@ a = List.foldr f x << List.reverse
 a = List.foldl f x
 """
                         ]
+        , test "should replace List.foldr (++) \"\" by String.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (++) ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (++) \"\" is the same as String.concat"
+                            , details = [ "You can replace this call by String.concat which is meant for this exact purpose." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.concat
+"""
+                        ]
+        , test "should replace List.foldr (\\l r -> l ++ r) \"\" by String.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\l r -> l ++ r) ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (++) \"\" is the same as String.concat"
+                            , details = [ "You can replace this call by String.concat which is meant for this exact purpose." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.concat
+"""
+                        ]
+        , test "should replace List.foldr (\\l r -> (++) l r) \"\" by String.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\l r -> (++) l r) ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (++) \"\" is the same as String.concat"
+                            , details = [ "You can replace this call by String.concat which is meant for this exact purpose." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.concat
+"""
+                        , Review.Test.error
+                            { message = "Use the infix form (a + b) over the prefix form ((+) a b)"
+                            , details = [ "The prefix form is generally more unfamiliar to Elm developers, and therefore it is nicer when the infix form is used." ]
+                            , under = "(++)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.foldr (\\l r -> l ++ r) ""
+"""
+                        ]
+        , test "should replace List.foldr String.append \"\" by String.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr String.append ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (++) \"\" is the same as String.concat"
+                            , details = [ "You can replace this call by String.concat which is meant for this exact purpose." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.concat
+"""
+                        ]
+        , test "should replace List.foldr (\\l r -> r |> String.append l) \"\" by String.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\l r -> r |> String.append l) ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (++) \"\" is the same as String.concat"
+                            , details = [ "You can replace this call by String.concat which is meant for this exact purpose." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.concat
+"""
+                        ]
+        , test "should replace List.foldr (++) [] by List.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (++) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (++) [] is the same as List.concat"
+                            , details = [ "You can replace this call by List.concat which is meant for this exact purpose." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concat
+"""
+                        ]
+        , test "should replace List.foldr (\\l r -> l ++ r) [] by List.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\l r -> l ++ r) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (++) [] is the same as List.concat"
+                            , details = [ "You can replace this call by List.concat which is meant for this exact purpose." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concat
+"""
+                        ]
+        , test "should replace List.foldr (\\l r -> (++) l r) [] by List.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\l r -> (++) l r) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (++) [] is the same as List.concat"
+                            , details = [ "You can replace this call by List.concat which is meant for this exact purpose." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concat
+"""
+                        , Review.Test.error
+                            { message = "Use the infix form (a + b) over the prefix form ((+) a b)"
+                            , details = [ "The prefix form is generally more unfamiliar to Elm developers, and therefore it is nicer when the infix form is used." ]
+                            , under = "(++)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.foldr (\\l r -> l ++ r) []
+"""
+                        ]
+        , test "should replace List.foldr List.append [] by List.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr List.append []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (++) [] is the same as List.concat"
+                            , details = [ "You can replace this call by List.concat which is meant for this exact purpose." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concat
+"""
+                        ]
+        , test "should replace List.foldr (\\l r -> r |> List.append l) [] by List.concat" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\l r -> r |> List.append l) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (++) [] is the same as List.concat"
+                            , details = [ "You can replace this call by List.concat which is meant for this exact purpose." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.concat
+"""
+                        ]
         , listFoldrSumTests
         , listFoldrProductTests
         , listFoldrAllTests
