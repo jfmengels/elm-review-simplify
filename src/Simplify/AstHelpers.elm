@@ -627,13 +627,19 @@ getReducedLambda context expressionNode =
     -- maybe a version of this is better located in Normalize?
     case getCollapsedLambda expressionNode of
         Just lambda ->
-            case getCollapsedUnreducedValueOrFunctionCall lambda.expression of
+            case getUnreducedValueOrFnOrFnCall lambda.expression of
                 Just call ->
                     let
                         ( reducedCallArguments, reducedLambdaPatterns ) =
                             drop2EndingsWhile
                                 (\argument pattern ->
-                                    expressionReconstructsDestructuringPattern context argument pattern
+                                    not
+                                        (expressionContainsAnyVariableInIgnoring
+                                            (patternBindings (Node.value pattern))
+                                            argument
+                                            lambda.expression
+                                        )
+                                        && expressionReconstructsDestructuringPattern context argument pattern
                                 )
                                 call.args
                                 lambda.patterns
@@ -652,6 +658,143 @@ getReducedLambda context expressionNode =
 
         _ ->
             Nothing
+
+
+expressionContainsAnyVariableInIgnoring : Set String -> Node Expression -> Node Expression -> Bool
+expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore (Node expressionToCheckRange expressionToCheck) =
+    (Node.range subToIgnore /= expressionToCheckRange)
+        && (case expressionToCheck of
+                Expression.FunctionOrValue qualification name ->
+                    case qualification of
+                        _ :: _ ->
+                            False
+
+                        [] ->
+                            Set.member name bindingsToCheckFor
+
+                Expression.UnitExpr ->
+                    False
+
+                Expression.Floatable _ ->
+                    False
+
+                Expression.PrefixOperator _ ->
+                    False
+
+                -- invalid syntax
+                Expression.Operator _ ->
+                    False
+
+                Expression.Integer _ ->
+                    False
+
+                Expression.Hex _ ->
+                    False
+
+                Expression.Literal _ ->
+                    False
+
+                Expression.CharLiteral _ ->
+                    False
+
+                Expression.RecordAccessFunction _ ->
+                    False
+
+                Expression.Negation inNegation ->
+                    expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore inNegation
+
+                Expression.ParenthesizedExpression inParens ->
+                    expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore inParens
+
+                Expression.LambdaExpression lambda ->
+                    expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore lambda.expression
+
+                Expression.RecordAccess record _ ->
+                    expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore record
+
+                Expression.OperatorApplication _ _ left right ->
+                    -- || TCO-ed
+                    if expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore left then
+                        True
+
+                    else
+                        expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore right
+
+                Expression.IfBlock condition onTrue onFalse ->
+                    -- || TCO-ed
+                    if
+                        expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore condition
+                            || expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore onTrue
+                    then
+                        True
+
+                    else
+                        expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore onFalse
+
+                Expression.Application parts ->
+                    List.any (\part -> expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore part) parts
+
+                Expression.TupledExpression parts ->
+                    List.any (\part -> expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore part) parts
+
+                Expression.ListExpr elements ->
+                    List.any (\element -> expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore element) elements
+
+                Expression.LetExpression letIn ->
+                    -- || TCO-ed
+                    if List.any (\letDeclaration -> letDeclarationContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore letDeclaration) letIn.declarations then
+                        True
+
+                    else
+                        expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore letIn.expression
+
+                Expression.CaseExpression caseOf ->
+                    -- || TCO-ed
+                    if expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore caseOf.expression then
+                        True
+
+                    else
+                        List.any
+                            (\( _, fieldValue ) ->
+                                expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore fieldValue
+                            )
+                            caseOf.cases
+
+                Expression.RecordExpr fields ->
+                    List.any
+                        (\(Node _ ( _, fieldValue )) ->
+                            expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore fieldValue
+                        )
+                        fields
+
+                Expression.RecordUpdateExpression (Node _ record) fields ->
+                    -- || TCO-ed
+                    if Set.member record bindingsToCheckFor then
+                        True
+
+                    else
+                        List.any
+                            (\(Node _ ( _, fieldValue )) ->
+                                expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore fieldValue
+                            )
+                            fields
+
+                Expression.GLSLExpression _ ->
+                    -- no clue
+                    True
+           )
+
+
+letDeclarationContainsAnyVariableInIgnoring : Set String -> Node Expression -> Node Expression.LetDeclaration -> Bool
+letDeclarationContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore (Node _ letDeclaration) =
+    case letDeclaration of
+        Expression.LetDestructuring _ destructuredExpression ->
+            expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore destructuredExpression
+
+        Expression.LetFunction valueOrFunctionDeclaration ->
+            expressionContainsAnyVariableInIgnoring bindingsToCheckFor
+                subToIgnore
+                (Node.value valueOrFunctionDeclaration.declaration).expression
 
 
 {-| Check if the expression is the exact same value that was pattern-matched on.
