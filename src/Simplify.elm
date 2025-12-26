@@ -17776,9 +17776,6 @@ For example, `List.repeat 0` will always return [], whatever the argument will b
 If your function also always returns a constant but it does not have an irrelevant next argument,
 like `List.range 1 0`, use `resultsInConstantError`
 
-If the the simplification does not evaluate but siplify the operation,
-use `callWithSpecificArgsIsTheSameAsFnError` or a similar helper instead.
-
 -}
 alwaysResultsInConstantError :
     String
