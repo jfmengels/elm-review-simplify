@@ -92,6 +92,9 @@ Other improvements:
 - Now evaluates `<`, `<=`, `>=`, `>` for any two comparable operands to for example fix `"a" < "b"` to `True`
 - Now fixes `Tuple.first (Tuple.mapBoth changeFirst changeSecond tuple)` to `changeFirst (Tuple.first tuple)` instead of `Tuple.first (Tuple.mapFirst changeFirst tuple)` (same for second)
 
+Bug fixes:
+- some lambdas like `\a -> f a a` were incorrectly treated like they could be reduced to `f a`, leading to rare bugs when composing for example `(\n -> List.repeat n n) >> List.sort`
+
 ## [2.1.10] - 2025-11-21
 
 The rule now simplifies (thanks to [@miniBill]):
