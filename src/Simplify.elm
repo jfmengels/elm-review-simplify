@@ -7381,13 +7381,13 @@ listFoldChecks foldFnName =
         , onConversionFnCallCanBeCombinedCheck
             { combinedOperationRepresents = "fold a set"
             , convertFn = Fn.Set.toList
-            , convertedRepresentsIndefinite = "a list"
+            , actionRepresents = "convert to a list"
             , combinedFn = ( [ "Set" ], foldFnName )
             }
         , onConversionFnCallCanBeCombinedCheck
             { combinedOperationRepresents = "fold an array"
             , convertFn = Fn.Array.toList
-            , convertedRepresentsIndefinite = "a list"
+            , actionRepresents = "convert to a list"
             , combinedFn = ( [ "Array" ], foldFnName )
             }
         , listFoldOnDictEntryPartListChecks
@@ -7604,7 +7604,7 @@ getLambda expressionNode =
 onConversionFnCallCanBeCombinedCheck :
     { combinedOperationRepresents : String
     , convertFn : ( ModuleName, String )
-    , convertedRepresentsIndefinite : String
+    , actionRepresents : String
     , combinedFn : ( ModuleName, String )
     }
     -> IntoFnCheck
@@ -7620,8 +7620,8 @@ onConversionFnCallCanBeCombinedCheck config =
                                     { message =
                                         "To "
                                             ++ config.combinedOperationRepresents
-                                            ++ ", you don't need to convert to "
-                                            ++ config.convertedRepresentsIndefinite
+                                            ++ ", you don't need to "
+                                            ++ config.actionRepresents
                                     , details = [ "Using " ++ qualifiedToString config.combinedFn ++ " directly is meant for this exact purpose and will also be faster." ]
                                     }
                                     checkInfo.fnRange
@@ -7647,8 +7647,8 @@ onConversionFnCallCanBeCombinedCheck config =
                         { message =
                             "To "
                                 ++ config.combinedOperationRepresents
-                                ++ ", you don't need to convert to "
-                                ++ config.convertedRepresentsIndefinite
+                                ++ ", you don't need to "
+                                ++ config.actionRepresents
                         , details = [ "Using " ++ qualifiedToString config.combinedFn ++ " directly is meant for this exact purpose and will also be faster." ]
                         }
                     , fix =
@@ -8125,7 +8125,7 @@ arrayFoldChecks foldFnName =
         , onConversionFnCallCanBeCombinedCheck
             { combinedOperationRepresents = "fold a list"
             , convertFn = Fn.Array.fromList
-            , convertedRepresentsIndefinite = "an array"
+            , actionRepresents = "convert to an array"
             , combinedFn = ( [ "List" ], foldFnName )
             }
         ]
@@ -9132,13 +9132,13 @@ jsonEncodeListChecks =
         [ onConversionFnCallCanBeCombinedCheck
             { combinedOperationRepresents = "encode an array"
             , convertFn = Fn.Array.toList
-            , convertedRepresentsIndefinite = "a list"
+            , actionRepresents = "convert to a list"
             , combinedFn = Fn.Json.Encode.array
             }
         , onConversionFnCallCanBeCombinedCheck
             { combinedOperationRepresents = "encode a set"
             , convertFn = Fn.Set.toList
-            , convertedRepresentsIndefinite = "a list"
+            , actionRepresents = "convert to a list"
             , combinedFn = Fn.Json.Encode.set
             }
         , mapToOperationWithIdentityCanBeCombinedToOperationChecks listCollection
@@ -9151,7 +9151,7 @@ jsonEncodeArrayChecks =
         [ onConversionFnCallCanBeCombinedCheck
             { combinedOperationRepresents = "encode a list"
             , convertFn = Fn.Array.fromList
-            , convertedRepresentsIndefinite = "an array"
+            , actionRepresents = "convert to an array"
             , combinedFn = Fn.Json.Encode.list
             }
         , mapToOperationWithIdentityCanBeCombinedToOperationChecks arrayCollection
