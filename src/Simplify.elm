@@ -2991,11 +2991,11 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             Nothing ->
                                 Nothing
 
-                    Node _ (Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda))) ->
+                    Node lambdaWithParens (Expression.ParenthesizedExpression (Node _ (Expression.LambdaExpression lambda))) ->
                         appliedLambdaError
-                            { nodeRange = expressionRange
-                            , lambdaRange = lambdaRange
-                            , lambda = lambda
+                            { lambda = lambda
+                            , lambdaWithParens = lambdaWithParens
+                            , firstArgument = firstArg
                             }
 
                     Node operatorRange (Expression.PrefixOperator operator) ->
@@ -13984,7 +13984,7 @@ pipelineChecks checkInfo =
 fullyAppliedLambdaInPipelineChecks : { nodeRange : Range, firstArgument : Node Expression, function : Node Expression } -> Maybe (Error {})
 fullyAppliedLambdaInPipelineChecks checkInfo =
     case Node.value checkInfo.function of
-        Expression.ParenthesizedExpression (Node lambdaRange (Expression.LambdaExpression lambda)) ->
+        Expression.ParenthesizedExpression (Node _ (Expression.LambdaExpression lambda)) ->
             case Node.value (AstHelpers.removeParens checkInfo.firstArgument) of
                 Expression.OperatorApplication "|>" _ _ _ ->
                     Nothing
@@ -13994,9 +13994,9 @@ fullyAppliedLambdaInPipelineChecks checkInfo =
 
                 _ ->
                     appliedLambdaError
-                        { nodeRange = checkInfo.nodeRange
-                        , lambdaRange = lambdaRange
-                        , lambda = lambda
+                        { lambda = lambda
+                        , lambdaWithParens = Node.range checkInfo.function
+                        , firstArgument = checkInfo.firstArgument
                         }
 
         _ ->
@@ -17028,10 +17028,10 @@ fullyAppliedPrefixOperatorError checkInfo =
 -- APPLIED LAMBDA
 
 
-appliedLambdaError : { nodeRange : Range, lambdaRange : Range, lambda : Expression.Lambda } -> Maybe (Error {})
+appliedLambdaError : { lambdaWithParens : Range, lambda : Expression.Lambda, firstArgument : Node Expression } -> Maybe (Error {})
 appliedLambdaError checkInfo =
     case checkInfo.lambda.args of
-        (Node unitRange Pattern.UnitPattern) :: otherPatterns ->
+        (Node patternRange Pattern.UnitPattern) :: otherPatterns ->
             Just
                 (Rule.errorWithFix
                     { message = "Unnecessary unit argument"
@@ -17040,18 +17040,11 @@ appliedLambdaError checkInfo =
                         , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
                         ]
                     }
-                    unitRange
-                    (case otherPatterns of
-                        [] ->
-                            replaceBySubExpressionFix checkInfo.nodeRange checkInfo.lambda.expression
-
-                        secondPattern :: _ ->
-                            Fix.removeRange { start = unitRange.start, end = (Node.range secondPattern).start }
-                                :: keepOnlyAndParenthesizeFix { parentRange = checkInfo.nodeRange, keep = checkInfo.lambdaRange }
-                    )
+                    patternRange
+                    (appliedLambdaErrorFix patternRange otherPatterns checkInfo)
                 )
 
-        (Node allRange Pattern.AllPattern) :: otherPatterns ->
+        (Node patternRange Pattern.AllPattern) :: otherPatterns ->
             Just
                 (Rule.errorWithFix
                     { message = "Unnecessary wildcard argument argument"
@@ -17060,19 +17053,27 @@ appliedLambdaError checkInfo =
                         , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
                         ]
                     }
-                    allRange
-                    (case otherPatterns of
-                        [] ->
-                            replaceBySubExpressionFix checkInfo.nodeRange checkInfo.lambda.expression
-
-                        secondPattern :: _ ->
-                            Fix.removeRange { start = allRange.start, end = (Node.range secondPattern).start }
-                                :: keepOnlyAndParenthesizeFix { parentRange = checkInfo.nodeRange, keep = checkInfo.lambdaRange }
-                    )
+                    patternRange
+                    (appliedLambdaErrorFix patternRange otherPatterns checkInfo)
                 )
 
         _ ->
             Nothing
+
+
+appliedLambdaErrorFix :
+    Range
+    -> List (Node Pattern)
+    -> { lambdaWithParens : Range, lambda : Expression.Lambda, firstArgument : Node Expression }
+    -> List Fix
+appliedLambdaErrorFix patternRange otherPatterns checkInfo =
+    case otherPatterns of
+        [] ->
+            replaceBySubExpressionFix (Range.combine [ checkInfo.lambdaWithParens, Node.range checkInfo.firstArgument ]) checkInfo.lambda.expression
+
+        secondPattern :: _ ->
+            Fix.removeRange { start = patternRange.start, end = (Node.range secondPattern).start }
+                :: keepOnlyFix { parentRange = Range.combine [ checkInfo.lambdaWithParens, Node.range checkInfo.firstArgument ], keep = checkInfo.lambdaWithParens }
 
 
 

@@ -93,7 +93,8 @@ Other improvements:
 - Now fixes `Tuple.first (Tuple.mapBoth changeFirst changeSecond tuple)` to `changeFirst (Tuple.first tuple)` instead of `Tuple.first (Tuple.mapFirst changeFirst tuple)` (same for second)
 
 Bug fixes:
-- some lambdas like `\a -> f a a` were incorrectly treated like they could be reduced to `f a`, leading to rare bugs when composing for example `(\n -> List.repeat n n) >> List.sort`
+- Simplifying directly applied lambdas doesn't remove extra arguments. `(\_ a -> ...) b c` is now simplified to `(\a -> ...) c` instead of `(\a -> ...)`. 
+- Some lambdas like `\a -> f a a` were incorrectly treated like they could be reduced to `f a`, leading to rare bugs when composing for example `(\n -> List.repeat n n) >> List.sort`
 
 ## [2.1.10] - 2025-11-21
 
