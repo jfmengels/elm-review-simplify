@@ -111,6 +111,14 @@ all =
                             |> List.concat
                         )
             )
+        , Test.fuzz
+            Fuzz.int
+            "List.range n n is the same as [ n ]"
+            (\n ->
+                List.range n n
+                    |> Expect.equal
+                        [ n ]
+            )
         ]
 
 

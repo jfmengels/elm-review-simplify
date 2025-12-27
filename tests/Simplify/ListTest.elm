@@ -7125,6 +7125,22 @@ a = 5 |> List.range 10
 a = []
 """
                         ]
+        , test "should replace List.range n n by [ n ]" <|
+            \() ->
+                """module A exposing (..)
+a = List.range n n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.range with equal start and end will result in a singleton with that value"
+                            , details = [ "You can replace this call by its start or equivalent end argument and wrap it in a new list." ]
+                            , under = "List.range"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = [ n ]
+"""
+                        ]
         ]
 
 

@@ -83,6 +83,7 @@ The rule now simplifies:
 - `Cmd.map f (Task.attempt identity task)` to `Task.attempt f task`
 - `List.foldr (++) "" list` to `String.concat list`
 - `List.foldr (++) [] list` to `List.concat list`
+- `List.range n n` to `[ n ]`
 
 Other improvements:
 - Now recognizes more lambdas as "equivalent to identity",

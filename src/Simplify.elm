@@ -884,6 +884,9 @@ Destructuring using case expressions
     List.range 6 3
     --> []
 
+    List.range n n
+    --> [ n ]
+
     List.length [ a, b, c ]
     --> 3
 
@@ -11703,26 +11706,47 @@ emptiableRangeChecks : EmptiableProperties ConstantProperties otherProperties ->
 emptiableRangeChecks emptiable checkInfo =
     case secondArg checkInfo of
         Just rangeEndArg ->
-            case Evaluate.getInt checkInfo checkInfo.firstArg of
-                Just rangeStartValue ->
-                    case Evaluate.getInt checkInfo rangeEndArg of
-                        Just rangeEndValue ->
-                            if rangeStartValue > rangeEndValue then
-                                Just
-                                    (resultsInConstantError
-                                        (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
-                                        emptiable.empty.specific.asString
-                                        checkInfo
-                                    )
+            case Normalize.compare checkInfo checkInfo.firstArg rangeEndArg of
+                Normalize.ConfirmedEquality ->
+                    Just
+                        (Rule.errorWithFix
+                            { message = qualifiedToString checkInfo.fn ++ " with equal start and end will result in a singleton with that value"
+                            , details = [ "You can replace this call by its start or equivalent end argument and wrap it in a new list." ]
+                            }
+                            checkInfo.fnRange
+                            (keepOnlyAndSurroundWithFix
+                                { parentRange = checkInfo.parentRange
+                                , keep =
+                                    -- choosing to replace the start argument is arbitrary.
+                                    -- we could instead also choose based on some heuristic
+                                    Node.range checkInfo.firstArg
+                                , left = "[ "
+                                , right = " ]"
+                                }
+                            )
+                        )
 
-                            else
-                                Nothing
+                _ ->
+                    case Evaluate.getInt checkInfo checkInfo.firstArg of
+                        Just rangeStartValue ->
+                            case Evaluate.getInt checkInfo rangeEndArg of
+                                Just rangeEndValue ->
+                                    if rangeStartValue > rangeEndValue then
+                                        Just
+                                            (resultsInConstantError
+                                                (qualifiedToString checkInfo.fn ++ " with a start index greater than the end index")
+                                                emptiable.empty.specific.asString
+                                                checkInfo
+                                            )
+
+                                    else
+                                        Nothing
+
+                                Nothing ->
+                                    Nothing
 
                         Nothing ->
                             Nothing
-
-                Nothing ->
-                    Nothing
 
         Nothing ->
             Nothing
@@ -17509,6 +17533,21 @@ keepOnlyFix config =
         { start = config.keep.end
         , end = config.parentRange.end
         }
+    ]
+
+
+keepOnlyAndSurroundWithFix : { parentRange : Range, keep : Range, left : String, right : String } -> List Fix
+keepOnlyAndSurroundWithFix config =
+    [ Fix.replaceRangeBy
+        { start = config.parentRange.start
+        , end = config.keep.start
+        }
+        config.left
+    , Fix.replaceRangeBy
+        { start = config.keep.end
+        , end = config.parentRange.end
+        }
+        config.right
     ]
 
 
