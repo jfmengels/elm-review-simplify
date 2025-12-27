@@ -3853,6 +3853,7 @@ listMinimumTests =
                 """module A exposing (..)
 a = List.minimum
 b = List.minimum list
+c = List.minimum (List.range start end)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -3944,6 +3945,54 @@ a = List.minimum << List.singleton
 a = Just
 """
                         ]
+        , test "should replace List.minimum (List.range 2 3) by Just 2" <|
+            \() ->
+                """module A exposing (..)
+a = List.minimum (List.range 2 3)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.minimum on a non-empty List.range results in Just its start number"
+                            , details = [ "You can replace this call by the first argument given to the List.range call, wrapped in Just." ]
+                            , under = "List.minimum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just 2
+"""
+                        ]
+        , test "should replace List.minimum <| List.range 2 3 by Just <| 2" <|
+            \() ->
+                """module A exposing (..)
+a = List.minimum <| List.range 2 3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.minimum on a non-empty List.range results in Just its start number"
+                            , details = [ "You can replace this call by the first argument given to the List.range call, wrapped in Just." ]
+                            , under = "List.minimum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just <| 2
+"""
+                        ]
+        , test "should replace List.range 2 3 |> List.minimum by 2 |> Just" <|
+            \() ->
+                """module A exposing (..)
+a = List.range 2 3 |> List.minimum
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.minimum on a non-empty List.range results in Just its start number"
+                            , details = [ "You can replace this call by the first argument given to the List.range call, wrapped in Just." ]
+                            , under = "List.minimum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 2 |> Just
+"""
+                        ]
         ]
 
 
@@ -3955,6 +4004,7 @@ listMaximumTests =
                 """module A exposing (..)
 a = List.maximum
 b = List.maximum list
+c = List.maximum (List.range start end)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -4012,6 +4062,54 @@ a = List.maximum << List.singleton
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Just
+"""
+                        ]
+        , test "should replace List.maximum (List.range 2 3) by Just 3" <|
+            \() ->
+                """module A exposing (..)
+a = List.maximum (List.range 2 3)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.maximum on a non-empty List.range results in Just its end number"
+                            , details = [ "You can replace this call by the second argument given to the List.range call, wrapped in Just." ]
+                            , under = "List.maximum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just 3
+"""
+                        ]
+        , test "should replace List.maximum <| List.range 2 3 by Just <| 3" <|
+            \() ->
+                """module A exposing (..)
+a = List.maximum <| List.range 2 3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.maximum on a non-empty List.range results in Just its end number"
+                            , details = [ "You can replace this call by the second argument given to the List.range call, wrapped in Just." ]
+                            , under = "List.maximum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Just <| 3
+"""
+                        ]
+        , test "should replace List.range 2 3 |> List.maximum by 3 |> Just" <|
+            \() ->
+                """module A exposing (..)
+a = List.range 2 3 |> List.maximum
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.maximum on a non-empty List.range results in Just its end number"
+                            , details = [ "You can replace this call by the second argument given to the List.range call, wrapped in Just." ]
+                            , under = "List.maximum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 3 |> Just
 """
                         ]
         ]

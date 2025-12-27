@@ -786,11 +786,17 @@ Destructuring using case expressions
     List.minimum [ a ]
     --> Just a
 
+    List.minimum (List.range 2 3)
+    --> Just 2
+
     List.maximum []
     --> Nothing
 
     List.maximum [ a ]
     --> Just a
+
+    List.maximum (List.range 2 3)
+    --> Just 3
 
     List.foldr (++) "" list
     --> String.concat list
@@ -7231,7 +7237,38 @@ listMinimumChecks : IntoFnCheck
 listMinimumChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall
-            (callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } listCollection)
+            (\checkInfo ->
+                callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } listCollection checkInfo
+                    |> onNothing
+                        (\() ->
+                            case getNonEmptyListRangeCall checkInfo checkInfo.firstArg of
+                                Nothing ->
+                                    Nothing
+
+                                Just listRangeCall ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                qualifiedToString checkInfo.fn
+                                                    ++ " on a non-empty "
+                                                    ++ qualifiedToString Fn.List.range
+                                                    ++ " results in Just its start number"
+                                            , details =
+                                                [ "You can replace this call by the first argument given to the "
+                                                    ++ qualifiedToString Fn.List.range
+                                                    ++ " call, wrapped in Just."
+                                                ]
+                                            }
+                                            checkInfo.fnRange
+                                            (Fix.replaceRangeBy checkInfo.fnRange
+                                                (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo))
+                                                :: replaceBySubExpressionFix
+                                                    (Node.range checkInfo.firstArg)
+                                                    listRangeCall.start
+                                            )
+                                        )
+                        )
+            )
         , onWrappedReturnsJustItsValueCheck listCollection
         ]
 
@@ -7240,9 +7277,72 @@ listMaximumChecks : IntoFnCheck
 listMaximumChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall
-            (callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } listCollection)
+            (\checkInfo ->
+                callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } listCollection checkInfo
+                    |> onNothing
+                        (\() ->
+                            case getNonEmptyListRangeCall checkInfo checkInfo.firstArg of
+                                Nothing ->
+                                    Nothing
+
+                                Just listRangeCall ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                qualifiedToString checkInfo.fn
+                                                    ++ " on a non-empty "
+                                                    ++ qualifiedToString Fn.List.range
+                                                    ++ " results in Just its end number"
+                                            , details =
+                                                [ "You can replace this call by the second argument given to the "
+                                                    ++ qualifiedToString Fn.List.range
+                                                    ++ " call, wrapped in Just."
+                                                ]
+                                            }
+                                            checkInfo.fnRange
+                                            (Fix.replaceRangeBy checkInfo.fnRange
+                                                (qualifiedToString (qualify Fn.Maybe.justVariant checkInfo))
+                                                :: replaceBySubExpressionFix
+                                                    (Node.range checkInfo.firstArg)
+                                                    listRangeCall.end
+                                            )
+                                        )
+                        )
+            )
         , onWrappedReturnsJustItsValueCheck listCollection
         ]
+
+
+getNonEmptyListRangeCall :
+    Infer.Resources a
+    -> Node Expression
+    -> Maybe { start : Node Expression, end : Node Expression }
+getNonEmptyListRangeCall checkInfo expressionNode =
+    case AstHelpers.getSpecificUnreducedFnCall Fn.List.range checkInfo.lookupTable expressionNode of
+        Nothing ->
+            Nothing
+
+        Just listRangeCall ->
+            case listRangeCall.argsAfterFirst of
+                [ rangeEndArg ] ->
+                    case Evaluate.getInt checkInfo listRangeCall.firstArg of
+                        Nothing ->
+                            Nothing
+
+                        Just rangeStartValue ->
+                            case Evaluate.getInt checkInfo rangeEndArg of
+                                Nothing ->
+                                    Nothing
+
+                                Just rangeEndValue ->
+                                    if rangeStartValue <= rangeEndValue then
+                                        Just { start = listRangeCall.firstArg, end = rangeEndArg }
+
+                                    else
+                                        Nothing
+
+                _ ->
+                    Nothing
 
 
 listFoldlChecks : IntoFnCheck

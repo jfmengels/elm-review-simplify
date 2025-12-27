@@ -119,6 +119,25 @@ all =
                     |> Expect.equal
                         [ n ]
             )
+        , Test.fuzz
+            (Fuzz.pair Fuzz.int (Fuzz.intRange 0 10))
+            "List.minimum (List.range x y); x <= y results in Just x"
+            (\( start, len ) ->
+                List.minimum (List.range start (start + len))
+                    |> Expect.equal (Just start)
+            )
+        , Test.fuzz
+            (Fuzz.pair Fuzz.int (Fuzz.intRange 0 10))
+            "List.maximum (List.range x y); x <= y results in Just y"
+            (\( start, len ) ->
+                let
+                    end : Int
+                    end =
+                        start + len
+                in
+                List.maximum (List.range start end)
+                    |> Expect.equal (Just end)
+            )
         ]
 
 
