@@ -7070,10 +7070,10 @@ listRangeTests =
         [ test "should not report List.range used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = List.range
-a = List.range 5
-a = List.range 5 10
-a = List.range 5 0xF
+a0 = List.range
+a1 = List.range 5
+a2 = List.range 5 10
+a3 = List.range 5 0xF
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
