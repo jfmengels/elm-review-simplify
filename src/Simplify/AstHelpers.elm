@@ -752,12 +752,8 @@ expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore (Node exp
                     expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore letIn.expression
 
             Expression.CaseExpression caseOf ->
-                -- || TCO-ed
-                if expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore caseOf.expression then
-                    True
-
-                else
-                    List.any
+                expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore caseOf.expression
+                    || List.any
                         (\( _, fieldValue ) ->
                             expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore fieldValue
                         )
@@ -771,12 +767,8 @@ expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore (Node exp
                     fields
 
             Expression.RecordUpdateExpression (Node _ record) fields ->
-                -- || TCO-ed
-                if Set.member record bindingsToCheckFor then
-                    True
-
-                else
-                    List.any
+                Set.member record bindingsToCheckFor
+                    || List.any
                         (\(Node _ ( _, fieldValue )) ->
                             expressionContainsAnyVariableInIgnoring bindingsToCheckFor subToIgnore fieldValue
                         )
