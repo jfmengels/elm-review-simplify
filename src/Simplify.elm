@@ -264,6 +264,9 @@ Destructuring using case expressions
     min n n
     --> n
 
+    min n -n
+    --> -(abs n)
+
     min (min n0 n1) n0
     --> min n0 n1
 
@@ -272,6 +275,9 @@ Destructuring using case expressions
 
     max n n
     --> n
+
+    max n -n
+    --> abs n
 
     max (max n0 n1) n0
     --> max n0 n1
@@ -5651,7 +5657,27 @@ basicsMinChecks =
                                     )
 
                             _ ->
-                                Nothing
+                                case Normalize.compare checkInfo checkInfo.firstArg (Node.empty (Expression.Negation rightArg)) of
+                                    Normalize.ConfirmedEquality ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = qualifiedToString checkInfo.fn ++ " with a first value that is equal to negative the second value results in the its negative absolute value"
+                                                , details = [ "You can replace this call by the negated Basics.abs on either its first or second argument." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (Fix.replaceRangeBy checkInfo.fnRange
+                                                    (qualifiedToString (qualify Fn.Basics.abs checkInfo))
+                                                    :: keepOnlyAndSurroundWithFix
+                                                        { parentRange = checkInfo.parentRange
+                                                        , keep = Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ]
+                                                        , left = "-("
+                                                        , right = ")"
+                                                        }
+                                                )
+                                            )
+
+                                    _ ->
+                                        Nothing
             )
         ]
 
@@ -5692,7 +5718,25 @@ basicsMaxChecks =
                                     )
 
                             _ ->
-                                Nothing
+                                case Normalize.compare checkInfo checkInfo.firstArg (Node.empty (Expression.Negation rightArg)) of
+                                    Normalize.ConfirmedEquality ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = qualifiedToString checkInfo.fn ++ " with a first value that is equal to negative the second value results in the its absolute value"
+                                                , details = [ "You can replace this call by Basics.abs on either its first or second argument." ]
+                                                }
+                                                checkInfo.fnRange
+                                                (Fix.replaceRangeBy checkInfo.fnRange
+                                                    (qualifiedToString (qualify Fn.Basics.abs checkInfo))
+                                                    :: keepOnlyAndParenthesizeFix
+                                                        { parentRange = checkInfo.parentRange
+                                                        , keep = Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ]
+                                                        }
+                                                )
+                                            )
+
+                                    _ ->
+                                        Nothing
             )
         ]
 

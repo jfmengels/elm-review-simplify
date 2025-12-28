@@ -1026,6 +1026,22 @@ a = min n n
 a = n
 """
                         ]
+        , test "should replace min n -n by -(abs n)" <|
+            \() ->
+                """module A exposing (..)
+a = min n -n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.min with a first value that is equal to negative the second value results in the its negative absolute value"
+                            , details = [ "You can replace this call by the negated Basics.abs on either its first or second argument." ]
+                            , under = "min"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = -(abs n)
+"""
+                        ]
         , test "should replace min (min n m) n by n" <|
             \() ->
                 """module A exposing (..)
@@ -1250,6 +1266,22 @@ a = max n n
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = n
+"""
+                        ]
+        , test "should replace max n -n by abs n" <|
+            \() ->
+                """module A exposing (..)
+a = max n -n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.max with a first value that is equal to negative the second value results in the its absolute value"
+                            , details = [ "You can replace this call by Basics.abs on either its first or second argument." ]
+                            , under = "max"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (abs n)
 """
                         ]
         , test "should replace max (max (max o p) n) (max m n) by max (max o p) (max m n)" <|
