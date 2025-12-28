@@ -5541,7 +5541,7 @@ basicsAbsChecks =
                             (Rule.errorWithFix
                                 { message = qualifiedToString checkInfo.fn ++ " on a number literal can be evaluated"
                                 , details =
-                                    [ "You replace this call by the resulting absolute value." ]
+                                    [ "You can replace this call by the resulting absolute value." ]
                                 }
                                 checkInfo.fnRange
                                 (if result == numberInput then
@@ -5957,7 +5957,7 @@ evaluateConversionToIntOnNumberCheck operation checkInfo =
                         (Rule.errorWithFix
                             { message = qualifiedToString checkInfo.fn ++ " on a number literal can be evaluated"
                             , details =
-                                [ "You replace this call by the resulting Int value."
+                                [ "You can replace this call by the resulting Int value."
                                 ]
                             }
                             checkInfo.fnRange

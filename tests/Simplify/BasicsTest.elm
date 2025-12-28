@@ -406,7 +406,7 @@ a = round 1.1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Basics.round on a number literal can be evaluated"
-                            , details = [ "You replace this call by the resulting Int value." ]
+                            , details = [ "You can replace this call by the resulting Int value." ]
                             , under = "round"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -525,7 +525,7 @@ a = ceiling 0.9
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Basics.ceiling on a number literal can be evaluated"
-                            , details = [ "You replace this call by the resulting Int value." ]
+                            , details = [ "You can replace this call by the resulting Int value." ]
                             , under = "ceiling"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -644,7 +644,7 @@ a = floor 1.1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Basics.floor on a number literal can be evaluated"
-                            , details = [ "You replace this call by the resulting Int value." ]
+                            , details = [ "You can replace this call by the resulting Int value." ]
                             , under = "floor"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -763,7 +763,7 @@ a = truncate 1.1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Basics.truncate on a number literal can be evaluated"
-                            , details = [ "You replace this call by the resulting Int value." ]
+                            , details = [ "You can replace this call by the resulting Int value." ]
                             , under = "truncate"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -825,7 +825,7 @@ a = abs 3
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Basics.abs on a number literal can be evaluated"
-                            , details = [ "You replace this call by the resulting absolute value." ]
+                            , details = [ "You can replace this call by the resulting absolute value." ]
                             , under = "abs"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -841,7 +841,7 @@ a = abs 3e6
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Basics.abs on a number literal can be evaluated"
-                            , details = [ "You replace this call by the resulting absolute value." ]
+                            , details = [ "You can replace this call by the resulting absolute value." ]
                             , under = "abs"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -857,7 +857,7 @@ a = abs 0x1
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Basics.abs on a number literal can be evaluated"
-                            , details = [ "You replace this call by the resulting absolute value." ]
+                            , details = [ "You can replace this call by the resulting absolute value." ]
                             , under = "abs"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
