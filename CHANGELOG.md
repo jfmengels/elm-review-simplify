@@ -46,9 +46,11 @@ The rule now simplifies:
 - `Basics.abs -n` to `Basics.abs n`
 - `Basics.abs 3` to `3`
 - `Basics.min n n` to `n`
+- `Basics.min n -n` to `-(Basics.abs n)`
 - `Basics.min (Basics.min n0 n1) n0` to `Basics.min n0 n1` (any equal inner values across the two arguments, or composition)
 - `Basics.min 3 4` to `3`
 - `Basics.max n n` to `n`
+- `Basics.max n -n` to `Basics.abs n`
 - `Basics.max (Basics.max n0 n1) n0` to `Basics.max n0 n1` (any equal inner values across the two arguments, or composition)
 - `Basics.max 3 4` to `4`
 - `Basics.compare n n` to `EQ` when [`expectNaN`] is not enabled

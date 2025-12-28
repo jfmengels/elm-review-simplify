@@ -27,6 +27,38 @@ all =
                     |> Expect.equal EQ
             )
         , Test.fuzz
+            Fuzz.float
+            "max n -n is the same as abs n"
+            (\n ->
+                max n -n
+                    |> compareFloatNaNIsEqual (abs n)
+                    |> Expect.equal EQ
+            )
+        , Test.fuzz
+            Fuzz.float
+            "max -n n is the same as abs -n"
+            (\n ->
+                max -n n
+                    |> compareFloatNaNIsEqual (abs -n)
+                    |> Expect.equal EQ
+            )
+        , Test.fuzz
+            Fuzz.float
+            "min n -n is the same as -(abs n)"
+            (\n ->
+                min n -n
+                    |> compareFloatNaNIsEqual -(abs n)
+                    |> Expect.equal EQ
+            )
+        , Test.fuzz
+            Fuzz.float
+            "min -n n is the same as -(abs -n)"
+            (\n ->
+                min -n n
+                    |> compareFloatNaNIsEqual -(abs -n)
+                    |> Expect.equal EQ
+            )
+        , Test.fuzz
             (Fuzz.map Dict.fromList
                 (Fuzz.list
                     (Fuzz.pair
