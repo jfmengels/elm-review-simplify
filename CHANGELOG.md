@@ -42,6 +42,9 @@ The rule now simplifies:
 - `List.take n (List.take n list)` to `List.take n list`
 - `String.left n (String.left n string)` to `String.left n string`
 - `String.right n (String.right n string)` to `String.right n string`
+- `Basics.abs (Basics.abs n)` to `Basics.abs n`
+- `Basics.abs -n` to `Basics.abs n`
+- `Basics.abs 3` to `3`
 - `Basics.min n n` to `n`
 - `Basics.min (Basics.min n0 n1) n0` to `Basics.min n0 n1` (any equal inner values across the two arguments, or composition)
 - `Basics.min 3 4` to `3`

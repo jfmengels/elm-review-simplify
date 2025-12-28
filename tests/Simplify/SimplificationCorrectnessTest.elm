@@ -11,6 +11,22 @@ all : Test
 all =
     Test.describe "simplification correctness"
         [ Test.fuzz
+            Fuzz.float
+            "abs after abs has no effect"
+            (\n ->
+                abs (abs n)
+                    |> compareFloatNaNIsEqual (abs n)
+                    |> Expect.equal EQ
+            )
+        , Test.fuzz
+            Fuzz.float
+            "negate before abs has no effect"
+            (\n ->
+                abs (negate n)
+                    |> compareFloatNaNIsEqual (abs n)
+                    |> Expect.equal EQ
+            )
+        , Test.fuzz
             (Fuzz.map Dict.fromList
                 (Fuzz.list
                     (Fuzz.pair

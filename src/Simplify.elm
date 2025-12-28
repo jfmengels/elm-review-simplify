@@ -252,6 +252,15 @@ Destructuring using case expressions
     round (toFloat n) -- same for ceiling, floor and truncate
     --> n
 
+    abs 3
+    --> 3
+
+    abs (abs n)
+    --> abs n
+
+    abs -n
+    --> abs n
+
     min n n
     --> n
 
@@ -3787,6 +3796,7 @@ intoFnChecks =
     , ( Fn.Basics.ceiling, ( 1, floatToIntConversionChecks Basics.ceiling ) )
     , ( Fn.Basics.floor, ( 1, floatToIntConversionChecks Basics.floor ) )
     , ( Fn.Basics.truncate, ( 1, floatToIntConversionChecks Basics.truncate ) )
+    , ( Fn.Basics.abs, ( 1, basicsAbsChecks ) )
     , ( Fn.Basics.min, ( 2, basicsMinChecks ) )
     , ( Fn.Basics.max, ( 2, basicsMaxChecks ) )
     , ( Fn.Basics.compare, ( 2, basicsCompareChecks ) )
@@ -5504,6 +5514,107 @@ floatToIntConversionChecks operation =
         ]
 
 
+basicsAbsChecks : IntoFnCheck
+basicsAbsChecks =
+    intoFnChecksFirstThatConstructsError
+        [ operationDoesNotChangeResultOfOperationCheck
+        , absOnNegatedChecks
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case AstHelpers.getUncomputedNumberValue checkInfo.firstArg of
+                    Nothing ->
+                        Nothing
+
+                    Just numberInput ->
+                        let
+                            result : Float
+                            result =
+                                Basics.abs numberInput
+                        in
+                        Just
+                            (Rule.errorWithFix
+                                { message = qualifiedToString checkInfo.fn ++ " on a number literal can be evaluated"
+                                , details =
+                                    [ "You can replace this call by the resulting absolute value." ]
+                                }
+                                checkInfo.fnRange
+                                (if result == numberInput then
+                                    -- preserve style like 0x1 or 2e10
+                                    replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg
+
+                                 else
+                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                        (String.fromFloat result)
+                                    ]
+                                )
+                            )
+            )
+        ]
+
+
+absOnNegatedChecks : IntoFnCheck
+absOnNegatedChecks =
+    { composition =
+        \checkInfo ->
+            if checkInfo.earlier.fn == Fn.Basics.negate then
+                Just
+                    { info =
+                        { message =
+                            "Unnecessary "
+                                ++ qualifiedToString Fn.Basics.negate
+                                ++ " before "
+                                ++ qualifiedToString checkInfo.later.fn
+                        , details =
+                            [ "You can remove the composition with "
+                                ++ qualifiedToString (qualify Fn.Basics.negate defaultQualifyResources)
+                                ++ "."
+                            ]
+                        }
+                    , fix = [ Fix.removeRange checkInfo.earlier.removeRange ]
+                    }
+
+            else
+                Nothing
+    , call =
+        \checkInfo ->
+            case sameInAllBranches (\branch -> getNegated checkInfo.lookupTable branch) checkInfo.firstArg of
+                Just branchesNegated ->
+                    Just
+                        (Rule.errorWithFix
+                            { message =
+                                qualifiedToString checkInfo.fn
+                                    ++ " on a negated value makes the negation unnecessary"
+                            , details =
+                                [ "You can remove the negation of the value given to the "
+                                    ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources)
+                                    ++ " call."
+                                ]
+                            }
+                            checkInfo.fnRange
+                            (List.concatMap
+                                (\branchNegated ->
+                                    replaceBySubExpressionFix branchNegated.range branchNegated.inNegation
+                                )
+                                branchesNegated
+                            )
+                        )
+
+                Nothing ->
+                    Nothing
+    }
+
+
+getNegated : ModuleNameLookupTable -> Node Expression -> Maybe { range : Range, inNegation : Node Expression }
+getNegated lookupTable expressionNode =
+    case AstHelpers.removeParens expressionNode of
+        Node _ (Expression.Negation inNegation) ->
+            Just { range = Node.range expressionNode, inNegation = inNegation }
+
+        _ ->
+            Maybe.map (\negateCall -> { range = negateCall.nodeRange, inNegation = negateCall.firstArg })
+                (AstHelpers.getSpecificUnreducedFnCall Fn.Basics.negate lookupTable expressionNode)
+
+
 basicsMinChecks : IntoFnCheck
 basicsMinChecks =
     intoFnChecksFirstThatConstructsError
@@ -5802,7 +5913,7 @@ evaluateConversionToIntOnNumberCheck operation checkInfo =
                         (Rule.errorWithFix
                             { message = qualifiedToString checkInfo.fn ++ " on a number literal can be evaluated"
                             , details =
-                                [ "You replace this call by the resulting Int value."
+                                [ "You can replace this call by the resulting Int value."
                                 ]
                             }
                             checkInfo.fnRange
