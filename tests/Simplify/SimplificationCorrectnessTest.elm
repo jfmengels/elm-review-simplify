@@ -225,6 +225,26 @@ all =
                         dict
             )
         , Test.fuzz
+            (Fuzz.map Dict.fromList (Fuzz.list (Fuzz.pair (Fuzz.pair Fuzz.float Fuzz.float) (Fuzz.pair Fuzz.float Fuzz.float))))
+            "Dict.foldr (always (::)) [] is the same as Dict.values"
+            (\dict ->
+                dict
+                    |> Dict.foldr (always (::)) []
+                    |> compareListOf (compareTuple compareFloatNaNIsEqual compareFloatNaNIsEqual)
+                        (Dict.values dict)
+                    |> Expect.equal EQ
+            )
+        , Test.fuzz
+            (Fuzz.map Dict.fromList (Fuzz.list (Fuzz.pair (Fuzz.pair Fuzz.float Fuzz.float) Fuzz.string)))
+            "Dict.foldr (always << (::)) [] is the same as Dict.keys"
+            (\dict ->
+                dict
+                    |> Dict.foldr (always << (::)) []
+                    |> compareListOf (compareTuple compareFloatNaNIsEqual compareFloatNaNIsEqual)
+                        (Dict.keys dict)
+                    |> Expect.equal EQ
+            )
+        , Test.fuzz
             Fuzz.int
             "List.range n n is the same as [ n ]"
             (\n ->

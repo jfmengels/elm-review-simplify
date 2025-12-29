@@ -2615,7 +2615,9 @@ a3 = Dict.foldl (\\_ el soFar -> soFar - el) 20 dict
 a4 = Dict.foldl (always identity) initial dict
 a5 = Dict.foldl (\\_ -> identity) initial dict
 a6 = Dict.foldl (\\_ v -> v) initial dict
-a6 = Dict.foldl (always (\\v -> v)) initial dict
+a7 = Dict.foldl (always (\\v -> v)) initial dict
+a8 = Dict.foldl (always (::)) [] dict
+a9 = Dict.foldl (\\k _ ks -> k :: ks)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -3034,6 +3036,114 @@ a = dict |> Dict.foldr (\\k v d -> d |> Dict.insert k v) Dict.empty
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = dict
+"""
+                        ]
+        , test "should replace Dict.foldr (always (::)) [] by Dict.values" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldr (always (::)) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr (\\_ v vs -> v :: vs) [] is the same as Dict.values"
+                            , details = [ "You can replace this call by Dict.values which is meant for this exact purpose." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.values
+"""
+                        ]
+        , test "should replace dict |> Dict.foldr (\\_ v -> (::) v) [] by dict |> Dict.values" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = dict |> Dict.foldr (\\_ v -> (::) v) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr (\\_ v vs -> v :: vs) [] is the same as Dict.values"
+                            , details = [ "You can replace this call by Dict.values which is meant for this exact purpose." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict |> Dict.values
+"""
+                        ]
+        , test "should replace dict |> Dict.foldr (\\_ v vs -> v :: vs) [] by dict |> Dict.values" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = dict |> Dict.foldr (\\_ v vs -> v :: vs) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr (\\_ v vs -> v :: vs) [] is the same as Dict.values"
+                            , details = [ "You can replace this call by Dict.values which is meant for this exact purpose." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict |> Dict.values
+"""
+                        ]
+        , test "should replace Dict.foldr (always << (::)) [] by Dict.keys" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldr (always << (::)) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr (\\k _ ks -> k :: ks) [] is the same as Dict.keys"
+                            , details = [ "You can replace this call by Dict.keys which is meant for this exact purpose." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.keys
+"""
+                        ]
+        , test "should replace Dict.foldr (\\k -> always ((::) k)) [] by Dict.keys" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldr (\\k -> always ((::) k)) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr (\\k _ ks -> k :: ks) [] is the same as Dict.keys"
+                            , details = [ "You can replace this call by Dict.keys which is meant for this exact purpose." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.keys
+"""
+                        ]
+        , test "should replace dict |> Dict.foldr (\\k _ ks -> k :: ks) [] by dict |> Dict.keys" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = dict |> Dict.foldr (\\k _ ks -> k :: ks) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr (\\k _ ks -> k :: ks) [] is the same as Dict.keys"
+                            , details = [ "You can replace this call by Dict.keys which is meant for this exact purpose." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict |> Dict.keys
 """
                         ]
         ]

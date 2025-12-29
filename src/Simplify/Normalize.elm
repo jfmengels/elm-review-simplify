@@ -223,11 +223,24 @@ normalize resources node =
                 )
 
         Expression.LambdaExpression lambda ->
+            let
+                lambdaPatternsNormalized : List (Node Pattern)
+                lambdaPatternsNormalized =
+                    List.map (\arg -> normalizePattern resources.lookupTable arg) lambda.args
+            in
             toNode
                 (Expression.LambdaExpression
-                    { args = List.map (\arg -> normalizePattern resources.lookupTable arg) lambda.args
-                    , expression = normalize resources lambda.expression
-                    }
+                    (case normalize resources lambda.expression of
+                        Node _ (Expression.LambdaExpression resultLambda) ->
+                            { args = lambdaPatternsNormalized ++ resultLambda.args
+                            , expression = resultLambda.expression
+                            }
+
+                        resultNormalized ->
+                            { args = lambdaPatternsNormalized
+                            , expression = resultNormalized
+                            }
+                    )
                 )
 
         Expression.ListExpr elements ->

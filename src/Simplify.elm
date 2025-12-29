@@ -1435,6 +1435,12 @@ Destructuring using case expressions
     List.map Tuple.second (Dict.toList dict)
     --> Dict.values dict
 
+    Dict.foldr (\k _ ks -> k :: ks) [] dict
+    --> Dict.keys dict
+
+    Dict.foldr (\_ v vs -> v :: vs) [] dict
+    --> Dict.values dict
+
     -- The following foldl simplifications also work for foldr
     Dict.foldl f initial Dict.empty
     --> initial
@@ -9246,7 +9252,108 @@ dictFoldlChecks =
 
 dictFoldrChecks : IntoFnCheck
 dictFoldrChecks =
-    intoFnCheckOnlyCall dictFoldChecks
+    intoFnCheckOnlyCall
+        (\checkInfo ->
+            dictFoldChecks checkInfo
+                |> onNothing
+                    (\() ->
+                        case secondArg checkInfo of
+                            Nothing ->
+                                Nothing
+
+                            Just initialArg ->
+                                if isEmptyList initialArg then
+                                    if
+                                        case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
+                                            Nothing ->
+                                                False
+
+                                            Just reduceIgnoringKey ->
+                                                AstHelpers.isSpecificUnappliedBinaryOperation "::" checkInfo reduceIgnoringKey
+                                    then
+                                        Just
+                                            (operationWithSpecificArgsIsEquivalentToFnError
+                                                { specificArgsDescription = "(\\_ v vs -> v :: vs) []"
+                                                , replacementFn = Fn.Dict.values
+                                                }
+                                                checkInfo
+                                            )
+
+                                    else if
+                                        case getFunctionIgnoringSecondIncoming checkInfo checkInfo.firstArg of
+                                            Nothing ->
+                                                False
+
+                                            Just reduceIgnoringValue ->
+                                                AstHelpers.isSpecificUnappliedBinaryOperation "::" checkInfo reduceIgnoringValue
+                                    then
+                                        Just
+                                            (operationWithSpecificArgsIsEquivalentToFnError
+                                                { specificArgsDescription = "(\\k _ ks -> k :: ks) []"
+                                                , replacementFn = Fn.Dict.keys
+                                                }
+                                                checkInfo
+                                            )
+
+                                    else
+                                        Nothing
+
+                                else
+                                    Nothing
+                    )
+        )
+
+
+getFunctionIgnoringSecondIncoming :
+    AstHelpers.ReduceLambdaResources a
+    -> Node Expression
+    -> Maybe (Node Expression)
+getFunctionIgnoringSecondIncoming resources expressionNode =
+    case expressionNode of
+        Node _ (Expression.ParenthesizedExpression inParens) ->
+            getFunctionIgnoringSecondIncoming resources inParens
+
+        Node _ (Expression.LambdaExpression lambda) ->
+            case lambda.args of
+                [] ->
+                    getFunctionIgnoringSecondIncoming resources
+                        lambda.expression
+
+                keyPattern :: reduceLambdaPatternsAfterKey ->
+                    AstHelpers.getAlwaysResult resources
+                        (case reduceLambdaPatternsAfterKey of
+                            [] ->
+                                lambda.expression
+
+                            _ :: _ ->
+                                Node.empty
+                                    (Expression.LambdaExpression
+                                        { args = reduceLambdaPatternsAfterKey
+                                        , expression = lambda.expression
+                                        }
+                                    )
+                        )
+                        |> Maybe.map
+                            (\alwaysResult ->
+                                Node.empty
+                                    (Expression.LambdaExpression
+                                        { args = [ keyPattern ]
+                                        , expression = alwaysResult
+                                        }
+                                    )
+                            )
+
+        _ ->
+            case getFullComposition expressionNode of
+                Nothing ->
+                    Nothing
+
+                Just fullComposition ->
+                    if AstHelpers.isSpecificValueOrFn Fn.Basics.always resources fullComposition.composedLater then
+                        Just fullComposition.earlier
+
+                    else
+                        Nothing
 
 
 dictFoldChecks : CallCheckInfo -> Maybe (Error {})
