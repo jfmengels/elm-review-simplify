@@ -93,6 +93,8 @@ The rule now simplifies:
 - `Set.foldr (::) [] set` to `Set.toList set`
 - `Set.foldl Set.insert Set.empty set` to `set` (same for `Set.foldr`)
 - `Dict.foldl Dict.insert Dict.empty dict` to `dict` (same for `Dict.foldr`)
+- `Dict.foldr (\k _ ks -> k :: ks) [] dict` to `Dict.keys dict`
+- `Dict.foldr (\_ v vs -> v :: vs) [] dict` to `Dict.values dict`
 - `List.range n n` to `[ n ]`
 - `List.minimum (List.range 2 3)` to `Just 2`
 - `List.maximum (List.range 2 3)` to `Just 3`
