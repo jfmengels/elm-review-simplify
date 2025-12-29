@@ -2857,6 +2857,42 @@ import Set
 a = always
 """
                         ]
+        , test "should replace Set.foldl Set.insert Set.empty by identity" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.foldl Set.insert Set.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.foldl Set.insert Set.empty will always return the same given set"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Set.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = identity
+"""
+                        ]
+        , test "should replace set |> Set.foldl (\\e s -> s |> Set.insert e) Set.empty by set" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = set |> Set.foldl (\\e s -> s |> Set.insert e) Set.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.foldl Set.insert Set.empty will always return the same given set"
+                            , details = [ "You can replace this call by the set itself." ]
+                            , under = "Set.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = set
+"""
+                        ]
         ]
 
 
@@ -2980,6 +3016,42 @@ a = set |> Set.foldr (\\h t -> h :: t) []
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
 a = set |> Set.toList
+"""
+                        ]
+        , test "should replace Set.foldr Set.insert Set.empty by identity" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.foldr Set.insert Set.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.foldr Set.insert Set.empty will always return the same given set"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Set.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = identity
+"""
+                        ]
+        , test "should replace set |> Set.foldr (\\e s -> s |> Set.insert e) Set.empty by set" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = set |> Set.foldr (\\e s -> s |> Set.insert e) Set.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.foldr Set.insert Set.empty will always return the same given set"
+                            , details = [ "You can replace this call by the set itself." ]
+                            , under = "Set.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = set
 """
                         ]
         ]

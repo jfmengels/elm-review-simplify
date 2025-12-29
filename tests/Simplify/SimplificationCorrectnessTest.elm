@@ -178,14 +178,33 @@ all =
                         (list |> List.reverse)
             )
         , Test.fuzz
-            (Fuzz.map Set.fromList (Fuzz.list Fuzz.float))
+            (Fuzz.map Set.fromList (Fuzz.list (Fuzz.pair Fuzz.float Fuzz.float)))
             "Set.foldr (::) [] is the same as List.reverse"
             (\set ->
                 set
                     |> Set.foldr (::) []
-                    |> compareListOf compareFloatNaNIsEqual
+                    |> compareListOf (compareTuple compareFloatNaNIsEqual compareFloatNaNIsEqual)
                         (set |> Set.toList)
                     |> Expect.equal EQ
+            )
+        , Test.fuzz
+            -- fails when generating NaN and checking with compareListOf
+            (Fuzz.map Set.fromList (Fuzz.list Fuzz.niceFloat))
+            "Set.foldr Set.insert Set.empty is the same as identity"
+            (\set ->
+                set
+                    |> Set.foldr Set.insert Set.empty
+                    |> Expect.equalSets
+                        set
+            )
+        , Test.fuzz
+            (Fuzz.map Set.fromList (Fuzz.list Fuzz.niceFloat))
+            "Set.foldl Set.insert Set.empty is the same as identity"
+            (\set ->
+                set
+                    |> Set.foldl Set.insert Set.empty
+                    |> Expect.equalSets
+                        set
             )
         , Test.fuzz
             Fuzz.int

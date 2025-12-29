@@ -1299,6 +1299,9 @@ Destructuring using case expressions
     Set.foldl (\_ soFar -> soFar) initial set
     --> initial
 
+    Set.foldl Set.insert Set.empty set
+    --> set
+
     List.length (Set.toList set)
     --> Set.size set
 
@@ -8755,14 +8758,14 @@ setToListChecks =
 
 setFoldlChecks : IntoFnCheck
 setFoldlChecks =
-    intoFnCheckOnlyCall (emptiableFoldChecks setCollection)
+    intoFnCheckOnlyCall setFoldChecks
 
 
 setFoldrChecks : IntoFnCheck
 setFoldrChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
-            emptiableFoldChecks setCollection checkInfo
+            setFoldChecks checkInfo
                 |> onNothing
                     (\() ->
                         case secondArg checkInfo of
@@ -8786,6 +8789,36 @@ setFoldrChecks =
                                     Nothing
                     )
         )
+
+
+setFoldChecks : CallCheckInfo -> Maybe (Error {})
+setFoldChecks checkInfo =
+    emptiableFoldChecks setCollection checkInfo
+        |> onNothing
+            (\() ->
+                if checkInfo.expectNaN then
+                    Nothing
+
+                else
+                    case secondArg checkInfo of
+                        Nothing ->
+                            Nothing
+
+                        Just initialArg ->
+                            if
+                                AstHelpers.isSpecificValueReference checkInfo.lookupTable Fn.Set.empty initialArg
+                                    && AstHelpers.isSpecificValueOrFn Fn.Set.insert checkInfo checkInfo.firstArg
+                            then
+                                Just
+                                    (alwaysReturnsLastArgError
+                                        (qualifiedToString checkInfo.fn ++ " Set.insert Set.empty")
+                                        setCollection
+                                        checkInfo
+                                    )
+
+                            else
+                                Nothing
+            )
 
 
 

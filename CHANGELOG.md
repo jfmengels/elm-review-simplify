@@ -91,6 +91,7 @@ The rule now simplifies:
 - `List.foldr (::) [] list` to `list`
 - `List.foldl (::) [] list` to `List.reverse list`
 - `Set.foldr (::) [] set` to `Set.toList set`
+- `Set.foldl Set.insert Set.empty set` to `set` (same for `Set.foldr`)
 - `List.range n n` to `[ n ]`
 - `List.minimum (List.range 2 3)` to `Just 2`
 - `List.maximum (List.range 2 3)` to `Just 3`
