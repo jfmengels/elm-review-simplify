@@ -106,6 +106,7 @@ Other improvements:
   to for example fix `(if c then 2 else 3) == (if c then 1 else 4)` to `False`
 - Now evaluates `<`, `<=`, `>=`, `>` for any two comparable operands to for example fix `"a" < "b"` to `True`
 - Now fixes `Tuple.first (Tuple.mapBoth changeFirst changeSecond tuple)` to `changeFirst (Tuple.first tuple)` instead of `Tuple.first (Tuple.mapFirst changeFirst tuple)` (same for second)
+- Now recognizes more lambdas as equivalent, to for example detect equal branches like `if c then f else \a -> f a`
 
 Bug fixes:
 - Simplifying directly applied lambdas doesn't remove extra arguments. `(\_ a -> ...) b c` is now simplified to `(\a -> ...) c` instead of `(\a -> ...)`. 

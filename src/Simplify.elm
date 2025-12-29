@@ -3371,6 +3371,8 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                     , lookupTable = context.lookupTable
                     , inferredConstants = context.inferredConstants
                     , importLookup = context.importLookup
+                    , moduleCustomTypes = context.moduleCustomTypes
+                    , importCustomTypes = context.importCustomTypes
                     , moduleBindings = context.moduleBindings
                     , localBindings = context.localBindings
                     }
@@ -4316,7 +4318,7 @@ multiplyChecks checkInfo =
             (\() ->
                 checkOperationFromBothSides checkInfo
                     (\side ->
-                        if numberNotExpectingNaNForMultiplyProperties.absorbing.is (extractInferResources checkInfo) side.node then
+                        if numberNotExpectingNaNForMultiplyProperties.absorbing.is (extractNormalizeResources checkInfo) side.node then
                             Just
                                 (Rule.errorWithFix
                                     { message = "Multiplication by 0 should be replaced"
@@ -5842,7 +5844,7 @@ orderToReference order =
             Fn.Basics.gTVariant
 
 
-evaluateCompare : Infer.Resources a -> Node Expression -> Node Expression -> Match Order
+evaluateCompare : Normalize.Resources a -> Node Expression -> Node Expression -> Match Order
 evaluateCompare resources left right =
     case expressionToComparable resources left of
         Just leftComparable ->
@@ -6037,7 +6039,7 @@ unnecessaryOperationWithEmptySideChecks forOperationProperties side checkInfo =
 
 operationWithAbsorbingSideChecks : TypeProperties (AbsorbableProperties otherProperties) -> { side | node : Node Expression, otherNode : Node Expression, otherDescription : String } -> OperatorApplicationCheckInfo -> Maybe (Error {})
 operationWithAbsorbingSideChecks forOperationProperties side checkInfo =
-    if forOperationProperties.absorbing.is (extractInferResources checkInfo) side.node then
+    if forOperationProperties.absorbing.is (extractNormalizeResources checkInfo) side.node then
         Just
             (Rule.errorWithFix
                 { message = "(" ++ checkInfo.operator ++ ") with any side being " ++ forOperationProperties.absorbing.description ++ " will result in " ++ forOperationProperties.absorbing.description
@@ -6084,7 +6086,7 @@ findSimilarConditionsError operatorCheckInfo =
 
 
 areSimilarConditionsError :
-    QualifyResources (Infer.Resources a)
+    QualifyResources (Normalize.Resources a)
     -> String
     -> Node Expression
     -> ( RedundantConditionResolution, Node Expression )
@@ -7536,7 +7538,7 @@ listFoldlChecks =
                     Just initialArg ->
                         if
                             isEmptyList initialArg
-                                && AstHelpers.isSpecificUnappliedBinaryOperation "::" checkInfo checkInfo.firstArg
+                                && Normalize.isSpecificUnappliedBinaryOperation "::" checkInfo checkInfo.firstArg
                         then
                             Just
                                 (operationWithSpecificArgsIsEquivalentToFnError
@@ -7589,7 +7591,7 @@ listFoldrChecks =
 
                         else if
                             isEmptyList initialArg
-                                && AstHelpers.isSpecificUnappliedBinaryOperation "::" checkInfo checkInfo.firstArg
+                                && Normalize.isSpecificUnappliedBinaryOperation "::" checkInfo checkInfo.firstArg
                         then
                             Just
                                 (alwaysReturnsLastArgError
@@ -7609,7 +7611,7 @@ isStringAppendFunction :
     -> Node Expression
     -> Bool
 isStringAppendFunction resources expressionNode =
-    AstHelpers.isSpecificUnappliedBinaryOperation "++" resources expressionNode
+    Normalize.isSpecificUnappliedBinaryOperation "++" resources expressionNode
         || AstHelpers.isSpecificValueOrFn Fn.String.append resources expressionNode
 
 
@@ -7618,7 +7620,7 @@ isListAppendFunction :
     -> Node Expression
     -> Bool
 isListAppendFunction resources expressionNode =
-    AstHelpers.isSpecificUnappliedBinaryOperation "++" resources expressionNode
+    Normalize.isSpecificUnappliedBinaryOperation "++" resources expressionNode
         || AstHelpers.isSpecificValueOrFn Fn.List.append resources expressionNode
 
 
@@ -7736,10 +7738,10 @@ listFoldChecks foldFnName reverseFoldFnName =
                                             )
                                         ]
                         in
-                        if AstHelpers.isSpecificUnappliedBinaryOperation "*" checkInfo checkInfo.firstArg then
+                        if Normalize.isSpecificUnappliedBinaryOperation "*" checkInfo checkInfo.firstArg then
                             numberBinaryOperationChecks { two = "*", list = "product", identity = 1 }
 
-                        else if AstHelpers.isSpecificUnappliedBinaryOperation "+" checkInfo checkInfo.firstArg then
+                        else if Normalize.isSpecificUnappliedBinaryOperation "+" checkInfo checkInfo.firstArg then
                             numberBinaryOperationChecks { two = "+", list = "sum", identity = 0 }
 
                         else
@@ -7748,10 +7750,10 @@ listFoldChecks foldFnName reverseFoldFnName =
                                     Nothing
 
                                 Determined initialBool ->
-                                    if AstHelpers.isSpecificUnappliedBinaryOperation "&&" checkInfo checkInfo.firstArg then
+                                    if Normalize.isSpecificUnappliedBinaryOperation "&&" checkInfo checkInfo.firstArg then
                                         Just (boolBinaryOperationChecks { two = "&&", list = "all", determining = False } initialBool)
 
-                                    else if AstHelpers.isSpecificUnappliedBinaryOperation "||" checkInfo checkInfo.firstArg then
+                                    else if Normalize.isSpecificUnappliedBinaryOperation "||" checkInfo checkInfo.firstArg then
                                         Just (boolBinaryOperationChecks { two = "||", list = "any", determining = True } initialBool)
 
                                     else
@@ -8786,7 +8788,7 @@ setFoldrChecks =
                             Just initialArg ->
                                 if
                                     isEmptyList initialArg
-                                        && AstHelpers.isSpecificUnappliedBinaryOperation "::" checkInfo checkInfo.firstArg
+                                        && Normalize.isSpecificUnappliedBinaryOperation "::" checkInfo checkInfo.firstArg
                                 then
                                     Just
                                         (operationWithSpecificArgsIsEquivalentToFnError
@@ -9272,7 +9274,7 @@ dictFoldrChecks =
                                                 False
 
                                             Just reduceIgnoringKey ->
-                                                AstHelpers.isSpecificUnappliedBinaryOperation "::" checkInfo reduceIgnoringKey
+                                                Normalize.isSpecificUnappliedBinaryOperation "::" checkInfo reduceIgnoringKey
                                     then
                                         Just
                                             (operationWithSpecificArgsIsEquivalentToFnError
@@ -9288,7 +9290,7 @@ dictFoldrChecks =
                                                 False
 
                                             Just reduceIgnoringValue ->
-                                                AstHelpers.isSpecificUnappliedBinaryOperation "::" checkInfo reduceIgnoringValue
+                                                Normalize.isSpecificUnappliedBinaryOperation "::" checkInfo reduceIgnoringValue
                                     then
                                         Just
                                             (operationWithSpecificArgsIsEquivalentToFnError
@@ -9909,9 +9911,9 @@ type alias CollectionProperties otherProperties =
         | elements :
             { countDescription : String
             , elementDescription : String
-            , determineCount : Infer.Resources {} -> Node Expression -> Maybe CollectionSize
+            , determineCount : Normalize.Resources {} -> Node Expression -> Maybe CollectionSize
             , get :
-                Infer.Resources {}
+                Normalize.Resources {}
                 -> Node Expression
                 ->
                     Maybe
@@ -10024,7 +10026,7 @@ type TypeSubsetKindProperties
 type alias ConstantProperties =
     { description : String
     , asString : QualifyResources {} -> String
-    , is : Infer.Resources {} -> Node Expression -> Bool
+    , is : Normalize.Resources {} -> Node Expression -> Bool
     }
 
 
@@ -10040,11 +10042,11 @@ type ConstructWithOneValueDescription
     | An String
 
 
-isInTypeSubset : TypeSubsetProperties specificProperties -> Infer.Resources res -> Node Expression -> Bool
+isInTypeSubset : TypeSubsetProperties specificProperties -> Normalize.Resources res -> Node Expression -> Bool
 isInTypeSubset typeSubsetProperties resources expressionNode =
     case typeSubsetProperties.kind typeSubsetProperties.specific of
         Constant constantProperties ->
-            constantProperties.is (extractInferResources resources) expressionNode
+            constantProperties.is (extractNormalizeResources resources) expressionNode
 
         ConstructWithOneValue constructWithOneValue ->
             isJust (constructWithOneValue.getValue resources.lookupTable expressionNode)
@@ -10110,7 +10112,7 @@ fnCallConstructWithOneValueProperties description fullyQualified =
 
 
 getEmptyExpressionNode :
-    Infer.Resources a
+    Normalize.Resources a
     -> EmptiableProperties empty otherProperties
     -> Node Expression
     -> Maybe (Node Expression)
@@ -10122,9 +10124,9 @@ getEmptyExpressionNode resources emptiable expressionNode =
         Nothing
 
 
-getAbsorbingExpressionNode : AbsorbableProperties otherProperties -> Infer.Resources res -> Node Expression -> Maybe (Node Expression)
+getAbsorbingExpressionNode : AbsorbableProperties otherProperties -> Normalize.Resources res -> Node Expression -> Maybe (Node Expression)
 getAbsorbingExpressionNode absorbable inferResources expressionNode =
-    if absorbable.absorbing.is (extractInferResources inferResources) expressionNode then
+    if absorbable.absorbing.is (extractNormalizeResources inferResources) expressionNode then
         Just expressionNode
 
     else
@@ -10203,12 +10205,14 @@ extractQualifyResources resources =
     }
 
 
-extractInferResources :
-    Infer.Resources a
-    -> Infer.Resources {}
-extractInferResources resources =
+extractNormalizeResources :
+    Normalize.Resources a
+    -> Normalize.Resources {}
+extractNormalizeResources resources =
     { lookupTable = resources.lookupTable
     , inferredConstants = resources.inferredConstants
+    , moduleCustomTypes = resources.moduleCustomTypes
+    , importCustomTypes = resources.importCustomTypes
     }
 
 
@@ -10836,7 +10840,7 @@ setSingletonConstruct =
     fnCallConstructWithOneValueProperties (A "singleton set") Fn.Set.singleton
 
 
-setGetElements : Infer.Resources a -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
+setGetElements : Normalize.Resources a -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
 setGetElements resources expressionNode =
     (if AstHelpers.isSpecificValueReference resources.lookupTable Fn.Set.empty expressionNode then
         Just { known = [], allKnown = True }
@@ -10878,7 +10882,7 @@ setGetElements resources expressionNode =
 
 
 getComparableWithExpressionNode :
-    Infer.Resources a
+    Normalize.Resources a
     -> Node Expression
     -> Maybe { comparable : ComparableExpression, expressionNode : Node Expression }
 getComparableWithExpressionNode resources expressionNode =
@@ -10886,7 +10890,7 @@ getComparableWithExpressionNode resources expressionNode =
         |> Maybe.map (\comparable -> { comparable = comparable, expressionNode = expressionNode })
 
 
-setDetermineSize : Infer.Resources res -> Node Expression -> Maybe CollectionSize
+setDetermineSize : Normalize.Resources res -> Node Expression -> Maybe CollectionSize
 setDetermineSize resources expressionNode =
     (if AstHelpers.isSpecificValueReference resources.lookupTable Fn.Set.empty expressionNode then
         Just (Exactly 0)
@@ -10959,7 +10963,7 @@ dictCollection =
 
 
 dictDetermineSize :
-    Infer.Resources a
+    Normalize.Resources a
     -> Node Expression
     -> Maybe CollectionSize
 dictDetermineSize resources expressionNode =
@@ -11021,7 +11025,7 @@ dictDetermineSize resources expressionNode =
             )
 
 
-dictGetValues : Infer.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
+dictGetValues : Normalize.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
 dictGetValues resources expressionNode =
     (if AstHelpers.isSpecificValueReference resources.lookupTable Fn.Dict.empty expressionNode then
         Just { known = [], allKnown = True }
@@ -11072,7 +11076,7 @@ dictGetValues resources expressionNode =
 
 
 getTupleWithComparableFirst :
-    Infer.Resources a
+    Normalize.Resources a
     -> Node Expression
     ->
         Maybe
@@ -11098,7 +11102,7 @@ getTupleWithComparableFirst resources expressionNode =
             Nothing
 
 
-dictGetKeys : Infer.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
+dictGetKeys : Normalize.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
 dictGetKeys resources expressionNode =
     (if AstHelpers.isSpecificValueReference resources.lookupTable Fn.Dict.empty expressionNode then
         Just { known = [], allKnown = True }
@@ -11263,7 +11267,7 @@ oneOfConstantsWithOneAndRestListChecks : WrapperProperties otherProperties -> Ca
 oneOfConstantsWithOneAndRestListChecks wrapper checkInfo =
     case secondArg checkInfo of
         Just otherOptionsArg ->
-            if listCollection.empty.specific.is (extractInferResources checkInfo) otherOptionsArg then
+            if listCollection.empty.specific.is (extractNormalizeResources checkInfo) otherOptionsArg then
                 Just
                     (Rule.errorWithFix
                         { message = qualifiedToString checkInfo.fn ++ " with one possible value will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with that value"
@@ -11303,7 +11307,7 @@ oneOfWeightedConstantsWithOneAndRestChecks : WrapperProperties otherProperties -
 oneOfWeightedConstantsWithOneAndRestChecks wrapper checkInfo =
     case secondArg checkInfo of
         Just otherOptionsArg ->
-            if listCollection.empty.specific.is (extractInferResources checkInfo) otherOptionsArg then
+            if listCollection.empty.specific.is (extractNormalizeResources checkInfo) otherOptionsArg then
                 Just
                     (Rule.errorWithFix
                         { message = qualifiedToString checkInfo.fn ++ " with one possible value will result in " ++ qualifiedToString wrapper.wrap.fn ++ " with that value"
@@ -12481,7 +12485,7 @@ knownMemberChecks : TypeProperties (CollectionProperties otherProperties) -> Cal
 knownMemberChecks collection checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just collectionArg ->
-            case collection.elements.get (extractInferResources checkInfo) collectionArg of
+            case collection.elements.get (extractNormalizeResources checkInfo) collectionArg of
                 Just collectionElements ->
                     let
                         needleArg : Node Expression
@@ -12581,7 +12585,7 @@ callOnCollectionWithAbsorbingElementChecks :
     -> CallCheckInfo
     -> Maybe (Error {})
 callOnCollectionWithAbsorbingElementChecks situation ( collection, elementAbsorbable ) checkInfo =
-    case Maybe.andThen (\lastArg -> collection.elements.get (extractInferResources checkInfo) lastArg) (fullyAppliedLastArg checkInfo) of
+    case Maybe.andThen (\lastArg -> collection.elements.get (extractNormalizeResources checkInfo) lastArg) (fullyAppliedLastArg checkInfo) of
         Just elements ->
             case findMap (getAbsorbingExpressionNode elementAbsorbable checkInfo) elements.known of
                 Just absorbingElement ->
@@ -12648,9 +12652,9 @@ collectionAllChecks collection checkInfo =
         |> onNothing
             (\() ->
                 if AstHelpers.isSpecificValueOrFn Fn.Basics.not checkInfo checkInfo.firstArg then
-                    case Maybe.andThen (\collectionArg -> collection.elements.get (extractInferResources checkInfo) collectionArg) (fullyAppliedLastArg checkInfo) of
+                    case Maybe.andThen (\collectionArg -> collection.elements.get (extractNormalizeResources checkInfo) collectionArg) (fullyAppliedLastArg checkInfo) of
                         Just elements ->
-                            if List.any (\element -> boolTrueConstant.is (extractInferResources checkInfo) element) elements.known then
+                            if List.any (\element -> boolTrueConstant.is (extractNormalizeResources checkInfo) element) elements.known then
                                 Just
                                     (Rule.errorWithFix
                                         { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ collection.represents ++ " with True will result in False"
@@ -12722,9 +12726,9 @@ collectionAnyChecks collection checkInfo =
         |> onNothing
             (\() ->
                 if AstHelpers.isSpecificValueOrFn Fn.Basics.not checkInfo checkInfo.firstArg then
-                    case Maybe.andThen (\lastArg -> collection.elements.get (extractInferResources checkInfo) lastArg) (fullyAppliedLastArg checkInfo) of
+                    case Maybe.andThen (\lastArg -> collection.elements.get (extractNormalizeResources checkInfo) lastArg) (fullyAppliedLastArg checkInfo) of
                         Just elements ->
-                            if List.any (\element -> boolFalseConstant.is (extractInferResources checkInfo) element) elements.known then
+                            if List.any (\element -> boolFalseConstant.is (extractNormalizeResources checkInfo) element) elements.known then
                                 Just
                                     (Rule.errorWithFix
                                         { message = qualifiedToString checkInfo.fn ++ " with `not` on a " ++ collection.represents ++ " with False will result in True"
@@ -13018,11 +13022,11 @@ sequenceOnCollectionWithKnownEmptyElementCheck :
     -> CallCheckInfo
     -> Maybe (Error {})
 sequenceOnCollectionWithKnownEmptyElementCheck ( collection, elementEmptiable ) checkInfo =
-    case collection.elements.get (extractInferResources checkInfo) checkInfo.firstArg of
+    case collection.elements.get (extractNormalizeResources checkInfo) checkInfo.firstArg of
         Just elements ->
             case List.filter (\el -> isNothing (elementEmptiable.wrap.getValue checkInfo.lookupTable el)) elements.known of
                 firstNonWrappedElement :: _ ->
-                    if isInTypeSubset elementEmptiable.empty (extractInferResources checkInfo) firstNonWrappedElement then
+                    if isInTypeSubset elementEmptiable.empty (extractNormalizeResources checkInfo) firstNonWrappedElement then
                         Just
                             (Rule.errorWithFix
                                 { message = qualifiedToString checkInfo.fn ++ " on a " ++ collection.represents ++ " containing " ++ typeSubsetDescriptionIndefinite elementEmptiable.empty ++ " will result in " ++ typeSubsetDescriptionDefinite "the first" elementEmptiable.empty
@@ -13073,7 +13077,7 @@ sequenceOnCollectionWithAllElementsWrapped :
     -> CallCheckInfo
     -> Maybe (Error {})
 sequenceOnCollectionWithAllElementsWrapped ( collection, elementWrapper ) checkInfo =
-    case collection.elements.get (extractInferResources checkInfo) checkInfo.firstArg of
+    case collection.elements.get (extractNormalizeResources checkInfo) checkInfo.firstArg of
         Just elements ->
             if elements.allKnown then
                 case traverse (getValueWithNodeRange (elementWrapper.wrap.getValue checkInfo.lookupTable)) elements.known of
@@ -13205,7 +13209,7 @@ emptiableFlatRepeatChecks : TypeProperties (EmptiableProperties ConstantProperti
 emptiableFlatRepeatChecks emptiable checkInfo =
     (case secondArg checkInfo of
         Just emptiableArg ->
-            if emptiable.empty.specific.is (extractInferResources checkInfo) emptiableArg then
+            if emptiable.empty.specific.is (extractNormalizeResources checkInfo) emptiableArg then
                 Just
                     (Rule.errorWithFix
                         { message = qualifiedToString checkInfo.fn ++ " with " ++ emptiable.empty.specific.description ++ " will result in " ++ emptiable.empty.specific.description
@@ -13504,7 +13508,7 @@ indexAccessChecks collection checkInfo n =
     else
         case secondArg checkInfo of
             Just arg ->
-                (case collection.elements.get (extractInferResources checkInfo) arg of
+                (case collection.elements.get (extractNormalizeResources checkInfo) arg of
                     Just literalElements ->
                         case List.drop n literalElements.known |> List.head of
                             Just element ->
@@ -13750,7 +13754,7 @@ setOnKnownElementChecks :
 setOnKnownElementChecks collection checkInfo n replacementArgRange =
     case thirdArg checkInfo of
         Just collectionArg ->
-            case collection.elements.get (extractInferResources checkInfo) collectionArg of
+            case collection.elements.get (extractNormalizeResources checkInfo) collectionArg of
                 Just literalElements ->
                     case List.drop n literalElements.known |> List.head of
                         Just element ->
@@ -15281,7 +15285,7 @@ callOnEmptyReturnsCheck :
 callOnEmptyReturnsCheck config collection checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just lastArg ->
-            if isInTypeSubset collection.empty (extractInferResources checkInfo) lastArg then
+            if isInTypeSubset collection.empty (extractNormalizeResources checkInfo) lastArg then
                 let
                     resultDescription : String
                     resultDescription =
@@ -15661,7 +15665,7 @@ collectionIntersectChecks collection =
         [ unnecessaryOnEmptyCheck collection
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                if collection.empty.specific.is (extractInferResources checkInfo) checkInfo.firstArg then
+                if collection.empty.specific.is (extractNormalizeResources checkInfo) checkInfo.firstArg then
                     Just
                         (alwaysResultsInUnparenthesizedConstantError
                             (qualifiedToString checkInfo.fn ++ " on " ++ collection.empty.specific.description)
@@ -15678,7 +15682,7 @@ collectionIntersectChecks collection =
 
 collectionDiffChecks : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties otherProperties)) -> CallCheckInfo -> Maybe (Error {})
 collectionDiffChecks collection checkInfo =
-    if collection.empty.specific.is (extractInferResources checkInfo) checkInfo.firstArg then
+    if collection.empty.specific.is (extractNormalizeResources checkInfo) checkInfo.firstArg then
         Just
             (alwaysResultsInUnparenthesizedConstantError
                 (qualifiedToString checkInfo.fn ++ " " ++ emptyAsString checkInfo collection)
@@ -15689,7 +15693,7 @@ collectionDiffChecks collection checkInfo =
     else
         case secondArg checkInfo of
             Just collectionArg ->
-                if isInTypeSubset collection.empty (extractInferResources checkInfo) collectionArg then
+                if isInTypeSubset collection.empty (extractNormalizeResources checkInfo) collectionArg then
                     Just
                         (Rule.errorWithFix
                             { message = "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " with " ++ emptyAsString checkInfo collection
@@ -15944,7 +15948,7 @@ collectionInsertChecks collection =
 
 collectionIsEmptyChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> CallCheckInfo -> Maybe (Error {})
 collectionIsEmptyChecks collection checkInfo =
-    case collection.elements.determineCount (extractInferResources checkInfo) checkInfo.firstArg of
+    case collection.elements.determineCount (extractNormalizeResources checkInfo) checkInfo.firstArg of
         Just (Exactly 0) ->
             Just
                 (resultsInConstantError
@@ -15967,7 +15971,7 @@ collectionIsEmptyChecks collection checkInfo =
 
 collectionSizeChecks : TypeProperties (CollectionProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 collectionSizeChecks collection checkInfo =
-    case collection.elements.determineCount (extractInferResources checkInfo) checkInfo.firstArg of
+    case collection.elements.determineCount (extractNormalizeResources checkInfo) checkInfo.firstArg of
         Just (Exactly size) ->
             Just
                 (Rule.errorWithFix
@@ -16282,6 +16286,21 @@ type alias IfCheckInfo =
     { lookupTable : ModuleNameLookupTable
     , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
     , importLookup : ImportLookup
+    , importCustomTypes :
+        Dict
+            ModuleName
+            (Dict
+                String
+                { variantNames : Set String
+                , allParametersAreUsedInVariants : Bool
+                }
+            )
+    , moduleCustomTypes :
+        Dict
+            String
+            { variantNames : Set String
+            , allParametersAreUsedInVariants : Bool
+            }
     , moduleBindings : Set String
     , localBindings : RangeDict (Set String)
     , nodeRange : Range
@@ -18919,7 +18938,7 @@ trueInAllBranches isSpecific baseExpressionNode =
                 False
 
 
-expressionToComparable : Infer.Resources a -> Node Expression -> Maybe ComparableExpression
+expressionToComparable : Normalize.Resources a -> Node Expression -> Maybe ComparableExpression
 expressionToComparable resources expressionNode =
     normalizedExpressionToComparableWithSign 1 (Normalize.normalize resources expressionNode)
 
