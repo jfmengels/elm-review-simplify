@@ -179,7 +179,7 @@ all =
             )
         , Test.fuzz
             (Fuzz.map Set.fromList (Fuzz.list (Fuzz.pair Fuzz.float Fuzz.float)))
-            "Set.foldr (::) [] is the same as List.reverse"
+            "Set.foldr (::) [] is the same as Set.toList"
             (\set ->
                 set
                     |> Set.foldr (::) []
