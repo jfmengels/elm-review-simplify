@@ -178,6 +178,16 @@ all =
                         (list |> List.reverse)
             )
         , Test.fuzz
+            (Fuzz.map Set.fromList (Fuzz.list Fuzz.float))
+            "Set.foldr (::) [] is the same as List.reverse"
+            (\set ->
+                set
+                    |> Set.foldr (::) []
+                    |> compareListOf compareFloatNaNIsEqual
+                        (set |> Set.toList)
+                    |> Expect.equal EQ
+            )
+        , Test.fuzz
             Fuzz.int
             "List.range n n is the same as [ n ]"
             (\n ->

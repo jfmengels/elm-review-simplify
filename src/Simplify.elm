@@ -1289,6 +1289,9 @@ Destructuring using case expressions
     Tuple.first (Set.partition f set)
     --> Set.filter f set
 
+    Set.foldr (::) [] set
+    --> Set.toList set
+
     -- The following simplifications for Set.foldl also work for Set.foldr
     Set.foldl f initial Set.empty
     --> initial
@@ -8757,7 +8760,32 @@ setFoldlChecks =
 
 setFoldrChecks : IntoFnCheck
 setFoldrChecks =
-    intoFnCheckOnlyCall (emptiableFoldChecks setCollection)
+    intoFnCheckOnlyCall
+        (\checkInfo ->
+            emptiableFoldChecks setCollection checkInfo
+                |> onNothing
+                    (\() ->
+                        case secondArg checkInfo of
+                            Nothing ->
+                                Nothing
+
+                            Just initialArg ->
+                                if
+                                    isEmptyList initialArg
+                                        && AstHelpers.isSpecificUnappliedBinaryOperation "::" checkInfo checkInfo.firstArg
+                                then
+                                    Just
+                                        (operationWithSpecificArgsIsEquivalentToFnError
+                                            { specificArgsDescription = "(::) []"
+                                            , replacementFn = Fn.Set.toList
+                                            }
+                                            checkInfo
+                                        )
+
+                                else
+                                    Nothing
+                    )
+        )
 
 
 
