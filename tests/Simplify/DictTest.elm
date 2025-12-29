@@ -2763,6 +2763,78 @@ import Dict
 a = always
 """
                         ]
+        , test "should replace Dict.foldl Dict.insert Dict.empty by identity" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldl Dict.insert Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldl Dict.insert Dict.empty will always return the same given dict"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Dict.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = identity
+"""
+                        ]
+        , test "should replace dict |> Dict.foldl (\\k -> k |> Dict.insert) Dict.empty by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = dict |> Dict.foldl (\\k -> k |> Dict.insert) Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldl Dict.insert Dict.empty will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace dict |> Dict.foldl (\\k v -> d |> Dict.insert k) Dict.empty by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = dict |> Dict.foldl (\\k v -> v |> Dict.insert k) Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldl Dict.insert Dict.empty will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
+        , test "should replace dict |> Dict.foldl (\\k v d -> d |> Dict.insert k v) Dict.empty by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = dict |> Dict.foldl (\\k v d -> d |> Dict.insert k v) Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldl Dict.insert Dict.empty will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
+"""
+                        ]
         ]
 
 
@@ -2926,6 +2998,42 @@ a = Dict.foldr (\\_ _ soFar -> soFar)
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = always
+"""
+                        ]
+        , test "should replace Dict.foldr Dict.insert Dict.empty by identity" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldr Dict.insert Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr Dict.insert Dict.empty will always return the same given dict"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = identity
+"""
+                        ]
+        , test "should replace dict |> Dict.foldr (\\k v d -> d |> Dict.insert k v) Dict.empty by dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = dict |> Dict.foldr (\\k v d -> d |> Dict.insert k v) Dict.empty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr Dict.insert Dict.empty will always return the same given dict"
+                            , details = [ "You can replace this call by the dict itself." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict
 """
                         ]
         ]
