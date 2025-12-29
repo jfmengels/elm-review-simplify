@@ -1442,6 +1442,8 @@ Destructuring using case expressions
     Dict.foldl (\_ soFar -> soFar) initial dict
     --> initial
 
+    Dict.foldl Dict.insert Dict.empty dict
+
     List.foldl (\v s -> f v s) init (Dict.values dict)
     --> Dict.foldl (\_ v s -> f v s) init dict
 
@@ -9239,12 +9241,42 @@ dictToListChecks =
 
 dictFoldlChecks : IntoFnCheck
 dictFoldlChecks =
-    intoFnCheckOnlyCall (emptiableFoldWithExtraArgChecks dictCollection)
+    intoFnCheckOnlyCall dictFoldChecks
 
 
 dictFoldrChecks : IntoFnCheck
 dictFoldrChecks =
-    intoFnCheckOnlyCall (emptiableFoldWithExtraArgChecks dictCollection)
+    intoFnCheckOnlyCall dictFoldChecks
+
+
+dictFoldChecks : CallCheckInfo -> Maybe (Error {})
+dictFoldChecks checkInfo =
+    emptiableFoldWithExtraArgChecks dictCollection checkInfo
+        |> onNothing
+            (\() ->
+                if checkInfo.expectNaN then
+                    Nothing
+
+                else
+                    case secondArg checkInfo of
+                        Nothing ->
+                            Nothing
+
+                        Just initialArg ->
+                            if
+                                AstHelpers.isSpecificValueReference checkInfo.lookupTable Fn.Dict.empty initialArg
+                                    && AstHelpers.isSpecificValueOrFn Fn.Dict.insert checkInfo checkInfo.firstArg
+                            then
+                                Just
+                                    (alwaysReturnsLastArgError
+                                        (qualifiedToString checkInfo.fn ++ " Dict.insert Dict.empty")
+                                        dictCollection
+                                        checkInfo
+                                    )
+
+                            else
+                                Nothing
+            )
 
 
 

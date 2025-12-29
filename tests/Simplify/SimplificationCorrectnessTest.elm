@@ -207,6 +207,24 @@ all =
                         set
             )
         , Test.fuzz
+            (Fuzz.map Dict.fromList (Fuzz.list (Fuzz.pair Fuzz.niceFloat Fuzz.string)))
+            "Dict.foldr Dict.insert Dict.empty is the same as identity"
+            (\dict ->
+                dict
+                    |> Dict.foldr Dict.insert Dict.empty
+                    |> Expect.equalDicts
+                        dict
+            )
+        , Test.fuzz
+            (Fuzz.map Dict.fromList (Fuzz.list (Fuzz.pair Fuzz.niceFloat Fuzz.string)))
+            "Dict.foldl Dict.insert Dict.empty is the same as identity"
+            (\dict ->
+                dict
+                    |> Dict.foldl Dict.insert Dict.empty
+                    |> Expect.equalDicts
+                        dict
+            )
+        , Test.fuzz
             Fuzz.int
             "List.range n n is the same as [ n ]"
             (\n ->
