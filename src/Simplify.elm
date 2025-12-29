@@ -822,6 +822,9 @@ Destructuring using case expressions
     List.foldr (::) [] list
     --> list
 
+    List.foldl (::) [] list
+    --> List.reverse list
+
     -- The following simplifications for List.foldl also work for List.foldr
     List.foldl f x []
     --> x
@@ -7505,7 +7508,31 @@ getNonEmptyListRangeCall checkInfo expressionNode =
 
 listFoldlChecks : IntoFnCheck
 listFoldlChecks =
-    listFoldChecks "foldl" "foldr"
+    intoFnChecksFirstThatConstructsError
+        [ listFoldChecks "foldl" "foldr"
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case secondArg checkInfo of
+                    Nothing ->
+                        Nothing
+
+                    Just initialArg ->
+                        if
+                            isEmptyList initialArg
+                                && AstHelpers.isSpecificUnappliedBinaryOperation "::" checkInfo checkInfo.firstArg
+                        then
+                            Just
+                                (operationWithSpecificArgsIsEquivalentToFnError
+                                    { specificArgsDescription = "(::) []"
+                                    , replacementFn = Fn.List.reverse
+                                    }
+                                    checkInfo
+                                )
+
+                        else
+                            Nothing
+            )
+        ]
 
 
 listFoldrChecks : IntoFnCheck

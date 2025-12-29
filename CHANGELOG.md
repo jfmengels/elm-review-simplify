@@ -89,6 +89,7 @@ The rule now simplifies:
 - `List.foldr (++) "" list` to `String.concat list`
 - `List.foldr (++) [] list` to `List.concat list`
 - `List.foldr (::) [] list` to `list`
+- `List.foldl (::) [] list` to `List.reverse list`
 - `List.range n n` to `[ n ]`
 - `List.minimum (List.range 2 3)` to `Just 2`
 - `List.maximum (List.range 2 3)` to `Just 3`

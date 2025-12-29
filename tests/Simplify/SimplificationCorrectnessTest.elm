@@ -160,13 +160,22 @@ all =
                         )
             )
         , Test.fuzz
-            (Fuzz.list (Fuzz.list Fuzz.string))
+            (Fuzz.list Fuzz.string)
             "List.foldr (::) [] is the same as identity"
             (\list ->
                 list
                     |> List.foldr (::) []
                     |> Expect.equalLists
                         list
+            )
+        , Test.fuzz
+            (Fuzz.list Fuzz.string)
+            "List.foldl (::) [] is the same as List.reverse"
+            (\list ->
+                list
+                    |> List.foldl (::) []
+                    |> Expect.equalLists
+                        (list |> List.reverse)
             )
         , Test.fuzz
             Fuzz.int
