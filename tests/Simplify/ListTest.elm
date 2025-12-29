@@ -4535,6 +4535,38 @@ a = List.foldl f x (List.reverse list)
 a = List.foldr f x list
 """
                         ]
+        , test "should replace List.foldl (::) [] by List.reverse" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (::) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldl (::) [] is the same as List.reverse"
+                            , details = [ "You can replace this call by List.reverse which is meant for this exact purpose." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.reverse
+"""
+                        ]
+        , test "should replace list |> List.foldl (::) [] by list |> List.reverse" <|
+            \() ->
+                """module A exposing (..)
+a = list |> List.foldl (::) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldl (::) [] is the same as List.reverse"
+                            , details = [ "You can replace this call by List.reverse which is meant for this exact purpose." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list |> List.reverse
+"""
+                        ]
         , listFoldlSumTests
         , listFoldlProductTests
         , listFoldlAllTests
