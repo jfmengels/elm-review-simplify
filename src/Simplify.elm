@@ -1299,6 +1299,7 @@ Destructuring using case expressions
     Set.foldl (\_ soFar -> soFar) initial set
     --> initial
 
+    -- when `expectNaN` is not enabled
     Set.foldl Set.insert Set.empty set
     --> set
 
@@ -1347,7 +1348,7 @@ Destructuring using case expressions
     Dict.member -999 (Dict.fromList [ ( 0, v0 ), ( 1, v1 ) ])
     --> False
 
-    -- when `expectNaN` is enabled
+    -- when `expectNaN` is not enabled
     Dict.member x (Dict.fromList list)
     --> List.any (Tuple.first >> (==) x) list
 
@@ -1448,7 +1449,9 @@ Destructuring using case expressions
     Dict.foldl (\_ soFar -> soFar) initial dict
     --> initial
 
+    -- when `expectNaN` is not enabled
     Dict.foldl Dict.insert Dict.empty dict
+    --> dict
 
     List.foldl (\v s -> f v s) init (Dict.values dict)
     --> Dict.foldl (\_ v s -> f v s) init dict
