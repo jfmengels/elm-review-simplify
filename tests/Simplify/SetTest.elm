@@ -2946,4 +2946,40 @@ import Set
 a = always
 """
                         ]
+        , test "should replace Set.foldr (::) [] by Set.toList" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.foldr (::) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.foldr (::) [] is the same as Set.toList"
+                            , details = [ "You can replace this call by Set.toList which is meant for this exact purpose." ]
+                            , under = "Set.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.toList
+"""
+                        ]
+        , test "should replace set |> Set.foldr (\\h t -> h :: t) [] by set |> Set.toList" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = set |> Set.foldr (\\h t -> h :: t) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.foldr (::) [] is the same as Set.toList"
+                            , details = [ "You can replace this call by Set.toList which is meant for this exact purpose." ]
+                            , under = "Set.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = set |> Set.toList
+"""
+                        ]
         ]
