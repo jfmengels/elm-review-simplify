@@ -7576,7 +7576,7 @@ listFoldrChecks =
                         then
                             Just
                                 (alwaysReturnsLastArgError
-                                    (qualifiedToString checkInfo.fn ++ "(::) []")
+                                    (qualifiedToString checkInfo.fn ++ " (::) []")
                                     listCollection
                                     checkInfo
                                 )
