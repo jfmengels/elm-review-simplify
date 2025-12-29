@@ -6011,6 +6011,38 @@ a = List.foldr (\\l r -> r |> List.append l) []
 a = List.concat
 """
                         ]
+        , test "should replace List.foldr (::) [] by identity" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (::) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (::) [] will always return the same given list"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace list |> List.foldr (::) [] by list" <|
+            \() ->
+                """module A exposing (..)
+a = list |> List.foldr (::) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.foldr (::) [] will always return the same given list"
+                            , details = [ "You can replace this call by the list itself." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = list
+"""
+                        ]
         , listFoldrSumTests
         , listFoldrProductTests
         , listFoldrAllTests

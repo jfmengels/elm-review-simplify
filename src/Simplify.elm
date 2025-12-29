@@ -819,6 +819,9 @@ Destructuring using case expressions
     List.foldr (++) [] list
     --> List.concat list
 
+    List.foldr (::) [] list
+    --> list
+
     -- The following simplifications for List.foldl also work for List.foldr
     List.foldl f x []
     --> x
@@ -7537,6 +7540,17 @@ listFoldrChecks =
                                     { specificArgsDescription = "(++) []"
                                     , replacementFn = Fn.List.concat
                                     }
+                                    checkInfo
+                                )
+
+                        else if
+                            isEmptyList initialArg
+                                && AstHelpers.isSpecificUnappliedBinaryOperation "::" checkInfo checkInfo.firstArg
+                        then
+                            Just
+                                (alwaysReturnsLastArgError
+                                    (qualifiedToString checkInfo.fn ++ " (::) []")
+                                    listCollection
                                     checkInfo
                                 )
 

@@ -151,13 +151,22 @@ all =
         , Test.fuzz
             (Fuzz.list (Fuzz.list Fuzz.string))
             "List.foldr List.append [] is the same as List.concat"
-            (\strings ->
-                strings
+            (\lists ->
+                lists
                     |> List.foldr List.append []
                     |> Expect.equal
-                        (strings
+                        (lists
                             |> List.concat
                         )
+            )
+        , Test.fuzz
+            (Fuzz.list (Fuzz.list Fuzz.string))
+            "List.foldr (::) [] is the same as identity"
+            (\list ->
+                list
+                    |> List.foldr (::) []
+                    |> Expect.equalLists
+                        list
             )
         , Test.fuzz
             Fuzz.int
