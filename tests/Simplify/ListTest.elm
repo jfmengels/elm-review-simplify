@@ -4367,10 +4367,10 @@ a = List.foldl (\\a -> f a) init (Dict.values dict)
 a = Dict.foldl (\\_ a -> f a) init dict
 """
                         ]
-        , test "should replace List.foldl (if c then \\a s -> f a s else \\a -> f a) init (Dict.values dict) by Dict.foldl (if c then \\_ a s -> f a s else \\_ a -> f a) init dict" <|
+        , test "should replace List.foldl (if c then \\a s -> f a else \\a -> f a) init (Dict.values dict) by Dict.foldl (if c then \\_ a s -> f a else \\_ a -> f a) init dict" <|
             \() ->
                 """module A exposing (..)
-a = List.foldl (if c then \\a s -> f a s else \\a -> f a) init (Dict.values dict)
+a = List.foldl (if c then \\a s -> f a else \\a -> f a) init (Dict.values dict)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -4381,7 +4381,7 @@ a = List.foldl (if c then \\a s -> f a s else \\a -> f a) init (Dict.values dict
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Dict.foldl (if c then \\_ a s -> f a s else \\_ a -> f a) init dict
+a = Dict.foldl (if c then \\_ a s -> f a else \\_ a -> f a) init dict
 """
                         ]
         , test "should replace List.foldl f init (Dict.values dict) by Dict.foldl (always f) init dict" <|
@@ -5644,10 +5644,10 @@ a = List.foldr (\\a -> f a) init (Dict.values dict)
 a = Dict.foldr (\\_ a -> f a) init dict
 """
                         ]
-        , test "should replace List.foldr (if c then \\a s -> f a s else \\a -> f a) init (Dict.values dict) by Dict.foldr (if c then \\_ a s -> f a s else \\_ a -> f a) init dict" <|
+        , test "should replace List.foldr (if c then \\a s -> f a else \\a -> f a) init (Dict.values dict) by Dict.foldr (if c then \\_ a s -> f a else \\_ a -> f a) init dict" <|
             \() ->
                 """module A exposing (..)
-a = List.foldr (if c then \\a s -> f a s else \\a -> f a) init (Dict.values dict)
+a = List.foldr (if c then \\a s -> f a else \\a -> f a) init (Dict.values dict)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -5658,7 +5658,7 @@ a = List.foldr (if c then \\a s -> f a s else \\a -> f a) init (Dict.values dict
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Dict.foldr (if c then \\_ a s -> f a s else \\_ a -> f a) init dict
+a = Dict.foldr (if c then \\_ a s -> f a else \\_ a -> f a) init dict
 """
                         ]
         , test "should replace List.foldr f init (Dict.values dict) by Dict.foldr (always f) init dict" <|

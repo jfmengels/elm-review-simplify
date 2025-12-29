@@ -1,9 +1,9 @@
 module Simplify.AstHelpers exposing
-    ( ReduceLambdaResources
-    , removeParens, removeParensFromPattern
+    ( removeParens, removeParensFromPattern
+    , ReduceLambdaResources, reduceLambda
     , getValueOrFnOrFnCall, getUnreducedValueOrFnOrFnCall
     , getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
-    , isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
+    , isIdentity, getAlwaysResult
     , isTupleFirstAccess, isTupleSecondAccess
     , getAccessingRecord, getRecordAccessFunction
     , getOrder, getBool, getBoolPattern, getUncomputedNumberValue
@@ -19,14 +19,14 @@ module Simplify.AstHelpers exposing
 {-|
 
 
-## resources
-
-@docs ReduceLambdaResources
-
-
 ### remove parens
 
 @docs removeParens, removeParensFromPattern
+
+
+## reduce lambda
+
+@docs ReduceLambdaResources, reduceLambda
 
 
 ### value/function/function call/composition
@@ -37,7 +37,7 @@ module Simplify.AstHelpers exposing
 
 ### certain kind
 
-@docs isIdentity, getAlwaysResult, isSpecificUnappliedBinaryOperation
+@docs isIdentity, getAlwaysResult
 @docs isTupleFirstAccess, isTupleSecondAccess
 @docs getAccessingRecord, getRecordAccessFunction
 @docs getOrder, getBool, getBoolPattern, getUncomputedNumberValue
@@ -79,8 +79,6 @@ import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNam
 import Set exposing (Set)
 import Simplify.CallStyle as CallStyle exposing (FunctionCallStyle)
 import Simplify.CoreHelpers exposing (drop2EndingsWhile, list2AreSameLengthAndAll)
-import Simplify.Infer as Infer
-import Simplify.Normalize as Normalize
 
 
 {-| Keep removing parens from the outside until we have something different from a `ParenthesizedExpression`
@@ -623,33 +621,23 @@ getReducedLambda :
             , lambdaPatterns : List (Node Pattern)
             , callStyle : FunctionCallStyle
             }
-getReducedLambda context expressionNode =
+getReducedLambda resources expressionNode =
     -- maybe a version of this is better located in Normalize?
     case getCollapsedLambda expressionNode of
         Just lambda ->
             case getUnreducedValueOrFnOrFnCall lambda.expression of
                 Just call ->
                     let
-                        ( reducedCallArguments, reducedLambdaPatterns ) =
-                            drop2EndingsWhile
-                                (\argument pattern ->
-                                    not
-                                        (expressionContainsAnyVariableInIgnoring
-                                            (patternBindings (Node.value pattern))
-                                            argument
-                                            lambda.expression
-                                        )
-                                        && expressionReconstructsDestructuringPattern context argument pattern
-                                )
-                                call.args
-                                lambda.patterns
+                        reduced : { lambdaPatterns : List (Node Pattern), callArguments : List (Node Expression) }
+                        reduced =
+                            reduceLambda resources { args = lambda.patterns, expression = lambda.expression } call.args
                     in
                     Just
                         { nodeRange = Node.range expressionNode
                         , fnName = call.fnName
                         , fnRange = call.fnRange
-                        , callArguments = reducedCallArguments
-                        , lambdaPatterns = reducedLambdaPatterns
+                        , callArguments = reduced.callArguments
+                        , lambdaPatterns = reduced.lambdaPatterns
                         , callStyle = call.callStyle
                         }
 
@@ -658,6 +646,38 @@ getReducedLambda context expressionNode =
 
         _ ->
             Nothing
+
+
+{-| Cancel out call arguments that reconstruct lambda patterns in the same
+position and without variables being mentioned anywhere else
+-}
+reduceLambda :
+    ReduceLambdaResources a
+    -> Expression.Lambda
+    -> List (Node Expression)
+    ->
+        { lambdaPatterns : List (Node Pattern)
+        , callArguments : List (Node Expression)
+        }
+reduceLambda resources lambda callArguments =
+    let
+        ( reducedCallArguments, reducedLambdaPatterns ) =
+            drop2EndingsWhile
+                (\argument pattern ->
+                    not
+                        (expressionContainsAnyVariableInIgnoring
+                            (patternBindings (Node.value pattern))
+                            argument
+                            lambda.expression
+                        )
+                        && expressionReconstructsDestructuringPattern resources argument pattern
+                )
+                callArguments
+                lambda.args
+    in
+    { lambdaPatterns = reducedLambdaPatterns
+    , callArguments = reducedCallArguments
+    }
 
 
 expressionContainsAnyVariableInIgnoring : Set String -> Node Expression -> Node Expression -> Bool
@@ -1357,52 +1377,6 @@ getOrder lookupTable expressionNode =
 
     else
         Nothing
-
-
-{-| Whether a given expression can be called with 2 operands and produces the same result as an operation with a given operator.
-Is either a function reducible to the operator in prefix notation `(op)` or a lambda `\a b -> a op b`.
--}
-isSpecificUnappliedBinaryOperation : String -> Infer.Resources a -> Node Expression -> Bool
-isSpecificUnappliedBinaryOperation symbol checkInfo expression =
-    case expression |> Normalize.normalize checkInfo |> Node.value of
-        Expression.PrefixOperator operatorSymbol ->
-            operatorSymbol == symbol
-
-        Expression.LambdaExpression lambda ->
-            case lambda.args of
-                [ Node _ (Pattern.VarPattern element) ] ->
-                    case Node.value lambda.expression of
-                        Expression.Application [ Node _ (Expression.PrefixOperator operatorSymbol), Node _ (Expression.FunctionOrValue [] argument) ] ->
-                            (operatorSymbol == symbol)
-                                && (argument == element)
-
-                        -- no simple application
-                        _ ->
-                            False
-
-                [ Node _ (Pattern.VarPattern element), Node _ (Pattern.VarPattern soFar) ] ->
-                    case Node.value lambda.expression of
-                        Expression.Application [ Node _ (Expression.PrefixOperator operatorSymbol), Node _ (Expression.FunctionOrValue [] left), Node _ (Expression.FunctionOrValue [] right) ] ->
-                            (operatorSymbol == symbol)
-                                && ((left == element && right == soFar)
-                                        || (left == soFar && right == element)
-                                   )
-
-                        Expression.OperatorApplication operatorSymbol _ (Node _ (Expression.FunctionOrValue [] left)) (Node _ (Expression.FunctionOrValue [] right)) ->
-                            (operatorSymbol == symbol)
-                                && ((left == element && right == soFar)
-                                        || (left == soFar && right == element)
-                                   )
-
-                        _ ->
-                            False
-
-                _ ->
-                    False
-
-        -- not a known simple operator function
-        _ ->
-            False
 
 
 {-| Indicates whether this value is potentially NaN,
