@@ -88,6 +88,7 @@ The rule now simplifies:
 - `Cmd.map f (Task.attempt identity task)` to `Task.attempt f task`
 - `List.foldr (++) "" list` to `String.concat list`
 - `List.foldr (++) [] list` to `List.concat list`
+- `List.foldr (::) [] list` to `list`
 - `List.range n n` to `[ n ]`
 - `List.minimum (List.range 2 3)` to `Just 2`
 - `List.maximum (List.range 2 3)` to `Just 3`
