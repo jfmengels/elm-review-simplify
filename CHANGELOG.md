@@ -95,6 +95,7 @@ The rule now simplifies:
 - `Dict.foldl Dict.insert Dict.empty dict` to `dict` (same for `Dict.foldr`)
 - `Dict.foldr (\k _ ks -> k :: ks) [] dict` to `Dict.keys dict`
 - `Dict.foldr (\_ v vs -> v :: vs) [] dict` to `Dict.values dict`
+- `Dict.foldr (\k v kvs -> ( k, v ) :: kvs) [] dict` to `Dict.toList dict`
 - `List.range n n` to `[ n ]`
 - `List.minimum (List.range 2 3)` to `Just 2`
 - `List.maximum (List.range 2 3)` to `Just 3`
