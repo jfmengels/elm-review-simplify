@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.1.11] - 2025-12-30
+
 - Disabled `List.concat` simplifications that merged `List.concat` without structure.
 ```elm
 grid =
@@ -791,7 +793,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/2.1.10...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/2.1.11...HEAD
+[2.1.11]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.11
 [2.1.10]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.10
 [2.1.9]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.9
 [2.1.8]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.8
