@@ -9304,7 +9304,7 @@ dictFoldrChecks =
                                             )
 
                                     else if
-                                        case getFunctionWithFirstSecondAndIncomingAsTuple checkInfo checkInfo.firstArg of
+                                        case getFunctionWithFirstAndSecondIncomingAsTuple checkInfo checkInfo.firstArg of
                                             Nothing ->
                                                 False
 
@@ -9330,11 +9330,11 @@ dictFoldrChecks =
         )
 
 
-getFunctionWithFirstSecondAndIncomingAsTuple :
+getFunctionWithFirstAndSecondIncomingAsTuple :
     AstHelpers.ReduceLambdaResources a
     -> Node Expression
     -> Maybe (Node Expression)
-getFunctionWithFirstSecondAndIncomingAsTuple resources expressionNode =
+getFunctionWithFirstAndSecondIncomingAsTuple resources expressionNode =
     case AstHelpers.getCollapsedLambda expressionNode of
         Nothing ->
             Nothing
