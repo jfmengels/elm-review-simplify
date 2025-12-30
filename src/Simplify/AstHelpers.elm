@@ -3,6 +3,7 @@ module Simplify.AstHelpers exposing
     , ReduceLambdaResources, reduceLambda
     , getValueOrFnOrFnCall, getUnreducedValueOrFnOrFnCall
     , getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
+    , getCollapsedLambda
     , isIdentity, getAlwaysResult
     , isTupleFirstAccess, isTupleSecondAccess
     , getAccessingRecord, getRecordAccessFunction
@@ -37,6 +38,7 @@ module Simplify.AstHelpers exposing
 
 ### certain kind
 
+@docs getCollapsedLambda
 @docs isIdentity, getAlwaysResult
 @docs isTupleFirstAccess, isTupleSecondAccess
 @docs getAccessingRecord, getRecordAccessFunction

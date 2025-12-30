@@ -3146,4 +3146,76 @@ import Dict
 a = dict |> Dict.keys
 """
                         ]
+        , test "should replace Dict.foldr (\\k v kvs -> ( k, v ) :: kvs) [] by Dict.toList" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.foldr (\\k v kvs -> ( k, v ) :: kvs) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr (\\k v kvs -> ( k, v ) :: kvs) [] is the same as Dict.toList"
+                            , details = [ "You can replace this call by Dict.toList which is meant for this exact purpose." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.toList
+"""
+                        ]
+        , test "should replace dict |> Dict.foldr (\\k v -> (::) <| ( k, v )) [] by dict |> Dict.toList" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = dict |> Dict.foldr (\\k v -> (::) <| ( k, v )) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr (\\k v kvs -> ( k, v ) :: kvs) [] is the same as Dict.toList"
+                            , details = [ "You can replace this call by Dict.toList which is meant for this exact purpose." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict |> Dict.toList
+"""
+                        ]
+        , test "should replace dict |> Dict.foldr (\\k -> (::) << Tuple.pair k) [] by dict |> Dict.toList" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = dict |> Dict.foldr (\\k -> (::) << Tuple.pair k) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr (\\k v kvs -> ( k, v ) :: kvs) [] is the same as Dict.toList"
+                            , details = [ "You can replace this call by Dict.toList which is meant for this exact purpose." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict |> Dict.toList
+"""
+                        ]
+        , test "should replace dict |> Dict.foldr (\\k -> Tuple.pair k >> (::)) [] by dict |> Dict.toList" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = dict |> Dict.foldr (\\k -> Tuple.pair k >> (::)) []
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.foldr (\\k v kvs -> ( k, v ) :: kvs) [] is the same as Dict.toList"
+                            , details = [ "You can replace this call by Dict.toList which is meant for this exact purpose." ]
+                            , under = "Dict.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = dict |> Dict.toList
+"""
+                        ]
         ]

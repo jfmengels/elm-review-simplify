@@ -1442,6 +1442,9 @@ Destructuring using case expressions
     Dict.foldr (\_ v vs -> v :: vs) [] dict
     --> Dict.values dict
 
+    Dict.foldr (\k v kvs -> ( k, v ) :: kvs) [] dict
+    --> Dict.toList dict
+
     -- The following foldl simplifications also work for foldr
     Dict.foldl f initial Dict.empty
     --> initial
@@ -9300,6 +9303,24 @@ dictFoldrChecks =
                                                 checkInfo
                                             )
 
+                                    else if
+                                        case getFunctionWithFirstAndSecondIncomingAsTuple checkInfo checkInfo.firstArg of
+                                            Nothing ->
+                                                False
+
+                                            Just reduceFunctionWithKeyValueIncomingAsTuple ->
+                                                Normalize.isSpecificUnappliedBinaryOperation "::"
+                                                    checkInfo
+                                                    reduceFunctionWithKeyValueIncomingAsTuple
+                                    then
+                                        Just
+                                            (operationWithSpecificArgsIsEquivalentToFnError
+                                                { specificArgsDescription = "(\\k v kvs -> ( k, v ) :: kvs) []"
+                                                , replacementFn = Fn.Dict.toList
+                                                }
+                                                checkInfo
+                                            )
+
                                     else
                                         Nothing
 
@@ -9307,6 +9328,55 @@ dictFoldrChecks =
                                     Nothing
                     )
         )
+
+
+getFunctionWithFirstAndSecondIncomingAsTuple :
+    AstHelpers.ReduceLambdaResources a
+    -> Node Expression
+    -> Maybe (Node Expression)
+getFunctionWithFirstAndSecondIncomingAsTuple resources expressionNode =
+    case AstHelpers.getCollapsedLambda expressionNode of
+        Nothing ->
+            Nothing
+
+        Just lambda ->
+            case lambda.patterns of
+                keyPattern :: valuePattern :: patternsAfterKeyValue ->
+                    Just
+                        (Node.empty
+                            (Expression.LambdaExpression
+                                { args =
+                                    Node.empty (Pattern.TuplePattern [ keyPattern, valuePattern ])
+                                        :: patternsAfterKeyValue
+                                , expression = lambda.expression
+                                }
+                            )
+                        )
+
+                [ keyPatternOnly ] ->
+                    case getFullComposition lambda.expression of
+                        Nothing ->
+                            Nothing
+
+                        Just fullComposition ->
+                            if
+                                AstHelpers.isSpecificValueOrFn Fn.Tuple.pair
+                                    resources
+                                    (Node.empty
+                                        (Expression.LambdaExpression
+                                            { args = [ keyPatternOnly ]
+                                            , expression = fullComposition.earlier
+                                            }
+                                        )
+                                    )
+                            then
+                                Just fullComposition.composedLater
+
+                            else
+                                Nothing
+
+                _ ->
+                    Nothing
 
 
 getFunctionIgnoringSecondIncoming :

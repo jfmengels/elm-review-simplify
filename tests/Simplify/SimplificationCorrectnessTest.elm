@@ -245,6 +245,16 @@ all =
                     |> Expect.equal EQ
             )
         , Test.fuzz
+            (Fuzz.map Dict.fromList (Fuzz.list (Fuzz.pair (Fuzz.pair Fuzz.float Fuzz.float) Fuzz.string)))
+            "Dict.foldr (\\k -> (::) << Tuple.pair k) [] is the same as Dict.keys"
+            (\dict ->
+                dict
+                    |> Dict.foldr (\k -> (::) << Tuple.pair k) []
+                    |> compareListOf (compareTuple (compareTuple compareFloatNaNIsEqual compareFloatNaNIsEqual) compare)
+                        (Dict.toList dict)
+                    |> Expect.equal EQ
+            )
+        , Test.fuzz
             Fuzz.int
             "List.range n n is the same as [ n ]"
             (\n ->
