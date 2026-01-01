@@ -4,6 +4,7 @@
 
 The rule now simplifies:
 - `List.head (List.map f list)` to `Maybe.map f (List.head list)`
+- `List.take n (List.map f list)` to `List.map f (List.take n list)`
 
 ## [2.1.11] - 2025-12-30
 

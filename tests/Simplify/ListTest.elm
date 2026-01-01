@@ -9290,9 +9290,10 @@ listTakeTests =
         [ test "should not report List.take that contains a variable or expression" <|
             \() ->
                 """module A exposing (..)
-a = List.take 2 list
-b = List.take y [ 1, 2, 3 ]
-b = List.take n0 (List.take n1 list)
+a0 = List.take 2 list
+a1 = List.take y [ 1, 2, 3 ]
+a2 = List.take n0 (List.take n1 list)
+a3 = List.map f << List.take n
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -9409,6 +9410,86 @@ a = List.take -1
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = always []
+"""
+                        ]
+        , test "should replace List.take n (List.map f list) by List.map f (List.take n list)" <|
+            \() ->
+                """module A exposing (..)
+a = List.take n (List.map f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.take on List.map can be optimized to List.map on List.take"
+                            , details = [ "You can replace this call by List.map with the function given to the original List.map, on List.take." ]
+                            , under = "List.take"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.map f (List.take n list))
+"""
+                        ]
+        , test "should replace List.take n (list |> List.map f) by List.take n list |> List.map f" <|
+            \() ->
+                """module A exposing (..)
+a = List.take n (list |> List.map f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.take on List.map can be optimized to List.map on List.take"
+                            , details = [ "You can replace this call by List.map with the function given to the original List.map, on List.take." ]
+                            , under = "List.take"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ((List.take n list) |> List.map f)
+"""
+                        ]
+        , test "should replace (List.map f <| list) |> List.take n by List.map f <| (list |> List.take n)" <|
+            \() ->
+                """module A exposing (..)
+a = (List.map f <| list) |> List.take n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.take on List.map can be optimized to List.map on List.take"
+                            , details = [ "You can replace this call by List.map with the function given to the original List.map, on List.take." ]
+                            , under = "List.take"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.map f <| (list |> List.take n))
+"""
+                        ]
+        , test "should replace List.take n << List.map f by List.map f << List.take n" <|
+            \() ->
+                """module A exposing (..)
+a = List.take n << List.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.take on List.map can be optimized to List.map on List.take"
+                            , details = [ "You can replace this composition by List.take, then List.map with the function given to the original List.map." ]
+                            , under = "List.take"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.map f << List.take n)
+"""
+                        ]
+        , test "should replace List.map f >> List.take n by List.take n >> List.map f" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f >> List.take n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.take on List.map can be optimized to List.map on List.take"
+                            , details = [ "You can replace this composition by List.take, then List.map with the function given to the original List.map." ]
+                            , under = "List.take"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.take n >> List.map f)
 """
                         ]
         ]
