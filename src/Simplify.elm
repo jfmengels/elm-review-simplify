@@ -944,6 +944,9 @@ Destructuring using case expressions
     List.take n (List.take n list)
     --> List.take n list
 
+    List.take n (List.map f list)
+    --> List.map f (List.take n list)
+
     List.drop 0 list
     --> list
 
@@ -7105,17 +7108,23 @@ listHeadChecks =
         ]
 
 
-{-| For example
+{-| The reorder checks for optimization:
+
+    later a (earlier b subject)
+    --> asLater b (later a subject)
+
+    later a << earlier b
+    --> asLater b >> later a
+
+so for example with `{ asLaterFn = Fn.List.take }`:
+
+    List.take x (List.map f list)
+    --> Maybe.map f (List.head list)
+
+or with `{ asLaterFn = Fn.Maybe.map }`:
 
     List.head (List.map f list)
     --> Maybe.map f (List.head list)
-
-Warning: Do not use for earlier functions that take additional arguments like
-
-    Array.get n (Array.map f array)
-
-    -- or
-    List.take n (List.map f list)
 
 -}
 earlierOperationCanBeMovedAfterAsForPerformanceChecks :
@@ -7156,7 +7165,7 @@ earlierOperationCanBeMovedAfterAsForPerformanceChecks config =
                             :: Fix.replaceRangeBy checkInfo.earlier.fnRange
                                 (qualifiedToString (qualify config.asLaterFn checkInfo))
                             :: composeWithEarlierFix
-                                { earlier = qualifiedToString (qualify checkInfo.later.fn checkInfo)
+                                { earlier = checkInfo.extractSourceCode checkInfo.later.range
                                 , direction = compositionCheckInfoDirection checkInfo
                                 , range = checkInfo.earlier.range
                                 }
@@ -7166,51 +7175,73 @@ earlierOperationCanBeMovedAfterAsForPerformanceChecks config =
                 Nothing
     , call =
         \checkInfo ->
-            case AstHelpers.getSpecificUnreducedFnCall config.earlierFn checkInfo.lookupTable checkInfo.firstArg of
+            case fullyAppliedLastArg checkInfo of
                 Nothing ->
                     Nothing
 
-                Just earlierFnCall ->
-                    case fullyAppliedLastArg { firstArg = earlierFnCall.firstArg, argsAfterFirst = earlierFnCall.argsAfterFirst, argCount = config.earlierFnArgCount } of
+                Just laterLastArg ->
+                    case AstHelpers.getSpecificUnreducedFnCall config.earlierFn checkInfo.lookupTable laterLastArg of
                         Nothing ->
                             Nothing
 
-                        Just earlierFnCallLastArg ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message =
-                                        qualifiedToString checkInfo.fn
-                                            ++ " on "
-                                            ++ qualifiedToString config.earlierFn
-                                            ++ " can be optimized to "
-                                            ++ qualifiedToString config.asLaterFn
-                                            ++ " on "
-                                            ++ qualifiedToString checkInfo.fn
-                                    , details =
-                                        [ "You can replace this call by "
-                                            ++ qualifiedToString config.asLaterFn
-                                            ++ " with the "
-                                            ++ config.earlierFnOperationArgsDescription
-                                            ++ " given to the original "
-                                            ++ qualifiedToString config.earlierFn
-                                            ++ ", on "
-                                            ++ qualifiedToString checkInfo.fn
-                                            ++ "."
-                                        ]
-                                    }
-                                    checkInfo.fnRange
-                                    (Fix.replaceRangeBy earlierFnCall.fnRange
-                                        (qualifiedToString (qualify config.asLaterFn checkInfo))
-                                        :: fixToCallAndParenthesize
-                                            { fn = checkInfo.fn
-                                            , style = checkInfo.callStyle
-                                            , argRange = Node.range earlierFnCallLastArg
+                        Just earlierFnCall ->
+                            case fullyAppliedLastArg { firstArg = earlierFnCall.firstArg, argsAfterFirst = earlierFnCall.argsAfterFirst, argCount = config.earlierFnArgCount } of
+                                Nothing ->
+                                    Nothing
+
+                                Just earlierFnCallLastArg ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                qualifiedToString checkInfo.fn
+                                                    ++ " on "
+                                                    ++ qualifiedToString config.earlierFn
+                                                    ++ " can be optimized to "
+                                                    ++ qualifiedToString config.asLaterFn
+                                                    ++ " on "
+                                                    ++ qualifiedToString checkInfo.fn
+                                            , details =
+                                                [ "You can replace this call by "
+                                                    ++ qualifiedToString config.asLaterFn
+                                                    ++ " with the "
+                                                    ++ config.earlierFnOperationArgsDescription
+                                                    ++ " given to the original "
+                                                    ++ qualifiedToString config.earlierFn
+                                                    ++ ", on "
+                                                    ++ qualifiedToString checkInfo.fn
+                                                    ++ "."
+                                                ]
                                             }
-                                            checkInfo
-                                        ++ replaceBySubExpressionFix checkInfo.parentRange
-                                            checkInfo.firstArg
-                                    )
-                                )
+                                            checkInfo.fnRange
+                                            (Fix.replaceRangeBy earlierFnCall.fnRange
+                                                (qualifiedToString (qualify config.asLaterFn checkInfo))
+                                                :: (case checkInfo.callStyle of
+                                                        CallStyle.Pipe CallStyle.LeftToRight ->
+                                                            [ Fix.insertAt (Node.range earlierFnCallLastArg).start "("
+                                                            , Fix.insertAt (Node.range earlierFnCallLastArg).end
+                                                                (checkInfo.extractSourceCode
+                                                                    { start = (Node.range laterLastArg).end
+                                                                    , end = checkInfo.parentRange.end
+                                                                    }
+                                                                    ++ ")"
+                                                                )
+                                                            ]
+
+                                                        _ ->
+                                                            [ Fix.insertAt (Node.range earlierFnCallLastArg).start
+                                                                ("("
+                                                                    ++ checkInfo.extractSourceCode
+                                                                        { start = checkInfo.parentRange.start
+                                                                        , end = (Node.range laterLastArg).start
+                                                                        }
+                                                                )
+                                                            , Fix.insertAt (Node.range earlierFnCallLastArg).end ")"
+                                                            ]
+                                                   )
+                                                ++ replaceBySubExpressionFix checkInfo.parentRange
+                                                    laterLastArg
+                                            )
+                                        )
     }
 
 
@@ -12597,33 +12628,6 @@ fixToCall config resources =
             Fix.insertAt config.argRange.end (" |> " ++ fnAsString)
 
 
-fixToCallAndParenthesize :
-    { fn : ( ModuleName, String ), style : FunctionCallStyle, argRange : Range }
-    -> QualifyResources a
-    -> List Fix
-fixToCallAndParenthesize config resources =
-    let
-        fnAsString : String
-        fnAsString =
-            qualifiedToString (qualify config.fn resources)
-    in
-    case config.style of
-        CallStyle.Application ->
-            [ Fix.insertAt config.argRange.start ("(" ++ fnAsString ++ " ")
-            , Fix.insertAt config.argRange.end ")"
-            ]
-
-        CallStyle.Pipe CallStyle.RightToLeft ->
-            [ Fix.insertAt config.argRange.start ("(" ++ fnAsString ++ " <| ")
-            , Fix.insertAt config.argRange.end ")"
-            ]
-
-        CallStyle.Pipe CallStyle.LeftToRight ->
-            [ Fix.insertAt config.argRange.start "("
-            , Fix.insertAt config.argRange.end (" |> " ++ fnAsString ++ ")")
-            ]
-
-
 {-| Map where the usual map function has an extra argument with special information.
 
 For example `indexedMap` also supplied an index. Not using the index would be identical to `map`.
@@ -16254,6 +16258,12 @@ collectionTakeChecks collection =
                     Nothing ->
                         Nothing
             )
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.List.map
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.List.map
+            }
         ]
 
 
