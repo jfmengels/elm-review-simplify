@@ -1141,6 +1141,9 @@ Destructuring using case expressions
     Array.get 100 (Array.initialize 10 f)
     --> Nothing
 
+    Array.get i (Array.map f array)
+    --> Maybe.map f (Array.get i array)
+
     Array.set n x Array.empty
     --> Array.empty
 
@@ -8628,7 +8631,15 @@ arrayLengthChecks =
 
 arrayGetChecks : IntoFnCheck
 arrayGetChecks =
-    intoFnCheckOnlyCall (getChecks arrayCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (\checkInfo -> getChecks arrayCollection checkInfo)
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.Array.map
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.Maybe.map
+            }
+        ]
 
 
 arrayLengthOnArrayRepeatOrInitializeChecks : CallCheckInfo -> Maybe (Error {})

@@ -2554,6 +2554,24 @@ import Array
 a = Just (f 2)
 """
                         ]
+        , test "should replace Array.get i (Array.map f array) by Maybe.map f (Array.get i array)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.get i (Array.map f array)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.get on Array.map can be optimized to Maybe.map on Array.get"
+                            , details = [ "You can replace this call by Maybe.map with the function given to the original Array.map, on Array.get." ]
+                            , under = "Array.get"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (Maybe.map f (Array.get i array))
+"""
+                        ]
         ]
 
 
