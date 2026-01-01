@@ -956,6 +956,9 @@ Destructuring using case expressions
     List.drop 2 [ a, b, c ]
     --> [ c ]
 
+    List.drop n (List.map f list)
+    --> List.map f (List.drop n list)
+
     List.reverse []
     --> []
 
@@ -8528,6 +8531,12 @@ listDropChecks =
                                     )
                         )
             )
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.List.map
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.List.map
+            }
         ]
 
 

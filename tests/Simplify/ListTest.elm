@@ -9503,6 +9503,7 @@ listDropTests =
                 """module A exposing (..)
 a = List.drop 2 list
 b = List.drop y [ 1, 2, 3 ]
+c = List.map f << List.drop n
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -9648,6 +9649,38 @@ a = [ b, c ] |> List.drop 2
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = []
+"""
+                        ]
+        , test "should replace List.drop n (List.map f list) by List.map f (List.drop n list)" <|
+            \() ->
+                """module A exposing (..)
+a = List.drop n (List.map f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.drop on List.map can be optimized to List.map on List.drop"
+                            , details = [ "You can replace this call by List.map with the function given to the original List.map, on List.drop." ]
+                            , under = "List.drop"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.map f (List.drop n list))
+"""
+                        ]
+        , test "should replace List.drop n << List.map f by List.map f << List.drop n" <|
+            \() ->
+                """module A exposing (..)
+a = List.drop n << List.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.drop on List.map can be optimized to List.map on List.drop"
+                            , details = [ "You can replace this composition by List.drop, then List.map with the function given to the original List.map." ]
+                            , under = "List.drop"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.map f << List.drop n)
 """
                         ]
         ]
