@@ -1775,6 +1775,13 @@ b = String.left n0 (String.left n1 string)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not report String.left on String.map because the given function could change the UTF-16 length (String.left is not unicode-aware)" <|
+            \() ->
+                """module A exposing (..)
+a = String.left n (String.map f string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should replace String.left 0 str by \"\"" <|
             \() ->
                 """module A exposing (..)
@@ -1900,7 +1907,14 @@ stringRightTests =
             \() ->
                 """module A exposing (..)
 a = String.right n string
-a = String.right n0 (String.right n1 string)
+b = String.right n0 (String.right n1 string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report String.right on String.map because the given function could change the UTF-16 length (String.right is not unicode-aware)" <|
+            \() ->
+                """module A exposing (..)
+a = String.right n (String.map f string)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
