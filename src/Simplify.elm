@@ -8491,7 +8491,15 @@ listSortWithChecks =
 
 listTakeChecks : IntoFnCheck
 listTakeChecks =
-    collectionTakeChecks listCollection
+    intoFnChecksFirstThatConstructsError
+        [ collectionTakeChecks listCollection
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.List.map
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.List.map
+            }
+        ]
 
 
 listDropChecks : IntoFnCheck
@@ -16258,12 +16266,6 @@ collectionTakeChecks collection =
                     Nothing ->
                         Nothing
             )
-        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
-            { earlierFn = Fn.List.map
-            , earlierFnArgCount = 2
-            , earlierFnOperationArgsDescription = "function"
-            , asLaterFn = Fn.List.map
-            }
         ]
 
 
