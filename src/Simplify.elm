@@ -663,6 +663,9 @@ Destructuring using case expressions
     List.head (a :: bToZ)
     --> Just a
 
+    List.head (List.map f list)
+    --> Maybe.map f (List.head list)
+
     List.tail []
     --> Nothing
 
@@ -3776,6 +3779,18 @@ type alias ErrorInfoAndFix =
     }
 
 
+compositionCheckInfoDirection :
+    { composition | earlier : { earlier | range : Range }, later : { later | range : Range } }
+    -> CallStyle.LeftOrRightDirection
+compositionCheckInfoDirection checkInfo =
+    case Range.compareLocations checkInfo.earlier.range.start checkInfo.later.range.start of
+        LT ->
+            CallStyle.LeftToRight
+
+        _ ->
+            CallStyle.RightToLeft
+
+
 {-| Checking both the function call of and composition into a specific fn.
 
 Construct the record directly or use `intoFnCheckOnlyCall`/`intoFnCheckOnlyComposition`.
@@ -6459,31 +6474,12 @@ tuplePartOnMapPartCheck mapPartFn =
                                     ]
                                 }
                             , fix =
-                                -- Tuple.first << Tuple.mapFirst f
-                                --> f << Tuple.first
-                                --
-                                -- Tuple.mapFirst f >> Tuple.first
-                                --> Tuple.first >> f
                                 Fix.removeRange checkInfo.later.removeRange
-                                    :: (if Range.compareLocations checkInfo.earlier.range.start checkInfo.later.range.start == LT then
-                                            [ Fix.insertAt checkInfo.earlier.range.start
-                                                ("("
-                                                    ++ qualifiedToString (qualify checkInfo.later.fn checkInfo)
-                                                    ++ " >> "
-                                                )
-                                            , Fix.insertAt checkInfo.earlier.range.end ")"
-                                            ]
-
-                                        else
-                                            [ Fix.insertAt checkInfo.earlier.range.start
-                                                "("
-                                            , Fix.insertAt checkInfo.earlier.range.end
-                                                (" << "
-                                                    ++ qualifiedToString (qualify checkInfo.later.fn checkInfo)
-                                                    ++ ")"
-                                                )
-                                            ]
-                                       )
+                                    :: composeWithEarlierFix
+                                        { earlier = qualifiedToString (qualify checkInfo.later.fn checkInfo)
+                                        , direction = compositionCheckInfoDirection checkInfo
+                                        , range = checkInfo.earlier.range
+                                        }
                                     ++ replaceBySubExpressionFix
                                         checkInfo.earlier.range
                                         partChangeFunctionArg
@@ -6495,6 +6491,36 @@ tuplePartOnMapPartCheck mapPartFn =
             else
                 Nothing
     }
+
+
+{-| For example with `{ earlier = "g" }`
+
+    f
+    --> (f << g)
+
+    f
+    --> (g >> f)
+
+-}
+composeWithEarlierFix :
+    { direction : CallStyle.LeftOrRightDirection
+    , range : Range
+    , earlier : String
+    }
+    -> List Fix
+composeWithEarlierFix config =
+    case config.direction of
+        CallStyle.LeftToRight ->
+            [ Fix.insertAt config.range.start
+                ("(" ++ config.earlier ++ " >> ")
+            , Fix.insertAt config.range.end ")"
+            ]
+
+        CallStyle.RightToLeft ->
+            [ Fix.insertAt config.range.start "("
+            , Fix.insertAt config.range.end
+                (" << " ++ config.earlier ++ ")")
+            ]
 
 
 tuplePartMapOnMapBothCheck : { argIndex : Int } -> IntoFnCheck
@@ -7070,7 +7096,122 @@ listHeadChecks =
             , earlierFn = Fn.List.sort
             , combinedFn = Fn.List.minimum
             }
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.List.map
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.Maybe.map
+            }
         ]
+
+
+{-| For example
+
+    List.head (List.map f list)
+    --> Maybe.map f (List.head list)
+
+Warning: Do not use for earlier functions that take additional arguments like
+
+    Array.get n (Array.map f array)
+
+    -- or
+    List.take n (List.map f list)
+
+-}
+earlierOperationCanBeMovedAfterAsForPerformanceChecks :
+    { earlierFn : ( ModuleName, String )
+    , earlierFnArgCount : Int
+    , earlierFnOperationArgsDescription : String
+    , asLaterFn : ( ModuleName, String )
+    }
+    -> IntoFnCheck
+earlierOperationCanBeMovedAfterAsForPerformanceChecks config =
+    { composition =
+        \checkInfo ->
+            if checkInfo.earlier.fn == config.earlierFn then
+                Just
+                    { info =
+                        { message =
+                            qualifiedToString checkInfo.later.fn
+                                ++ " on "
+                                ++ qualifiedToString config.earlierFn
+                                ++ " can be optimized to "
+                                ++ qualifiedToString config.asLaterFn
+                                ++ " on "
+                                ++ qualifiedToString checkInfo.later.fn
+                        , details =
+                            [ "You can replace this composition by "
+                                ++ qualifiedToString checkInfo.later.fn
+                                ++ ", then "
+                                ++ qualifiedToString config.asLaterFn
+                                ++ " with the "
+                                ++ config.earlierFnOperationArgsDescription
+                                ++ " given to the original "
+                                ++ qualifiedToString config.earlierFn
+                                ++ "."
+                            ]
+                        }
+                    , fix =
+                        Fix.removeRange checkInfo.later.removeRange
+                            :: Fix.replaceRangeBy checkInfo.earlier.fnRange
+                                (qualifiedToString (qualify config.asLaterFn checkInfo))
+                            :: composeWithEarlierFix
+                                { earlier = qualifiedToString (qualify checkInfo.later.fn checkInfo)
+                                , direction = compositionCheckInfoDirection checkInfo
+                                , range = checkInfo.earlier.range
+                                }
+                    }
+
+            else
+                Nothing
+    , call =
+        \checkInfo ->
+            case AstHelpers.getSpecificUnreducedFnCall config.earlierFn checkInfo.lookupTable checkInfo.firstArg of
+                Nothing ->
+                    Nothing
+
+                Just earlierFnCall ->
+                    case fullyAppliedLastArg { firstArg = earlierFnCall.firstArg, argsAfterFirst = earlierFnCall.argsAfterFirst, argCount = config.earlierFnArgCount } of
+                        Nothing ->
+                            Nothing
+
+                        Just earlierFnCallLastArg ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message =
+                                        qualifiedToString checkInfo.fn
+                                            ++ " on "
+                                            ++ qualifiedToString config.earlierFn
+                                            ++ " can be optimized to "
+                                            ++ qualifiedToString config.asLaterFn
+                                            ++ " on "
+                                            ++ qualifiedToString checkInfo.fn
+                                    , details =
+                                        [ "You can replace this call by "
+                                            ++ qualifiedToString config.asLaterFn
+                                            ++ " with the "
+                                            ++ config.earlierFnOperationArgsDescription
+                                            ++ " given to the original "
+                                            ++ qualifiedToString config.earlierFn
+                                            ++ ", on "
+                                            ++ qualifiedToString checkInfo.fn
+                                            ++ "."
+                                        ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.replaceRangeBy earlierFnCall.fnRange
+                                        (qualifiedToString (qualify config.asLaterFn checkInfo))
+                                        :: fixToCallAndParenthesize
+                                            { fn = checkInfo.fn
+                                            , style = checkInfo.callStyle
+                                            , argRange = Node.range earlierFnCallLastArg
+                                            }
+                                            checkInfo
+                                        ++ replaceBySubExpressionFix checkInfo.parentRange
+                                            checkInfo.firstArg
+                                    )
+                                )
+    }
 
 
 getListHead : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
@@ -12454,6 +12595,33 @@ fixToCall config resources =
 
         CallStyle.Pipe CallStyle.LeftToRight ->
             Fix.insertAt config.argRange.end (" |> " ++ fnAsString)
+
+
+fixToCallAndParenthesize :
+    { fn : ( ModuleName, String ), style : FunctionCallStyle, argRange : Range }
+    -> QualifyResources a
+    -> List Fix
+fixToCallAndParenthesize config resources =
+    let
+        fnAsString : String
+        fnAsString =
+            qualifiedToString (qualify config.fn resources)
+    in
+    case config.style of
+        CallStyle.Application ->
+            [ Fix.insertAt config.argRange.start ("(" ++ fnAsString ++ " ")
+            , Fix.insertAt config.argRange.end ")"
+            ]
+
+        CallStyle.Pipe CallStyle.RightToLeft ->
+            [ Fix.insertAt config.argRange.start ("(" ++ fnAsString ++ " <| ")
+            , Fix.insertAt config.argRange.end ")"
+            ]
+
+        CallStyle.Pipe CallStyle.LeftToRight ->
+            [ Fix.insertAt config.argRange.start "("
+            , Fix.insertAt config.argRange.end (" |> " ++ fnAsString ++ ")")
+            ]
 
 
 {-| Map where the usual map function has an extra argument with special information.

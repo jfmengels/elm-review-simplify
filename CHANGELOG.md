@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+The rule now simplifies:
+- `List.head (List.map f list)` to `Maybe.map f (List.head list)`
+
 ## [2.1.11] - 2025-12-30
 
 - Disabled `List.concat` simplifications that merged `List.concat` without structure.

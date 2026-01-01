@@ -1283,6 +1283,118 @@ a = List.head (List.reverse (List.sort list))
 a = List.maximum list
 """
                         ]
+        , test "should replace List.head (List.map f list) by Maybe.map f (List.head list)" <|
+            \() ->
+                """module A exposing (..)
+a = List.head (List.map f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.head on List.map can be optimized to Maybe.map on List.head"
+                            , details = [ "You can replace this call by Maybe.map with the function given to the original List.map, on List.head." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Maybe.map f (List.head list))
+"""
+                        ]
+        , test "should replace List.head <| List.map f <| list by Maybe.map f <| List.head <| list" <|
+            \() ->
+                """module A exposing (..)
+a = List.head <| List.map f <| list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.head on List.map can be optimized to Maybe.map on List.head"
+                            , details = [ "You can replace this call by Maybe.map with the function given to the original List.map, on List.head." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Maybe.map f <| (List.head <| list))
+"""
+                        ]
+        , test "should replace list |> List.map |> List.head by list |> List.head |> Maybe.map f" <|
+            \() ->
+                """module A exposing (..)
+a = list |> List.map f |> List.head
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.head on List.map can be optimized to Maybe.map on List.head"
+                            , details = [ "You can replace this call by Maybe.map with the function given to the original List.map, on List.head." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ((list |> List.head) |> Maybe.map f)
+"""
+                        ]
+        , test "should replace (List.map f <| list) |> List.head by Maybe.map f <| (list |> List.head)" <|
+            \() ->
+                """module A exposing (..)
+a = (List.map f <| list) |> List.head
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.head on List.map can be optimized to Maybe.map on List.head"
+                            , details = [ "You can replace this call by Maybe.map with the function given to the original List.map, on List.head." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Maybe.map f <| (list |> List.head))
+"""
+                        ]
+        , test "should replace List.head <| (list |> List.map f) by (List.head <| list) |> Maybe.map f" <|
+            \() ->
+                """module A exposing (..)
+a = List.head <| (list |> List.map f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.head on List.map can be optimized to Maybe.map on List.head"
+                            , details = [ "You can replace this call by Maybe.map with the function given to the original List.map, on List.head." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ((List.head <| list) |> Maybe.map f)
+"""
+                        ]
+        , test "should replace List.head << List.map f by Maybe.map f << List.head" <|
+            \() ->
+                """module A exposing (..)
+a = List.head << List.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.head on List.map can be optimized to Maybe.map on List.head"
+                            , details = [ "You can replace this composition by List.head, then Maybe.map with the function given to the original List.map." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Maybe.map f << List.head)
+"""
+                        ]
+        , test "should replace List.map f >> List.head by List.head >> Maybe.map f" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f >> List.head
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.head on List.map can be optimized to Maybe.map on List.head"
+                            , details = [ "You can replace this composition by List.head, then Maybe.map with the function given to the original List.map." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.head >> Maybe.map f)
+"""
+                        ]
         ]
 
 
