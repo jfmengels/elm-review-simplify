@@ -1633,6 +1633,13 @@ b = String.slice 0 n
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not report String.slice on String.map because the given function could change the UTF-16 length (String.slice is not unicode-aware)" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice start end (String.map f string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should replace String.slice b 0 by always \"\"" <|
             \() ->
                 """module A exposing (..)

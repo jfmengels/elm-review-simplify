@@ -1111,6 +1111,9 @@ Destructuring using case expressions
     Array.slice -1 -2 array
     --> Array.empty
 
+    Array.slice start end (Array.map f array)
+    --> Array.map f (Array.slice start end array)
+
     Array.get n Array.empty
     --> Nothing
 
@@ -8665,7 +8668,15 @@ arraySetChecks =
 
 arraySliceChecks : IntoFnCheck
 arraySliceChecks =
-    collectionSliceChecks arrayCollection
+    intoFnChecksFirstThatConstructsError
+        [ collectionSliceChecks arrayCollection
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.Array.map
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.Array.map
+            }
+        ]
 
 
 arrayFilterChecks : IntoFnCheck
