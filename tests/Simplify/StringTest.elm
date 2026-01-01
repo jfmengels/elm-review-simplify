@@ -25,6 +25,8 @@ all =
         , stringSliceTests
         , stringRightTests
         , stringLeftTests
+        , stringDropRightTests
+        , stringDropLeftTests
         , stringFoldlTests
         , stringFoldrTests
         ]
@@ -2056,6 +2058,32 @@ a = String.right n ""
 a = ""
 """
                         ]
+        ]
+
+
+stringDropLeftTests : Test
+stringDropLeftTests =
+    describe "String.dropLeft"
+        [ test "should not report String.dropLeft on String.map because the given function could change the UTF-16 length (String.dropLeft is not unicode-aware)" <|
+            \() ->
+                """module A exposing (..)
+a = String.dropLeft n (String.map f string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        ]
+
+
+stringDropRightTests : Test
+stringDropRightTests =
+    describe "String.dropRight"
+        [ test "should not report String.dropRight on String.map because the given function could change the UTF-16 length (String.dropRight is not unicode-aware)" <|
+            \() ->
+                """module A exposing (..)
+a = String.dropRight n (String.map f string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
