@@ -2940,6 +2940,7 @@ a = Array.foldl
 b = Array.foldl (\\el soFar -> soFar - el)
 c = Array.foldl (\\el soFar -> soFar - el) 20
 d = Array.foldl (\\el soFar -> soFar - el) 20 array
+e = Array.map f << Array.slice start end
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -3061,6 +3062,38 @@ a = Array.fromList >> Array.foldl f x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.foldl f x
+"""
+                        ]
+        , test "should replace Array.slice start end (Array.map f array) by Array.map f (Array.slice start end array)" <|
+            \() ->
+                """module A exposing (..)
+a = Array.slice start end (Array.map f array)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice on Array.map can be optimized to Array.map on Array.slice"
+                            , details = [ "You can replace this call by Array.map with the function given to the original Array.map, on Array.slice." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Array.map f (Array.slice start end array))
+"""
+                        ]
+        , test "should replace Array.slice start end << Array.map f by Array.map f << Array.slice start end" <|
+            \() ->
+                """module A exposing (..)
+a = Array.slice start end << Array.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice on Array.map can be optimized to Array.map on Array.slice"
+                            , details = [ "You can replace this composition by Array.slice, then Array.map with the function given to the original Array.map." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Array.map f << Array.slice start end)
 """
                         ]
         ]
