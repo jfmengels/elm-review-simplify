@@ -7152,7 +7152,7 @@ earlierOperationCanBeMovedAfterAsForPerformanceChecks config =
             then
                 Just
                     (compositionEarlierOperationCanBeMovedAfterAsForPerformanceError
-                        { specificEarlierOperationDescription = Nothing
+                        { specificLaterOperationDescription = Nothing
                         , earlierFnOperationArgsDescription = config.earlierFnOperationArgsDescription
                         , asLaterFn = config.asLaterFn
                         }
@@ -7181,7 +7181,7 @@ earlierOperationCanBeMovedAfterAsForPerformanceChecks config =
                                     Just
                                         (callEarlierOperationCanBeMovedAfterAsForPerformanceError
                                             { earlierFn = config.earlierFn
-                                            , specificEarlierOperationDescription = Nothing
+                                            , specificLaterOperationDescription = Nothing
                                             , earlierFnOperationArgsDescription = config.earlierFnOperationArgsDescription
                                             , asLaterFn = config.asLaterFn
                                             , laterLastArg = laterLastArg
@@ -7194,7 +7194,7 @@ earlierOperationCanBeMovedAfterAsForPerformanceChecks config =
 
 
 compositionEarlierOperationCanBeMovedAfterAsForPerformanceError :
-    { specificEarlierOperationDescription : Maybe String
+    { specificLaterOperationDescription : Maybe String
     , earlierFnOperationArgsDescription : String
     , asLaterFn : ( ModuleName, String )
     }
@@ -7203,15 +7203,15 @@ compositionEarlierOperationCanBeMovedAfterAsForPerformanceError :
 compositionEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo =
     { info =
         { message =
-            qualifiedToString checkInfo.later.fn
-                ++ " on "
-                ++ (case config.specificEarlierOperationDescription of
-                        Just specificEarlierOperationDescription ->
-                            specificEarlierOperationDescription
+            (case config.specificLaterOperationDescription of
+                Just specificLaterOperationDescription ->
+                    specificLaterOperationDescription
 
-                        Nothing ->
-                            qualifiedToString checkInfo.earlier.fn
-                   )
+                Nothing ->
+                    qualifiedToString checkInfo.later.fn
+            )
+                ++ " on "
+                ++ qualifiedToString checkInfo.earlier.fn
                 ++ " can be optimized to "
                 ++ qualifiedToString config.asLaterFn
                 ++ " on "
@@ -7242,7 +7242,7 @@ compositionEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo
 
 callEarlierOperationCanBeMovedAfterAsForPerformanceError :
     { earlierFn : ( ModuleName, String )
-    , specificEarlierOperationDescription : Maybe String
+    , specificLaterOperationDescription : Maybe String
     , earlierFnOperationArgsDescription : String
     , asLaterFn : ( ModuleName, String )
     , laterLastArg : Node Expression
@@ -7254,15 +7254,15 @@ callEarlierOperationCanBeMovedAfterAsForPerformanceError :
 callEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo =
     Rule.errorWithFix
         { message =
-            qualifiedToString checkInfo.fn
-                ++ " on "
-                ++ (case config.specificEarlierOperationDescription of
-                        Just specificEarlierOperationDescription ->
-                            specificEarlierOperationDescription
+            (case config.specificLaterOperationDescription of
+                Just specificLaterOperationDescription ->
+                    specificLaterOperationDescription
 
-                        Nothing ->
-                            qualifiedToString config.earlierFn
-                   )
+                Nothing ->
+                    qualifiedToString checkInfo.fn
+            )
+                ++ " on "
+                ++ qualifiedToString config.earlierFn
                 ++ " can be optimized to "
                 ++ qualifiedToString config.asLaterFn
                 ++ " on "
