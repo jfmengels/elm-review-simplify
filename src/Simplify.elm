@@ -663,6 +663,9 @@ Destructuring using case expressions
     List.head (a :: bToZ)
     --> Just a
 
+    List.head (List.map f list)
+    --> Maybe.map f (List.head list)
+
     List.tail []
     --> Nothing
 
@@ -941,6 +944,12 @@ Destructuring using case expressions
     List.take n (List.take n list)
     --> List.take n list
 
+    List.take n (List.map f list)
+    --> List.map f (List.take n list)
+
+    List.take n (List.indexedMap f list)
+    --> List.indexedMap f (List.take n list)
+
     List.drop 0 list
     --> list
 
@@ -949,6 +958,9 @@ Destructuring using case expressions
 
     List.drop 2 [ a, b, c ]
     --> [ c ]
+
+    List.drop n (List.map f list)
+    --> List.map f (List.drop n list)
 
     List.reverse []
     --> []
@@ -1105,6 +1117,12 @@ Destructuring using case expressions
     Array.slice -1 -2 array
     --> Array.empty
 
+    Array.slice start end (Array.map f array)
+    --> Array.map f (Array.slice start end array)
+
+    Array.slice 0 end (Array.indexedMap f array)
+    --> Array.indexedMap f (Array.slice 0 end array)
+
     Array.get n Array.empty
     --> Nothing
 
@@ -1128,6 +1146,9 @@ Destructuring using case expressions
 
     Array.get 100 (Array.initialize 10 f)
     --> Nothing
+
+    Array.get i (Array.map f array)
+    --> Maybe.map f (Array.get i array)
 
     Array.set n x Array.empty
     --> Array.empty
@@ -1361,6 +1382,9 @@ Destructuring using case expressions
     Dict.remove k (Dict.remove k dict)
     --> Dict.remove k dict
 
+    Dict.remove k (Dict.map f dict)
+    --> Dict.ma f (Dict.remove k dict)
+
     Dict.update k identity dict
     --> dict
 
@@ -1382,6 +1406,9 @@ Destructuring using case expressions
     Dict.filter (\_ _ -> False) dict
     --> Dict.empty
 
+    Dict.filter (\k _ -> f k) (Dict.map g dict)
+    --> Dict.map g (Dict.filter (\k _ -> f k) dict)
+
     Dict.map f Dict.empty
     --> Dict.empty
 
@@ -1402,6 +1429,9 @@ Destructuring using case expressions
 
     Dict.diff dict Dict.empty
     --> dict
+
+    Dict.diff (Dict.map f dict) remove
+    --> Dict.map f (Dict.diff dict remove)
 
     Dict.union dict Dict.empty
     --> dict
@@ -3774,6 +3804,18 @@ type alias ErrorInfoAndFix =
     { info : { message : String, details : List String }
     , fix : List Fix
     }
+
+
+compositionCheckInfoDirection :
+    { composition | earlier : { earlier | range : Range }, later : { later | range : Range } }
+    -> CallStyle.LeftOrRightDirection
+compositionCheckInfoDirection checkInfo =
+    case Range.compareLocations checkInfo.earlier.range.start checkInfo.later.range.start of
+        LT ->
+            CallStyle.LeftToRight
+
+        _ ->
+            CallStyle.RightToLeft
 
 
 {-| Checking both the function call of and composition into a specific fn.
@@ -6459,31 +6501,12 @@ tuplePartOnMapPartCheck mapPartFn =
                                     ]
                                 }
                             , fix =
-                                -- Tuple.first << Tuple.mapFirst f
-                                --> f << Tuple.first
-                                --
-                                -- Tuple.mapFirst f >> Tuple.first
-                                --> Tuple.first >> f
                                 Fix.removeRange checkInfo.later.removeRange
-                                    :: (if Range.compareLocations checkInfo.earlier.range.start checkInfo.later.range.start == LT then
-                                            [ Fix.insertAt checkInfo.earlier.range.start
-                                                ("("
-                                                    ++ qualifiedToString (qualify checkInfo.later.fn checkInfo)
-                                                    ++ " >> "
-                                                )
-                                            , Fix.insertAt checkInfo.earlier.range.end ")"
-                                            ]
-
-                                        else
-                                            [ Fix.insertAt checkInfo.earlier.range.start
-                                                "("
-                                            , Fix.insertAt checkInfo.earlier.range.end
-                                                (" << "
-                                                    ++ qualifiedToString (qualify checkInfo.later.fn checkInfo)
-                                                    ++ ")"
-                                                )
-                                            ]
-                                       )
+                                    :: composeWithEarlierFix
+                                        { earlier = qualifiedToString (qualify checkInfo.later.fn checkInfo)
+                                        , direction = compositionCheckInfoDirection checkInfo
+                                        , range = checkInfo.earlier.range
+                                        }
                                     ++ replaceBySubExpressionFix
                                         checkInfo.earlier.range
                                         partChangeFunctionArg
@@ -6495,6 +6518,36 @@ tuplePartOnMapPartCheck mapPartFn =
             else
                 Nothing
     }
+
+
+{-| For example with `{ earlier = "g" }`
+
+    f
+    --> (f << g)
+
+    f
+    --> (g >> f)
+
+-}
+composeWithEarlierFix :
+    { direction : CallStyle.LeftOrRightDirection
+    , range : Range
+    , earlier : String
+    }
+    -> List Fix
+composeWithEarlierFix config =
+    case config.direction of
+        CallStyle.LeftToRight ->
+            [ Fix.insertAt config.range.start
+                ("(" ++ config.earlier ++ " >> ")
+            , Fix.insertAt config.range.end ")"
+            ]
+
+        CallStyle.RightToLeft ->
+            [ Fix.insertAt config.range.start "("
+            , Fix.insertAt config.range.end
+                (" << " ++ config.earlier ++ ")")
+            ]
 
 
 tuplePartMapOnMapBothCheck : { argIndex : Int } -> IntoFnCheck
@@ -7070,7 +7123,329 @@ listHeadChecks =
             , earlierFn = Fn.List.sort
             , combinedFn = Fn.List.minimum
             }
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.List.map
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.Maybe.map
+            }
         ]
+
+
+{-| The reorder checks for optimization:
+
+    later a (earlier b subject)
+    --> asLater b (later a subject)
+
+    later a << earlier b
+    --> asLater b >> later a
+
+so for example with `{ asLaterFn = Fn.List.take }`:
+
+    List.take x (List.map f list)
+    --> Maybe.map f (List.head list)
+
+or with `{ asLaterFn = Fn.Maybe.map }`:
+
+    List.head (List.map f list)
+    --> Maybe.map f (List.head list)
+
+-}
+earlierOperationCanBeMovedAfterAsForPerformanceChecks :
+    { earlierFn : ( ModuleName, String )
+    , earlierFnArgCount : Int
+    , earlierFnOperationArgsDescription : String
+    , asLaterFn : ( ModuleName, String )
+    }
+    -> IntoFnCheck
+earlierOperationCanBeMovedAfterAsForPerformanceChecks config =
+    { composition =
+        \checkInfo ->
+            if
+                (checkInfo.earlier.fn == config.earlierFn)
+                    && onlyLastArgIsCurried checkInfo.later
+            then
+                Just
+                    (compositionEarlierOperationCanBeMovedAfterAsForPerformanceError
+                        { specificLaterOperationDescription = Nothing
+                        , earlierFnOperationArgsDescription = config.earlierFnOperationArgsDescription
+                        , asLaterFn = config.asLaterFn
+                        }
+                        checkInfo
+                    )
+
+            else
+                Nothing
+    , call =
+        \checkInfo ->
+            case fullyAppliedLastArg checkInfo of
+                Nothing ->
+                    Nothing
+
+                Just laterLastArg ->
+                    case AstHelpers.getSpecificUnreducedFnCall config.earlierFn checkInfo.lookupTable laterLastArg of
+                        Nothing ->
+                            Nothing
+
+                        Just earlierFnCall ->
+                            case fullyAppliedLastArg { firstArg = earlierFnCall.firstArg, argsAfterFirst = earlierFnCall.argsAfterFirst, argCount = config.earlierFnArgCount } of
+                                Nothing ->
+                                    Nothing
+
+                                Just earlierFnCallLastArg ->
+                                    Just
+                                        (callEarlierOperationCanBeMovedAfterAsForPerformanceError
+                                            { earlierFn = config.earlierFn
+                                            , specificLaterOperationDescription = Nothing
+                                            , earlierFnOperationArgsDescription = config.earlierFnOperationArgsDescription
+                                            , asLaterFn = config.asLaterFn
+                                            , laterLastArg = laterLastArg
+                                            , earlierFnRange = earlierFnCall.fnRange
+                                            , earlierFnCallLastArgRange = Node.range earlierFnCallLastArg
+                                            }
+                                            checkInfo
+                                        )
+    }
+
+
+{-| Like `earlierOperationCanBeMovedAfterAsForPerformanceChecks`
+with an extra condition for the first argument of the later operation
+and no change in operation fn while swapping the operations.
+-}
+operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsChecks :
+    { specificEarlierFn : ( ModuleName, String )
+    , earlierFnOperationArgsDescription : String
+    , isSpecificLaterFirstArg : Normalize.Resources {} -> Node Expression -> Bool
+    , specificLaterFirstArgDescription : String
+    }
+    -> IntoFnCheck
+operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsChecks config =
+    { composition =
+        \checkInfo ->
+            if checkInfo.earlier.fn == config.specificEarlierFn then
+                case checkInfo.later.args of
+                    [] ->
+                        Nothing
+
+                    laterFirstArg :: _ ->
+                        if config.isSpecificLaterFirstArg (extractNormalizeResources checkInfo) laterFirstArg then
+                            Just
+                                (compositionEarlierOperationCanBeMovedAfterAsForPerformanceError
+                                    { specificLaterOperationDescription =
+                                        Just (qualifiedToString checkInfo.later.fn ++ " " ++ config.specificLaterFirstArgDescription)
+                                    , earlierFnOperationArgsDescription = config.earlierFnOperationArgsDescription
+                                    , asLaterFn = config.specificEarlierFn
+                                    }
+                                    checkInfo
+                                )
+
+                        else
+                            Nothing
+
+            else
+                Nothing
+    , call =
+        \checkInfo ->
+            if config.isSpecificLaterFirstArg (extractNormalizeResources checkInfo) checkInfo.firstArg then
+                case fullyAppliedLastArg checkInfo of
+                    Nothing ->
+                        Nothing
+
+                    Just laterLastArg ->
+                        case AstHelpers.getSpecificUnreducedFnCall config.specificEarlierFn checkInfo.lookupTable laterLastArg of
+                            Nothing ->
+                                Nothing
+
+                            Just earlierFnCall ->
+                                case fullyAppliedLastArg { firstArg = earlierFnCall.firstArg, argsAfterFirst = earlierFnCall.argsAfterFirst, argCount = 2 } of
+                                    Nothing ->
+                                        Nothing
+
+                                    Just earlierFnCallLastArg ->
+                                        Just
+                                            (callEarlierOperationCanBeMovedAfterAsForPerformanceError
+                                                { earlierFn = config.specificEarlierFn
+                                                , specificLaterOperationDescription =
+                                                    Just (qualifiedToString checkInfo.fn ++ " " ++ config.specificLaterFirstArgDescription)
+                                                , earlierFnOperationArgsDescription = config.earlierFnOperationArgsDescription
+                                                , asLaterFn = config.specificEarlierFn
+                                                , laterLastArg = laterLastArg
+                                                , earlierFnRange = earlierFnCall.fnRange
+                                                , earlierFnCallLastArgRange = Node.range earlierFnCallLastArg
+                                                }
+                                                checkInfo
+                                            )
+
+            else
+                Nothing
+    }
+
+
+compositionEarlierOperationCanBeMovedAfterAsForPerformanceError :
+    { specificLaterOperationDescription : Maybe String
+    , earlierFnOperationArgsDescription : String
+    , asLaterFn : ( ModuleName, String )
+    }
+    -> CompositionIntoCheckInfo
+    -> ErrorInfoAndFix
+compositionEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo =
+    { info =
+        { message =
+            (case config.specificLaterOperationDescription of
+                Just specificLaterOperationDescription ->
+                    specificLaterOperationDescription
+
+                Nothing ->
+                    qualifiedToString checkInfo.later.fn
+            )
+                ++ " on "
+                ++ qualifiedToString checkInfo.earlier.fn
+                ++ " can be optimized to "
+                ++ qualifiedToString config.asLaterFn
+                ++ " on "
+                ++ qualifiedToString checkInfo.later.fn
+        , details =
+            [ "You can replace this composition by "
+                ++ qualifiedToString checkInfo.later.fn
+                ++ ", then "
+                ++ qualifiedToString config.asLaterFn
+                ++ " with the "
+                ++ config.earlierFnOperationArgsDescription
+                ++ " given to the original "
+                ++ qualifiedToString checkInfo.earlier.fn
+                ++ "."
+            ]
+        }
+    , fix =
+        Fix.removeRange checkInfo.later.removeRange
+            :: Fix.replaceRangeBy checkInfo.earlier.fnRange
+                (qualifiedToString (qualify config.asLaterFn checkInfo))
+            :: composeWithEarlierFix
+                { earlier = checkInfo.extractSourceCode checkInfo.later.range
+                , direction = compositionCheckInfoDirection checkInfo
+                , range = checkInfo.earlier.range
+                }
+    }
+
+
+callEarlierOperationCanBeMovedAfterAsForPerformanceError :
+    { earlierFn : ( ModuleName, String )
+    , specificLaterOperationDescription : Maybe String
+    , earlierFnOperationArgsDescription : String
+    , asLaterFn : ( ModuleName, String )
+    , laterLastArg : Node Expression
+    , earlierFnRange : Range
+    , earlierFnCallLastArgRange : Range
+    }
+    -> CallCheckInfo
+    -> Error {}
+callEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo =
+    Rule.errorWithFix
+        { message =
+            (case config.specificLaterOperationDescription of
+                Just specificLaterOperationDescription ->
+                    specificLaterOperationDescription
+
+                Nothing ->
+                    qualifiedToString checkInfo.fn
+            )
+                ++ " on "
+                ++ qualifiedToString config.earlierFn
+                ++ " can be optimized to "
+                ++ qualifiedToString config.asLaterFn
+                ++ " on "
+                ++ qualifiedToString checkInfo.fn
+        , details =
+            [ "You can replace this call by "
+                ++ qualifiedToString config.asLaterFn
+                ++ " with the "
+                ++ config.earlierFnOperationArgsDescription
+                ++ " given to the original "
+                ++ qualifiedToString config.earlierFn
+                ++ ", on "
+                ++ qualifiedToString checkInfo.fn
+                ++ "."
+            ]
+        }
+        checkInfo.fnRange
+        (extractAndInsertParenthesizedCallAroundReplacementLastArgFix
+            { extractSourceCode = checkInfo.extractSourceCode
+            , originalCallRange = checkInfo.parentRange
+            , originalCallStyle = checkInfo.callStyle
+            , originalLastArgRange = Node.range config.laterLastArg
+            , replacementLastArgRange = config.earlierFnCallLastArgRange
+            , parenthesizeReplacementLastArg = False
+            }
+            ++ replaceBySubExpressionFix checkInfo.parentRange
+                config.laterLastArg
+            |> consIf (config.earlierFn /= config.asLaterFn)
+                (\() ->
+                    Fix.replaceRangeBy config.earlierFnRange
+                        (qualifiedToString (qualify config.asLaterFn checkInfo))
+                )
+        )
+
+
+extractAndInsertParenthesizedCallAroundReplacementLastArgFix :
+    { extractSourceCode : Range -> String
+    , originalCallRange : Range
+    , originalCallStyle : FunctionCallStyle
+    , originalLastArgRange : Range
+    , replacementLastArgRange : Range
+    , parenthesizeReplacementLastArg : Bool
+    }
+    -> List Fix
+extractAndInsertParenthesizedCallAroundReplacementLastArgFix config =
+    case config.originalCallStyle of
+        CallStyle.Pipe CallStyle.LeftToRight ->
+            [ Fix.insertAt config.replacementLastArgRange.start
+                ("("
+                    ++ (if config.parenthesizeReplacementLastArg then
+                            "("
+
+                        else
+                            ""
+                       )
+                )
+            , Fix.insertAt config.replacementLastArgRange.end
+                ((if config.parenthesizeReplacementLastArg then
+                    ")"
+
+                  else
+                    ""
+                 )
+                    ++ config.extractSourceCode
+                        { start = config.originalLastArgRange.end
+                        , end = config.originalCallRange.end
+                        }
+                    ++ ")"
+                )
+            ]
+
+        _ ->
+            [ Fix.insertAt config.replacementLastArgRange.start
+                ("("
+                    ++ config.extractSourceCode
+                        { start = config.originalCallRange.start
+                        , end = config.originalLastArgRange.start
+                        }
+                    ++ (if config.parenthesizeReplacementLastArg then
+                            "("
+
+                        else
+                            ""
+                       )
+                )
+            , Fix.insertAt config.replacementLastArgRange.end
+                ((if config.parenthesizeReplacementLastArg then
+                    ")"
+
+                  else
+                    ""
+                 )
+                    ++ ")"
+                )
+            ]
 
 
 getListHead : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
@@ -8319,7 +8694,21 @@ listSortWithChecks =
 
 listTakeChecks : IntoFnCheck
 listTakeChecks =
-    collectionTakeChecks listCollection
+    intoFnChecksFirstThatConstructsError
+        [ collectionTakeChecks listCollection
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.List.map
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.List.map
+            }
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.List.indexedMap
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.List.indexedMap
+            }
+        ]
 
 
 listDropChecks : IntoFnCheck
@@ -8345,6 +8734,12 @@ listDropChecks =
                                     )
                         )
             )
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.List.map
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.List.map
+            }
         ]
 
 
@@ -8436,7 +8831,15 @@ arrayLengthChecks =
 
 arrayGetChecks : IntoFnCheck
 arrayGetChecks =
-    intoFnCheckOnlyCall (getChecks arrayCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (\checkInfo -> getChecks arrayCollection checkInfo)
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.Array.map
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.Maybe.map
+            }
+        ]
 
 
 arrayLengthOnArrayRepeatOrInitializeChecks : CallCheckInfo -> Maybe (Error {})
@@ -8485,7 +8888,23 @@ arraySetChecks =
 
 arraySliceChecks : IntoFnCheck
 arraySliceChecks =
-    collectionSliceChecks arrayCollection
+    intoFnChecksFirstThatConstructsError
+        [ collectionSliceChecks arrayCollection
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.Array.map
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.Array.map
+            }
+        , operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsChecks
+            { specificEarlierFn = Fn.Array.indexedMap
+            , earlierFnOperationArgsDescription = "function"
+            , isSpecificLaterFirstArg =
+                \checkInfo laterFirstArg ->
+                    Evaluate.getInt checkInfo laterFirstArg == Just 0
+            , specificLaterFirstArgDescription = "from index 0"
+            }
+        ]
 
 
 arrayFilterChecks : IntoFnCheck
@@ -9099,7 +9518,15 @@ dictInsertChecks =
 
 dictRemoveChecks : IntoFnCheck
 dictRemoveChecks =
-    collectionRemoveElementChecks dictCollection
+    intoFnChecksFirstThatConstructsError
+        [ collectionRemoveElementChecks dictCollection
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.Dict.map
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.Dict.map
+            }
+        ]
 
 
 dictUpdateChecks : IntoFnCheck
@@ -9207,7 +9634,17 @@ dictUpdateChecks =
 
 dictFilterChecks : IntoFnCheck
 dictFilterChecks =
-    emptiableKeepWhenWithExtraArgChecks dictCollection
+    intoFnChecksFirstThatConstructsError
+        [ emptiableKeepWhenWithExtraArgChecks dictCollection
+        , operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsChecks
+            { specificEarlierFn = Fn.Dict.map
+            , earlierFnOperationArgsDescription = "function"
+            , isSpecificLaterFirstArg =
+                \checkInfo laterFirstArg ->
+                    isJust (getFunctionIgnoringSecondIncoming checkInfo laterFirstArg)
+            , specificLaterFirstArgDescription = "by key"
+            }
+        ]
 
 
 dictPartitionChecks : IntoFnCheck
@@ -9227,7 +9664,66 @@ dictIntersectChecks =
 
 dictDiffChecks : IntoFnCheck
 dictDiffChecks =
-    intoFnCheckOnlyCall (collectionDiffChecks dictCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (\checkInfo ->
+                collectionDiffChecks dictCollection checkInfo
+                    |> onNothing
+                        (\() ->
+                            case checkInfo.argsAfterFirst of
+                                [ _ ] ->
+                                    case
+                                        AstHelpers.getSpecificUnreducedFnCall Fn.Dict.map
+                                            checkInfo.lookupTable
+                                            -- to let the resulting .nodeRange be only the call itself
+                                            (AstHelpers.removeParens checkInfo.firstArg)
+                                    of
+                                        Nothing ->
+                                            Nothing
+
+                                        Just dictMapFnCall ->
+                                            case dictMapFnCall.argsAfterFirst of
+                                                [ unmappedDictArg ] ->
+                                                    Just
+                                                        (Rule.errorWithFix
+                                                            { message =
+                                                                qualifiedToString checkInfo.fn
+                                                                    ++ " with a base dict resulting from a "
+                                                                    ++ qualifiedToString Fn.Dict.map
+                                                                    ++ " can be optimized to "
+                                                                    ++ qualifiedToString Fn.Dict.map
+                                                                    ++ " on "
+                                                                    ++ qualifiedToString checkInfo.fn
+                                                            , details =
+                                                                [ "You can replace this call by "
+                                                                    ++ qualifiedToString Fn.Dict.map
+                                                                    ++ " with the function given to the original call, on "
+                                                                    ++ qualifiedToString checkInfo.fn
+                                                                    ++ " with the unmapped dict and the dict containing the keys to remove given to the original call."
+                                                                ]
+                                                            }
+                                                            checkInfo.fnRange
+                                                            (extractAndInsertParenthesizedCallAroundReplacementLastArgFix
+                                                                { extractSourceCode = checkInfo.extractSourceCode
+                                                                , replacementLastArgRange = checkInfo.parentRange
+                                                                , parenthesizeReplacementLastArg = True
+                                                                , originalCallRange = dictMapFnCall.nodeRange
+                                                                , originalCallStyle = dictMapFnCall.callStyle
+                                                                , originalLastArgRange = Node.range unmappedDictArg
+                                                                }
+                                                                ++ replaceBySubExpressionFix (Node.range checkInfo.firstArg)
+                                                                    unmappedDictArg
+                                                            )
+                                                        )
+
+                                                _ ->
+                                                    Nothing
+
+                                _ ->
+                                    Nothing
+                        )
+            )
+        ]
 
 
 dictUnionChecks : IntoFnCheck

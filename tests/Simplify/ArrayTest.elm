@@ -2554,6 +2554,24 @@ import Array
 a = Just (f 2)
 """
                         ]
+        , test "should replace Array.get i (Array.map f array) by Maybe.map f (Array.get i array)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.get i (Array.map f array)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.get on Array.map can be optimized to Maybe.map on Array.get"
+                            , details = [ "You can replace this call by Maybe.map with the function given to the original Array.map, on Array.get." ]
+                            , under = "Array.get"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (Maybe.map f (Array.get i array))
+"""
+                        ]
         ]
 
 
@@ -2769,7 +2787,9 @@ arraySliceTests =
             \() ->
                 """module A exposing (..)
 import Array
-a = Array.slice b c
+a0 = Array.slice start end
+a1 = Array.map f << Array.slice start end
+a1 = Array.slice start end << Array.indexedMap f
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -2926,6 +2946,70 @@ a = Array.slice 1 -2
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         []
+        , test "should replace Array.slice start end (Array.map f array) by Array.map f (Array.slice start end array)" <|
+            \() ->
+                """module A exposing (..)
+a = Array.slice start end (Array.map f array)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice on Array.map can be optimized to Array.map on Array.slice"
+                            , details = [ "You can replace this call by Array.map with the function given to the original Array.map, on Array.slice." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Array.map f (Array.slice start end array))
+"""
+                        ]
+        , test "should replace Array.slice start end << Array.map f by Array.map f << Array.slice start end" <|
+            \() ->
+                """module A exposing (..)
+a = Array.slice start end << Array.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice on Array.map can be optimized to Array.map on Array.slice"
+                            , details = [ "You can replace this composition by Array.slice, then Array.map with the function given to the original Array.map." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Array.map f << Array.slice start end)
+"""
+                        ]
+        , test "should replace Array.slice 0 end (Array.indexedMap f array) by Array.indexedMap f (Array.slice 0 end array)" <|
+            \() ->
+                """module A exposing (..)
+a = Array.slice 0 end (Array.indexedMap f array)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice from index 0 on Array.indexedMap can be optimized to Array.indexedMap on Array.slice"
+                            , details = [ "You can replace this call by Array.indexedMap with the function given to the original Array.indexedMap, on Array.slice." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Array.indexedMap f (Array.slice 0 end array))
+"""
+                        ]
+        , test "should replace Array.slice 0 end << Array.indexedMap f by Array.indexedMap f << Array.slice 0 end" <|
+            \() ->
+                """module A exposing (..)
+a = Array.slice 0 end << Array.indexedMap f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice from index 0 on Array.indexedMap can be optimized to Array.indexedMap on Array.slice"
+                            , details = [ "You can replace this composition by Array.slice, then Array.indexedMap with the function given to the original Array.indexedMap." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Array.indexedMap f << Array.slice 0 end)
+"""
+                        ]
         ]
 
 

@@ -25,6 +25,8 @@ all =
         , stringSliceTests
         , stringRightTests
         , stringLeftTests
+        , stringDropRightTests
+        , stringDropLeftTests
         , stringFoldlTests
         , stringFoldrTests
         ]
@@ -1633,6 +1635,13 @@ b = String.slice 0 n
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not report String.slice on String.map because the given function could change the UTF-16 length (String.slice is not unicode-aware)" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice start end (String.map f string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should replace String.slice b 0 by always \"\"" <|
             \() ->
                 """module A exposing (..)
@@ -1775,6 +1784,13 @@ b = String.left n0 (String.left n1 string)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not report String.left on String.map because the given function could change the UTF-16 length (String.left is not unicode-aware)" <|
+            \() ->
+                """module A exposing (..)
+a = String.left n (String.map f string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should replace String.left 0 str by \"\"" <|
             \() ->
                 """module A exposing (..)
@@ -1900,7 +1916,14 @@ stringRightTests =
             \() ->
                 """module A exposing (..)
 a = String.right n string
-a = String.right n0 (String.right n1 string)
+b = String.right n0 (String.right n1 string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report String.right on String.map because the given function could change the UTF-16 length (String.right is not unicode-aware)" <|
+            \() ->
+                """module A exposing (..)
+a = String.right n (String.map f string)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -2035,6 +2058,32 @@ a = String.right n ""
 a = ""
 """
                         ]
+        ]
+
+
+stringDropLeftTests : Test
+stringDropLeftTests =
+    describe "String.dropLeft"
+        [ test "should not report String.dropLeft on String.map because the given function could change the UTF-16 length (String.dropLeft is not unicode-aware)" <|
+            \() ->
+                """module A exposing (..)
+a = String.dropLeft n (String.map f string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        ]
+
+
+stringDropRightTests : Test
+stringDropRightTests =
+    describe "String.dropRight"
+        [ test "should not report String.dropRight on String.map because the given function could change the UTF-16 length (String.dropRight is not unicode-aware)" <|
+            \() ->
+                """module A exposing (..)
+a = String.dropRight n (String.map f string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
