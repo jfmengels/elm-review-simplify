@@ -9294,6 +9294,8 @@ a0 = List.take 2 list
 a1 = List.take y [ 1, 2, 3 ]
 a2 = List.take n0 (List.take n1 list)
 a3 = List.map f << List.take n
+-- does not compile, just to test only the last argument is curried
+a4 = List.take << List.map f
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
