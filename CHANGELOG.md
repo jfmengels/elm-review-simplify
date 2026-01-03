@@ -9,6 +9,7 @@ The rule now simplifies:
 - `List.drop n (List.map f list)` to `List.map f (List.drop n list)`
 - `Array.get i (Array.map f array)` to `Maybe.map f (Array.get i array)`
 - `Array.slice start end (Array.map f array)` to `Array.map f (Array.slice start end array)`
+- `Array.slice 0 end (Array.indexedMap f array)` to `Array.indexedMap f (Array.slice 0 end array)`
 - `Dict.remove k (Dict.map g dict)` to `Dict.map g (Dict.remove k dict)`
 - `Dict.filter (\k _ -> f k) (Dict.map g dict)` to `Dict.map g (Dict.filter (\k _ -> f k) dict)`
 

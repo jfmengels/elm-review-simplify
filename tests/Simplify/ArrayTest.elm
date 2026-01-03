@@ -2789,6 +2789,7 @@ arraySliceTests =
 import Array
 a0 = Array.slice start end
 a1 = Array.map f << Array.slice start end
+a1 = Array.slice start end << Array.indexedMap f
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -2975,6 +2976,38 @@ a = Array.slice start end << Array.map f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (Array.map f << Array.slice start end)
+"""
+                        ]
+        , test "should replace Array.slice 0 end (Array.indexedMap f array) by Array.indexedMap f (Array.slice 0 end array)" <|
+            \() ->
+                """module A exposing (..)
+a = Array.slice 0 end (Array.indexedMap f array)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice from index 0 on Array.indexedMap can be optimized to Array.indexedMap on Array.slice"
+                            , details = [ "You can replace this call by Array.indexedMap with the function given to the original Array.indexedMap, on Array.slice." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Array.indexedMap f (Array.slice 0 end array))
+"""
+                        ]
+        , test "should replace Array.slice 0 end << Array.indexedMap f by Array.indexedMap f << Array.slice 0 end" <|
+            \() ->
+                """module A exposing (..)
+a = Array.slice 0 end << Array.indexedMap f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.slice from index 0 on Array.indexedMap can be optimized to Array.indexedMap on Array.slice"
+                            , details = [ "You can replace this composition by Array.slice, then Array.indexedMap with the function given to the original Array.indexedMap." ]
+                            , under = "Array.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (Array.indexedMap f << Array.slice 0 end)
 """
                         ]
         ]
