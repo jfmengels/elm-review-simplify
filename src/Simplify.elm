@@ -7146,7 +7146,10 @@ earlierOperationCanBeMovedAfterAsForPerformanceChecks :
 earlierOperationCanBeMovedAfterAsForPerformanceChecks config =
     { composition =
         \checkInfo ->
-            if checkInfo.earlier.fn == config.earlierFn then
+            if
+                (checkInfo.earlier.fn == config.earlierFn)
+                    && onlyLastArgIsCurried checkInfo.later
+            then
                 Just
                     (compositionEarlierOperationCanBeMovedAfterAsForPerformanceError
                         { specificEarlierOperationDescription = Nothing
