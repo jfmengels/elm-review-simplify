@@ -1379,6 +1379,9 @@ Destructuring using case expressions
     Dict.remove k (Dict.remove k dict)
     --> Dict.remove k dict
 
+    Dict.remove k (Dict.map f dict)
+    --> Dict.ma f (Dict.remove k dict)
+
     Dict.update k identity dict
     --> dict
 
@@ -9381,7 +9384,15 @@ dictInsertChecks =
 
 dictRemoveChecks : IntoFnCheck
 dictRemoveChecks =
-    collectionRemoveElementChecks dictCollection
+    intoFnChecksFirstThatConstructsError
+        [ collectionRemoveElementChecks dictCollection
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.Dict.map
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.Dict.map
+            }
+        ]
 
 
 dictUpdateChecks : IntoFnCheck
