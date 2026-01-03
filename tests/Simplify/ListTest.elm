@@ -9294,8 +9294,9 @@ a0 = List.take 2 list
 a1 = List.take y [ 1, 2, 3 ]
 a2 = List.take n0 (List.take n1 list)
 a3 = List.map f << List.take n
+a4 = List.indexedMap f << List.take n
 -- does not compile, just to test only the last argument is curried
-a4 = List.take << List.map f
+a5 = List.take << List.map f
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -9492,6 +9493,38 @@ a = List.map f >> List.take n
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (List.take n >> List.map f)
+"""
+                        ]
+        , test "should replace List.take n (List.indexedMap f list) by List.indexedMap f (List.take n list)" <|
+            \() ->
+                """module A exposing (..)
+a = List.take n (List.indexedMap f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.take on List.indexedMap can be optimized to List.indexedMap on List.take"
+                            , details = [ "You can replace this call by List.indexedMap with the function given to the original List.indexedMap, on List.take." ]
+                            , under = "List.take"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.indexedMap f (List.take n list))
+"""
+                        ]
+        , test "should replace List.take n << List.indexedMap f by List.indexedMap f << List.take n" <|
+            \() ->
+                """module A exposing (..)
+a = List.take n << List.indexedMap f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.take on List.indexedMap can be optimized to List.indexedMap on List.take"
+                            , details = [ "You can replace this composition by List.take, then List.indexedMap with the function given to the original List.indexedMap." ]
+                            , under = "List.take"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.indexedMap f << List.take n)
 """
                         ]
         ]
