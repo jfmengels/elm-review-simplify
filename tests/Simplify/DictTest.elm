@@ -1034,6 +1034,7 @@ a0 = Dict.remove
 a1 = Dict.remove k
 a2 = Dict.remove k dict
 a3 = Dict.remove k0 (Dict.remove k1 dict)
+a4 = Dict.map f << Dict.remove k
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -1110,6 +1111,42 @@ a = Dict.remove k << Dict.remove k
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = Dict.remove k
+"""
+                        ]
+        , test "should replace Dict.remove k (Dict.map f dict) by Dict.map f (Dict.remove k dict)" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.remove k (Dict.map f dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.remove on Dict.map can be optimized to Dict.map on Dict.remove"
+                            , details = [ "You can replace this call by Dict.map with the function given to the original Dict.map, on Dict.remove." ]
+                            , under = "Dict.remove"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.map f (Dict.remove k dict))
+"""
+                        ]
+        , test "should replace Dict.remove k << Dict.map f by Dict.map f << Dict.remove k" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.remove k << Dict.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.remove on Dict.map can be optimized to Dict.map on Dict.remove"
+                            , details = [ "You can replace this composition by Dict.remove, then Dict.map with the function given to the original Dict.map." ]
+                            , under = "Dict.remove"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.map f << Dict.remove k)
 """
                         ]
         ]
