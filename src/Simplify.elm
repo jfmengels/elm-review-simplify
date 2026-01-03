@@ -7148,37 +7148,13 @@ earlierOperationCanBeMovedAfterAsForPerformanceChecks config =
         \checkInfo ->
             if checkInfo.earlier.fn == config.earlierFn then
                 Just
-                    { info =
-                        { message =
-                            qualifiedToString checkInfo.later.fn
-                                ++ " on "
-                                ++ qualifiedToString config.earlierFn
-                                ++ " can be optimized to "
-                                ++ qualifiedToString config.asLaterFn
-                                ++ " on "
-                                ++ qualifiedToString checkInfo.later.fn
-                        , details =
-                            [ "You can replace this composition by "
-                                ++ qualifiedToString checkInfo.later.fn
-                                ++ ", then "
-                                ++ qualifiedToString config.asLaterFn
-                                ++ " with the "
-                                ++ config.earlierFnOperationArgsDescription
-                                ++ " given to the original "
-                                ++ qualifiedToString config.earlierFn
-                                ++ "."
-                            ]
+                    (compositionEarlierOperationCanBeMovedAfterAsForPerformanceError
+                        { specificEarlierOperationDescription = Nothing
+                        , earlierFnOperationArgsDescription = config.earlierFnOperationArgsDescription
+                        , asLaterFn = config.asLaterFn
                         }
-                    , fix =
-                        Fix.removeRange checkInfo.later.removeRange
-                            :: Fix.replaceRangeBy checkInfo.earlier.fnRange
-                                (qualifiedToString (qualify config.asLaterFn checkInfo))
-                            :: composeWithEarlierFix
-                                { earlier = checkInfo.extractSourceCode checkInfo.later.range
-                                , direction = compositionCheckInfoDirection checkInfo
-                                , range = checkInfo.earlier.range
-                                }
-                    }
+                        checkInfo
+                    )
 
             else
                 Nothing
@@ -7200,58 +7176,138 @@ earlierOperationCanBeMovedAfterAsForPerformanceChecks config =
 
                                 Just earlierFnCallLastArg ->
                                     Just
-                                        (Rule.errorWithFix
-                                            { message =
-                                                qualifiedToString checkInfo.fn
-                                                    ++ " on "
-                                                    ++ qualifiedToString config.earlierFn
-                                                    ++ " can be optimized to "
-                                                    ++ qualifiedToString config.asLaterFn
-                                                    ++ " on "
-                                                    ++ qualifiedToString checkInfo.fn
-                                            , details =
-                                                [ "You can replace this call by "
-                                                    ++ qualifiedToString config.asLaterFn
-                                                    ++ " with the "
-                                                    ++ config.earlierFnOperationArgsDescription
-                                                    ++ " given to the original "
-                                                    ++ qualifiedToString config.earlierFn
-                                                    ++ ", on "
-                                                    ++ qualifiedToString checkInfo.fn
-                                                    ++ "."
-                                                ]
+                                        (callEarlierOperationCanBeMovedAfterAsForPerformanceError
+                                            { earlierFn = config.earlierFn
+                                            , specificEarlierOperationDescription = Nothing
+                                            , earlierFnOperationArgsDescription = config.earlierFnOperationArgsDescription
+                                            , asLaterFn = config.asLaterFn
+                                            , laterLastArg = laterLastArg
+                                            , earlierFnRange = earlierFnCall.fnRange
+                                            , earlierFnCallLastArgRange = Node.range earlierFnCallLastArg
                                             }
-                                            checkInfo.fnRange
-                                            (Fix.replaceRangeBy earlierFnCall.fnRange
-                                                (qualifiedToString (qualify config.asLaterFn checkInfo))
-                                                :: (case checkInfo.callStyle of
-                                                        CallStyle.Pipe CallStyle.LeftToRight ->
-                                                            [ Fix.insertAt (Node.range earlierFnCallLastArg).start "("
-                                                            , Fix.insertAt (Node.range earlierFnCallLastArg).end
-                                                                (checkInfo.extractSourceCode
-                                                                    { start = (Node.range laterLastArg).end
-                                                                    , end = checkInfo.parentRange.end
-                                                                    }
-                                                                    ++ ")"
-                                                                )
-                                                            ]
-
-                                                        _ ->
-                                                            [ Fix.insertAt (Node.range earlierFnCallLastArg).start
-                                                                ("("
-                                                                    ++ checkInfo.extractSourceCode
-                                                                        { start = checkInfo.parentRange.start
-                                                                        , end = (Node.range laterLastArg).start
-                                                                        }
-                                                                )
-                                                            , Fix.insertAt (Node.range earlierFnCallLastArg).end ")"
-                                                            ]
-                                                   )
-                                                ++ replaceBySubExpressionFix checkInfo.parentRange
-                                                    laterLastArg
-                                            )
+                                            checkInfo
                                         )
     }
+
+
+compositionEarlierOperationCanBeMovedAfterAsForPerformanceError :
+    { specificEarlierOperationDescription : Maybe String
+    , earlierFnOperationArgsDescription : String
+    , asLaterFn : ( ModuleName, String )
+    }
+    -> CompositionIntoCheckInfo
+    -> ErrorInfoAndFix
+compositionEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo =
+    { info =
+        { message =
+            qualifiedToString checkInfo.later.fn
+                ++ " on "
+                ++ (case config.specificEarlierOperationDescription of
+                        Just specificEarlierOperationDescription ->
+                            specificEarlierOperationDescription
+
+                        Nothing ->
+                            qualifiedToString checkInfo.earlier.fn
+                   )
+                ++ " can be optimized to "
+                ++ qualifiedToString config.asLaterFn
+                ++ " on "
+                ++ qualifiedToString checkInfo.later.fn
+        , details =
+            [ "You can replace this composition by "
+                ++ qualifiedToString checkInfo.later.fn
+                ++ ", then "
+                ++ qualifiedToString config.asLaterFn
+                ++ " with the "
+                ++ config.earlierFnOperationArgsDescription
+                ++ " given to the original "
+                ++ qualifiedToString checkInfo.earlier.fn
+                ++ "."
+            ]
+        }
+    , fix =
+        Fix.removeRange checkInfo.later.removeRange
+            :: Fix.replaceRangeBy checkInfo.earlier.fnRange
+                (qualifiedToString (qualify config.asLaterFn checkInfo))
+            :: composeWithEarlierFix
+                { earlier = checkInfo.extractSourceCode checkInfo.later.range
+                , direction = compositionCheckInfoDirection checkInfo
+                , range = checkInfo.earlier.range
+                }
+    }
+
+
+callEarlierOperationCanBeMovedAfterAsForPerformanceError :
+    { earlierFn : ( ModuleName, String )
+    , specificEarlierOperationDescription : Maybe String
+    , earlierFnOperationArgsDescription : String
+    , asLaterFn : ( ModuleName, String )
+    , laterLastArg : Node Expression
+    , earlierFnRange : Range
+    , earlierFnCallLastArgRange : Range
+    }
+    -> CallCheckInfo
+    -> Error {}
+callEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo =
+    Rule.errorWithFix
+        { message =
+            qualifiedToString checkInfo.fn
+                ++ " on "
+                ++ (case config.specificEarlierOperationDescription of
+                        Just specificEarlierOperationDescription ->
+                            specificEarlierOperationDescription
+
+                        Nothing ->
+                            qualifiedToString config.earlierFn
+                   )
+                ++ " can be optimized to "
+                ++ qualifiedToString config.asLaterFn
+                ++ " on "
+                ++ qualifiedToString checkInfo.fn
+        , details =
+            [ "You can replace this call by "
+                ++ qualifiedToString config.asLaterFn
+                ++ " with the "
+                ++ config.earlierFnOperationArgsDescription
+                ++ " given to the original "
+                ++ qualifiedToString config.earlierFn
+                ++ ", on "
+                ++ qualifiedToString checkInfo.fn
+                ++ "."
+            ]
+        }
+        checkInfo.fnRange
+        ((case checkInfo.callStyle of
+            CallStyle.Pipe CallStyle.LeftToRight ->
+                [ Fix.insertAt config.earlierFnCallLastArgRange.start "("
+                , Fix.insertAt config.earlierFnCallLastArgRange.end
+                    (checkInfo.extractSourceCode
+                        { start = (Node.range config.laterLastArg).end
+                        , end = checkInfo.parentRange.end
+                        }
+                        ++ ")"
+                    )
+                ]
+
+            _ ->
+                [ Fix.insertAt config.earlierFnCallLastArgRange.start
+                    ("("
+                        ++ checkInfo.extractSourceCode
+                            { start = checkInfo.parentRange.start
+                            , end = (Node.range config.laterLastArg).start
+                            }
+                    )
+                , Fix.insertAt config.earlierFnCallLastArgRange.end ")"
+                ]
+         )
+            ++ replaceBySubExpressionFix checkInfo.parentRange
+                config.laterLastArg
+            |> consIf (config.earlierFn /= config.asLaterFn)
+                (\() ->
+                    Fix.replaceRangeBy config.earlierFnRange
+                        (qualifiedToString (qualify config.asLaterFn checkInfo))
+                )
+        )
 
 
 getListHead : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
