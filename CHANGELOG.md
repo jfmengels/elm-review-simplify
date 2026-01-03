@@ -5,6 +5,7 @@
 The rule now simplifies:
 - `List.head (List.map f list)` to `Maybe.map f (List.head list)`
 - `List.take n (List.map f list)` to `List.map f (List.take n list)`
+- `List.take n (List.indexedMap f list)` to `List.indexedMap f (List.take n list)`
 - `List.drop n (List.map f list)` to `List.map f (List.drop n list)`
 - `Array.get i (Array.map f array)` to `Maybe.map f (Array.get i array)`
 - `Array.slice start end (Array.map f array)` to `Array.map f (Array.slice start end array)`

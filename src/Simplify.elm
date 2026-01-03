@@ -947,6 +947,9 @@ Destructuring using case expressions
     List.take n (List.map f list)
     --> List.map f (List.take n list)
 
+    List.take n (List.indexedMap f list)
+    --> List.indexedMap f (List.take n list)
+
     List.drop 0 list
     --> list
 
@@ -8569,6 +8572,12 @@ listTakeChecks =
             , earlierFnArgCount = 2
             , earlierFnOperationArgsDescription = "function"
             , asLaterFn = Fn.List.map
+            }
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { earlierFn = Fn.List.indexedMap
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.List.indexedMap
             }
         ]
 
