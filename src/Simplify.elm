@@ -7202,6 +7202,79 @@ earlierOperationCanBeMovedAfterAsForPerformanceChecks config =
     }
 
 
+{-| Like `earlierOperationCanBeMovedAfterAsForPerformanceChecks`
+with an extra condition for the first argument of the later operation
+and no change in operation fn while swapping the operations.
+-}
+operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsChecks :
+    { specificEarlierFn : ( ModuleName, String )
+    , earlierFnOperationArgsDescription : String
+    , isSpecificLaterFirstArg : Normalize.Resources {} -> Node Expression -> Bool
+    , specificLaterFirstArgDescription : String
+    }
+    -> IntoFnCheck
+operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsChecks config =
+    { composition =
+        \checkInfo ->
+            if checkInfo.earlier.fn == config.specificEarlierFn then
+                case checkInfo.later.args of
+                    [] ->
+                        Nothing
+
+                    laterFirstArg :: _ ->
+                        if config.isSpecificLaterFirstArg (extractNormalizeResources checkInfo) laterFirstArg then
+                            Just
+                                (compositionEarlierOperationCanBeMovedAfterAsForPerformanceError
+                                    { specificLaterOperationDescription =
+                                        Just (qualifiedToString checkInfo.later.fn ++ " " ++ config.specificLaterFirstArgDescription)
+                                    , earlierFnOperationArgsDescription = config.earlierFnOperationArgsDescription
+                                    , asLaterFn = config.specificEarlierFn
+                                    }
+                                    checkInfo
+                                )
+
+                        else
+                            Nothing
+
+            else
+                Nothing
+    , call =
+        \checkInfo ->
+            if config.isSpecificLaterFirstArg (extractNormalizeResources checkInfo) checkInfo.firstArg then
+                case fullyAppliedLastArg checkInfo of
+                    Nothing ->
+                        Nothing
+
+                    Just laterLastArg ->
+                        case AstHelpers.getSpecificUnreducedFnCall config.specificEarlierFn checkInfo.lookupTable laterLastArg of
+                            Nothing ->
+                                Nothing
+
+                            Just earlierFnCall ->
+                                case fullyAppliedLastArg { firstArg = earlierFnCall.firstArg, argsAfterFirst = earlierFnCall.argsAfterFirst, argCount = 2 } of
+                                    Nothing ->
+                                        Nothing
+
+                                    Just earlierFnCallLastArg ->
+                                        Just
+                                            (callEarlierOperationCanBeMovedAfterAsForPerformanceError
+                                                { earlierFn = config.specificEarlierFn
+                                                , specificLaterOperationDescription =
+                                                    Just (qualifiedToString checkInfo.fn ++ " " ++ config.specificLaterFirstArgDescription)
+                                                , earlierFnOperationArgsDescription = config.earlierFnOperationArgsDescription
+                                                , asLaterFn = config.specificEarlierFn
+                                                , laterLastArg = laterLastArg
+                                                , earlierFnRange = earlierFnCall.fnRange
+                                                , earlierFnCallLastArgRange = Node.range earlierFnCallLastArg
+                                                }
+                                                checkInfo
+                                            )
+
+            else
+                Nothing
+    }
+
+
 compositionEarlierOperationCanBeMovedAfterAsForPerformanceError :
     { specificLaterOperationDescription : Maybe String
     , earlierFnOperationArgsDescription : String
@@ -9502,73 +9575,15 @@ dictFilterChecks : IntoFnCheck
 dictFilterChecks =
     intoFnChecksFirstThatConstructsError
         [ emptiableKeepWhenWithExtraArgChecks dictCollection
-        , dictFilterKeysOnMapCanBeOptimizedBySwappingOperationsChecks
+        , operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsChecks
+            { specificEarlierFn = Fn.Dict.map
+            , earlierFnOperationArgsDescription = "function"
+            , isSpecificLaterFirstArg =
+                \checkInfo laterFirstArg ->
+                    isJust (getFunctionIgnoringSecondIncoming checkInfo laterFirstArg)
+            , specificLaterFirstArgDescription = "by key"
+            }
         ]
-
-
-dictFilterKeysOnMapCanBeOptimizedBySwappingOperationsChecks : IntoFnCheck
-dictFilterKeysOnMapCanBeOptimizedBySwappingOperationsChecks =
-    { composition =
-        \checkInfo ->
-            if checkInfo.earlier.fn == Fn.Dict.map then
-                case checkInfo.later.args of
-                    [ filterFunctionArg ] ->
-                        case getFunctionIgnoringSecondIncoming checkInfo filterFunctionArg of
-                            Just _ ->
-                                Just
-                                    (compositionEarlierOperationCanBeMovedAfterAsForPerformanceError
-                                        { specificLaterOperationDescription =
-                                            Just (qualifiedToString Fn.Dict.filter ++ " by key")
-                                        , earlierFnOperationArgsDescription = "function"
-                                        , asLaterFn = Fn.Dict.map
-                                        }
-                                        checkInfo
-                                    )
-
-                            Nothing ->
-                                Nothing
-
-                    _ ->
-                        Nothing
-
-            else
-                Nothing
-    , call =
-        \checkInfo ->
-            case getFunctionIgnoringSecondIncoming checkInfo checkInfo.firstArg of
-                Nothing ->
-                    Nothing
-
-                Just _ ->
-                    case checkInfo.argsAfterFirst of
-                        [ laterLastArg ] ->
-                            case AstHelpers.getSpecificUnreducedFnCall Fn.Dict.map checkInfo.lookupTable laterLastArg of
-                                Nothing ->
-                                    Nothing
-
-                                Just earlierFnCall ->
-                                    case fullyAppliedLastArg { firstArg = earlierFnCall.firstArg, argsAfterFirst = earlierFnCall.argsAfterFirst, argCount = 2 } of
-                                        Nothing ->
-                                            Nothing
-
-                                        Just earlierFnCallLastArg ->
-                                            Just
-                                                (callEarlierOperationCanBeMovedAfterAsForPerformanceError
-                                                    { earlierFn = Fn.Dict.map
-                                                    , specificLaterOperationDescription =
-                                                        Just (qualifiedToString Fn.Dict.filter ++ " by key")
-                                                    , earlierFnOperationArgsDescription = "function"
-                                                    , asLaterFn = Fn.Dict.map
-                                                    , laterLastArg = laterLastArg
-                                                    , earlierFnRange = earlierFnCall.fnRange
-                                                    , earlierFnCallLastArgRange = Node.range earlierFnCallLastArg
-                                                    }
-                                                    checkInfo
-                                                )
-
-                        _ ->
-                            Nothing
-    }
 
 
 dictPartitionChecks : IntoFnCheck
