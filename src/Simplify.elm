@@ -1120,6 +1120,9 @@ Destructuring using case expressions
     Array.slice start end (Array.map f array)
     --> Array.map f (Array.slice start end array)
 
+    Array.slice 0 end (Array.indexedMap f array)
+    --> Array.indexedMap f (Array.slice 0 end array)
+
     Array.get n Array.empty
     --> Nothing
 
@@ -8842,6 +8845,14 @@ arraySliceChecks =
             , earlierFnArgCount = 2
             , earlierFnOperationArgsDescription = "function"
             , asLaterFn = Fn.Array.map
+            }
+        , operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsChecks
+            { specificEarlierFn = Fn.Array.indexedMap
+            , earlierFnOperationArgsDescription = "function"
+            , isSpecificLaterFirstArg =
+                \checkInfo laterFirstArg ->
+                    Evaluate.getInt checkInfo laterFirstArg == Just 0
+            , specificLaterFirstArgDescription = "from index 0"
             }
         ]
 
