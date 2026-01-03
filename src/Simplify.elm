@@ -1397,6 +1397,9 @@ Destructuring using case expressions
     Dict.filter (\_ _ -> False) dict
     --> Dict.empty
 
+    Dict.filter (\k _ -> f k) (Dict.map g dict)
+    --> Dict.map g (Dict.filter (\k _ -> f k) dict)
+
     Dict.map f Dict.empty
     --> Dict.empty
 
@@ -9477,7 +9480,75 @@ dictUpdateChecks =
 
 dictFilterChecks : IntoFnCheck
 dictFilterChecks =
-    emptiableKeepWhenWithExtraArgChecks dictCollection
+    intoFnChecksFirstThatConstructsError
+        [ emptiableKeepWhenWithExtraArgChecks dictCollection
+        , dictFilterKeysOnMapCanBeOptimizedBySwappingOperationsChecks
+        ]
+
+
+dictFilterKeysOnMapCanBeOptimizedBySwappingOperationsChecks : IntoFnCheck
+dictFilterKeysOnMapCanBeOptimizedBySwappingOperationsChecks =
+    { composition =
+        \checkInfo ->
+            if checkInfo.earlier.fn == Fn.Dict.map then
+                case checkInfo.later.args of
+                    [ filterFunctionArg ] ->
+                        case getFunctionIgnoringSecondIncoming checkInfo filterFunctionArg of
+                            Just _ ->
+                                Just
+                                    (compositionEarlierOperationCanBeMovedAfterAsForPerformanceError
+                                        { specificLaterOperationDescription =
+                                            Just (qualifiedToString Fn.Dict.filter ++ " by key")
+                                        , earlierFnOperationArgsDescription = "function"
+                                        , asLaterFn = Fn.Dict.map
+                                        }
+                                        checkInfo
+                                    )
+
+                            Nothing ->
+                                Nothing
+
+                    _ ->
+                        Nothing
+
+            else
+                Nothing
+    , call =
+        \checkInfo ->
+            case getFunctionIgnoringSecondIncoming checkInfo checkInfo.firstArg of
+                Nothing ->
+                    Nothing
+
+                Just _ ->
+                    case checkInfo.argsAfterFirst of
+                        [ laterLastArg ] ->
+                            case AstHelpers.getSpecificUnreducedFnCall Fn.Dict.map checkInfo.lookupTable laterLastArg of
+                                Nothing ->
+                                    Nothing
+
+                                Just earlierFnCall ->
+                                    case fullyAppliedLastArg { firstArg = earlierFnCall.firstArg, argsAfterFirst = earlierFnCall.argsAfterFirst, argCount = 2 } of
+                                        Nothing ->
+                                            Nothing
+
+                                        Just earlierFnCallLastArg ->
+                                            Just
+                                                (callEarlierOperationCanBeMovedAfterAsForPerformanceError
+                                                    { earlierFn = Fn.Dict.map
+                                                    , specificLaterOperationDescription =
+                                                        Just (qualifiedToString Fn.Dict.filter ++ " by key")
+                                                    , earlierFnOperationArgsDescription = "function"
+                                                    , asLaterFn = Fn.Dict.map
+                                                    , laterLastArg = laterLastArg
+                                                    , earlierFnRange = earlierFnCall.fnRange
+                                                    , earlierFnCallLastArgRange = Node.range earlierFnCallLastArg
+                                                    }
+                                                    checkInfo
+                                                )
+
+                        _ ->
+                            Nothing
+    }
 
 
 dictPartitionChecks : IntoFnCheck

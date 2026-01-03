@@ -1345,6 +1345,12 @@ a0 = Dict.filter
 a1 = Dict.filter f
 a2 = Dict.filter f dict
 a3 = Dict.filter f (Dict.filter g dict)
+a4 = Dict.filter f (Dict.map g dict)
+a5 = Dict.filter f << Dict.map g
+a6 = Dict.map g << Dict.filter (\\k _ -> f k)
+a7 = Dict.filter (\\k v -> f k v) (Dict.map g dict)
+a8 = Dict.filter (\\k v -> f k v) << Dict.map g
+a9 = Dict.map g >> Dict.filter (\\k v -> f k v)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -1565,6 +1571,96 @@ a = Dict.filter (always (always False))
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = always Dict.empty
+"""
+                        ]
+        , test "should replace Dict.filter (\\k _ -> f k) (Dict.map g dict) by Dict.map g (Dict.filter (\\k _ -> f k) dict)" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter (\\k _ -> f k) (Dict.map g dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.filter by key on Dict.map can be optimized to Dict.map on Dict.filter"
+                            , details = [ "You can replace this call by Dict.map with the function given to the original Dict.map, on Dict.filter." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.map g (Dict.filter (\\k _ -> f k) dict))
+"""
+                        ]
+        , test "should replace Dict.filter (\\k _ -> f k) <| (dict |> Dict.map g) by (Dict.filter (\\k _ -> f k) <| dict) |> Dict.map g" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter (\\k _ -> f k) <| (dict |> Dict.map g)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.filter by key on Dict.map can be optimized to Dict.map on Dict.filter"
+                            , details = [ "You can replace this call by Dict.map with the function given to the original Dict.map, on Dict.filter." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = ((Dict.filter (\\k _ -> f k) <| dict) |> Dict.map g)
+"""
+                        ]
+        , test "should replace Dict.filter (\\k -> always (f k)) (Dict.map g dict) by Dict.map g (Dict.filter (\\k -> always (f k)) dict)" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter (\\k -> always (f k)) (Dict.map g dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.filter by key on Dict.map can be optimized to Dict.map on Dict.filter"
+                            , details = [ "You can replace this call by Dict.map with the function given to the original Dict.map, on Dict.filter." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.map g (Dict.filter (\\k -> always (f k)) dict))
+"""
+                        ]
+        , test "should replace Dict.filter (\\k _ -> f k) << Dict.map g by Dict.map g << Dict.filter (\\k _ -> f k)" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter (\\k _ -> f k) << Dict.map g
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.filter by key on Dict.map can be optimized to Dict.map on Dict.filter"
+                            , details = [ "You can replace this composition by Dict.filter, then Dict.map with the function given to the original Dict.map." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.map g << Dict.filter (\\k _ -> f k))
+"""
+                        ]
+        , test "should replace Dict.map g >> Dict.filter (\\k _ -> f k) by Dict.filter (\\k _ -> f k) >> Dict.map g" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.map g >> Dict.filter (\\k _ -> f k)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.filter by key on Dict.map can be optimized to Dict.map on Dict.filter"
+                            , details = [ "You can replace this composition by Dict.filter, then Dict.map with the function given to the original Dict.map." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = (Dict.filter (\\k _ -> f k) >> Dict.map g)
 """
                         ]
         ]
