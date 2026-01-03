@@ -12,6 +12,7 @@ The rule now simplifies:
 - `Array.slice 0 end (Array.indexedMap f array)` to `Array.indexedMap f (Array.slice 0 end array)`
 - `Dict.remove k (Dict.map g dict)` to `Dict.map g (Dict.remove k dict)`
 - `Dict.filter (\k _ -> f k) (Dict.map g dict)` to `Dict.map g (Dict.filter (\k _ -> f k) dict)`
+- `Dict.diff (Dict.map f dict) remove` to `Dict.map f (Dict.diff dict remove)`
 
 ## [2.1.11] - 2025-12-30
 

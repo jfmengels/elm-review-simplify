@@ -1430,6 +1430,9 @@ Destructuring using case expressions
     Dict.diff dict Dict.empty
     --> dict
 
+    Dict.diff (Dict.map f dict) remove
+    --> Dict.map f (Dict.diff dict remove)
+
     Dict.union dict Dict.empty
     --> dict
 
@@ -9661,7 +9664,66 @@ dictIntersectChecks =
 
 dictDiffChecks : IntoFnCheck
 dictDiffChecks =
-    intoFnCheckOnlyCall (collectionDiffChecks dictCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (\checkInfo ->
+                collectionDiffChecks dictCollection checkInfo
+                    |> onNothing
+                        (\() ->
+                            case checkInfo.argsAfterFirst of
+                                [ _ ] ->
+                                    case
+                                        AstHelpers.getSpecificUnreducedFnCall Fn.Dict.map
+                                            checkInfo.lookupTable
+                                            -- to let the resulting .nodeRange be only the call itself
+                                            (AstHelpers.removeParens checkInfo.firstArg)
+                                    of
+                                        Nothing ->
+                                            Nothing
+
+                                        Just dictMapFnCall ->
+                                            case dictMapFnCall.argsAfterFirst of
+                                                [ unmappedDictArg ] ->
+                                                    Just
+                                                        (Rule.errorWithFix
+                                                            { message =
+                                                                qualifiedToString checkInfo.fn
+                                                                    ++ " with a base dict resulting from a "
+                                                                    ++ qualifiedToString Fn.Dict.map
+                                                                    ++ " can be optimized to "
+                                                                    ++ qualifiedToString Fn.Dict.map
+                                                                    ++ " on "
+                                                                    ++ qualifiedToString checkInfo.fn
+                                                            , details =
+                                                                [ "You can replace this call by "
+                                                                    ++ qualifiedToString Fn.Dict.map
+                                                                    ++ " with the function given to the original call, on "
+                                                                    ++ qualifiedToString checkInfo.fn
+                                                                    ++ " with the unmapped dict and the dict containing the keys to remove given to the original call."
+                                                                ]
+                                                            }
+                                                            checkInfo.fnRange
+                                                            (extractAndInsertParenthesizedCallAroundReplacementLastArgFix
+                                                                { extractSourceCode = checkInfo.extractSourceCode
+                                                                , replacementLastArgRange = checkInfo.parentRange
+                                                                , parenthesizeReplacementLastArg = True
+                                                                , originalCallRange = dictMapFnCall.nodeRange
+                                                                , originalCallStyle = dictMapFnCall.callStyle
+                                                                , originalLastArgRange = Node.range unmappedDictArg
+                                                                }
+                                                                ++ replaceBySubExpressionFix (Node.range checkInfo.firstArg)
+                                                                    unmappedDictArg
+                                                            )
+                                                        )
+
+                                                _ ->
+                                                    Nothing
+
+                                _ ->
+                                    Nothing
+                        )
+            )
+        ]
 
 
 dictUnionChecks : IntoFnCheck
