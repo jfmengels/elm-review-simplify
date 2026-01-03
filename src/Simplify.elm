@@ -7365,29 +7365,14 @@ callEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo =
             ]
         }
         checkInfo.fnRange
-        ((case checkInfo.callStyle of
-            CallStyle.Pipe CallStyle.LeftToRight ->
-                [ Fix.insertAt config.earlierFnCallLastArgRange.start "("
-                , Fix.insertAt config.earlierFnCallLastArgRange.end
-                    (checkInfo.extractSourceCode
-                        { start = (Node.range config.laterLastArg).end
-                        , end = checkInfo.parentRange.end
-                        }
-                        ++ ")"
-                    )
-                ]
-
-            _ ->
-                [ Fix.insertAt config.earlierFnCallLastArgRange.start
-                    ("("
-                        ++ checkInfo.extractSourceCode
-                            { start = checkInfo.parentRange.start
-                            , end = (Node.range config.laterLastArg).start
-                            }
-                    )
-                , Fix.insertAt config.earlierFnCallLastArgRange.end ")"
-                ]
-         )
+        (extractAndInsertParenthesizedCallAroundReplacementLastArgFix
+            { extractSourceCode = checkInfo.extractSourceCode
+            , originalCallRange = checkInfo.parentRange
+            , originalCallStyle = checkInfo.callStyle
+            , originalLastArgRange = Node.range config.laterLastArg
+            , replacementLastArgRange = config.earlierFnCallLastArgRange
+            , parenthesizeReplacementLastArg = False
+            }
             ++ replaceBySubExpressionFix checkInfo.parentRange
                 config.laterLastArg
             |> consIf (config.earlierFn /= config.asLaterFn)
@@ -7396,6 +7381,68 @@ callEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo =
                         (qualifiedToString (qualify config.asLaterFn checkInfo))
                 )
         )
+
+
+extractAndInsertParenthesizedCallAroundReplacementLastArgFix :
+    { extractSourceCode : Range -> String
+    , originalCallRange : Range
+    , originalCallStyle : FunctionCallStyle
+    , originalLastArgRange : Range
+    , replacementLastArgRange : Range
+    , parenthesizeReplacementLastArg : Bool
+    }
+    -> List Fix
+extractAndInsertParenthesizedCallAroundReplacementLastArgFix config =
+    case config.originalCallStyle of
+        CallStyle.Pipe CallStyle.LeftToRight ->
+            [ Fix.insertAt config.replacementLastArgRange.start
+                ("("
+                    ++ (if config.parenthesizeReplacementLastArg then
+                            "("
+
+                        else
+                            ""
+                       )
+                )
+            , Fix.insertAt config.replacementLastArgRange.end
+                ((if config.parenthesizeReplacementLastArg then
+                    ")"
+
+                  else
+                    ""
+                 )
+                    ++ config.extractSourceCode
+                        { start = config.originalLastArgRange.end
+                        , end = config.originalCallRange.end
+                        }
+                    ++ ")"
+                )
+            ]
+
+        _ ->
+            [ Fix.insertAt config.replacementLastArgRange.start
+                ("("
+                    ++ config.extractSourceCode
+                        { start = config.originalCallRange.start
+                        , end = config.originalLastArgRange.start
+                        }
+                    ++ (if config.parenthesizeReplacementLastArg then
+                            "("
+
+                        else
+                            ""
+                       )
+                )
+            , Fix.insertAt config.replacementLastArgRange.end
+                ((if config.parenthesizeReplacementLastArg then
+                    ")"
+
+                  else
+                    ""
+                 )
+                    ++ ")"
+                )
+            ]
 
 
 getListHead : ModuleNameLookupTable -> Node Expression -> Maybe (Node Expression)
