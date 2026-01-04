@@ -4822,7 +4822,7 @@ equalityChecks isEqual checkInfo =
             (\() ->
                 checkOperationFromBothSides checkInfo
                     (\side ->
-                        if Evaluate.getBoolean checkInfo side.node == Determined isEqual then
+                        if Evaluate.getBoolean checkInfo side.node == Just isEqual then
                             Just
                                 (Rule.errorWithFix
                                     { message = "Unnecessary comparison with boolean"
@@ -5478,7 +5478,7 @@ basicsNotChecks =
 notOnKnownBoolCheck : CallCheckInfo -> Maybe (Error {})
 notOnKnownBoolCheck checkInfo =
     case Evaluate.getBoolean checkInfo checkInfo.firstArg of
-        Determined bool ->
+        Just bool ->
             let
                 notBoolAsString : String
                 notBoolAsString =
@@ -5495,7 +5495,7 @@ notOnKnownBoolCheck checkInfo =
                     ]
                 )
 
-        Undetermined ->
+        Nothing ->
             Nothing
 
 
@@ -8186,10 +8186,10 @@ listFoldChecks foldFnName reverseFoldFnName =
 
                         else
                             case Evaluate.getBoolean checkInfo initialArg of
-                                Undetermined ->
+                                Nothing ->
                                     Nothing
 
-                                Determined initialBool ->
+                                Just initialBool ->
                                     if Normalize.isSpecificUnappliedBinaryOperation "&&" checkInfo checkInfo.firstArg then
                                         Just (boolBinaryOperationChecks { two = "&&", list = "all", determining = False } initialBool)
 
@@ -10889,27 +10889,27 @@ boolForOrProperties =
 boolTrueConstant : ConstantProperties
 boolTrueConstant =
     { description = qualifiedToString (qualify Fn.Basics.trueVariant defaultQualifyResources)
-    , is = \res expr -> Evaluate.getBoolean res expr == determinedTrue
+    , is = \res expr -> Evaluate.getBoolean res expr == justTrue
     , asString = \res -> qualifiedToString (qualify Fn.Basics.trueVariant res)
     }
 
 
-determinedTrue : Match Bool
-determinedTrue =
-    Determined True
+justTrue : Maybe Bool
+justTrue =
+    Just True
 
 
 boolFalseConstant : ConstantProperties
 boolFalseConstant =
     { description = qualifiedToString (qualify Fn.Basics.falseVariant defaultQualifyResources)
-    , is = \res expr -> Evaluate.getBoolean res expr == determinedFalse
+    , is = \res expr -> Evaluate.getBoolean res expr == justFalse
     , asString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res)
     }
 
 
-determinedFalse : Match Bool
-determinedFalse =
-    Determined False
+justFalse : Maybe Bool
+justFalse =
+    Just False
 
 
 numberForAddProperties : TypeProperties (EmptiableProperties ConstantProperties (AbsorbableProperties {}))
@@ -13254,7 +13254,7 @@ emptiableAllChecks emptiable checkInfo =
                 case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
                     Just alwaysResult ->
                         case Evaluate.getBoolean checkInfo alwaysResult of
-                            Determined True ->
+                            Just True ->
                                 Just
                                     (alwaysResultsInUnparenthesizedConstantError
                                         (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
@@ -13328,7 +13328,7 @@ emptiableAnyChecks emptiable checkInfo =
                 case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
                     Just alwaysResult ->
                         case Evaluate.getBoolean checkInfo alwaysResult of
-                            Determined False ->
+                            Just False ->
                                 Just
                                     (alwaysResultsInUnparenthesizedConstantError
                                         (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
@@ -16185,7 +16185,7 @@ emptiableKeepWhenChecks emptiable =
 keepWhenWithConstantFunctionResultChecks : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo =
     case Evaluate.getBoolean checkInfo constantFunctionResult of
-        Determined True ->
+        Just True ->
             Just
                 (alwaysReturnsLastArgError
                     (qualifiedToString checkInfo.fn ++ " with a function that will always return True")
@@ -16193,7 +16193,7 @@ keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkI
                     checkInfo
                 )
 
-        Determined False ->
+        Just False ->
             Just
                 (alwaysResultsInUnparenthesizedConstantError
                     (qualifiedToString checkInfo.fn ++ " with a function that will always return False")
@@ -16201,7 +16201,7 @@ keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkI
                     checkInfo
                 )
 
-        Undetermined ->
+        Nothing ->
             Nothing
 
 
@@ -16756,7 +16756,7 @@ partitionOnEmptyChecks emptiable chheckInfo =
 partitionWithConstantFunctionResult : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 partitionWithConstantFunctionResult constantFunctionResult collection checkInfo =
     case Evaluate.getBoolean checkInfo constantFunctionResult of
-        Determined True ->
+        Just True ->
             case secondArg checkInfo of
                 Just (Node listArgRange _) ->
                     Just
@@ -16773,7 +16773,7 @@ partitionWithConstantFunctionResult constantFunctionResult collection checkInfo 
                 Nothing ->
                     Nothing
 
-        Determined False ->
+        Just False ->
             Just
                 (Rule.errorWithFix
                     { message = "All elements will go to the second " ++ collection.represents
@@ -16798,7 +16798,7 @@ partitionWithConstantFunctionResult constantFunctionResult collection checkInfo 
                     )
                 )
 
-        Undetermined ->
+        Nothing ->
             Nothing
 
 
@@ -16976,7 +16976,7 @@ targetIfKeyword ifExpressionRange =
 ifChecks : IfCheckInfo -> Maybe (Error {})
 ifChecks checkInfo =
     (case Evaluate.getBoolean checkInfo checkInfo.condition of
-        Determined determinedConditionResultIsTrue ->
+        Just determinedConditionResultIsTrue ->
             let
                 branch : { expressionNode : Node Expression, name : String }
                 branch =
@@ -16995,15 +16995,15 @@ ifChecks checkInfo =
                     (replaceBySubExpressionFix checkInfo.nodeRange branch.expressionNode)
                 )
 
-        Undetermined ->
+        Nothing ->
             Nothing
     )
         |> onNothing
             (\() ->
                 case Evaluate.getBoolean checkInfo checkInfo.trueBranch of
-                    Determined True ->
+                    Just True ->
                         case Evaluate.getBoolean checkInfo checkInfo.falseBranch of
-                            Determined False ->
+                            Just False ->
                                 Just
                                     (Rule.errorWithFix
                                         { message = "The if expression's value is the same as the condition"
@@ -17016,9 +17016,9 @@ ifChecks checkInfo =
                             _ ->
                                 Nothing
 
-                    Determined False ->
+                    Just False ->
                         case Evaluate.getBoolean checkInfo checkInfo.falseBranch of
-                            Determined True ->
+                            Just True ->
                                 Just
                                     (Rule.errorWithFix
                                         { message = "The if expression's value is the inverse of the condition"
@@ -17034,7 +17034,7 @@ ifChecks checkInfo =
                             _ ->
                                 Nothing
 
-                    Undetermined ->
+                    Nothing ->
                         Nothing
             )
         |> onNothing

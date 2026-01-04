@@ -2,31 +2,30 @@ module Simplify.Evaluate exposing (getBoolean, getInt, getNumber)
 
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node)
-import Simplify.Match exposing (Match(..))
 import Simplify.Normalize as Normalize
 
 
-getBoolean : Normalize.Resources a -> Node Expression -> Match Bool
+getBoolean : Normalize.Resources a -> Node Expression -> Maybe Bool
 getBoolean resources baseNode =
     case Node.value (Normalize.normalize resources baseNode) of
         Expression.FunctionOrValue [ "Basics" ] "True" ->
-            determinedTrue
+            justTrue
 
         Expression.FunctionOrValue [ "Basics" ] "False" ->
-            determinedFalse
+            justFalse
 
         _ ->
-            Undetermined
+            Nothing
 
 
-determinedTrue : Match Bool
-determinedTrue =
-    Determined True
+justTrue : Maybe Bool
+justTrue =
+    Just True
 
 
-determinedFalse : Match Bool
-determinedFalse =
-    Determined False
+justFalse : Maybe Bool
+justFalse =
+    Just False
 
 
 getInt : Normalize.Resources a -> Node Expression -> Maybe Int
