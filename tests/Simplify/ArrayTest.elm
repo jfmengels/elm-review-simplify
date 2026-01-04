@@ -2774,7 +2774,7 @@ a = Array.set 100 x (Array.fromList [ b, c, d ])
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
-a = (Array.fromList [ b, c, d ])
+a = Array.fromList [ b, c, d ]
 """
                         ]
         ]

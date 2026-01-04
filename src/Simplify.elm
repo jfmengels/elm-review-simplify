@@ -5388,7 +5388,7 @@ basicsIdentityChecks =
                     , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
                     }
                     checkInfo.fnRange
-                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
+                    (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle checkInfo.firstArg)
                 )
         )
 
@@ -5574,7 +5574,7 @@ basicsToFloatChecks =
                                 ]
                             }
                             checkInfo.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
+                            (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle checkInfo.firstArg)
                         )
 
                 Nothing ->
@@ -6015,7 +6015,7 @@ evaluateConversionToIntOnNumberCheck operation checkInfo =
                         ]
                     }
                     checkInfo.fnRange
-                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
+                    (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle checkInfo.firstArg)
                 )
 
         Nothing ->
@@ -6782,7 +6782,7 @@ stringReplaceChecks =
                                                     , details = [ "You can replace this call by the given string itself." ]
                                                     }
                                                     checkInfo.fnRange
-                                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range stringArg })
+                                                    (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle stringArg)
                                                 )
 
                                         else
@@ -12503,7 +12503,7 @@ emptiableWithDefaultChecks emptiable checkInfo =
                         , details = [ "You can replace this call by the default value." ]
                         }
                         checkInfo.fnRange
-                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
+                        (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle checkInfo.firstArg)
                     )
 
             else
@@ -13985,7 +13985,7 @@ foldToUnchangedAccumulatorCheck typeProperties checkInfo =
                             initialArg :: _ :: _ ->
                                 { description = "the given initial accumulator"
                                 , fix =
-                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg }
+                                    replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle initialArg
                                 }
                 in
                 Just
@@ -14066,7 +14066,7 @@ foldToUnchangedAccumulatorWithExtraArgCheck typeProperties checkInfo =
                             initialArg :: _ :: _ ->
                                 { description = "the given initial accumulator"
                                 , fix =
-                                    keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range initialArg }
+                                    replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle initialArg
                                 }
                 in
                 Just
@@ -14414,7 +14414,7 @@ setOnKnownElementChecks collection checkInfo n replacementArgRange =
                                         , details = [ "You can replace this call by the given " ++ collection.represents ++ "." ]
                                         }
                                         checkInfo.fnRange
-                                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range collectionArg })
+                                        (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle collectionArg)
                                     )
 
                             else
@@ -15745,7 +15745,7 @@ onSpecificFnCallReturnsItsLastArgCheck inverseFn =
                             , details = [ "You can replace this call by the argument given to " ++ qualifiedToString inverseFn ++ "." ]
                             }
                             checkInfo.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range call.firstArg })
+                            (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle call.firstArg)
                         )
 
                 Nothing ->
@@ -15878,10 +15878,10 @@ unnecessaryCallOnCheck constructable checkInfo =
                     (Rule.errorWithFix
                         (operationDoesNotChangeSpecificLastArgErrorInfo { fn = checkInfo.fn, specific = constructable })
                         checkInfo.fnRange
-                        (keepOnlyFix
-                            { parentRange = checkInfo.parentRange
-                            , keep = Node.range constructableArg
-                            }
+                        (replaceCallBySubExpressionFix
+                            checkInfo.parentRange
+                            checkInfo.callStyle
+                            constructableArg
                         )
                     )
 
@@ -16353,7 +16353,7 @@ collectionDiffChecks collection checkInfo =
                             , details = [ "You can replace this call by the given first " ++ collection.represents ++ "." ]
                             }
                             checkInfo.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
+                            (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle checkInfo.firstArg)
                         )
 
                 else
@@ -16383,7 +16383,7 @@ collectionUnionChecks config collection checkInfo =
                             , details = [ "You can replace this call by the given first " ++ collection.represents ++ "." ]
                             }
                             checkInfo.fnRange
-                            (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg })
+                            (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle checkInfo.firstArg)
                         )
 
                 else
@@ -19196,7 +19196,7 @@ Use `returnsArgError` with the given last arg as `arg` when the last arg is alre
 alwaysReturnsLastArgError :
     String
     -> { lastArgProperties | represents : String }
-    -> QualifyResources { a | fnRange : Range, parentRange : Range, argCount : Int, firstArg : Node Expression, argsAfterFirst : List (Node Expression) }
+    -> CallCheckInfo
     -> Error {}
 alwaysReturnsLastArgError usingSpecificSituation lastArgProperties checkInfo =
     case fullyAppliedLastArg checkInfo of
@@ -19238,7 +19238,7 @@ returnsArgError :
         { argRepresents : String
         , arg : Node Expression
         }
-    -> QualifyResources { a | fnRange : Range, parentRange : Range }
+    -> CallCheckInfo
     -> Error {}
 returnsArgError usingSituation config checkInfo =
     Rule.errorWithFix
@@ -19247,7 +19247,7 @@ returnsArgError usingSituation config checkInfo =
             [ "You can replace this call by the " ++ config.argRepresents ++ " itself." ]
         }
         checkInfo.fnRange
-        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range config.arg })
+        (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle config.arg)
 
 
 {-| `ErrorInfoAndFix` for when a specific composition is equivalent to identity, e.g. `Just >> Maybe.withDefault x`.
@@ -19595,7 +19595,7 @@ needsParens expr =
             True
 
         Expression.Negation _ ->
-            True
+            False
 
         Expression.LetExpression _ ->
             True

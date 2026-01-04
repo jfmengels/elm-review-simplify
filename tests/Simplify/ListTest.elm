@@ -9242,7 +9242,7 @@ a = List.reverse (List.singleton b)
                             , under = "List.reverse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (List.singleton b)
+a = List.singleton b
 """
                         ]
         , test "should replace a |> List.singleton |> List.reverse by a |> List.singleton" <|
@@ -10057,7 +10057,7 @@ a = List.intersperse s (List.singleton b)
                             , under = "List.intersperse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (List.singleton b)
+a = List.singleton b
 """
                         ]
         , test "should replace a |> List.singleton |> List.intersperse s by a |> List.singleton" <|

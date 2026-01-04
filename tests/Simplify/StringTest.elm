@@ -1495,7 +1495,7 @@ a = String.reverse (String.fromChar b)
                             , under = "String.reverse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (String.fromChar b)
+a = String.fromChar b
 """
                         ]
         , test "should replace a |> String.fromChar |> String.reverse by a |> String.fromChar" <|

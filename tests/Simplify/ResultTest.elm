@@ -41,7 +41,7 @@ a = Result.map f (Err z)
                             , under = "Result.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Err z)
+a = Err z
 """
                         ]
         , test "should replace Result.map f <| Err z by Err z" <|
@@ -573,7 +573,7 @@ a = Result.mapError f (Ok z)
                             , under = "Result.mapError"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Ok z)
+a = Ok z
 """
                         ]
         , test "should replace Result.mapError f <| Ok z by Ok z" <|
@@ -906,7 +906,7 @@ a = Result.andThen f (Err z)
                             , under = "Result.andThen"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Err z)
+a = Err z
 """
                         ]
         , test "should replace Result.andThen f << Err by Err" <|

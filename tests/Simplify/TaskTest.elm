@@ -45,7 +45,7 @@ a = Task.map f (Task.fail z)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = (Task.fail z)
+a = Task.fail z
 """
                         ]
         , test "should replace Task.map f <| Task.fail z by Task.fail z" <|
@@ -533,7 +533,7 @@ a = Task.mapError f (Task.succeed a)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = (Task.succeed a)
+a = Task.succeed a
 """
                         ]
         , test "should replace Task.mapError f <| Task.succeed a by Task.succeed a" <|
@@ -801,7 +801,7 @@ a = Task.andThen f (Task.fail x)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = (Task.fail x)
+a = Task.fail x
 """
                         ]
         , test "should replace Task.andThen f << Task.fail by Task.fail" <|
@@ -995,7 +995,7 @@ a = Task.onError f (Task.succeed a)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = (Task.succeed a)
+a = Task.succeed a
 """
                         ]
         , test "should replace Task.onError f << Task.succeed by Task.succeed" <|
