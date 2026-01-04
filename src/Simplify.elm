@@ -4822,7 +4822,7 @@ equalityChecks isEqual checkInfo =
             (\() ->
                 checkOperationFromBothSides checkInfo
                     (\side ->
-                        if Evaluate.getBoolean checkInfo side.node == Just isEqual then
+                        if Evaluate.getBool checkInfo side.node == Just isEqual then
                             Just
                                 (Rule.errorWithFix
                                     { message = "Unnecessary comparison with boolean"
@@ -5477,7 +5477,7 @@ basicsNotChecks =
 
 notOnKnownBoolCheck : CallCheckInfo -> Maybe (Error {})
 notOnKnownBoolCheck checkInfo =
-    case Evaluate.getBoolean checkInfo checkInfo.firstArg of
+    case Evaluate.getBool checkInfo checkInfo.firstArg of
         Just bool ->
             let
                 notBoolAsString : String
@@ -8185,7 +8185,7 @@ listFoldChecks foldFnName reverseFoldFnName =
                             numberBinaryOperationChecks { two = "+", list = "sum", identity = 0 }
 
                         else
-                            case Evaluate.getBoolean checkInfo initialArg of
+                            case Evaluate.getBool checkInfo initialArg of
                                 Nothing ->
                                     Nothing
 
@@ -10889,7 +10889,7 @@ boolForOrProperties =
 boolTrueConstant : ConstantProperties
 boolTrueConstant =
     { description = qualifiedToString (qualify Fn.Basics.trueVariant defaultQualifyResources)
-    , is = \res expr -> Evaluate.getBoolean res expr == justTrue
+    , is = \res expr -> Evaluate.getBool res expr == justTrue
     , asString = \res -> qualifiedToString (qualify Fn.Basics.trueVariant res)
     }
 
@@ -10902,7 +10902,7 @@ justTrue =
 boolFalseConstant : ConstantProperties
 boolFalseConstant =
     { description = qualifiedToString (qualify Fn.Basics.falseVariant defaultQualifyResources)
-    , is = \res expr -> Evaluate.getBoolean res expr == justFalse
+    , is = \res expr -> Evaluate.getBool res expr == justFalse
     , asString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res)
     }
 
@@ -13253,7 +13253,7 @@ emptiableAllChecks emptiable checkInfo =
             (\() ->
                 case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
                     Just alwaysResult ->
-                        case Evaluate.getBoolean checkInfo alwaysResult of
+                        case Evaluate.getBool checkInfo alwaysResult of
                             Just True ->
                                 Just
                                     (alwaysResultsInUnparenthesizedConstantError
@@ -13327,7 +13327,7 @@ emptiableAnyChecks emptiable checkInfo =
             (\() ->
                 case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
                     Just alwaysResult ->
-                        case Evaluate.getBoolean checkInfo alwaysResult of
+                        case Evaluate.getBool checkInfo alwaysResult of
                             Just False ->
                                 Just
                                     (alwaysResultsInUnparenthesizedConstantError
@@ -16184,7 +16184,7 @@ emptiableKeepWhenChecks emptiable =
 
 keepWhenWithConstantFunctionResultChecks : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo =
-    case Evaluate.getBoolean checkInfo constantFunctionResult of
+    case Evaluate.getBool checkInfo constantFunctionResult of
         Just True ->
             Just
                 (alwaysReturnsLastArgError
@@ -16755,7 +16755,7 @@ partitionOnEmptyChecks emptiable chheckInfo =
 
 partitionWithConstantFunctionResult : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 partitionWithConstantFunctionResult constantFunctionResult collection checkInfo =
-    case Evaluate.getBoolean checkInfo constantFunctionResult of
+    case Evaluate.getBool checkInfo constantFunctionResult of
         Just True ->
             case secondArg checkInfo of
                 Just (Node listArgRange _) ->
@@ -16975,7 +16975,7 @@ targetIfKeyword ifExpressionRange =
 
 ifChecks : IfCheckInfo -> Maybe (Error {})
 ifChecks checkInfo =
-    (case Evaluate.getBoolean checkInfo checkInfo.condition of
+    (case Evaluate.getBool checkInfo checkInfo.condition of
         Just determinedConditionResultIsTrue ->
             let
                 branch : { expressionNode : Node Expression, name : String }
@@ -17000,9 +17000,9 @@ ifChecks checkInfo =
     )
         |> onNothing
             (\() ->
-                case Evaluate.getBoolean checkInfo checkInfo.trueBranch of
+                case Evaluate.getBool checkInfo checkInfo.trueBranch of
                     Just True ->
-                        case Evaluate.getBoolean checkInfo checkInfo.falseBranch of
+                        case Evaluate.getBool checkInfo checkInfo.falseBranch of
                             Just False ->
                                 Just
                                     (Rule.errorWithFix
@@ -17017,7 +17017,7 @@ ifChecks checkInfo =
                                 Nothing
 
                     Just False ->
-                        case Evaluate.getBoolean checkInfo checkInfo.falseBranch of
+                        case Evaluate.getBool checkInfo checkInfo.falseBranch of
                             Just True ->
                                 Just
                                     (Rule.errorWithFix
