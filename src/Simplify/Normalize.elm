@@ -616,204 +616,267 @@ compare resources leftNode right =
     compareHelp
         (normalizeExpression resources leftNode)
         (normalizeExpression resources right)
-        True
 
 
 compareWithoutNormalization : Expression -> Expression -> Comparison
 compareWithoutNormalization leftNode right =
-    compareHelp leftNode right True
+    compareHelp leftNode right
 
 
-compareHelp : Expression -> Expression -> Bool -> Comparison
-compareHelp left right canFlip =
-    let
-        fallback : () -> Comparison
-        fallback () =
-            if canFlip then
-                compareHelp right left False
+compareHelp : Expression -> Expression -> Comparison
+compareHelp left right =
+    case right of
+        Expression.UnitExpr ->
+            ConfirmedEquality
 
-            else if left == right then
-                ConfirmedEquality
-
-            else
-                Unconfirmed
-    in
-    case left of
-        Expression.Floatable leftNumber ->
-            case right of
-                Expression.Floatable rightNumber ->
-                    fromEquality (leftNumber == rightNumber)
-
-                _ ->
-                    Unconfirmed
-
-        Expression.Negation (Node _ leftInNegation) ->
-            case right of
-                Expression.Negation (Node _ rightInNegation) ->
-                    compareHelp leftInNegation rightInNegation canFlip
-
-                _ ->
-                    fallback ()
-
-        Expression.OperatorApplication leftOp _ (Node _ leftLeft) (Node _ leftRight) ->
-            case right of
-                Expression.OperatorApplication rightOp _ (Node _ rightLeft) (Node _ rightRight) ->
-                    if leftOp == rightOp then
-                        compareAll2Help leftLeft rightLeft leftRight rightRight
-
-                    else
-                        fallback ()
-
-                _ ->
-                    fallback ()
-
-        Expression.Literal leftString ->
-            case right of
-                Expression.Literal rightString ->
-                    fromEquality (leftString == rightString)
-
-                _ ->
-                    fallback ()
-
-        Expression.CharLiteral leftChar ->
-            case right of
-                Expression.CharLiteral rightChar ->
-                    fromEquality (leftChar == rightChar)
-
-                _ ->
-                    fallback ()
-
-        Expression.FunctionOrValue moduleNameLeft leftName ->
-            case right of
-                Expression.FunctionOrValue moduleNameRight rightName ->
-                    if leftName == rightName && moduleNameRight == moduleNameLeft then
+        _ ->
+            let
+                fallback : () -> Comparison
+                fallback () =
+                    if left == right then
                         ConfirmedEquality
 
                     else
-                        fallback ()
+                        Unconfirmed
+            in
+            case left of
+                Expression.UnitExpr ->
+                    ConfirmedEquality
 
-                _ ->
-                    fallback ()
-
-        Expression.ListExpr leftList ->
-            case right of
-                Expression.ListExpr rightList ->
-                    compareLists leftList rightList ConfirmedEquality
-
-                _ ->
-                    fallback ()
-
-        Expression.TupledExpression leftList ->
-            case right of
-                Expression.TupledExpression rightList ->
-                    compareLists leftList rightList ConfirmedEquality
-
-                _ ->
-                    fallback ()
-
-        Expression.RecordExpr leftFields ->
-            case right of
-                Expression.RecordExpr rightFields ->
-                    compareRecords leftFields rightFields ConfirmedEquality
-
-                _ ->
-                    fallback ()
-
-        Expression.RecordUpdateExpression (Node _ leftBaseRecordVariableName) leftFields ->
-            case right of
-                Expression.RecordUpdateExpression (Node _ rightBaseRecordVariableName) rightFields ->
-                    compareRecords leftFields
-                        rightFields
-                        (if leftBaseRecordVariableName == rightBaseRecordVariableName then
-                            ConfirmedEquality
-
-                         else
-                            Unconfirmed
-                        )
-
-                _ ->
-                    fallback ()
-
-        Expression.Application ((Node _ leftCalled) :: (Node _ leftArg0) :: leftArg1Up) ->
-            case right of
-                Expression.Application ((Node _ rightCalled) :: (Node _ rightArg0) :: rightArg1Up) ->
-                    case compareAll2Help leftCalled rightCalled leftArg0 rightArg0 of
-                        ConfirmedEquality ->
-                            compareAllConfirmedEqualityElseUnconfirmedHelp leftArg1Up rightArg1Up
+                Expression.Floatable leftNumber ->
+                    case right of
+                        Expression.Floatable rightNumber ->
+                            fromEquality (leftNumber == rightNumber)
 
                         _ ->
                             Unconfirmed
 
-                _ ->
-                    fallback ()
+                Expression.Literal leftString ->
+                    case right of
+                        Expression.Literal rightString ->
+                            fromEquality (leftString == rightString)
 
-        Expression.RecordAccess (Node _ leftRecord) (Node _ leftName) ->
-            case right of
-                Expression.RecordAccess (Node _ rightRecord) (Node _ rightName) ->
-                    if leftName == rightName then
-                        compareHelp leftRecord rightRecord canFlip
+                        _ ->
+                            Unconfirmed
 
-                    else
-                        Unconfirmed
+                Expression.CharLiteral leftChar ->
+                    case right of
+                        Expression.CharLiteral rightChar ->
+                            fromEquality (leftChar == rightChar)
 
-                _ ->
-                    fallback ()
+                        _ ->
+                            Unconfirmed
 
-        Expression.UnitExpr ->
-            ConfirmedEquality
+                Expression.Negation (Node _ leftInNegation) ->
+                    case right of
+                        Expression.Negation (Node _ rightInNegation) ->
+                            compareHelp leftInNegation rightInNegation
 
-        Expression.IfBlock (Node _ leftCond) (Node _ leftThen) (Node _ leftElse) ->
-            case right of
-                Expression.IfBlock (Node _ rightCond) (Node _ rightThen) (Node _ rightElse) ->
-                    case compareHelp leftCond rightCond True of
-                        ConfirmedEquality ->
-                            case compareHelp leftThen rightThen True of
-                                ConfirmedInequality ->
-                                    case compareHelp leftElse rightElse True of
-                                        ConfirmedInequality ->
-                                            ConfirmedInequality
+                        _ ->
+                            Unconfirmed
 
-                                        _ ->
-                                            Unconfirmed
+                Expression.OperatorApplication leftOp _ (Node _ leftLeft) (Node _ leftRight) ->
+                    case right of
+                        Expression.OperatorApplication rightOp _ (Node _ rightLeft) (Node _ rightRight) ->
+                            if leftOp == rightOp then
+                                compareAll2Help leftLeft rightLeft leftRight rightRight
 
+                            else
+                                Unconfirmed
+
+                        _ ->
+                            Unconfirmed
+
+                Expression.FunctionOrValue moduleNameLeft leftName ->
+                    case right of
+                        Expression.FunctionOrValue moduleNameRight rightName ->
+                            if leftName == rightName && moduleNameRight == moduleNameLeft then
+                                ConfirmedEquality
+
+                            else
+                                Unconfirmed
+
+                        _ ->
+                            Unconfirmed
+
+                Expression.PrefixOperator leftOperator ->
+                    case right of
+                        Expression.PrefixOperator rightOperator ->
+                            if leftOperator == rightOperator then
+                                ConfirmedEquality
+
+                            else
+                                Unconfirmed
+
+                        _ ->
+                            Unconfirmed
+
+                Expression.RecordAccessFunction leftFieldName ->
+                    case right of
+                        Expression.RecordAccessFunction rightFieldName ->
+                            if leftFieldName == rightFieldName then
+                                ConfirmedEquality
+
+                            else
+                                Unconfirmed
+
+                        _ ->
+                            Unconfirmed
+
+                Expression.GLSLExpression leftGlsl ->
+                    case right of
+                        Expression.GLSLExpression rightGlsl ->
+                            if leftGlsl == rightGlsl then
+                                ConfirmedEquality
+
+                            else
+                                Unconfirmed
+
+                        _ ->
+                            Unconfirmed
+
+                Expression.ListExpr leftList ->
+                    case right of
+                        Expression.ListExpr rightList ->
+                            compareLists leftList rightList ConfirmedEquality
+
+                        _ ->
+                            Unconfirmed
+
+                Expression.TupledExpression leftList ->
+                    case right of
+                        Expression.TupledExpression rightList ->
+                            compareLists leftList rightList ConfirmedEquality
+
+                        _ ->
+                            Unconfirmed
+
+                Expression.RecordExpr leftFields ->
+                    case right of
+                        Expression.RecordExpr rightFields ->
+                            compareRecords leftFields rightFields ConfirmedEquality
+
+                        _ ->
+                            fallback ()
+
+                Expression.RecordUpdateExpression (Node _ leftBaseRecordVariableName) leftFields ->
+                    case right of
+                        Expression.RecordUpdateExpression (Node _ rightBaseRecordVariableName) rightFields ->
+                            compareRecords leftFields
+                                rightFields
+                                (if leftBaseRecordVariableName == rightBaseRecordVariableName then
+                                    ConfirmedEquality
+
+                                 else
+                                    Unconfirmed
+                                )
+
+                        _ ->
+                            fallback ()
+
+                Expression.Application ((Node _ leftCalled) :: (Node _ leftArg0) :: leftArg1Up) ->
+                    case right of
+                        Expression.Application ((Node _ rightCalled) :: (Node _ rightArg0) :: rightArg1Up) ->
+                            case compareAll2Help leftCalled rightCalled leftArg0 rightArg0 of
                                 ConfirmedEquality ->
-                                    case compareHelp leftElse rightElse True of
-                                        ConfirmedEquality ->
-                                            ConfirmedEquality
+                                    compareAllConfirmedEqualityElseUnconfirmedHelp leftArg1Up rightArg1Up
 
-                                        _ ->
+                                _ ->
+                                    Unconfirmed
+
+                        _ ->
+                            Unconfirmed
+
+                Expression.RecordAccess (Node _ leftRecord) (Node _ leftFieldName) ->
+                    case right of
+                        Expression.RecordAccess (Node _ rightRecord) (Node _ rightFieldName) ->
+                            if leftFieldName == rightFieldName then
+                                compareHelp leftRecord rightRecord
+
+                            else
+                                Unconfirmed
+
+                        _ ->
+                            Unconfirmed
+
+                Expression.IfBlock (Node _ leftCond) (Node _ leftThen) (Node _ leftElse) ->
+                    case right of
+                        Expression.IfBlock (Node _ rightCond) (Node _ rightThen) (Node _ rightElse) ->
+                            case compareHelp leftCond rightCond of
+                                ConfirmedEquality ->
+                                    case compareHelp leftThen rightThen of
+                                        ConfirmedInequality ->
+                                            case compareHelp leftElse rightElse of
+                                                ConfirmedInequality ->
+                                                    ConfirmedInequality
+
+                                                _ ->
+                                                    Unconfirmed
+
+                                        ConfirmedEquality ->
+                                            case compareHelp leftElse rightElse of
+                                                ConfirmedEquality ->
+                                                    ConfirmedEquality
+
+                                                _ ->
+                                                    Unconfirmed
+
+                                        Unconfirmed ->
                                             Unconfirmed
+
+                                ConfirmedInequality ->
+                                    -- the only way this happens
+                                    -- is with Basics.not (which gets normalized away)
+                                    -- or literal True/False (which gets reported by Simplify anyway)
+                                    Unconfirmed
 
                                 Unconfirmed ->
                                     Unconfirmed
 
-                        ConfirmedInequality ->
-                            -- the only way this happens
-                            -- is with Basics.not (which gets normalized away)
-                            -- or literal True/False (which gets reported by Simplify anyway)
+                        _ ->
                             Unconfirmed
 
-                        Unconfirmed ->
-                            Unconfirmed
-
-                _ ->
+                Expression.CaseExpression _ ->
                     fallback ()
 
-        _ ->
-            fallback ()
+                Expression.LambdaExpression _ ->
+                    fallback ()
+
+                Expression.LetExpression _ ->
+                    fallback ()
+
+                -- not normalized
+                Expression.Integer leftInt ->
+                    compareHelp (Expression.Floatable (Basics.toFloat leftInt)) right
+
+                Expression.Hex leftInt ->
+                    compareHelp (Expression.Floatable (Basics.toFloat leftInt)) right
+
+                Expression.ParenthesizedExpression (Node _ leftInParens) ->
+                    compareHelp leftInParens right
+
+                -- invalid syntax
+                Expression.Application [] ->
+                    Unconfirmed
+
+                Expression.Application [ Node _ leftInApplication ] ->
+                    compareHelp leftInApplication right
+
+                Expression.Operator _ ->
+                    Unconfirmed
 
 
 compareAll2Help : Expression -> Expression -> Expression -> Expression -> Comparison
 compareAll2Help left0 right0 left1 right1 =
-    case compareHelp left0 right0 True of
+    case compareHelp left0 right0 of
         ConfirmedInequality ->
             ConfirmedInequality
 
         ConfirmedEquality ->
-            compareHelp left1 right1 True
+            compareHelp left1 right1
 
         Unconfirmed ->
-            case compareHelp left1 right1 True of
+            case compareHelp left1 right1 of
                 ConfirmedInequality ->
                     ConfirmedInequality
 
@@ -866,7 +929,7 @@ compareAllConfirmedEqualityElseUnconfirmedHelp leftList rightList =
                     Unconfirmed
 
                 (Node _ right) :: restOfRight ->
-                    case compareHelp left right True of
+                    case compareHelp left right of
                         ConfirmedEquality ->
                             compareAllConfirmedEqualityElseUnconfirmedHelp restOfLeft restOfRight
 
@@ -924,7 +987,7 @@ compareRecordFields recordFieldComparisons acc =
             compareRecordFields rest Unconfirmed
 
         (HasBothValues a b) :: rest ->
-            case compareHelp a b True of
+            case compareHelp a b of
                 ConfirmedInequality ->
                     ConfirmedInequality
 
