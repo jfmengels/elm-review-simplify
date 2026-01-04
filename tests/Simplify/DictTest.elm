@@ -1123,7 +1123,7 @@ a = Dict.remove k (Dict.map f dict)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.remove on Dict.map can be optimized to Dict.map on Dict.remove"
-                            , details = [ "You can replace this call by Dict.map with the function given to the original Dict.map, on Dict.remove." ]
+                            , details = [ "You can replace this call by Dict.map with the function given to the original Dict.map, on Dict.remove with the key given to the original Dict.remove." ]
                             , under = "Dict.remove"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1141,7 +1141,7 @@ a = Dict.remove k << Dict.map f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.remove on Dict.map can be optimized to Dict.map on Dict.remove"
-                            , details = [ "You can replace this composition by Dict.remove, then Dict.map with the function given to the original Dict.map." ]
+                            , details = [ "You can replace this composition by Dict.remove with the key given to the original Dict.remove, then Dict.map with the function given to the original Dict.map." ]
                             , under = "Dict.remove"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1620,7 +1620,7 @@ a = Dict.filter (\\k _ -> f k) (Dict.map g dict)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.filter by key on Dict.map can be optimized to Dict.map on Dict.filter"
-                            , details = [ "You can replace this call by Dict.map with the function given to the original Dict.map, on Dict.filter." ]
+                            , details = [ "You can replace this call by Dict.map with the function given to the original Dict.map, on Dict.filter with the test function given to the original Dict.filter." ]
                             , under = "Dict.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1638,7 +1638,7 @@ a = Dict.filter (\\k _ -> f k) <| (dict |> Dict.map g)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.filter by key on Dict.map can be optimized to Dict.map on Dict.filter"
-                            , details = [ "You can replace this call by Dict.map with the function given to the original Dict.map, on Dict.filter." ]
+                            , details = [ "You can replace this call by Dict.map with the function given to the original Dict.map, on Dict.filter with the test function given to the original Dict.filter." ]
                             , under = "Dict.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1656,7 +1656,7 @@ a = Dict.filter (\\k -> always (f k)) (Dict.map g dict)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.filter by key on Dict.map can be optimized to Dict.map on Dict.filter"
-                            , details = [ "You can replace this call by Dict.map with the function given to the original Dict.map, on Dict.filter." ]
+                            , details = [ "You can replace this call by Dict.map with the function given to the original Dict.map, on Dict.filter with the test function given to the original Dict.filter." ]
                             , under = "Dict.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1674,7 +1674,7 @@ a = Dict.filter (\\k _ -> f k) << Dict.map g
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.filter by key on Dict.map can be optimized to Dict.map on Dict.filter"
-                            , details = [ "You can replace this composition by Dict.filter, then Dict.map with the function given to the original Dict.map." ]
+                            , details = [ "You can replace this composition by Dict.filter with the test function given to the original Dict.filter, then Dict.map with the function given to the original Dict.map." ]
                             , under = "Dict.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1692,7 +1692,7 @@ a = Dict.map g >> Dict.filter (\\k _ -> f k)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.filter by key on Dict.map can be optimized to Dict.map on Dict.filter"
-                            , details = [ "You can replace this composition by Dict.filter, then Dict.map with the function given to the original Dict.map." ]
+                            , details = [ "You can replace this composition by Dict.filter with the test function given to the original Dict.filter, then Dict.map with the function given to the original Dict.map." ]
                             , under = "Dict.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

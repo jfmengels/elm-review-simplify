@@ -7124,7 +7124,8 @@ listHeadChecks =
             , combinedFn = Fn.List.minimum
             }
         , earlierOperationCanBeMovedAfterAsForPerformanceChecks
-            { earlierFn = Fn.List.map
+            { laterOperationArgsDescription = Nothing
+            , earlierFn = Fn.List.map
             , earlierFnArgCount = 2
             , earlierFnOperationArgsDescription = "function"
             , asLaterFn = Fn.Maybe.map
@@ -7152,7 +7153,8 @@ or with `{ earlierFn = Fn.List.take, asLaterFn = Fn.Maybe.map }`:
 
 -}
 earlierOperationCanBeMovedAfterAsForPerformanceChecks :
-    { earlierFn : ( ModuleName, String )
+    { laterOperationArgsDescription : Maybe String
+    , earlierFn : ( ModuleName, String )
     , earlierFnArgCount : Int
     , earlierFnOperationArgsDescription : String
     , asLaterFn : ( ModuleName, String )
@@ -7167,7 +7169,8 @@ earlierOperationCanBeMovedAfterAsForPerformanceChecks config =
             then
                 Just
                     (compositionEarlierOperationCanBeMovedAfterAsForPerformanceError
-                        { specificLaterOperationDescription = Nothing
+                        { generalLaterOperationArgsDescription = config.laterOperationArgsDescription
+                        , specificLaterOperationArgsDescription = Nothing
                         , earlierFnOperationArgsDescription = config.earlierFnOperationArgsDescription
                         , asLaterFn = config.asLaterFn
                         }
@@ -7195,7 +7198,8 @@ earlierOperationCanBeMovedAfterAsForPerformanceChecks config =
                                 Just earlierFnCallLastArg ->
                                     Just
                                         (callEarlierOperationCanBeMovedAfterAsForPerformanceError
-                                            { earlierFn = config.earlierFn
+                                            { laterOperationArgsDescription = config.laterOperationArgsDescription
+                                            , earlierFn = config.earlierFn
                                             , specificLaterOperationDescription = Nothing
                                             , earlierFnOperationArgsDescription = config.earlierFnOperationArgsDescription
                                             , asLaterFn = config.asLaterFn
@@ -7217,6 +7221,7 @@ operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsCheck
     { specificEarlierFn : ( ModuleName, String )
     , earlierFnOperationArgsDescription : String
     , isSpecificLaterFirstArg : Normalize.Resources {} -> Node Expression -> Bool
+    , generalLaterOperationArgsDescription : String
     , specificLaterFirstArgDescription : String
     }
     -> IntoFnCheck
@@ -7232,8 +7237,9 @@ operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsCheck
                         if config.isSpecificLaterFirstArg (extractNormalizeResources checkInfo) laterFirstArg then
                             Just
                                 (compositionEarlierOperationCanBeMovedAfterAsForPerformanceError
-                                    { specificLaterOperationDescription =
-                                        Just (qualifiedToString checkInfo.later.fn ++ " " ++ config.specificLaterFirstArgDescription)
+                                    { generalLaterOperationArgsDescription = Just config.generalLaterOperationArgsDescription
+                                    , specificLaterOperationArgsDescription =
+                                        Just config.specificLaterFirstArgDescription
                                     , earlierFnOperationArgsDescription = config.earlierFnOperationArgsDescription
                                     , asLaterFn = config.specificEarlierFn
                                     }
@@ -7265,9 +7271,10 @@ operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsCheck
                                     Just earlierFnCallLastArg ->
                                         Just
                                             (callEarlierOperationCanBeMovedAfterAsForPerformanceError
-                                                { earlierFn = config.specificEarlierFn
+                                                { laterOperationArgsDescription = Just config.generalLaterOperationArgsDescription
+                                                , earlierFn = config.specificEarlierFn
                                                 , specificLaterOperationDescription =
-                                                    Just (qualifiedToString checkInfo.fn ++ " " ++ config.specificLaterFirstArgDescription)
+                                                    Just config.specificLaterFirstArgDescription
                                                 , earlierFnOperationArgsDescription = config.earlierFnOperationArgsDescription
                                                 , asLaterFn = config.specificEarlierFn
                                                 , laterLastArg = laterLastArg
@@ -7284,7 +7291,8 @@ operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsCheck
 
 
 compositionEarlierOperationCanBeMovedAfterAsForPerformanceError :
-    { specificLaterOperationDescription : Maybe String
+    { generalLaterOperationArgsDescription : Maybe String
+    , specificLaterOperationArgsDescription : Maybe String
     , earlierFnOperationArgsDescription : String
     , asLaterFn : ( ModuleName, String )
     }
@@ -7293,9 +7301,9 @@ compositionEarlierOperationCanBeMovedAfterAsForPerformanceError :
 compositionEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo =
     { info =
         { message =
-            (case config.specificLaterOperationDescription of
-                Just specificLaterOperationDescription ->
-                    specificLaterOperationDescription
+            (case config.specificLaterOperationArgsDescription of
+                Just specificLaterOperationArgsDescription ->
+                    qualifiedToString checkInfo.later.fn ++ " " ++ specificLaterOperationArgsDescription
 
                 Nothing ->
                     qualifiedToString checkInfo.later.fn
@@ -7309,6 +7317,16 @@ compositionEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo
         , details =
             [ "You can replace this composition by "
                 ++ qualifiedToString checkInfo.later.fn
+                ++ (case config.generalLaterOperationArgsDescription of
+                        Nothing ->
+                            ""
+
+                        Just laterOperationArgsDescription ->
+                            " with the "
+                                ++ laterOperationArgsDescription
+                                ++ " given to the original "
+                                ++ qualifiedToString checkInfo.later.fn
+                   )
                 ++ ", then "
                 ++ qualifiedToString config.asLaterFn
                 ++ " with the "
@@ -7331,7 +7349,8 @@ compositionEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo
 
 
 callEarlierOperationCanBeMovedAfterAsForPerformanceError :
-    { earlierFn : ( ModuleName, String )
+    { laterOperationArgsDescription : Maybe String
+    , earlierFn : ( ModuleName, String )
     , specificLaterOperationDescription : Maybe String
     , earlierFnOperationArgsDescription : String
     , asLaterFn : ( ModuleName, String )
@@ -7347,7 +7366,7 @@ callEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo =
         { message =
             (case config.specificLaterOperationDescription of
                 Just specificLaterOperationDescription ->
-                    specificLaterOperationDescription
+                    qualifiedToString checkInfo.fn ++ " " ++ specificLaterOperationDescription
 
                 Nothing ->
                     qualifiedToString checkInfo.fn
@@ -7367,6 +7386,16 @@ callEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo =
                 ++ qualifiedToString config.earlierFn
                 ++ ", on "
                 ++ qualifiedToString checkInfo.fn
+                ++ (case config.laterOperationArgsDescription of
+                        Nothing ->
+                            ""
+
+                        Just laterOperationArgsDescription ->
+                            " with the "
+                                ++ laterOperationArgsDescription
+                                ++ " given to the original "
+                                ++ qualifiedToString checkInfo.fn
+                   )
                 ++ "."
             ]
         }
@@ -8751,13 +8780,15 @@ listTakeChecks =
     intoFnChecksFirstThatConstructsError
         [ collectionTakeChecks listCollection
         , earlierOperationCanBeMovedAfterAsForPerformanceChecks
-            { earlierFn = Fn.List.map
+            { laterOperationArgsDescription = Just "length"
+            , earlierFn = Fn.List.map
             , earlierFnArgCount = 2
             , earlierFnOperationArgsDescription = "function"
             , asLaterFn = Fn.List.map
             }
         , earlierOperationCanBeMovedAfterAsForPerformanceChecks
-            { earlierFn = Fn.List.indexedMap
+            { laterOperationArgsDescription = Just "length"
+            , earlierFn = Fn.List.indexedMap
             , earlierFnArgCount = 2
             , earlierFnOperationArgsDescription = "function"
             , asLaterFn = Fn.List.indexedMap
@@ -8789,7 +8820,8 @@ listDropChecks =
                         )
             )
         , earlierOperationCanBeMovedAfterAsForPerformanceChecks
-            { earlierFn = Fn.List.map
+            { laterOperationArgsDescription = Just "count"
+            , earlierFn = Fn.List.map
             , earlierFnArgCount = 2
             , earlierFnOperationArgsDescription = "function"
             , asLaterFn = Fn.List.map
@@ -8888,7 +8920,8 @@ arrayGetChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (\checkInfo -> getChecks arrayCollection checkInfo)
         , earlierOperationCanBeMovedAfterAsForPerformanceChecks
-            { earlierFn = Fn.Array.map
+            { laterOperationArgsDescription = Just "index"
+            , earlierFn = Fn.Array.map
             , earlierFnArgCount = 2
             , earlierFnOperationArgsDescription = "function"
             , asLaterFn = Fn.Maybe.map
@@ -8945,7 +8978,8 @@ arraySliceChecks =
     intoFnChecksFirstThatConstructsError
         [ collectionSliceChecks arrayCollection
         , earlierOperationCanBeMovedAfterAsForPerformanceChecks
-            { earlierFn = Fn.Array.map
+            { laterOperationArgsDescription = Just "indices"
+            , earlierFn = Fn.Array.map
             , earlierFnArgCount = 2
             , earlierFnOperationArgsDescription = "function"
             , asLaterFn = Fn.Array.map
@@ -8953,6 +8987,7 @@ arraySliceChecks =
         , operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsChecks
             { specificEarlierFn = Fn.Array.indexedMap
             , earlierFnOperationArgsDescription = "function"
+            , generalLaterOperationArgsDescription = "indices"
             , isSpecificLaterFirstArg =
                 \checkInfo laterFirstArg ->
                     Evaluate.getInt checkInfo laterFirstArg == Just 0
@@ -9575,7 +9610,8 @@ dictRemoveChecks =
     intoFnChecksFirstThatConstructsError
         [ collectionRemoveElementChecks dictCollection
         , earlierOperationCanBeMovedAfterAsForPerformanceChecks
-            { earlierFn = Fn.Dict.map
+            { laterOperationArgsDescription = Just "key"
+            , earlierFn = Fn.Dict.map
             , earlierFnArgCount = 2
             , earlierFnOperationArgsDescription = "function"
             , asLaterFn = Fn.Dict.map
@@ -9693,6 +9729,7 @@ dictFilterChecks =
         , operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsChecks
             { specificEarlierFn = Fn.Dict.map
             , earlierFnOperationArgsDescription = "function"
+            , generalLaterOperationArgsDescription = "test function"
             , isSpecificLaterFirstArg =
                 \checkInfo laterFirstArg ->
                     isJust (getFunctionIgnoringSecondIncoming checkInfo laterFirstArg)

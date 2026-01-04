@@ -2564,7 +2564,7 @@ a = Array.get i (Array.map f array)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.get on Array.map can be optimized to Maybe.map on Array.get"
-                            , details = [ "You can replace this call by Maybe.map with the function given to the original Array.map, on Array.get." ]
+                            , details = [ "You can replace this call by Maybe.map with the function given to the original Array.map, on Array.get with the index given to the original Array.get." ]
                             , under = "Array.get"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2955,7 +2955,7 @@ a = Array.slice start end (Array.map f array)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.slice on Array.map can be optimized to Array.map on Array.slice"
-                            , details = [ "You can replace this call by Array.map with the function given to the original Array.map, on Array.slice." ]
+                            , details = [ "You can replace this call by Array.map with the function given to the original Array.map, on Array.slice with the indices given to the original Array.slice." ]
                             , under = "Array.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2971,7 +2971,7 @@ a = Array.slice start end << Array.map f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.slice on Array.map can be optimized to Array.map on Array.slice"
-                            , details = [ "You can replace this composition by Array.slice, then Array.map with the function given to the original Array.map." ]
+                            , details = [ "You can replace this composition by Array.slice with the indices given to the original Array.slice, then Array.map with the function given to the original Array.map." ]
                             , under = "Array.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2987,7 +2987,7 @@ a = Array.slice 0 end (Array.indexedMap f array)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.slice from index 0 on Array.indexedMap can be optimized to Array.indexedMap on Array.slice"
-                            , details = [ "You can replace this call by Array.indexedMap with the function given to the original Array.indexedMap, on Array.slice." ]
+                            , details = [ "You can replace this call by Array.indexedMap with the function given to the original Array.indexedMap, on Array.slice with the indices given to the original Array.slice." ]
                             , under = "Array.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3003,7 +3003,7 @@ a = Array.slice 0 end << Array.indexedMap f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.slice from index 0 on Array.indexedMap can be optimized to Array.indexedMap on Array.slice"
-                            , details = [ "You can replace this composition by Array.slice, then Array.indexedMap with the function given to the original Array.indexedMap." ]
+                            , details = [ "You can replace this composition by Array.slice with the indices given to the original Array.slice, then Array.indexedMap with the function given to the original Array.indexedMap." ]
                             , under = "Array.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
