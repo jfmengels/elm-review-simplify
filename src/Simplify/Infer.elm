@@ -8,7 +8,6 @@ module Simplify.Infer exposing
     , falseExpr
     , fromList
     , getAsExpression
-    , getBoolean
     , infer
     , inferForIfCondition
     , trueExpr
@@ -82,7 +81,7 @@ Before we do all of this analysis, we normalize the AST, so we have a more predi
 ### Application
 
 This data is then used in `Normalize` to change the AST, so that a reference to `a` whose value we have "deduced" is
-replaced by that value. Finally, that data is also used in functions like `Evaluate.getBoolean`.
+replaced by that value. Finally, as a consequence, that data is also used in functions like `Evaluate.getBoolean`.
 (Note: This might be a bit redundant but that's a simplification for later on)
 
 Whenever we see a boolean expression, we will look at whether we can simplify it, and report an error when that happens.
@@ -168,26 +167,6 @@ getAsExpression expr (Inferred inferred) =
 
                     DString str ->
                         Expression.Literal str
-            )
-
-
-getBoolean : Expression -> Inferred -> Maybe Bool
-getBoolean expr (Inferred inferred) =
-    AssocList.get expr inferred.deduced
-        |> Maybe.andThen
-            (\value ->
-                case value of
-                    DTrue ->
-                        Just True
-
-                    DFalse ->
-                        Just False
-
-                    DNumber _ ->
-                        Nothing
-
-                    DString _ ->
-                        Nothing
             )
 
 

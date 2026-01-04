@@ -905,7 +905,6 @@ a =
                         ]
         , test "should remove branches where the condition may not match (not (a || b) --> not a --> not b)" <|
             \() ->
-                -- TODO Probably best to normalize inside Evaluate.getBoolean?
                 """module A exposing (..)
 a =
   if not (a || b) then
