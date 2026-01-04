@@ -430,7 +430,7 @@ a = Result.map3 f (Ok a) (Err x) result2
                             , under = "Result.map3"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Err x)
+a = Err x
 """
                         ]
         , test "should replace Result.map3 f (Ok a) (Err x) by always (Err x)" <|
@@ -462,7 +462,7 @@ a = Result.map3 f (Err x) result1 result2
                             , under = "Result.map3"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Err x)
+a = Err x
 """
                         ]
         , test "should replace Result.map3 f (Err x) result1 by always (Err x)" <|
@@ -481,7 +481,7 @@ a = Result.map3 f (Err x) result1
 a = always (Err x)
 """
                         ]
-        , test "should replace Result.map3 f (Err x) by (\\_ _ -> (Err x))" <|
+        , test "should replace Result.map3 f (Err x) by (\\_ _ -> Err x)" <|
             \() ->
                 """module A exposing (..)
 a = Result.map3 f (Err x)
@@ -494,7 +494,7 @@ a = Result.map3 f (Err x)
                             , under = "Result.map3"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (\\_ _ -> (Err x))
+a = (\\_ _ -> Err x)
 """
                         ]
         , test "should replace Result.map3 f result0 (Err x) result2 by Result.map2 f result0 (Err x)" <|

@@ -1072,7 +1072,7 @@ a = Dict.remove k (Dict.remove k dict)
                             |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 16 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = (Dict.remove k dict)
+a = Dict.remove k dict
 """
                         ]
         , test "should replace Dict.remove k >> Dict.remove k by Dict.remove k" <|
@@ -1128,7 +1128,7 @@ a = Dict.remove k (Dict.map f dict)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = (Dict.map f (Dict.remove k dict))
+a = Dict.map f (Dict.remove k dict)
 """
                         ]
         , test "should replace Dict.remove k << Dict.map f by Dict.map f << Dict.remove k" <|
@@ -1443,7 +1443,7 @@ a = Dict.filter f (Dict.filter f dict)
                             |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 16 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = (Dict.filter f dict)
+a = Dict.filter f dict
 """
                         ]
         , test "should replace Dict.filter f >> Dict.filter f by Dict.filter f" <|
@@ -1625,7 +1625,7 @@ a = Dict.filter (\\k _ -> f k) (Dict.map g dict)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = (Dict.map g (Dict.filter (\\k _ -> f k) dict))
+a = Dict.map g (Dict.filter (\\k _ -> f k) dict)
 """
                         ]
         , test "should replace Dict.filter (\\k _ -> f k) <| (dict |> Dict.map g) by (Dict.filter (\\k _ -> f k) <| dict) |> Dict.map g" <|
@@ -1661,7 +1661,7 @@ a = Dict.filter (\\k -> always (f k)) (Dict.map g dict)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
-a = (Dict.map g (Dict.filter (\\k -> always (f k)) dict))
+a = Dict.map g (Dict.filter (\\k -> always (f k)) dict)
 """
                         ]
         , test "should replace Dict.filter (\\k _ -> f k) << Dict.map g by Dict.map g << Dict.filter (\\k _ -> f k)" <|

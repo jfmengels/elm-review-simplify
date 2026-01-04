@@ -5426,21 +5426,22 @@ basicsAlwaysChecks : IntoFnCheck
 basicsAlwaysChecks =
     { call =
         \checkInfo ->
-            case secondArg checkInfo of
-                Just (Node secondArgRange _) ->
+            case checkInfo.argsAfterFirst of
+                [ _ ] ->
                     Just
                         (Rule.errorWithFix
                             { message = "Expression can be replaced by the first argument given to `always`"
                             , details = [ "The second argument will be ignored because of the `always` call." ]
                             }
                             checkInfo.fnRange
-                            (replaceBySubExpressionFix
-                                (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg, secondArgRange ])
+                            (replaceCallBySubExpressionFix
+                                checkInfo.parentRange
+                                checkInfo.callStyle
                                 checkInfo.firstArg
                             )
                         )
 
-                Nothing ->
+                _ ->
                     Nothing
     , composition =
         \checkInfo ->
@@ -5713,7 +5714,7 @@ basicsMinChecks =
                                         , details = [ "You can replace this call by the its first argument." ]
                                         }
                                         checkInfo.fnRange
-                                        (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg)
+                                        (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle checkInfo.firstArg)
                                     )
 
                             Determined GT ->
@@ -5723,7 +5724,7 @@ basicsMinChecks =
                                         , details = [ "You can replace this call by the its second argument." ]
                                         }
                                         checkInfo.fnRange
-                                        (replaceBySubExpressionFix checkInfo.parentRange rightArg)
+                                        (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle rightArg)
                                     )
 
                             _ ->
@@ -5774,7 +5775,7 @@ basicsMaxChecks =
                                         , details = [ "You can replace this call by the its first argument." ]
                                         }
                                         checkInfo.fnRange
-                                        (replaceBySubExpressionFix checkInfo.parentRange checkInfo.firstArg)
+                                        (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle checkInfo.firstArg)
                                     )
 
                             Determined LT ->
@@ -5784,7 +5785,7 @@ basicsMaxChecks =
                                         , details = [ "You can replace this call by the its second argument." ]
                                         }
                                         checkInfo.fnRange
-                                        (replaceBySubExpressionFix checkInfo.parentRange rightArg)
+                                        (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle rightArg)
                                     )
 
                             _ ->
@@ -6360,7 +6361,9 @@ tuplePartChecks partConfig =
                             , details = [ "You can replace this call by the tuple's " ++ partConfig.description ++ " part." ]
                             }
                             checkInfo.fnRange
-                            (replaceBySubExpressionFix checkInfo.parentRange
+                            (replaceCallBySubExpressionFix
+                                checkInfo.parentRange
+                                checkInfo.callStyle
                                 (case partConfig.part of
                                     TupleFirst ->
                                         tuple.first
@@ -6471,8 +6474,9 @@ tuplePartOnMapPartCheck mapPartFn =
                                                 ]
                                             )
                                             mapPartCall.firstArg
-                                        ++ replaceBySubExpressionFix
+                                        ++ replaceCallBySubExpressionFix
                                             checkInfo.parentRange
+                                            checkInfo.callStyle
                                             checkInfo.firstArg
                                     )
                                 )
@@ -7414,39 +7418,13 @@ callEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo =
                 lastArgCallOfCallNeedsParens
                     { parent = config.earlierFnCallStyle, lastArg = checkInfo.callStyle }
             }
-            ++ replaceBySubExpressionFix checkInfo.parentRange config.laterLastArg
+            ++ replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle config.laterLastArg
             |> consIf (config.earlierFn /= config.asLaterFn)
                 (\() ->
                     Fix.replaceRangeBy config.earlierFnRange
                         (qualifiedToString (qualify config.asLaterFn checkInfo))
                 )
         )
-
-
-lastArgCallOfCallNeedsParens : { parent : FunctionCallStyle, lastArg : FunctionCallStyle } -> Bool
-lastArgCallOfCallNeedsParens style =
-    case style.lastArg of
-        CallStyle.Application ->
-            style.parent == CallStyle.Application
-
-        CallStyle.Pipe lastArgCallPipeDirection ->
-            style.parent /= CallStyle.Pipe lastArgCallPipeDirection
-
-
-lastArgOfCallNeedsParens : FunctionCallStyle -> Expression -> Bool
-lastArgOfCallNeedsParens callStyle lastArg =
-    case lastArg of
-        Expression.Application _ ->
-            callStyle == CallStyle.Application
-
-        Expression.OperatorApplication "<|" _ _ _ ->
-            callStyle /= CallStyle.pipeRightToLeft
-
-        Expression.OperatorApplication "|>" _ _ _ ->
-            callStyle /= CallStyle.pipeLeftToRight
-
-        _ ->
-            needsParens lastArg
 
 
 extractAndInsertCallAroundReplacementLastArgFix :
@@ -12481,12 +12459,12 @@ nonEmptiableWrapperFlatMapAlwaysChecks wrapper checkInfo =
                         case secondArg checkInfo of
                             Nothing ->
                                 { replacementDescription = "always with the " ++ wrapper.represents ++ " produced by the function"
-                                , fix = keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range checkInfo.firstArg }
+                                , fix = replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle checkInfo.firstArg
                                 }
 
                             Just _ ->
                                 { replacementDescription = "the " ++ wrapper.represents ++ " produced by the function"
-                                , fix = replaceBySubExpressionFix checkInfo.parentRange alwaysResult
+                                , fix = replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle alwaysResult
                                 }
                  in
                  Rule.errorWithFix
@@ -13692,7 +13670,7 @@ sequenceOnCollectionWithKnownEmptyElementCheck ( collection, elementEmptiable ) 
                                 , details = [ "You can replace this call by " ++ typeSubsetDescriptionDefinite "the first" elementEmptiable.empty ++ " in the " ++ collection.represents ++ "." ]
                                 }
                                 checkInfo.fnRange
-                                (replaceBySubExpressionFix checkInfo.parentRange firstNonWrappedElement)
+                                (replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle firstNonWrappedElement)
                             )
 
                     else
@@ -14657,7 +14635,7 @@ mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
                             -- fully applied
                             0 ->
                                 { description = typeSubsetDescriptionDefinite "the first" emptiable.empty
-                                , fix = replaceBySubExpressionFix checkInfo.parentRange emptyAndBefore.found
+                                , fix = replaceCallBySubExpressionFix checkInfo.parentRange checkInfo.callStyle emptyAndBefore.found
                                 }
 
                             -- one arg curried
@@ -14681,7 +14659,10 @@ mapNOrFirstEmptyConstructionChecks emptiable checkInfo =
                                 , fix =
                                     Fix.insertAt checkInfo.parentRange.start ("(" ++ lambdaStart)
                                         :: Fix.insertAt checkInfo.parentRange.end ")"
-                                        :: replaceBySubExpressionFix checkInfo.parentRange emptyAndBefore.found
+                                        :: keepOnlyFix
+                                            { parentRange = checkInfo.parentRange
+                                            , keep = Node.range (AstHelpers.removeParens emptyAndBefore.found)
+                                            }
                                 }
                 in
                 Just
@@ -15336,39 +15317,48 @@ operationDoesNotChangeResultOfOperationCheck : IntoFnCheck
 operationDoesNotChangeResultOfOperationCheck =
     { call =
         \checkInfo ->
-            case Maybe.andThen (\lastArg -> AstHelpers.getSpecificUnreducedFnCall checkInfo.fn checkInfo.lookupTable lastArg) (fullyAppliedLastArg checkInfo) of
-                Just lastArgCall ->
-                    let
-                        areAllArgsEqual : Bool
-                        areAllArgsEqual =
-                            listAll2
-                                (\arg lastArgCallArg ->
-                                    Normalize.compare checkInfo arg lastArgCallArg == Normalize.ConfirmedEquality
-                                )
-                                (listFilledInit ( checkInfo.firstArg, checkInfo.argsAfterFirst ))
-                                (listFilledInit ( lastArgCall.firstArg, lastArgCall.argsAfterFirst ))
-                    in
-                    if areAllArgsEqual then
-                        Just
-                            (Rule.errorWithFix
-                                { message =
-                                    case checkInfo.argCount of
-                                        1 ->
-                                            "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " after " ++ qualifiedToString checkInfo.fn
-
-                                        _ ->
-                                            "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " after equivalent " ++ qualifiedToString checkInfo.fn
-                                , details = [ "You can remove this additional operation." ]
-                                }
-                                checkInfo.fnRange
-                                (keepOnlyFix { parentRange = checkInfo.parentRange, keep = lastArgCall.nodeRange })
-                            )
-
-                    else
-                        Nothing
-
+            case fullyAppliedLastArg checkInfo of
                 Nothing ->
                     Nothing
+
+                Just lastArg ->
+                    case AstHelpers.getSpecificUnreducedFnCall checkInfo.fn checkInfo.lookupTable lastArg of
+                        Nothing ->
+                            Nothing
+
+                        Just lastArgCall ->
+                            let
+                                areAllArgsEqual : Bool
+                                areAllArgsEqual =
+                                    listAll2
+                                        (\arg lastArgCallArg ->
+                                            Normalize.compare checkInfo arg lastArgCallArg == Normalize.ConfirmedEquality
+                                        )
+                                        (listFilledInit ( checkInfo.firstArg, checkInfo.argsAfterFirst ))
+                                        (listFilledInit ( lastArgCall.firstArg, lastArgCall.argsAfterFirst ))
+                            in
+                            if areAllArgsEqual then
+                                Just
+                                    (Rule.errorWithFix
+                                        { message =
+                                            case checkInfo.argCount of
+                                                1 ->
+                                                    "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " after " ++ qualifiedToString checkInfo.fn
+
+                                                _ ->
+                                                    "Unnecessary " ++ qualifiedToString checkInfo.fn ++ " after equivalent " ++ qualifiedToString checkInfo.fn
+                                        , details = [ "You can remove this additional operation." ]
+                                        }
+                                        checkInfo.fnRange
+                                        (replaceCallBySubExpressionFix
+                                            checkInfo.parentRange
+                                            checkInfo.callStyle
+                                            lastArg
+                                        )
+                                    )
+
+                            else
+                                Nothing
     , composition =
         \checkInfo ->
             let
@@ -15847,7 +15837,11 @@ unnecessaryCallOnSpecificFnCallCheck specificFn checkInfo =
                             ]
                         }
                         checkInfo.fnRange
-                        (replaceBySubExpressionFix checkInfo.parentRange fullyAppliedLastArgNode)
+                        (replaceCallBySubExpressionFix
+                            checkInfo.parentRange
+                            checkInfo.callStyle
+                            fullyAppliedLastArgNode
+                        )
                     )
 
             else

@@ -327,7 +327,7 @@ a = Tuple.first (Tuple.mapFirst f tuple)
                             , under = "Tuple.first"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (f (Tuple.first tuple))
+a = f (Tuple.first tuple)
 """
                         ]
         , test "should replace Tuple.first (Tuple.mapFirst f <| g tuple) by f <| Tuple.first (g tuple)" <|

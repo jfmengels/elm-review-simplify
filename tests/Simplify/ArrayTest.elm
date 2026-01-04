@@ -895,7 +895,7 @@ a = Array.filter f (Array.filter f array)
                             |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 17 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
-a = (Array.filter f array)
+a = Array.filter f array
 """
                         ]
         , test "should replace Array.filter f >> Array.filter f by Array.filter f" <|
@@ -2569,7 +2569,7 @@ a = Array.get i (Array.map f array)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
-a = (Maybe.map f (Array.get i array))
+a = Maybe.map f (Array.get i array)
 """
                         ]
         ]
@@ -2959,7 +2959,7 @@ a = Array.slice start end (Array.map f array)
                             , under = "Array.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Array.map f (Array.slice start end array))
+a = Array.map f (Array.slice start end array)
 """
                         ]
         , test "should replace Array.slice start end << Array.map f by Array.map f << Array.slice start end" <|
@@ -2991,7 +2991,7 @@ a = Array.slice 0 end (Array.indexedMap f array)
                             , under = "Array.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Array.indexedMap f (Array.slice 0 end array))
+a = Array.indexedMap f (Array.slice 0 end array)
 """
                         ]
         , test "should replace Array.slice 0 end << Array.indexedMap f by Array.indexedMap f << Array.slice 0 end" <|

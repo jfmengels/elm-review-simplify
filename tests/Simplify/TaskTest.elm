@@ -373,7 +373,7 @@ a = Task.map3 f (Task.succeed a) (Task.fail x) task2
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = (Task.fail x)
+a = Task.fail x
 """
                         ]
         , test "should replace Task.map3 f (Task.succeed a) (Task.fail x) by always (Task.fail x)" <|
@@ -409,7 +409,7 @@ a = Task.map3 f (Task.fail x) task1 task2
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = (Task.fail x)
+a = Task.fail x
 """
                         ]
         , test "should replace Task.map3 f (Task.fail x) task1 by always (Task.fail x)" <|
@@ -445,7 +445,7 @@ a = Task.map3 f (Task.fail x)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Task
-a = (\\_ _ -> (Task.fail x))
+a = (\\_ _ -> Task.fail x)
 """
                         ]
         , test "should replace Task.map3 f task0 (Task.fail x) task2 by Task.map2 f task0 (Task.fail x)" <|

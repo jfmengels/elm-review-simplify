@@ -877,7 +877,7 @@ a = Basics.abs (abs n)
                             , under = "Basics.abs"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (abs n)
+a = abs n
 """
                         ]
         , test "should replace Basics.abs <| abs <| f <| n by abs <| f <| n" <|
