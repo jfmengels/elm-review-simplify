@@ -1774,7 +1774,6 @@ import Set exposing (Set)
 import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, qualifiedToString)
 import Simplify.CallStyle as CallStyle exposing (FunctionCallStyle)
 import Simplify.CoreHelpers exposing (consIf, countUnique, countUniqueBy, findMap, findMapAndAllBefore, findMapNeighboring, indexedFindMap, isJust, isNothing, listAll2, listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList, listFind, listIndexedFilterMap, listLast, maybeWithDefaultLazy, onNothing, traverse, traverseConcat, uniqueByThenMap)
-import Simplify.Evaluate as Evaluate
 import Simplify.HashExpression as HashExpression
 import Simplify.Infer as Infer
 import Simplify.Match exposing (Match(..))
@@ -4822,7 +4821,7 @@ equalityChecks isEqual checkInfo =
             (\() ->
                 checkOperationFromBothSides checkInfo
                     (\side ->
-                        if Evaluate.getBool checkInfo side.node == Just isEqual then
+                        if Normalize.getBool checkInfo side.node == Just isEqual then
                             Just
                                 (Rule.errorWithFix
                                     { message = "Unnecessary comparison with boolean"
@@ -5477,7 +5476,7 @@ basicsNotChecks =
 
 notOnKnownBoolCheck : CallCheckInfo -> Maybe (Error {})
 notOnKnownBoolCheck checkInfo =
-    case Evaluate.getBool checkInfo checkInfo.firstArg of
+    case Normalize.getBool checkInfo checkInfo.firstArg of
         Just bool ->
             let
                 notBoolAsString : String
@@ -5563,7 +5562,7 @@ basicsToFloatChecks : IntoFnCheck
 basicsToFloatChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
-            case Evaluate.getInt checkInfo checkInfo.firstArg of
+            case Normalize.getInt checkInfo checkInfo.firstArg of
                 Just _ ->
                     Just
                         (Rule.errorWithFix
@@ -6004,7 +6003,7 @@ compareComparableExpressionLists leftList rightList =
 
 evaluateConversionToIntOnNumberCheck : (Float -> Int) -> CallCheckInfo -> Maybe (Error {})
 evaluateConversionToIntOnNumberCheck operation checkInfo =
-    case Evaluate.getInt checkInfo checkInfo.firstArg of
+    case Normalize.getInt checkInfo checkInfo.firstArg of
         Just _ ->
             Just
                 (Rule.errorWithFix
@@ -7945,12 +7944,12 @@ getNonEmptyListRangeCall checkInfo expressionNode =
         Just listRangeCall ->
             case listRangeCall.argsAfterFirst of
                 [ rangeEndArg ] ->
-                    case Evaluate.getInt checkInfo listRangeCall.firstArg of
+                    case Normalize.getInt checkInfo listRangeCall.firstArg of
                         Nothing ->
                             Nothing
 
                         Just rangeStartValue ->
-                            case Evaluate.getInt checkInfo rangeEndArg of
+                            case Normalize.getInt checkInfo rangeEndArg of
                                 Nothing ->
                                     Nothing
 
@@ -8185,7 +8184,7 @@ listFoldChecks foldFnName reverseFoldFnName =
                             numberBinaryOperationChecks { two = "+", list = "sum", identity = 0 }
 
                         else
-                            case Evaluate.getBool checkInfo initialArg of
+                            case Normalize.getBool checkInfo initialArg of
                                 Nothing ->
                                     Nothing
 
@@ -8781,7 +8780,7 @@ listDropChecks =
         [ unnecessaryOnEmptyCheck listCollection
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                Evaluate.getInt checkInfo checkInfo.firstArg
+                Normalize.getInt checkInfo checkInfo.firstArg
                     |> Maybe.andThen
                         (\count ->
                             callWithNonPositiveIntCheckErrorSituation
@@ -8969,7 +8968,7 @@ arraySliceChecks =
             , generalLaterOperationArgsDescription = "indices"
             , isSpecificLaterFirstArg =
                 \checkInfo laterFirstArg ->
-                    Evaluate.getInt checkInfo laterFirstArg == Just 0
+                    Normalize.getInt checkInfo laterFirstArg == Just 0
             , specificLaterFirstArgDescription = "from index 0"
             }
         ]
@@ -10889,7 +10888,7 @@ boolForOrProperties =
 boolTrueConstant : ConstantProperties
 boolTrueConstant =
     { description = qualifiedToString (qualify Fn.Basics.trueVariant defaultQualifyResources)
-    , is = \res expr -> Evaluate.getBool res expr == justTrue
+    , is = \res expr -> Normalize.getBool res expr == justTrue
     , asString = \res -> qualifiedToString (qualify Fn.Basics.trueVariant res)
     }
 
@@ -10902,7 +10901,7 @@ justTrue =
 boolFalseConstant : ConstantProperties
 boolFalseConstant =
     { description = qualifiedToString (qualify Fn.Basics.falseVariant defaultQualifyResources)
-    , is = \res expr -> Evaluate.getBool res expr == justFalse
+    , is = \res expr -> Normalize.getBool res expr == justFalse
     , asString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res)
     }
 
@@ -10966,7 +10965,7 @@ numberNotExpectingNaNForMultiplyProperties =
 number0ConstantSpecific : ConstantProperties
 number0ConstantSpecific =
     { description = "0"
-    , is = \res expr -> Evaluate.getNumber res expr == Just 0
+    , is = \res expr -> Normalize.getNumber res expr == Just 0
     , asString = \_ -> "0"
     }
 
@@ -10974,7 +10973,7 @@ number0ConstantSpecific =
 number1ConstantSpecific : ConstantProperties
 number1ConstantSpecific =
     { description = "1"
-    , is = \res expr -> Evaluate.getNumber res expr == Just 1
+    , is = \res expr -> Normalize.getNumber res expr == Just 1
     , asString = \_ -> "1"
     }
 
@@ -10986,8 +10985,8 @@ numberNaNConstantSpecific =
         \res expr ->
             case AstHelpers.removeParens expr of
                 Node _ (Expression.OperatorApplication "/" _ dividend divisor) ->
-                    (Evaluate.getNumber res dividend == Just 0)
-                        && (Evaluate.getNumber res divisor == Just 0)
+                    (Normalize.getNumber res dividend == Just 0)
+                        && (Normalize.getNumber res divisor == Just 0)
 
                 _ ->
                     False
@@ -11230,7 +11229,7 @@ listDetermineLength resources expressionNode =
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.List.repeat resources.lookupTable expressionNode of
                     Just repeatCall ->
-                        Evaluate.getInt resources repeatCall.firstArg
+                        Normalize.getInt resources repeatCall.firstArg
                             |> Maybe.map (\n -> Exactly (max 0 n))
 
                     Nothing ->
@@ -11240,9 +11239,9 @@ listDetermineLength resources expressionNode =
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.List.range resources.lookupTable expressionNode of
                     Just rangeCall ->
-                        case Evaluate.getInt resources rangeCall.firstArg of
+                        case Normalize.getInt resources rangeCall.firstArg of
                             Just start ->
-                                case Maybe.andThen (\endArg -> Evaluate.getInt resources endArg) (List.head rangeCall.argsAfterFirst) of
+                                case Maybe.andThen (\endArg -> Normalize.getInt resources endArg) (List.head rangeCall.argsAfterFirst) of
                                     Just end ->
                                         Just (Exactly (max 0 (end - start)))
 
@@ -11425,7 +11424,7 @@ arrayDetermineLength resources expressionNode =
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Array.repeat resources.lookupTable expressionNode of
                     Just repeatCall ->
-                        Evaluate.getInt resources repeatCall.firstArg
+                        Normalize.getInt resources repeatCall.firstArg
                             |> Maybe.map (\n -> Exactly (max 0 n))
 
                     Nothing ->
@@ -11435,7 +11434,7 @@ arrayDetermineLength resources expressionNode =
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Array.initialize resources.lookupTable expressionNode of
                     Just repeatCall ->
-                        Evaluate.getInt resources repeatCall.firstArg
+                        Normalize.getInt resources repeatCall.firstArg
                             |> Maybe.map (\n -> Exactly (max 0 n))
 
                     Nothing ->
@@ -12867,9 +12866,9 @@ emptiableRangeChecks emptiable checkInfo =
                         )
 
                 _ ->
-                    case Evaluate.getInt checkInfo checkInfo.firstArg of
+                    case Normalize.getInt checkInfo checkInfo.firstArg of
                         Just rangeStartValue ->
-                            case Evaluate.getInt checkInfo rangeEndArg of
+                            case Normalize.getInt checkInfo rangeEndArg of
                                 Just rangeEndValue ->
                                     if rangeStartValue > rangeEndValue then
                                         Just
@@ -13253,7 +13252,7 @@ emptiableAllChecks emptiable checkInfo =
             (\() ->
                 case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
                     Just alwaysResult ->
-                        case Evaluate.getBool checkInfo alwaysResult of
+                        case Normalize.getBool checkInfo alwaysResult of
                             Just True ->
                                 Just
                                     (alwaysResultsInUnparenthesizedConstantError
@@ -13327,7 +13326,7 @@ emptiableAnyChecks emptiable checkInfo =
             (\() ->
                 case AstHelpers.getAlwaysResult checkInfo checkInfo.firstArg of
                     Just alwaysResult ->
-                        case Evaluate.getBool checkInfo alwaysResult of
+                        case Normalize.getBool checkInfo alwaysResult of
                             Just False ->
                                 Just
                                     (alwaysResultsInUnparenthesizedConstantError
@@ -13760,7 +13759,7 @@ Examples of such functions:
 -}
 sequenceRepeatChecks : WrapperProperties (MappableProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 sequenceRepeatChecks wrapper checkInfo =
-    (case Evaluate.getInt checkInfo checkInfo.firstArg of
+    (case Normalize.getInt checkInfo checkInfo.firstArg of
         Just lengthInt ->
             case lengthInt of
                 1 ->
@@ -13868,7 +13867,7 @@ emptiableFlatRepeatChecks emptiable checkInfo =
     )
         |> onNothing
             (\() ->
-                case Evaluate.getInt checkInfo checkInfo.firstArg of
+                case Normalize.getInt checkInfo checkInfo.firstArg of
                     Just intValue ->
                         case intValue of
                             1 ->
@@ -14087,7 +14086,7 @@ foldToUnchangedAccumulatorWithExtraArgCheck typeProperties checkInfo =
 
 emptiableRepeatChecks : CollectionProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 emptiableRepeatChecks collection checkInfo =
-    case Evaluate.getInt checkInfo checkInfo.firstArg of
+    case Normalize.getInt checkInfo checkInfo.firstArg of
         Just intValue ->
             callWithNonPositiveIntCanBeReplacedByCheck
                 { int = intValue
@@ -14102,7 +14101,7 @@ emptiableRepeatChecks collection checkInfo =
 
 wrapperRepeatChecks : CollectionProperties (WrapperProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 wrapperRepeatChecks wrapper checkInfo =
-    case Evaluate.getInt checkInfo checkInfo.firstArg of
+    case Normalize.getInt checkInfo checkInfo.firstArg of
         Just 1 ->
             Just
                 (Rule.errorWithFix
@@ -14128,7 +14127,7 @@ getChecks collection checkInfo =
     callOnEmptyReturnsCheck { resultAsString = maybeWithJustAsWrap.empty.specific.asString } collection checkInfo
         |> onNothing
             (\() ->
-                Evaluate.getInt checkInfo checkInfo.firstArg
+                Normalize.getInt checkInfo checkInfo.firstArg
                     |> Maybe.andThen (\index -> indexAccessChecks collection checkInfo index)
             )
 
@@ -14186,7 +14185,7 @@ indexAccessChecks collection checkInfo n =
                                         List.head repeatCall.argsAfterFirst
                                             |> Maybe.andThen
                                                 (\repeatSecondArg ->
-                                                    case Evaluate.getInt checkInfo repeatCall.firstArg of
+                                                    case Normalize.getInt checkInfo repeatCall.firstArg of
                                                         Just repeatArgInt ->
                                                             if n < repeatArgInt then
                                                                 Just
@@ -14225,7 +14224,7 @@ indexAccessChecks collection checkInfo n =
                                         List.head initializeCall.argsAfterFirst
                                             |> Maybe.andThen
                                                 (\repeatSecondArg ->
-                                                    case Evaluate.getInt checkInfo initializeCall.firstArg of
+                                                    case Normalize.getInt checkInfo initializeCall.firstArg of
                                                         Just initializeArgInt ->
                                                             if n < initializeArgInt then
                                                                 Just
@@ -14268,7 +14267,7 @@ collectionSetChecks collection =
         , operationOverridesPreviousOperationWithEqualFirstArgCheck { firstArgDescription = "index" }
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                case Evaluate.getInt checkInfo checkInfo.firstArg of
+                case Normalize.getInt checkInfo checkInfo.firstArg of
                     Just n ->
                         if n < 0 then
                             Just
@@ -16184,7 +16183,7 @@ emptiableKeepWhenChecks emptiable =
 
 keepWhenWithConstantFunctionResultChecks : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 keepWhenWithConstantFunctionResultChecks constantFunctionResult emptiable checkInfo =
-    case Evaluate.getBool checkInfo constantFunctionResult of
+    case Normalize.getBool checkInfo constantFunctionResult of
         Just True ->
             Just
                 (alwaysReturnsLastArgError
@@ -16266,7 +16265,7 @@ collectionSliceChecks collection =
                                 )
 
                         else
-                            case Evaluate.getInt checkInfo endArg of
+                            case Normalize.getInt checkInfo endArg of
                                 Just endInt ->
                                     case endInt of
                                         0 ->
@@ -16277,7 +16276,7 @@ collectionSliceChecks collection =
                                                 )
 
                                         _ ->
-                                            case Evaluate.getInt checkInfo checkInfo.firstArg of
+                                            case Normalize.getInt checkInfo checkInfo.firstArg of
                                                 Just startInt ->
                                                     if startInt > endInt then
                                                         if startInt >= 0 && endInt >= 0 then
@@ -16657,7 +16656,7 @@ collectionTakeChecks collection =
         , operationDoesNotChangeResultOfOperationCheck
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                case Evaluate.getInt checkInfo checkInfo.firstArg of
+                case Normalize.getInt checkInfo checkInfo.firstArg of
                     Just elementCount ->
                         callWithNonPositiveIntCanBeReplacedByCheck
                             { int = elementCount
@@ -16755,7 +16754,7 @@ partitionOnEmptyChecks emptiable chheckInfo =
 
 partitionWithConstantFunctionResult : Node Expression -> TypeProperties (EmptiableProperties ConstantProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 partitionWithConstantFunctionResult constantFunctionResult collection checkInfo =
-    case Evaluate.getBool checkInfo constantFunctionResult of
+    case Normalize.getBool checkInfo constantFunctionResult of
         Just True ->
             case secondArg checkInfo of
                 Just (Node listArgRange _) ->
@@ -16975,7 +16974,7 @@ targetIfKeyword ifExpressionRange =
 
 ifChecks : IfCheckInfo -> Maybe (Error {})
 ifChecks checkInfo =
-    (case Evaluate.getBool checkInfo checkInfo.condition of
+    (case Normalize.getBool checkInfo checkInfo.condition of
         Just determinedConditionResultIsTrue ->
             let
                 branch : { expressionNode : Node Expression, name : String }
@@ -17000,9 +16999,9 @@ ifChecks checkInfo =
     )
         |> onNothing
             (\() ->
-                case Evaluate.getBool checkInfo checkInfo.trueBranch of
+                case Normalize.getBool checkInfo checkInfo.trueBranch of
                     Just True ->
-                        case Evaluate.getBool checkInfo checkInfo.falseBranch of
+                        case Normalize.getBool checkInfo checkInfo.falseBranch of
                             Just False ->
                                 Just
                                     (Rule.errorWithFix
@@ -17017,7 +17016,7 @@ ifChecks checkInfo =
                                 Nothing
 
                     Just False ->
-                        case Evaluate.getBool checkInfo checkInfo.falseBranch of
+                        case Normalize.getBool checkInfo checkInfo.falseBranch of
                             Just True ->
                                 Just
                                     (Rule.errorWithFix
