@@ -6586,13 +6586,14 @@ tuplePartMapOnMapBothCheck config =
                                                 )
                                                 :: Fix.insertAt (Node.range tupleArg).end
                                                     ")"
-                                                :: replaceBy2SubExpressionsFix
-                                                    (Node.range checkInfo.firstArg)
-                                                    partChangeFunctionArg
-                                                    tupleArg
-                                                ++ replaceBySubExpressionFix
+                                                :: callReplaceOperationBySubExpressionsFix
                                                     checkInfo.parentRange
-                                                    checkInfo.firstArg
+                                                    { originalCallStyle = mapBothCall.callStyle
+                                                    , subFunctionArg = partChangeFunctionArg
+                                                    , lastArg = tupleArg
+                                                    , parenthesize =
+                                                        callReplacementNeedsParens checkInfo.callStyle (Node.value checkInfo.firstArg)
+                                                    }
                                             )
                                         )
 
@@ -18743,64 +18744,170 @@ replaceBySubExpressionFix outerRange (Node exprRange exprValue) =
         keepOnlyFix { parentRange = outerRange, keep = exprRange }
 
 
-replaceBy2SubExpressionsFix : Range -> Node Expression -> Node Expression -> List Fix
-replaceBy2SubExpressionsFix parentRange subA subB =
+replaceCallBySubExpressionFix : Range -> FunctionCallStyle -> Node Expression -> List Fix
+replaceCallBySubExpressionFix outerRange callStyle expressionNode =
     let
-        ( leftSub, rightSub ) =
-            case Range.compareLocations (Node.range subA).start (Node.range subB).end of
-                LT ->
-                    ( subA, subB )
-
-                _ ->
-                    ( subB, subA )
-
-        leftSubNeedsParens : Bool
-        leftSubNeedsParens =
-            needsParens (Node.value leftSub)
-
-        rightSubNeedsParens : Bool
-        rightSubNeedsParens =
-            needsParens (Node.value rightSub)
+        (Node replacementExpressionRange replacementExpression) =
+            AstHelpers.removeParens expressionNode
     in
-    [ Fix.replaceRangeBy
-        { start = parentRange.start
-        , end = (Node.range leftSub).start
-        }
-        (if leftSubNeedsParens then
-            "("
+    if callReplacementNeedsParens callStyle replacementExpression then
+        keepOnlyAndParenthesizeFix { parentRange = outerRange, keep = replacementExpressionRange }
 
-         else
-            ""
-        )
-    , Fix.replaceRangeBy
-        { start = (Node.range leftSub).end
-        , end = (Node.range rightSub).start
-        }
-        ((if leftSubNeedsParens then
-            ")"
+    else
+        keepOnlyFix { parentRange = outerRange, keep = replacementExpressionRange }
 
-          else
-            ""
-         )
-            ++ " "
-            ++ (if rightSubNeedsParens then
+
+callReplaceOperationBySubExpressionsFix :
+    Range
+    ->
+        { originalCallStyle : FunctionCallStyle
+        , subFunctionArg : Node Expression
+        , lastArg : Node Expression
+        , parenthesize : Bool
+        }
+    -> List Fix
+callReplaceOperationBySubExpressionsFix parentRange config =
+    case config.originalCallStyle of
+        CallStyle.Application ->
+            let
+                subFunctionArgNeedsParens : Bool
+                subFunctionArgNeedsParens =
+                    needsParens (Node.value config.subFunctionArg)
+            in
+            [ Fix.replaceRangeBy
+                { start = parentRange.start
+                , end = (Node.range config.subFunctionArg).start
+                }
+                ((if config.parenthesize then
                     "("
 
-                else
+                  else
                     ""
-               )
-        )
-    , Fix.replaceRangeBy
-        { start = (Node.range rightSub).end
-        , end = parentRange.end
-        }
-        (if rightSubNeedsParens then
-            ")"
+                 )
+                    ++ (if subFunctionArgNeedsParens then
+                            "("
 
-         else
-            ""
-        )
-    ]
+                        else
+                            ""
+                       )
+                )
+            , Fix.replaceRangeBy
+                { start = (Node.range config.subFunctionArg).end
+                , end = (Node.range config.lastArg).start
+                }
+                ((if subFunctionArgNeedsParens then
+                    ")"
+
+                  else
+                    ""
+                 )
+                    ++ " "
+                )
+            , Fix.replaceRangeBy
+                { start = (Node.range config.lastArg).end
+                , end = parentRange.end
+                }
+                (if config.parenthesize then
+                    ")"
+
+                 else
+                    ""
+                )
+            ]
+
+        CallStyle.Pipe CallStyle.RightToLeft ->
+            let
+                subFunctionArgNeedsParens : Bool
+                subFunctionArgNeedsParens =
+                    needsParens (Node.value config.subFunctionArg)
+            in
+            [ Fix.replaceRangeBy
+                { start = parentRange.start
+                , end = (Node.range config.subFunctionArg).start
+                }
+                ((if config.parenthesize then
+                    "("
+
+                  else
+                    ""
+                 )
+                    ++ (if subFunctionArgNeedsParens then
+                            "("
+
+                        else
+                            ""
+                       )
+                )
+            , Fix.replaceRangeBy
+                { start = (Node.range config.subFunctionArg).end
+                , end = (Node.range config.lastArg).start
+                }
+                ((if subFunctionArgNeedsParens then
+                    ")"
+
+                  else
+                    ""
+                 )
+                    ++ " <| "
+                )
+            , Fix.replaceRangeBy
+                { start = (Node.range config.lastArg).end
+                , end = parentRange.end
+                }
+                (if config.parenthesize then
+                    ")"
+
+                 else
+                    ""
+                )
+            ]
+
+        CallStyle.Pipe CallStyle.LeftToRight ->
+            let
+                subFunctionArgNeedsParens : Bool
+                subFunctionArgNeedsParens =
+                    needsParens (Node.value config.subFunctionArg)
+            in
+            [ Fix.replaceRangeBy
+                { start = parentRange.start
+                , end = (Node.range config.lastArg).start
+                }
+                (if config.parenthesize then
+                    "("
+
+                 else
+                    ""
+                )
+            , Fix.replaceRangeBy
+                { start = (Node.range config.lastArg).end
+                , end = (Node.range config.subFunctionArg).start
+                }
+                (" |> "
+                    ++ (if subFunctionArgNeedsParens then
+                            "("
+
+                        else
+                            ""
+                       )
+                )
+            , Fix.replaceRangeBy
+                { start = (Node.range config.subFunctionArg).end
+                , end = parentRange.end
+                }
+                ((if subFunctionArgNeedsParens then
+                    ")"
+
+                  else
+                    ""
+                 )
+                    ++ (if config.parenthesize then
+                            ")"
+
+                        else
+                            ""
+                       )
+                )
+            ]
 
 
 replaceSubExpressionByRecordAccessFix : String -> Node Expression -> List Fix
@@ -19434,6 +19541,51 @@ getFullComposition expressionNode =
 
         _ ->
             Nothing
+
+
+lastArgCallOfCallNeedsParens : { parent : FunctionCallStyle, lastArg : FunctionCallStyle } -> Bool
+lastArgCallOfCallNeedsParens style =
+    case style.lastArg of
+        CallStyle.Application ->
+            style.parent == CallStyle.Application
+
+        CallStyle.Pipe lastArgCallPipeDirection ->
+            style.parent /= CallStyle.Pipe lastArgCallPipeDirection
+
+
+lastArgOfCallNeedsParens : FunctionCallStyle -> Expression -> Bool
+lastArgOfCallNeedsParens callStyle lastArg =
+    case lastArg of
+        Expression.Application _ ->
+            callStyle == CallStyle.Application
+
+        Expression.OperatorApplication "<|" _ _ _ ->
+            callStyle /= CallStyle.pipeRightToLeft
+
+        Expression.OperatorApplication "|>" _ _ _ ->
+            callStyle /= CallStyle.pipeLeftToRight
+
+        _ ->
+            needsParens lastArg
+
+
+callReplacementNeedsParens : FunctionCallStyle -> Expression -> Bool
+callReplacementNeedsParens originalCallStyle replacementExpression =
+    case replacementExpression of
+        Expression.ParenthesizedExpression inParens ->
+            callReplacementNeedsParens originalCallStyle (Node.value inParens)
+
+        Expression.Application _ ->
+            False
+
+        Expression.OperatorApplication "<|" _ _ _ ->
+            originalCallStyle /= CallStyle.pipeRightToLeft
+
+        Expression.OperatorApplication "|>" _ _ _ ->
+            originalCallStyle /= CallStyle.pipeLeftToRight
+
+        _ ->
+            needsParens replacementExpression
 
 
 needsParens : Expression -> Bool
