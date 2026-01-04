@@ -19813,49 +19813,9 @@ normalizedExpressionToComparableWithSign sign expression =
         Expression.Negation (Node _ inNegation) ->
             normalizedExpressionToComparableWithSign (-1 * sign) inNegation
 
-        Expression.OperatorApplication operator _ (Node _ left) (Node _ right) ->
-            case numberOperationForSymbol operator of
-                Nothing ->
-                    Nothing
-
-                Just numberOperation ->
-                    case normalizedExpressionToComparableWithSign 1 left of
-                        Just (ComparableNumber leftNumber) ->
-                            case normalizedExpressionToComparableWithSign 1 right of
-                                Just (ComparableNumber rightNumber) ->
-                                    Just (ComparableNumber (Basics.toFloat sign * numberOperation leftNumber rightNumber))
-
-                                _ ->
-                                    Nothing
-
-                        _ ->
-                            Nothing
-
-        _ ->
+        Expression.OperatorApplication _ _ _ _ ->
+            -- any evaluation is covered by the Simplify checks themselves
             Nothing
-
-
-numberOperationForSymbol : String -> Maybe (Float -> Float -> Float)
-numberOperationForSymbol operator =
-    case operator of
-        "+" ->
-            Just (+)
-
-        "-" ->
-            Just (-)
-
-        "*" ->
-            Just (*)
-
-        "/" ->
-            Just (/)
-
-        "//" ->
-            Just
-                (\l r ->
-                    -- not truncate because that would drop bits above 32
-                    Basics.toFloat (Basics.round l // Basics.round r)
-                )
 
         _ ->
             Nothing
