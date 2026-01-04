@@ -320,23 +320,52 @@ toComparable a =
 -}
 createOperation : Infer.Resources a -> String -> Node Expression -> Node Expression -> Expression
 createOperation resources operator left right =
-    let
-        normalOperationExpression : Expression
-        normalOperationExpression =
-            if
-                operatorIsSymmetrical operator
-                    && (toComparable left > toComparable right)
-            then
-                Expression.OperatorApplication operator normalizedInfixDirection right left
-
-            else
-                Expression.OperatorApplication operator normalizedInfixDirection left right
-    in
     if operator == "==" || operator == "/=" || operator == "&&" || operator == "||" then
-        infer resources normalOperationExpression
+        infer resources (createFallbackOperation operator left right)
 
     else
-        normalOperationExpression
+        case operator of
+            "+" ->
+                createNumberOperation (+) operator left right
+
+            "-" ->
+                createNumberOperation (-) operator left right
+
+            "*" ->
+                createNumberOperation (*) operator left right
+
+            "/" ->
+                createNumberOperation (/) operator left right
+
+            _ ->
+                createFallbackOperation operator left right
+
+
+createFallbackOperation : String -> Node Expression -> Node Expression -> Expression
+createFallbackOperation operator left right =
+    if
+        operatorIsSymmetrical operator
+            && (toComparable left > toComparable right)
+    then
+        Expression.OperatorApplication operator normalizedInfixDirection right left
+
+    else
+        Expression.OperatorApplication operator normalizedInfixDirection left right
+
+
+createNumberOperation : (Float -> Float -> Float) -> String -> Node Expression -> Node Expression -> Expression
+createNumberOperation numberOperation operatorSymbol left right =
+    case Node.value left of
+        Expression.Floatable leftNumber ->
+            case Node.value right of
+                Expression.Floatable rightNumber ->
+                    Expression.Floatable (numberOperation leftNumber rightNumber)
+
+                _ ->
+                    createFallbackOperation operatorSymbol left right
+
+        _ ->
+            createFallbackOperation operatorSymbol left right
 
 
 normalizedInfixDirection : Infix.InfixDirection
@@ -600,8 +629,13 @@ compareHelp leftNode right canFlip =
                 Unconfirmed
     in
     case leftNode of
-        Expression.Floatable left ->
-            compareNumbers left right
+        Expression.Floatable leftNumber ->
+            case right of
+                Expression.Floatable rightNumber ->
+                    fromEquality (leftNumber == rightNumber)
+
+                _ ->
+                    Unconfirmed
 
         Expression.Negation (Node _ leftInNegation) ->
             case right of
@@ -612,30 +646,16 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.OperatorApplication leftOp _ (Node _ leftLeft) (Node _ leftRight) ->
-            if isNumberOperator leftOp then
-                case getNumberValue leftNode of
-                    Just leftValue ->
-                        case getNumberValue right of
-                            Just rightValue ->
-                                fromEquality (leftValue == rightValue)
+            case right of
+                Expression.OperatorApplication rightOp _ (Node _ rightLeft) (Node _ rightRight) ->
+                    if leftOp == rightOp then
+                        compareAll2Help leftLeft rightLeft leftRight rightRight
 
-                            Nothing ->
-                                fallback ()
-
-                    Nothing ->
+                    else
                         fallback ()
 
-            else
-                case right of
-                    Expression.OperatorApplication rightOp _ (Node _ rightLeft) (Node _ rightRight) ->
-                        if leftOp == rightOp then
-                            compareAll2Help leftLeft rightLeft leftRight rightRight
-
-                        else
-                            fallback ()
-
-                    _ ->
-                        fallback ()
+                _ ->
+                    fallback ()
 
         Expression.Literal left ->
             case right of
@@ -773,28 +793,6 @@ compareHelp leftNode right canFlip =
             fallback ()
 
 
-{-| For consistency with `getNumberValue`, this does not
-(yet?) include `//`
--}
-isNumberOperator : String -> Bool
-isNumberOperator operator =
-    case operator of
-        "+" ->
-            True
-
-        "-" ->
-            True
-
-        "*" ->
-            True
-
-        "/" ->
-            True
-
-        _ ->
-            False
-
-
 compareAll2Help : Expression -> Expression -> Expression -> Expression -> Comparison
 compareAll2Help left0 right0 left1 right1 =
     case compareHelp left0 right0 True of
@@ -864,72 +862,6 @@ compareAllConfirmedEqualityElseUnconfirmedHelp leftList rightList =
 
                         _ ->
                             Unconfirmed
-
-
-compareNumbers : Float -> Expression -> Comparison
-compareNumbers leftValue right =
-    case getNumberValue right of
-        Just rightValue ->
-            fromEquality (leftValue == rightValue)
-
-        Nothing ->
-            Unconfirmed
-
-
-getNumberValue : Expression -> Maybe Float
-getNumberValue node =
-    case node of
-        Expression.Floatable float ->
-            Just float
-
-        Expression.ParenthesizedExpression (Node _ inParens) ->
-            getNumberValue inParens
-
-        Expression.LetExpression { expression } ->
-            getNumberValue (Node.value expression)
-
-        Expression.OperatorApplication "+" _ (Node _ left) (Node _ right) ->
-            case getNumberValue left of
-                Nothing ->
-                    Nothing
-
-                Just leftNumber ->
-                    Maybe.map (\rightNumber -> leftNumber + rightNumber)
-                        (getNumberValue right)
-
-        Expression.OperatorApplication "-" _ (Node _ left) (Node _ right) ->
-            case getNumberValue left of
-                Nothing ->
-                    Nothing
-
-                Just leftNumber ->
-                    Maybe.map (\rightNumber -> leftNumber - rightNumber)
-                        (getNumberValue right)
-
-        Expression.OperatorApplication "*" _ (Node _ left) (Node _ right) ->
-            case getNumberValue left of
-                Nothing ->
-                    Nothing
-
-                Just leftNumber ->
-                    Maybe.map (\rightNumber -> leftNumber * rightNumber)
-                        (getNumberValue right)
-
-        Expression.OperatorApplication "/" _ (Node _ left) (Node _ right) ->
-            case getNumberValue left of
-                Nothing ->
-                    Nothing
-
-                Just leftNumber ->
-                    Maybe.map (\rightNumber -> leftNumber / rightNumber)
-                        (getNumberValue right)
-
-        Expression.Negation (Node _ inNegation) ->
-            getNumberValue inNegation
-                |> Maybe.map negate
-
-        _ ->
-            Nothing
 
 
 type RecordFieldComparison
