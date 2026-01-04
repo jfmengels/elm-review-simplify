@@ -1,5 +1,5 @@
 module Simplify.Normalize exposing
-    ( Resources, normalize, normalizeExpression, normalizeButKeepRange
+    ( Resources, normalizeExpression, normalizeButKeepRange
     , Comparison(..), areAllTheSameAs, areTheSame, compare, compareWithoutNormalization
     , getBool, getInt, getNumber, isSpecificUnappliedBinaryOperation
     )
@@ -7,7 +7,7 @@ module Simplify.Normalize exposing
 {-| Bring expressions to a normal form,
 including simple evaluation using [`Simplify.Infer`](Simplify-Infer)
 
-@docs Resources, normalize, normalizeExpression, normalizeButKeepRange
+@docs Resources, normalizeExpression, normalizeButKeepRange
 
 
 ## equality
@@ -554,17 +554,17 @@ type Comparison
 compare : Resources a -> Node Expression -> Node Expression -> Comparison
 compare resources leftNode right =
     compareHelp
-        (normalize resources leftNode)
-        (normalize resources right)
+        (normalizeExpression resources leftNode)
+        (normalizeExpression resources right)
         True
 
 
-compareWithoutNormalization : Node Expression -> Node Expression -> Comparison
+compareWithoutNormalization : Expression -> Expression -> Comparison
 compareWithoutNormalization leftNode right =
     compareHelp leftNode right True
 
 
-compareHelp : Node Expression -> Node Expression -> Bool -> Comparison
+compareHelp : Expression -> Expression -> Bool -> Comparison
 compareHelp leftNode right canFlip =
     let
         fallback : () -> Comparison
@@ -578,22 +578,22 @@ compareHelp leftNode right canFlip =
             else
                 Unconfirmed
     in
-    case Node.value leftNode of
+    case leftNode of
         Expression.Integer left ->
             compareNumbers (Basics.toFloat left) right
 
         Expression.Floatable left ->
             compareNumbers left right
 
-        Expression.Negation left ->
-            case Node.value right of
-                Expression.Negation rightValue ->
-                    compareHelp left rightValue canFlip
+        Expression.Negation (Node _ leftInNegation) ->
+            case right of
+                Expression.Negation (Node _ rightInNegation) ->
+                    compareHelp leftInNegation rightInNegation canFlip
 
                 _ ->
                     fallback ()
 
-        Expression.OperatorApplication leftOp _ leftLeft leftRight ->
+        Expression.OperatorApplication leftOp _ (Node _ leftLeft) (Node _ leftRight) ->
             if isNumberOperator leftOp then
                 case getNumberValue leftNode of
                     Just leftValue ->
@@ -608,8 +608,8 @@ compareHelp leftNode right canFlip =
                         fallback ()
 
             else
-                case Node.value right of
-                    Expression.OperatorApplication rightOp _ rightLeft rightRight ->
+                case right of
+                    Expression.OperatorApplication rightOp _ (Node _ rightLeft) (Node _ rightRight) ->
                         if leftOp == rightOp then
                             compareAll2Help leftLeft rightLeft leftRight rightRight
 
@@ -620,7 +620,7 @@ compareHelp leftNode right canFlip =
                         fallback ()
 
         Expression.Literal left ->
-            case Node.value right of
+            case right of
                 Expression.Literal rightValue ->
                     fromEquality (left == rightValue)
 
@@ -628,7 +628,7 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.CharLiteral left ->
-            case Node.value right of
+            case right of
                 Expression.CharLiteral rightValue ->
                     fromEquality (left == rightValue)
 
@@ -636,7 +636,7 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.FunctionOrValue moduleNameLeft leftName ->
-            case Node.value right of
+            case right of
                 Expression.FunctionOrValue moduleNameRight rightName ->
                     if leftName == rightName && moduleNameRight == moduleNameLeft then
                         ConfirmedEquality
@@ -648,7 +648,7 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.ListExpr leftList ->
-            case Node.value right of
+            case right of
                 Expression.ListExpr rightList ->
                     compareLists leftList rightList ConfirmedEquality
 
@@ -656,7 +656,7 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.TupledExpression leftList ->
-            case Node.value right of
+            case right of
                 Expression.TupledExpression rightList ->
                     compareLists leftList rightList ConfirmedEquality
 
@@ -664,7 +664,7 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.RecordExpr leftList ->
-            case Node.value right of
+            case right of
                 Expression.RecordExpr rightList ->
                     compareRecords leftList rightList ConfirmedEquality
 
@@ -672,7 +672,7 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.RecordUpdateExpression leftBaseValue leftList ->
-            case Node.value right of
+            case right of
                 Expression.RecordUpdateExpression rightBaseValue rightList ->
                     compareRecords leftList
                         rightList
@@ -686,9 +686,9 @@ compareHelp leftNode right canFlip =
                 _ ->
                     fallback ()
 
-        Expression.Application (leftCalled :: leftArg0 :: leftArg1Up) ->
-            case Node.value right of
-                Expression.Application (rightCalled :: rightArg0 :: rightArg1Up) ->
+        Expression.Application ((Node _ leftCalled) :: (Node _ leftArg0) :: leftArg1Up) ->
+            case right of
+                Expression.Application ((Node _ rightCalled) :: (Node _ rightArg0) :: rightArg1Up) ->
                     case compareAll2Help leftCalled rightCalled leftArg0 rightArg0 of
                         ConfirmedEquality ->
                             compareAllConfirmedEqualityElseUnconfirmedHelp leftArg1Up rightArg1Up
@@ -699,11 +699,11 @@ compareHelp leftNode right canFlip =
                 _ ->
                     fallback ()
 
-        Expression.RecordAccess leftExpr leftName ->
-            case Node.value right of
-                Expression.RecordAccess rightExpr rightName ->
-                    if Node.value leftName == Node.value rightName then
-                        compareHelp leftExpr rightExpr canFlip
+        Expression.RecordAccess (Node _ leftRecord) (Node _ leftName) ->
+            case right of
+                Expression.RecordAccess (Node _ rightRecord) (Node _ rightName) ->
+                    if leftName == rightName then
+                        compareHelp leftRecord rightRecord canFlip
 
                     else
                         Unconfirmed
@@ -714,9 +714,9 @@ compareHelp leftNode right canFlip =
         Expression.UnitExpr ->
             ConfirmedEquality
 
-        Expression.IfBlock leftCond leftThen leftElse ->
-            case Node.value right of
-                Expression.IfBlock rightCond rightThen rightElse ->
+        Expression.IfBlock (Node _ leftCond) (Node _ leftThen) (Node _ leftElse) ->
+            case right of
+                Expression.IfBlock (Node _ rightCond) (Node _ rightThen) (Node _ rightElse) ->
                     case compareHelp leftCond rightCond True of
                         ConfirmedEquality ->
                             case compareHelp leftThen rightThen True of
@@ -793,7 +793,7 @@ isNumberOperator operator =
             False
 
 
-compareAll2Help : Node Expression -> Node Expression -> Node Expression -> Node Expression -> Comparison
+compareAll2Help : Expression -> Expression -> Expression -> Expression -> Comparison
 compareAll2Help left0 right0 left1 right1 =
     case compareHelp left0 right0 True of
         ConfirmedInequality ->
@@ -822,12 +822,12 @@ compareLists leftList rightList soFar =
                 _ :: _ ->
                     ConfirmedInequality
 
-        left :: restOfLeft ->
+        (Node _ left) :: restOfLeft ->
             case rightList of
                 [] ->
                     ConfirmedInequality
 
-                right :: restOfRight ->
+                (Node _ right) :: restOfRight ->
                     case compareWithoutNormalization left right of
                         ConfirmedInequality ->
                             ConfirmedInequality
@@ -850,12 +850,12 @@ compareAllConfirmedEqualityElseUnconfirmedHelp leftList rightList =
                 _ :: _ ->
                     Unconfirmed
 
-        left :: restOfLeft ->
+        (Node _ left) :: restOfLeft ->
             case rightList of
                 [] ->
                     Unconfirmed
 
-                right :: restOfRight ->
+                (Node _ right) :: restOfRight ->
                     case compareHelp left right True of
                         ConfirmedEquality ->
                             compareAllConfirmedEqualityElseUnconfirmedHelp restOfLeft restOfRight
@@ -864,7 +864,7 @@ compareAllConfirmedEqualityElseUnconfirmedHelp leftList rightList =
                             Unconfirmed
 
 
-compareNumbers : Float -> Node Expression -> Comparison
+compareNumbers : Float -> Expression -> Comparison
 compareNumbers leftValue right =
     case getNumberValue right of
         Just rightValue ->
@@ -874,9 +874,9 @@ compareNumbers leftValue right =
             Unconfirmed
 
 
-getNumberValue : Node Expression -> Maybe Float
+getNumberValue : Expression -> Maybe Float
 getNumberValue node =
-    case Node.value node of
+    case node of
         Expression.Integer value ->
             Just (Basics.toFloat value)
 
@@ -886,13 +886,13 @@ getNumberValue node =
         Expression.Floatable float ->
             Just float
 
-        Expression.ParenthesizedExpression expr ->
-            getNumberValue expr
+        Expression.ParenthesizedExpression (Node _ inParens) ->
+            getNumberValue inParens
 
         Expression.LetExpression { expression } ->
-            getNumberValue expression
+            getNumberValue (Node.value expression)
 
-        Expression.OperatorApplication "+" _ left right ->
+        Expression.OperatorApplication "+" _ (Node _ left) (Node _ right) ->
             case getNumberValue left of
                 Nothing ->
                     Nothing
@@ -901,7 +901,7 @@ getNumberValue node =
                     Maybe.map (\rightNumber -> leftNumber + rightNumber)
                         (getNumberValue right)
 
-        Expression.OperatorApplication "-" _ left right ->
+        Expression.OperatorApplication "-" _ (Node _ left) (Node _ right) ->
             case getNumberValue left of
                 Nothing ->
                     Nothing
@@ -910,7 +910,7 @@ getNumberValue node =
                     Maybe.map (\rightNumber -> leftNumber - rightNumber)
                         (getNumberValue right)
 
-        Expression.OperatorApplication "*" _ left right ->
+        Expression.OperatorApplication "*" _ (Node _ left) (Node _ right) ->
             case getNumberValue left of
                 Nothing ->
                     Nothing
@@ -919,7 +919,7 @@ getNumberValue node =
                     Maybe.map (\rightNumber -> leftNumber * rightNumber)
                         (getNumberValue right)
 
-        Expression.OperatorApplication "/" _ left right ->
+        Expression.OperatorApplication "/" _ (Node _ left) (Node _ right) ->
             case getNumberValue left of
                 Nothing ->
                     Nothing
@@ -928,8 +928,8 @@ getNumberValue node =
                     Maybe.map (\rightNumber -> leftNumber / rightNumber)
                         (getNumberValue right)
 
-        Expression.Negation expr ->
-            getNumberValue expr
+        Expression.Negation (Node _ inNegation) ->
+            getNumberValue inNegation
                 |> Maybe.map negate
 
         _ ->
@@ -938,7 +938,7 @@ getNumberValue node =
 
 type RecordFieldComparison
     = MissingOtherValue
-    | HasBothValues (Node Expression) (Node Expression)
+    | HasBothValues Expression Expression
 
 
 compareRecords : List (Node Expression.RecordSetter) -> List (Node Expression.RecordSetter) -> Comparison -> Comparison
@@ -966,7 +966,7 @@ compareRecords leftList rightList acc =
         recordFieldComparisons =
             Dict.merge
                 (\key _ -> Dict.insert key MissingOtherValue)
-                (\key a b -> Dict.insert key (HasBothValues a b))
+                (\key (Node _ a) (Node _ b) -> Dict.insert key (HasBothValues a b))
                 (\key _ -> Dict.insert key MissingOtherValue)
                 leftFields
                 rightFields

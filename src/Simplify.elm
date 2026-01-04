@@ -13141,9 +13141,9 @@ knownMemberChecks collection checkInfo =
 
                     else
                         let
-                            needleArgNormalized : Node Expression
+                            needleArgNormalized : Expression
                             needleArgNormalized =
-                                Normalize.normalize checkInfo needleArg
+                                Normalize.normalizeExpression checkInfo needleArg
 
                             elementEqualitiesToNeedle : List Normalize.Comparison
                             elementEqualitiesToNeedle =
@@ -13151,7 +13151,7 @@ knownMemberChecks collection checkInfo =
                                     |> List.map
                                         (\element ->
                                             Normalize.compareWithoutNormalization
-                                                (Normalize.normalize checkInfo element)
+                                                (Normalize.normalizeExpression checkInfo element)
                                                 needleArgNormalized
                                         )
                         in
