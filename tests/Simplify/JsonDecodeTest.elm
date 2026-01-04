@@ -369,7 +369,7 @@ a = Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.fail x) decoder2
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Decode
-a = (Json.Decode.fail x)
+a = Json.Decode.fail x
 """
                         ]
         , test "should replace Json.Decode.map3 f (Json.Decode.succeed a) (Json.Decode.fail x) by always (Json.Decode.fail x)" <|
@@ -405,7 +405,7 @@ a = Json.Decode.map3 f (Json.Decode.fail x) decoder1 decoder2
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Decode
-a = (Json.Decode.fail x)
+a = Json.Decode.fail x
 """
                         ]
         , test "should replace Json.Decode.map3 f (Json.Decode.fail x) decoder1 by always (Json.Decode.fail x)" <|
@@ -441,7 +441,7 @@ a = Json.Decode.map3 f (Json.Decode.fail x)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Decode
-a = (\\_ _ -> (Json.Decode.fail x))
+a = (\\_ _ -> Json.Decode.fail x)
 """
                         ]
         , test "should replace Json.Decode.map3 f decoder0 (Json.Decode.fail x) decoder2 by Json.Decode.map2 f decoder0 (Json.Decode.fail x)" <|

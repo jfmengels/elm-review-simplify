@@ -1869,7 +1869,7 @@ a = String.left n (String.left n string)
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 16 } }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (String.left n string)
+a = String.left n string
 """
                         ]
         , test "should replace String.left n >> String.left n by String.left n" <|
@@ -1941,7 +1941,7 @@ a = String.right n (String.right n string)
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 17 } }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (String.right n string)
+a = String.right n string
 """
                         ]
         , test "should replace String.right n >> String.right n by String.right n" <|

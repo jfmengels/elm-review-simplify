@@ -1296,7 +1296,7 @@ a = List.head (List.map f list)
                             , under = "List.head"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Maybe.map f (List.head list))
+a = Maybe.map f (List.head list)
 """
                         ]
         , test "should replace List.head <| List.map f <| list by Maybe.map f <| List.head <| list" <|
@@ -1312,7 +1312,7 @@ a = List.head <| List.map f <| list
                             , under = "List.head"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Maybe.map f <| List.head <| list)
+a = Maybe.map f <| List.head <| list
 """
                         ]
         , test "should replace List.head <| List.map f <| g <| a by Maybe.map f <| List.head <| g <| a" <|
@@ -1328,7 +1328,7 @@ a = List.head <| List.map f <| g <| a
                             , under = "List.head"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Maybe.map f <| List.head <| g <| a)
+a = Maybe.map f <| List.head <| g <| a
 """
                         ]
         , test "should replace List.head <| List.map f <| g a by Maybe.map f <| List.head <| g a" <|
@@ -1344,7 +1344,7 @@ a = List.head <| List.map f <| g a
                             , under = "List.head"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Maybe.map f <| List.head <| g a)
+a = Maybe.map f <| List.head <| g a
 """
                         ]
         , test "should replace List.head <| List.map f <| (a |> g) by Maybe.map f <| List.head <| (a |> g)" <|
@@ -1360,7 +1360,7 @@ a = List.head <| List.map f <| (a |> g)
                             , under = "List.head"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Maybe.map f <| List.head <| (a |> g))
+a = Maybe.map f <| List.head <| (a |> g)
 """
                         ]
         , test "should replace List.head <| (a |> g |> List.map f) by ((List.head <| (a |> g)) |> Maybe.map f)" <|
@@ -1392,7 +1392,7 @@ a = list |> List.map f |> List.head
                             , under = "List.head"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (list |> List.head |> Maybe.map f)
+a = list |> List.head |> Maybe.map f
 """
                         ]
         , test "should replace a |> g |> List.map |> List.head by a |> g |> List.head |> Maybe.map f" <|
@@ -1408,7 +1408,7 @@ a = a |> g |> List.map f |> List.head
                             , under = "List.head"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (a |> g |> List.head |> Maybe.map f)
+a = a |> g |> List.head |> Maybe.map f
 """
                         ]
         , test "should replace g a |> List.map |> List.head by g a |> List.head |> Maybe.map f" <|
@@ -1424,7 +1424,7 @@ a = g a |> List.map f |> List.head
                             , under = "List.head"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (g a |> List.head |> Maybe.map f)
+a = g a |> List.head |> Maybe.map f
 """
                         ]
         , test "should replace (g <| a) |> List.map |> List.head by (g <| a) |> List.head |> Maybe.map f" <|
@@ -1440,7 +1440,7 @@ a = (g <| a) |> List.map f |> List.head
                             , under = "List.head"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = ((g <| a) |> List.head |> Maybe.map f)
+a = (g <| a) |> List.head |> Maybe.map f
 """
                         ]
         , test "should replace (List.map f <| g <| a) |> Maybe.map f <| ((g <| a) |> List.head)" <|
@@ -2730,7 +2730,7 @@ a = List.filter f (List.filter f list)
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 16 } }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (List.filter f list)
+a = List.filter f list
 """
                         ]
         , test "should replace List.filter f >> List.filter f by List.filter f" <|
@@ -8106,7 +8106,7 @@ a = List.sort (List.sort list)
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 14 } }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (List.sort list)
+a = List.sort list
 """
                         ]
         , test "should replace List.sort << List.sort by List.sort" <|
@@ -8139,7 +8139,7 @@ a = List.sort (List.repeat n b)
                             , under = "List.sort"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (List.repeat n b)
+a = List.repeat n b
 """
                         ]
         , test "should replace List.sort << List.repeat n by List.repeat n" <|
@@ -8187,7 +8187,7 @@ a = List.sort (Set.toList set)
                             , under = "List.sort"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Set.toList set)
+a = Set.toList set
 """
                         ]
         , test "should replace List.sort << Set.toList by Set.toList" <|
@@ -8235,7 +8235,7 @@ a = List.sort (Dict.toList dict)
                             , under = "List.sort"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (Dict.toList dict)
+a = Dict.toList dict
 """
                         ]
         , test "should replace List.sort << Dict.toList by Dict.toList" <|
@@ -8712,7 +8712,7 @@ a = List.sortBy f (List.sortBy f list)
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 16 } }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (List.sortBy f list)
+a = List.sortBy f list
 """
                         ]
         , test "should replace List.sortBy f << List.sortBy f by List.sortBy f" <|
@@ -8745,7 +8745,7 @@ a = List.sortBy f (List.repeat n b)
                             , under = "List.sortBy"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (List.repeat n b)
+a = List.repeat n b
 """
                         ]
         , test "should replace List.sortBy f << List.repeat n by List.repeat n" <|
@@ -9122,7 +9122,7 @@ a = List.sortWith f (List.repeat n b)
                             , under = "List.sortWith"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (List.repeat n b)
+a = List.repeat n b
 """
                         ]
         , test "should replace List.sortWith f << List.repeat n by List.repeat n" <|
@@ -9306,7 +9306,7 @@ a = List.reverse (List.repeat n b)
                             , under = "List.reverse"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (List.repeat n b)
+a = List.repeat n b
 """
                         ]
         , test "should replace List.reverse << List.repeat n by List.repeat n" <|
@@ -9490,7 +9490,7 @@ a = List.take n (List.take n list)
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 14 } }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (List.take n list)
+a = List.take n list
 """
                         ]
         , test "should replace List.take n >> List.take n by List.take n" <|
@@ -9556,7 +9556,7 @@ a = List.take n (List.map f list)
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (List.map f (List.take n list))
+a = List.map f (List.take n list)
 """
                         ]
         , test "should replace List.take n (list |> List.map f) by List.take n list |> List.map f" <|
@@ -9636,7 +9636,7 @@ a = List.take n (List.indexedMap f list)
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (List.indexedMap f (List.take n list))
+a = List.indexedMap f (List.take n list)
 """
                         ]
         , test "should replace List.take n << List.indexedMap f by List.indexedMap f << List.take n" <|
@@ -9827,7 +9827,7 @@ a = List.drop n (List.map f list)
                             , under = "List.drop"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (List.map f (List.drop n list))
+a = List.map f (List.drop n list)
 """
                         ]
         , test "should replace List.drop n << List.map f by List.map f << List.drop n" <|

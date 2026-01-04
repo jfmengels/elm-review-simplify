@@ -284,7 +284,45 @@ a = Set.filter f (Set.filter f set)
                             |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 15 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = (Set.filter f set)
+a = Set.filter f set
+"""
+                        ]
+        , test "should replace Set.filter f (Set.filter f <| set) by Set.filter f <| set" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.filter f (Set.filter f <| set)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.filter after equivalent Set.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 15 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = (Set.filter f <| set)
+"""
+                        ]
+        , test "should replace Set.filter f (set |> Set.filter f) by set |> Set.filter f" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.filter f (set |> Set.filter f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.filter after equivalent Set.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "Set.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 15 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = (set |> Set.filter f)
 """
                         ]
         , test "should replace Set.filter f >> Set.filter f by Set.filter f" <|
@@ -1672,7 +1710,7 @@ a = Set.remove k (Set.remove k set)
                             |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 15 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = (Set.remove k set)
+a = Set.remove k set
 """
                         ]
         , test "should replace Set.remove k >> Set.remove k by Set.remove k" <|
@@ -2727,7 +2765,7 @@ a = Set.insert k (Set.insert k set)
                             |> Review.Test.atExactly { start = { row = 3, column = 5 }, end = { row = 3, column = 15 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
-a = (Set.insert k set)
+a = Set.insert k set
 """
                         ]
         , test "should replace Set.insert k >> Set.insert k by Set.insert k" <|
