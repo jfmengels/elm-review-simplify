@@ -801,6 +801,52 @@ a = { x | a = 1 } == { x | a = 2 }
 a = False
 """
                         ]
+        , test "should simplify equality of record update and record with different field values" <|
+            \() ->
+                """module A exposing (..)
+a = { x | a = 1 } == { a = 2 }
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
+                            , under = "{ x | a = 1 } == { a = 2 }"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should not simplify equality of record update and record with same field values" <|
+            \() ->
+                """module A exposing (..)
+a = { x | a = 1 } == { a = 1 }
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should simplify equality of record and record update different field values" <|
+            \() ->
+                """module A exposing (..)
+a = { a = 1 } == { x | a = 2 }
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
+                            , under = "{ a = 1 } == { x | a = 2 }"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should not simplify equality of record and record update with same field values" <|
+            \() ->
+                """module A exposing (..)
+a = { a = 1 } == { x | a = 1 }
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should simplify equality of record updates with same base values and field values" <|
             \() ->
                 """module A exposing (..)
