@@ -836,14 +836,54 @@ compareHelp left right =
                         _ ->
                             Unconfirmed
 
-                Expression.CaseExpression _ ->
-                    fallback ()
+                Expression.CaseExpression leftCaseOf ->
+                    case right of
+                        Expression.CaseExpression rightCaseOf ->
+                            case compareCases leftCaseOf.cases rightCaseOf.cases of
+                                ConfirmedInequality ->
+                                    ConfirmedInequality
 
-                Expression.LambdaExpression _ ->
-                    fallback ()
+                                ConfirmedEquality ->
+                                    case compareHelp (Node.value leftCaseOf.expression) (Node.value rightCaseOf.expression) of
+                                        ConfirmedEquality ->
+                                            ConfirmedEquality
 
-                Expression.LetExpression _ ->
-                    fallback ()
+                                        _ ->
+                                            Unconfirmed
+
+                                Unconfirmed ->
+                                    Unconfirmed
+
+                        _ ->
+                            Unconfirmed
+
+                Expression.LambdaExpression leftLambda ->
+                    case right of
+                        Expression.LambdaExpression rightLambda ->
+                            if leftLambda.args == rightLambda.args then
+                                compareHelp
+                                    (Node.value leftLambda.expression)
+                                    (Node.value rightLambda.expression)
+
+                            else
+                                Unconfirmed
+
+                        _ ->
+                            Unconfirmed
+
+                Expression.LetExpression leftLetIn ->
+                    case right of
+                        Expression.LetExpression rightLetIn ->
+                            if leftLetIn.declarations == rightLetIn.declarations then
+                                compareHelp
+                                    (Node.value leftLetIn.expression)
+                                    (Node.value rightLetIn.expression)
+
+                            else
+                                Unconfirmed
+
+                        _ ->
+                            Unconfirmed
 
                 -- not normalized
                 Expression.Integer leftInt ->
@@ -996,6 +1036,80 @@ compareRecordFields recordFieldComparisons acc =
 
                 Unconfirmed ->
                     compareRecordFields rest Unconfirmed
+
+
+compareCases : List Expression.Case -> List Expression.Case -> Comparison
+compareCases leftCases rightCases =
+    -- possible improvement: sort by case pattern
+    case leftCases of
+        [] ->
+            case rightCases of
+                [] ->
+                    ConfirmedEquality
+
+                _ :: _ ->
+                    Unconfirmed
+
+        leftCase0 :: leftCase1Up ->
+            case rightCases of
+                [] ->
+                    Unconfirmed
+
+                rightCase0 :: rightCase1Up ->
+                    case compareCase leftCase0 rightCase0 of
+                        Unconfirmed ->
+                            Unconfirmed
+
+                        ConfirmedEquality ->
+                            compareCasesWithConfirmedSoFar True leftCase1Up rightCase1Up
+
+                        ConfirmedInequality ->
+                            compareCasesWithConfirmedSoFar False leftCase1Up rightCase1Up
+
+
+compareCase : Expression.Case -> Expression.Case -> Comparison
+compareCase ( leftPattern, Node _ leftResult ) ( rightPattern, Node _ rightResult ) =
+    if leftPattern == rightPattern then
+        compareHelp leftResult rightResult
+
+    else
+        Unconfirmed
+
+
+compareCasesWithConfirmedSoFar : Bool -> List Expression.Case -> List Expression.Case -> Comparison
+compareCasesWithConfirmedSoFar confirmedEqualElseConfirmedUnequal leftCases rightCases =
+    case leftCases of
+        [] ->
+            case rightCases of
+                [] ->
+                    fromEquality confirmedEqualElseConfirmedUnequal
+
+                _ :: _ ->
+                    Unconfirmed
+
+        leftCase0 :: leftCase1Up ->
+            case rightCases of
+                [] ->
+                    Unconfirmed
+
+                rightCase0 :: rightCase1Up ->
+                    case compareCase leftCase0 rightCase0 of
+                        Unconfirmed ->
+                            Unconfirmed
+
+                        ConfirmedEquality ->
+                            if confirmedEqualElseConfirmedUnequal then
+                                compareCasesWithConfirmedSoFar True leftCase1Up rightCase1Up
+
+                            else
+                                Unconfirmed
+
+                        ConfirmedInequality ->
+                            if confirmedEqualElseConfirmedUnequal then
+                                Unconfirmed
+
+                            else
+                                compareCasesWithConfirmedSoFar False leftCase1Up rightCase1Up
 
 
 fromEquality : Bool -> Comparison
