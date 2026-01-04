@@ -41,7 +41,7 @@ a = Json.Decode.map f (Json.Decode.fail z)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Decode
-a = (Json.Decode.fail z)
+a = Json.Decode.fail z
 """
                         ]
         , test "should replace Json.Decode.map f <| Json.Decode.fail z by Json.Decode.fail z" <|
@@ -529,7 +529,7 @@ a = Json.Decode.andThen f (Json.Decode.fail x)
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Json.Decode
-a = (Json.Decode.fail x)
+a = Json.Decode.fail x
 """
                         ]
         , test "should replace Json.Decode.andThen f << Json.Decode.fail by Json.Decode.fail" <|
