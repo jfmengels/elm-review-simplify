@@ -7934,7 +7934,7 @@ listMaximumChecks =
 
 
 getNonEmptyListRangeCall :
-    Infer.Resources a
+    Normalize.Resources a
     -> Node Expression
     -> Maybe { start : Node Expression, end : Node Expression }
 getNonEmptyListRangeCall checkInfo expressionNode =
@@ -11210,7 +11210,7 @@ listGetElements resources expressionNode =
             )
 
 
-listDetermineLength : Infer.Resources a -> Node Expression -> Maybe CollectionSize
+listDetermineLength : Normalize.Resources a -> Node Expression -> Maybe CollectionSize
 listDetermineLength resources expressionNode =
     expressionNode
         |> AstHelpers.getListLiteral
@@ -11308,7 +11308,7 @@ singleCharConstruct =
     fnCallConstructWithOneValueProperties (A "single-char string") Fn.String.fromChar
 
 
-stringDetermineLength : Infer.Resources res -> Node Expression -> Maybe CollectionSize
+stringDetermineLength : Normalize.Resources res -> Node Expression -> Maybe CollectionSize
 stringDetermineLength resources expressionNode =
     (case AstHelpers.removeParens expressionNode of
         Node _ (Expression.Literal string) ->
@@ -11404,7 +11404,7 @@ arrayGetElements resources expressionNode =
                 Nothing
 
 
-arrayDetermineLength : Infer.Resources a -> Node Expression -> Maybe CollectionSize
+arrayDetermineLength : Normalize.Resources a -> Node Expression -> Maybe CollectionSize
 arrayDetermineLength resources expressionNode =
     (if AstHelpers.isSpecificValueReference resources.lookupTable Fn.Array.empty expressionNode then
         Just (Exactly 0)
