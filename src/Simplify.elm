@@ -7140,12 +7140,12 @@ listHeadChecks =
     later a << earlier b
     --> asLater b >> later a
 
-so for example with `{ asLaterFn = Fn.List.take }`:
+so for example with `{ earlierFn = Fn.List.take, asLaterFn = Fn.List.take }`:
 
     List.take x (List.map f list)
-    --> Maybe.map f (List.head list)
+    --> List.map f (List.take n list)
 
-or with `{ asLaterFn = Fn.Maybe.map }`:
+or with `{ earlierFn = Fn.List.take, asLaterFn = Fn.Maybe.map }`:
 
     List.head (List.map f list)
     --> Maybe.map f (List.head list)
