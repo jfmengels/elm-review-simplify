@@ -630,15 +630,6 @@ compareHelp left right =
             ConfirmedEquality
 
         _ ->
-            let
-                fallback : () -> Comparison
-                fallback () =
-                    if left == right then
-                        ConfirmedEquality
-
-                    else
-                        Unconfirmed
-            in
             case left of
                 Expression.UnitExpr ->
                     ConfirmedEquality
@@ -756,8 +747,11 @@ compareHelp left right =
                         Expression.RecordExpr rightFields ->
                             compareRecords leftFields rightFields ConfirmedEquality
 
+                        Expression.RecordUpdateExpression _ rightFields ->
+                            compareRecords leftFields rightFields Unconfirmed
+
                         _ ->
-                            fallback ()
+                            Unconfirmed
 
                 Expression.RecordUpdateExpression (Node _ leftBaseRecordVariableName) leftFields ->
                     case right of
@@ -771,8 +765,11 @@ compareHelp left right =
                                     Unconfirmed
                                 )
 
+                        Expression.RecordExpr rightFields ->
+                            compareRecords leftFields rightFields Unconfirmed
+
                         _ ->
-                            fallback ()
+                            Unconfirmed
 
                 Expression.Application ((Node _ leftCalled) :: (Node _ leftArg0) :: leftArg1Up) ->
                     case right of
