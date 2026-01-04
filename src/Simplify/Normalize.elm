@@ -615,20 +615,20 @@ compareWithoutNormalization leftNode right =
 
 
 compareHelp : Expression -> Expression -> Bool -> Comparison
-compareHelp leftNode right canFlip =
+compareHelp left right canFlip =
     let
         fallback : () -> Comparison
         fallback () =
             if canFlip then
-                compareHelp right leftNode False
+                compareHelp right left False
 
-            else if leftNode == right then
+            else if left == right then
                 ConfirmedEquality
 
             else
                 Unconfirmed
     in
-    case leftNode of
+    case left of
         Expression.Floatable leftNumber ->
             case right of
                 Expression.Floatable rightNumber ->
@@ -657,18 +657,18 @@ compareHelp leftNode right canFlip =
                 _ ->
                     fallback ()
 
-        Expression.Literal left ->
+        Expression.Literal leftString ->
             case right of
-                Expression.Literal rightValue ->
-                    fromEquality (left == rightValue)
+                Expression.Literal rightString ->
+                    fromEquality (leftString == rightString)
 
                 _ ->
                     fallback ()
 
-        Expression.CharLiteral left ->
+        Expression.CharLiteral leftChar ->
             case right of
-                Expression.CharLiteral rightValue ->
-                    fromEquality (left == rightValue)
+                Expression.CharLiteral rightChar ->
+                    fromEquality (leftChar == rightChar)
 
                 _ ->
                     fallback ()
@@ -701,20 +701,20 @@ compareHelp leftNode right canFlip =
                 _ ->
                     fallback ()
 
-        Expression.RecordExpr leftList ->
+        Expression.RecordExpr leftFields ->
             case right of
-                Expression.RecordExpr rightList ->
-                    compareRecords leftList rightList ConfirmedEquality
+                Expression.RecordExpr rightFields ->
+                    compareRecords leftFields rightFields ConfirmedEquality
 
                 _ ->
                     fallback ()
 
-        Expression.RecordUpdateExpression leftBaseValue leftList ->
+        Expression.RecordUpdateExpression (Node _ leftBaseRecordVariableName) leftFields ->
             case right of
-                Expression.RecordUpdateExpression rightBaseValue rightList ->
-                    compareRecords leftList
-                        rightList
-                        (if Node.value leftBaseValue == Node.value rightBaseValue then
+                Expression.RecordUpdateExpression (Node _ rightBaseRecordVariableName) rightFields ->
+                    compareRecords leftFields
+                        rightFields
+                        (if leftBaseRecordVariableName == rightBaseRecordVariableName then
                             ConfirmedEquality
 
                          else
