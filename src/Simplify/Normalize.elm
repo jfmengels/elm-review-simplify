@@ -1,6 +1,6 @@
 module Simplify.Normalize exposing
     ( Resources, normalizeExpression, normalizeButKeepRange
-    , Comparison(..), areAllTheSameAs, areTheSame, compare, compareWithoutNormalization
+    , Comparison(..), areAllTheSameAs, areTheSame, compare, compareExistingNormals
     , getBool, getInt, getNumber, isSpecificUnappliedBinaryOperation
     )
 
@@ -12,7 +12,7 @@ including simple evaluation using [`Simplify.Infer`](Simplify-Infer)
 
 ## equality
 
-@docs Comparison, areAllTheSameAs, areTheSame, compare, compareWithoutNormalization
+@docs Comparison, areAllTheSameAs, areTheSame, compare, compareExistingNormals
 
 
 ## parse
@@ -613,18 +613,13 @@ type Comparison
 
 compare : Resources a -> Node Expression -> Node Expression -> Comparison
 compare resources leftNode right =
-    compareHelp
+    compareExistingNormals
         (normalizeExpression resources leftNode)
         (normalizeExpression resources right)
 
 
-compareWithoutNormalization : Expression -> Expression -> Comparison
-compareWithoutNormalization leftNode right =
-    compareHelp leftNode right
-
-
-compareHelp : Expression -> Expression -> Comparison
-compareHelp left right =
+compareExistingNormals : Expression -> Expression -> Comparison
+compareExistingNormals left right =
     case right of
         Expression.UnitExpr ->
             ConfirmedEquality
@@ -661,7 +656,7 @@ compareHelp left right =
                 Expression.Negation (Node _ leftInNegation) ->
                     case right of
                         Expression.Negation (Node _ rightInNegation) ->
-                            compareHelp leftInNegation rightInNegation
+                            compareExistingNormals leftInNegation rightInNegation
 
                         _ ->
                             Unconfirmed
@@ -788,7 +783,7 @@ compareHelp left right =
                     case right of
                         Expression.RecordAccess (Node _ rightRecord) (Node _ rightFieldName) ->
                             if leftFieldName == rightFieldName then
-                                compareHelp leftRecord rightRecord
+                                compareExistingNormals leftRecord rightRecord
 
                             else
                                 Unconfirmed
@@ -799,11 +794,11 @@ compareHelp left right =
                 Expression.IfBlock (Node _ leftCond) (Node _ leftThen) (Node _ leftElse) ->
                     case right of
                         Expression.IfBlock (Node _ rightCond) (Node _ rightThen) (Node _ rightElse) ->
-                            case compareHelp leftCond rightCond of
+                            case compareExistingNormals leftCond rightCond of
                                 ConfirmedEquality ->
-                                    case compareHelp leftThen rightThen of
+                                    case compareExistingNormals leftThen rightThen of
                                         ConfirmedInequality ->
-                                            case compareHelp leftElse rightElse of
+                                            case compareExistingNormals leftElse rightElse of
                                                 ConfirmedInequality ->
                                                     ConfirmedInequality
 
@@ -811,7 +806,7 @@ compareHelp left right =
                                                     Unconfirmed
 
                                         ConfirmedEquality ->
-                                            case compareHelp leftElse rightElse of
+                                            case compareExistingNormals leftElse rightElse of
                                                 ConfirmedEquality ->
                                                     ConfirmedEquality
 
@@ -841,7 +836,7 @@ compareHelp left right =
                                     ConfirmedInequality
 
                                 ConfirmedEquality ->
-                                    case compareHelp (Node.value leftCaseOf.expression) (Node.value rightCaseOf.expression) of
+                                    case compareExistingNormals (Node.value leftCaseOf.expression) (Node.value rightCaseOf.expression) of
                                         ConfirmedEquality ->
                                             ConfirmedEquality
 
@@ -858,7 +853,7 @@ compareHelp left right =
                     case right of
                         Expression.LambdaExpression rightLambda ->
                             if leftLambda.args == rightLambda.args then
-                                compareHelp
+                                compareExistingNormals
                                     (Node.value leftLambda.expression)
                                     (Node.value rightLambda.expression)
 
@@ -872,7 +867,7 @@ compareHelp left right =
                     case right of
                         Expression.LetExpression rightLetIn ->
                             if leftLetIn.declarations == rightLetIn.declarations then
-                                compareHelp
+                                compareExistingNormals
                                     (Node.value leftLetIn.expression)
                                     (Node.value rightLetIn.expression)
 
@@ -884,20 +879,20 @@ compareHelp left right =
 
                 -- not normalized
                 Expression.Integer leftInt ->
-                    compareHelp (Expression.Floatable (Basics.toFloat leftInt)) right
+                    compareExistingNormals (Expression.Floatable (Basics.toFloat leftInt)) right
 
                 Expression.Hex leftInt ->
-                    compareHelp (Expression.Floatable (Basics.toFloat leftInt)) right
+                    compareExistingNormals (Expression.Floatable (Basics.toFloat leftInt)) right
 
                 Expression.ParenthesizedExpression (Node _ leftInParens) ->
-                    compareHelp leftInParens right
+                    compareExistingNormals leftInParens right
 
                 -- invalid syntax
                 Expression.Application [] ->
                     Unconfirmed
 
                 Expression.Application [ Node _ leftInApplication ] ->
-                    compareHelp leftInApplication right
+                    compareExistingNormals leftInApplication right
 
                 Expression.Operator _ ->
                     Unconfirmed
@@ -905,15 +900,15 @@ compareHelp left right =
 
 compareAll2Help : Expression -> Expression -> Expression -> Expression -> Comparison
 compareAll2Help left0 right0 left1 right1 =
-    case compareHelp left0 right0 of
+    case compareExistingNormals left0 right0 of
         ConfirmedInequality ->
             ConfirmedInequality
 
         ConfirmedEquality ->
-            compareHelp left1 right1
+            compareExistingNormals left1 right1
 
         Unconfirmed ->
-            case compareHelp left1 right1 of
+            case compareExistingNormals left1 right1 of
                 ConfirmedInequality ->
                     ConfirmedInequality
 
@@ -938,7 +933,7 @@ compareLists leftList rightList soFar =
                     ConfirmedInequality
 
                 (Node _ right) :: restOfRight ->
-                    case compareWithoutNormalization left right of
+                    case compareExistingNormals left right of
                         ConfirmedInequality ->
                             ConfirmedInequality
 
@@ -966,7 +961,7 @@ compareAllConfirmedEqualityElseUnconfirmedHelp leftList rightList =
                     Unconfirmed
 
                 (Node _ right) :: restOfRight ->
-                    case compareHelp left right of
+                    case compareExistingNormals left right of
                         ConfirmedEquality ->
                             compareAllConfirmedEqualityElseUnconfirmedHelp restOfLeft restOfRight
 
@@ -1024,7 +1019,7 @@ compareRecordFields recordFieldComparisons acc =
             compareRecordFields rest Unconfirmed
 
         (HasBothValues a b) :: rest ->
-            case compareHelp a b of
+            case compareExistingNormals a b of
                 ConfirmedInequality ->
                     ConfirmedInequality
 
@@ -1067,7 +1062,7 @@ compareCases leftCases rightCases =
 compareCase : Expression.Case -> Expression.Case -> Comparison
 compareCase ( leftPattern, Node _ leftResult ) ( rightPattern, Node _ rightResult ) =
     if leftPattern == rightPattern then
-        compareHelp leftResult rightResult
+        compareExistingNormals leftResult rightResult
 
     else
         Unconfirmed

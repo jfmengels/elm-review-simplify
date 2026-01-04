@@ -13150,7 +13150,7 @@ knownMemberChecks collection checkInfo =
                                 collectionElements.known
                                     |> List.map
                                         (\element ->
-                                            Normalize.compareWithoutNormalization
+                                            Normalize.compareExistingNormals
                                                 (Normalize.normalizeExpression checkInfo element)
                                                 needleArgNormalized
                                         )
