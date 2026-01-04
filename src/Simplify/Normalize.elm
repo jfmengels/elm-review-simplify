@@ -337,6 +337,16 @@ createOperation resources operator left right =
             "/" ->
                 createNumberOperation (/) operator left right
 
+            "//" ->
+                createNumberOperation
+                    (\l r ->
+                        -- not truncate because that would drop bits above 32
+                        Basics.toFloat (Basics.round l // Basics.round r)
+                    )
+                    operator
+                    left
+                    right
+
             _ ->
                 createFallbackOperation operator left right
 
