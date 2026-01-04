@@ -38,7 +38,7 @@ type alias Resources a =
 
 areTheSame : Resources a -> Node Expression -> Node Expression -> Bool
 areTheSame resources a b =
-    normalize resources a == normalize resources b
+    normalizeExpressionNode resources a == normalizeExpressionNode resources b
 
 
 areAllTheSameAs : Resources res -> Node Expression -> (a -> Node Expression) -> List a -> Bool
@@ -46,18 +46,18 @@ areAllTheSameAs resources first restElementToExpressionNode rest =
     let
         normalizedFirst : Node Expression
         normalizedFirst =
-            normalize resources first
+            normalizeExpressionNode resources first
     in
     List.all
         (\node ->
-            normalize resources (restElementToExpressionNode node)
+            normalizeExpressionNode resources (restElementToExpressionNode node)
                 == normalizedFirst
         )
         rest
 
 
-normalize : Resources a -> Node Expression -> Node Expression
-normalize resources node =
+normalizeExpressionNode : Resources a -> Node Expression -> Node Expression
+normalizeExpressionNode resources node =
     Node.empty (normalizeExpression resources node)
 
 
@@ -73,7 +73,7 @@ normalizeExpression resources (Node expressionRange expression) =
                     let
                         normalizedArg1 : Node Expression
                         normalizedArg1 =
-                            normalize resources firstArg
+                            normalizeExpressionNode resources firstArg
                     in
                     case normalizeExpression resources fn of
                         Expression.RecordAccessFunction fieldAccess ->
@@ -89,15 +89,15 @@ normalizeExpression resources (Node expressionRange expression) =
                                 secondArg :: argsAfterSecond ->
                                     Expression.Application
                                         (toNode recordAccess
-                                            :: normalize resources secondArg
-                                            :: List.map (\arg -> normalize resources arg) argsAfterSecond
+                                            :: normalizeExpressionNode resources secondArg
+                                            :: List.map (\arg -> normalizeExpressionNode resources arg) argsAfterSecond
                                         )
 
                         normalizedFn ->
                             Expression.Application
                                 (toNode normalizedFn
                                     :: normalizedArg1
-                                    :: List.map (\arg -> normalize resources arg) afterFirstArg
+                                    :: List.map (\arg -> normalizeExpressionNode resources arg) afterFirstArg
                                 )
 
                 _ ->
@@ -105,26 +105,26 @@ normalizeExpression resources (Node expressionRange expression) =
 
         Expression.OperatorApplication "<|" _ function extraArgument ->
             addToFunctionCall resources
-                (normalize resources function)
-                (normalize resources extraArgument)
+                (normalizeExpressionNode resources function)
+                (normalizeExpressionNode resources extraArgument)
 
         Expression.OperatorApplication "|>" _ extraArgument function ->
             addToFunctionCall resources
-                (normalize resources function)
-                (normalize resources extraArgument)
+                (normalizeExpressionNode resources function)
+                (normalizeExpressionNode resources extraArgument)
 
         Expression.OperatorApplication "<<" _ left right ->
-            Expression.OperatorApplication ">>" normalizedInfixDirection (normalize resources right) (normalize resources left)
+            Expression.OperatorApplication ">>" normalizedInfixDirection (normalizeExpressionNode resources right) (normalizeExpressionNode resources left)
 
         Expression.OperatorApplication "::" _ head tail ->
             let
                 normalizedHead : Node Expression
                 normalizedHead =
-                    normalize resources head
+                    normalizeExpressionNode resources head
 
                 normalizedTail : Node Expression
                 normalizedTail =
-                    normalize resources tail
+                    normalizeExpressionNode resources tail
             in
             case Node.value normalizedTail of
                 Expression.ListExpr tailElements ->
@@ -134,13 +134,13 @@ normalizeExpression resources (Node expressionRange expression) =
                     Expression.OperatorApplication "::" normalizedInfixDirection normalizedHead normalizedTail
 
         Expression.OperatorApplication ">" _ left right ->
-            Expression.OperatorApplication "<" normalizedInfixDirection (normalize resources right) (normalize resources left)
+            Expression.OperatorApplication "<" normalizedInfixDirection (normalizeExpressionNode resources right) (normalizeExpressionNode resources left)
 
         Expression.OperatorApplication ">=" _ left right ->
-            Expression.OperatorApplication "<=" normalizedInfixDirection (normalize resources right) (normalize resources left)
+            Expression.OperatorApplication "<=" normalizedInfixDirection (normalizeExpressionNode resources right) (normalizeExpressionNode resources left)
 
         Expression.OperatorApplication operator _ left right ->
-            createOperation resources operator (normalize resources left) (normalize resources right)
+            createOperation resources operator (normalizeExpressionNode resources left) (normalizeExpressionNode resources right)
 
         Expression.FunctionOrValue rawModuleName string ->
             Expression.FunctionOrValue
@@ -162,9 +162,9 @@ normalizeExpression resources (Node expressionRange expression) =
                             Expression.IfBlock condArg thenArg elseArg
             in
             reverseIfConditionIsNegated
-                (normalize resources cond)
-                (normalize resources then_)
-                (normalize resources else_)
+                (normalizeExpressionNode resources cond)
+                (normalizeExpressionNode resources then_)
+                (normalizeExpressionNode resources else_)
 
         Expression.Negation expr ->
             let
@@ -186,7 +186,7 @@ normalizeExpression resources (Node expressionRange expression) =
                     Expression.Negation (toNode normalized)
 
         Expression.TupledExpression nodes ->
-            Expression.TupledExpression (List.map (\part -> normalize resources part) nodes)
+            Expression.TupledExpression (List.map (\part -> normalizeExpressionNode resources part) nodes)
 
         Expression.LetExpression letBlock ->
             Expression.LetExpression
@@ -208,22 +208,22 @@ normalizeExpression resources (Node expressionRange expression) =
                                                 toNode
                                                     { name = toNode (Node.value declaration.name)
                                                     , arguments = List.map (\param -> normalizePatternNode resources.lookupTable param) declaration.arguments
-                                                    , expression = normalize resources declaration.expression
+                                                    , expression = normalizeExpressionNode resources declaration.expression
                                                     }
                                             }
                                         )
 
                                 Expression.LetDestructuring pattern expr ->
-                                    toNode (Expression.LetDestructuring (normalizePatternNode resources.lookupTable pattern) (normalize resources expr))
+                                    toNode (Expression.LetDestructuring (normalizePatternNode resources.lookupTable pattern) (normalizeExpressionNode resources expr))
                         )
                         letBlock.declarations
-                , expression = normalize resources letBlock.expression
+                , expression = normalizeExpressionNode resources letBlock.expression
                 }
 
         Expression.CaseExpression caseBlock ->
             Expression.CaseExpression
-                { cases = List.map (\( pattern, expr ) -> ( normalizePatternNode resources.lookupTable pattern, normalize resources expr )) caseBlock.cases
-                , expression = normalize resources caseBlock.expression
+                { cases = List.map (\( pattern, expr ) -> ( normalizePatternNode resources.lookupTable pattern, normalizeExpressionNode resources expr )) caseBlock.cases
+                , expression = normalizeExpressionNode resources caseBlock.expression
                 }
 
         Expression.LambdaExpression lambda ->
@@ -246,22 +246,22 @@ normalizeExpression resources (Node expressionRange expression) =
                 )
 
         Expression.ListExpr elements ->
-            Expression.ListExpr (List.map (\element -> normalize resources element) elements)
+            Expression.ListExpr (List.map (\element -> normalizeExpressionNode resources element) elements)
 
         Expression.RecordAccess expr (Node _ field) ->
             infer resources
-                (Expression.RecordAccess (normalize resources expr) (toNode field))
+                (Expression.RecordAccess (normalizeExpressionNode resources expr) (toNode field))
 
         Expression.RecordExpr fields ->
             fields
                 |> List.sortBy (\(Node _ ( Node _ fieldName, _ )) -> fieldName)
-                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalize resources expr ))
+                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalizeExpressionNode resources expr ))
                 |> Expression.RecordExpr
 
         Expression.RecordUpdateExpression (Node _ value) nodes ->
             nodes
                 |> List.sortBy (\(Node _ ( Node _ fieldName, _ )) -> fieldName)
-                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalize resources expr ))
+                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalizeExpressionNode resources expr ))
                 |> Expression.RecordUpdateExpression (toNode value)
 
         Expression.Hex int ->
