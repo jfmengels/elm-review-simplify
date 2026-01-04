@@ -1,7 +1,7 @@
 module Simplify.Normalize exposing
     ( Resources, normalize, normalizeButKeepRange
     , Comparison(..), areAllTheSameAs, areTheSame, compare, compareWithoutNormalization
-    , isSpecificUnappliedBinaryOperation
+    , getBool, getInt, getNumber, isSpecificUnappliedBinaryOperation
     )
 
 {-| Bring expressions to a normal form,
@@ -17,7 +17,7 @@ including simple evaluation using [`Simplify.Infer`](Simplify-Infer)
 
 ## parse
 
-@docs isSpecificUnappliedBinaryOperation
+@docs getBool, getInt, getNumber, isSpecificUnappliedBinaryOperation
 
 -}
 
@@ -396,14 +396,6 @@ addToFunctionCall resources functionCall extraArgument =
         _ ->
             Expression.Application [ functionCall, extraArgument ]
                 |> toNode
-
-
-{-| Whether a given expression can be called with 2 operands and produces the same result as an operation with a given operator.
-Is either a function reducible to the operator in prefix notation `(op)` or a lambda `\a b -> a op b`.
--}
-isSpecificUnappliedBinaryOperation : String -> Resources a -> Node Expression -> Bool
-isSpecificUnappliedBinaryOperation operator resources expressionNode =
-    Node.value (normalize resources expressionNode) == Expression.PrefixOperator operator
 
 
 reduceLambda : Resources a -> Expression.Lambda -> Expression
@@ -1034,3 +1026,57 @@ removeParens node =
 
         _ ->
             node
+
+
+getBool : Resources a -> Node Expression -> Maybe Bool
+getBool resources baseNode =
+    case Node.value (normalize resources baseNode) of
+        Expression.FunctionOrValue [ "Basics" ] "True" ->
+            justTrue
+
+        Expression.FunctionOrValue [ "Basics" ] "False" ->
+            justFalse
+
+        _ ->
+            Nothing
+
+
+justTrue : Maybe Bool
+justTrue =
+    Just True
+
+
+justFalse : Maybe Bool
+justFalse =
+    Just False
+
+
+getInt : Resources a -> Node Expression -> Maybe Int
+getInt resources expressionNode =
+    case Node.value (normalize resources expressionNode) of
+        Expression.Integer int ->
+            Just int
+
+        _ ->
+            Nothing
+
+
+getNumber : Resources a -> Node Expression -> Maybe Float
+getNumber resources expressionNode =
+    case Node.value (normalize resources expressionNode) of
+        Expression.Integer int ->
+            Just (Basics.toFloat int)
+
+        Expression.Floatable float ->
+            Just float
+
+        _ ->
+            Nothing
+
+
+{-| Whether a given expression can be called with 2 operands and produces the same result as an operation with a given operator.
+Is either a function reducible to the operator in prefix notation `(op)` or a lambda `\a b -> a op b`.
+-}
+isSpecificUnappliedBinaryOperation : String -> Resources a -> Node Expression -> Bool
+isSpecificUnappliedBinaryOperation operator resources expressionNode =
+    Node.value (normalize resources expressionNode) == Expression.PrefixOperator operator

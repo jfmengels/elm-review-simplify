@@ -81,7 +81,7 @@ Before we do all of this analysis, we normalize the AST, so we have a more predi
 ### Application
 
 This data is then used in `Normalize` to change the AST, so that a reference to `a` whose value we have "deduced" is
-replaced by that value. Finally, as a consequence, that data is also used in functions like `Evaluate.getBoolean`.
+replaced by that value. Finally, as a consequence, that data is also used in functions like `Normalize.getBoolean`.
 (Note: This might be a bit redundant but that's a simplification for later on)
 
 Whenever we see a boolean expression, we will look at whether we can simplify it, and report an error when that happens.
