@@ -1,4 +1,25 @@
-module Simplify.Normalize exposing (Comparison(..), Resources, areAllTheSameAs, areTheSame, compare, compareWithoutNormalization, isSpecificUnappliedBinaryOperation, normalize, normalizeButKeepRange)
+module Simplify.Normalize exposing
+    ( Resources, normalize, normalizeButKeepRange
+    , Comparison(..), areAllTheSameAs, areTheSame, compare, compareWithoutNormalization
+    , isSpecificUnappliedBinaryOperation
+    )
+
+{-| Bring expressions to a normal form,
+including simple evaluation using [`Simplify.Infer`](Simplify-Infer)
+
+@docs Resources, normalize, normalizeButKeepRange
+
+
+## equality
+
+@docs Comparison, areAllTheSameAs, areTheSame, compare, compareWithoutNormalization
+
+
+## parse
+
+@docs isSpecificUnappliedBinaryOperation
+
+-}
 
 import Dict exposing (Dict)
 import Elm.Syntax.Expression as Expression exposing (Expression)
