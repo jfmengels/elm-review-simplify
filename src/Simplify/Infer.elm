@@ -7,7 +7,6 @@ module Simplify.Infer exposing
     , empty
     , falseExpr
     , fromList
-    , get
     , getAsExpression
     , getBoolean
     , infer
@@ -150,11 +149,6 @@ fromList list =
         { facts = []
         , deduced = AssocList.fromList list
         }
-
-
-get : Expression -> Inferred -> Maybe DeducedValue
-get expr (Inferred inferred) =
-    AssocList.get expr inferred.deduced
 
 
 getAsExpression : Expression -> Inferred -> Maybe Expression
