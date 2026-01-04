@@ -3419,7 +3419,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                     , rightSidesOfPlusPlus = RangeDict.empty
                     , inferredConstants =
                         Infer.inferForIfCondition
-                            (Node.value (Normalize.normalize context condition))
+                            (Normalize.normalizeExpression context condition)
                             { trueBranchRange = Node.range trueBranch
                             , falseBranchRange = Node.range falseBranch
                             }
@@ -19743,7 +19743,7 @@ trueInAllBranches isSpecific baseExpressionNode =
 
 expressionToComparable : Normalize.Resources a -> Node Expression -> Maybe ComparableExpression
 expressionToComparable resources expressionNode =
-    normalizedExpressionToComparableWithSign 1 (Normalize.normalize resources expressionNode)
+    normalizedExpressionToComparableWithSign 1 (Normalize.normalizeExpression resources expressionNode)
 
 
 type ComparableExpression
@@ -19756,8 +19756,8 @@ type ComparableExpression
     | ComparableList (List ComparableExpression)
 
 
-normalizedExpressionToComparableWithSign : Int -> Node Expression -> Maybe ComparableExpression
-normalizedExpressionToComparableWithSign sign (Node _ expression) =
+normalizedExpressionToComparableWithSign : Int -> Expression -> Maybe ComparableExpression
+normalizedExpressionToComparableWithSign sign expression =
     case expression of
         Expression.Integer int ->
             Just (ComparableNumber (Basics.toFloat (sign * int)))
@@ -19774,7 +19774,7 @@ normalizedExpressionToComparableWithSign sign (Node _ expression) =
         Expression.CharLiteral char ->
             Just (ComparableChar char)
 
-        Expression.TupledExpression [ first, second ] ->
+        Expression.TupledExpression [ Node _ first, Node _ second ] ->
             case normalizedExpressionToComparableWithSign 1 first of
                 Nothing ->
                     Nothing
@@ -19786,7 +19786,7 @@ normalizedExpressionToComparableWithSign sign (Node _ expression) =
                                 ComparableTuple firstComparable secondComparable
                             )
 
-        Expression.TupledExpression [ first, second, third ] ->
+        Expression.TupledExpression [ Node _ first, Node _ second, Node _ third ] ->
             case normalizedExpressionToComparableWithSign 1 first of
                 Nothing ->
                     Nothing
@@ -19805,15 +19805,15 @@ normalizedExpressionToComparableWithSign sign (Node _ expression) =
 
         Expression.ListExpr elements ->
             Maybe.map ComparableList
-                (traverse (\element -> normalizedExpressionToComparableWithSign 1 element) elements)
+                (traverse (\(Node _ element) -> normalizedExpressionToComparableWithSign 1 element) elements)
 
-        Expression.ParenthesizedExpression expr ->
-            normalizedExpressionToComparableWithSign sign expr
+        Expression.ParenthesizedExpression (Node _ inParens) ->
+            normalizedExpressionToComparableWithSign sign inParens
 
-        Expression.Negation expr ->
-            normalizedExpressionToComparableWithSign (-1 * sign) expr
+        Expression.Negation (Node _ inNegation) ->
+            normalizedExpressionToComparableWithSign (-1 * sign) inNegation
 
-        Expression.OperatorApplication operator _ left right ->
+        Expression.OperatorApplication operator _ (Node _ left) (Node _ right) ->
             case numberOperationForSymbol operator of
                 Nothing ->
                     Nothing

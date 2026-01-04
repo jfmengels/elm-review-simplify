@@ -655,13 +655,12 @@ normalizeSourceCode moduleNames inferred source =
     ("module A exposing (..)\nvalue = " ++ source)
         |> parse
         |> getValue
-        |> Normalize.normalize
+        |> Normalize.normalizeExpression
             { lookupTable = ModuleNameLookupTable.createForTests [ "A" ] moduleNames
             , inferredConstants = ( inferred, [] )
             , moduleCustomTypes = Dict.empty
             , importCustomTypes = Dict.empty
             }
-        |> Node.value
 
 
 {-| Parse source code into a AST.
