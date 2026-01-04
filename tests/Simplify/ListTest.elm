@@ -9552,7 +9552,7 @@ a = List.take n (List.map f list)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.take on List.map can be optimized to List.map on List.take"
-                            , details = [ "You can replace this call by List.map with the function given to the original List.map, on List.take." ]
+                            , details = [ "You can replace this call by List.map with the function given to the original List.map, on List.take with the length given to the original List.take." ]
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9568,7 +9568,7 @@ a = List.take n (list |> List.map f)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.take on List.map can be optimized to List.map on List.take"
-                            , details = [ "You can replace this call by List.map with the function given to the original List.map, on List.take." ]
+                            , details = [ "You can replace this call by List.map with the function given to the original List.map, on List.take with the length given to the original List.take." ]
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9584,7 +9584,7 @@ a = (List.map f <| list) |> List.take n
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.take on List.map can be optimized to List.map on List.take"
-                            , details = [ "You can replace this call by List.map with the function given to the original List.map, on List.take." ]
+                            , details = [ "You can replace this call by List.map with the function given to the original List.map, on List.take with the length given to the original List.take." ]
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9600,7 +9600,7 @@ a = List.take n << List.map f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.take on List.map can be optimized to List.map on List.take"
-                            , details = [ "You can replace this composition by List.take, then List.map with the function given to the original List.map." ]
+                            , details = [ "You can replace this composition by List.take with the length given to the original List.take, then List.map with the function given to the original List.map." ]
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9616,7 +9616,7 @@ a = List.map f >> List.take n
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.take on List.map can be optimized to List.map on List.take"
-                            , details = [ "You can replace this composition by List.take, then List.map with the function given to the original List.map." ]
+                            , details = [ "You can replace this composition by List.take with the length given to the original List.take, then List.map with the function given to the original List.map." ]
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9632,7 +9632,7 @@ a = List.take n (List.indexedMap f list)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.take on List.indexedMap can be optimized to List.indexedMap on List.take"
-                            , details = [ "You can replace this call by List.indexedMap with the function given to the original List.indexedMap, on List.take." ]
+                            , details = [ "You can replace this call by List.indexedMap with the function given to the original List.indexedMap, on List.take with the length given to the original List.take." ]
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9648,7 +9648,7 @@ a = List.take n << List.indexedMap f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.take on List.indexedMap can be optimized to List.indexedMap on List.take"
-                            , details = [ "You can replace this composition by List.take, then List.indexedMap with the function given to the original List.indexedMap." ]
+                            , details = [ "You can replace this composition by List.take with the length given to the original List.take, then List.indexedMap with the function given to the original List.indexedMap." ]
                             , under = "List.take"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9823,7 +9823,7 @@ a = List.drop n (List.map f list)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.drop on List.map can be optimized to List.map on List.drop"
-                            , details = [ "You can replace this call by List.map with the function given to the original List.map, on List.drop." ]
+                            , details = [ "You can replace this call by List.map with the function given to the original List.map, on List.drop with the count given to the original List.drop." ]
                             , under = "List.drop"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9839,7 +9839,7 @@ a = List.drop n << List.map f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.drop on List.map can be optimized to List.map on List.drop"
-                            , details = [ "You can replace this composition by List.drop, then List.map with the function given to the original List.map." ]
+                            , details = [ "You can replace this composition by List.drop with the count given to the original List.drop, then List.map with the function given to the original List.map." ]
                             , under = "List.drop"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
