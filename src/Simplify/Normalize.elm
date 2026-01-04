@@ -381,8 +381,29 @@ addToFunctionCall resources functionCall extraArgument =
         Expression.RecordAccessFunction fieldAccess ->
             Expression.RecordAccess extraArgument (toNode (String.dropLeft 1 fieldAccess))
 
+        Expression.FunctionOrValue [ "Basics" ] "not" ->
+            case Node.value extraArgument of
+                Expression.FunctionOrValue [ "Basics" ] "True" ->
+                    expressionFalse
+
+                Expression.FunctionOrValue [ "Basics" ] "False" ->
+                    expressionTrue
+
+                _ ->
+                    Expression.Application [ functionCall, extraArgument ]
+
         _ ->
             Expression.Application [ functionCall, extraArgument ]
+
+
+expressionTrue : Expression
+expressionTrue =
+    Expression.FunctionOrValue [ "Basics" ] "True"
+
+
+expressionFalse : Expression
+expressionFalse =
+    Expression.FunctionOrValue [ "Basics" ] "False"
 
 
 reduceLambda : Resources a -> Expression.Lambda -> Expression
@@ -740,26 +761,10 @@ compareHelp leftNode right canFlip =
                                     Unconfirmed
 
                         ConfirmedInequality ->
-                            -- notice that we instead compare the then with else branches
-                            case compareHelp leftThen rightElse True of
-                                ConfirmedInequality ->
-                                    case compareHelp leftElse rightThen True of
-                                        ConfirmedInequality ->
-                                            ConfirmedInequality
-
-                                        _ ->
-                                            Unconfirmed
-
-                                ConfirmedEquality ->
-                                    case compareHelp leftElse rightThen True of
-                                        ConfirmedEquality ->
-                                            ConfirmedEquality
-
-                                        _ ->
-                                            Unconfirmed
-
-                                Unconfirmed ->
-                                    Unconfirmed
+                            -- the only way this happens
+                            -- is with Basics.not (which gets normalized away)
+                            -- or literal True/False (which gets reported by Simplify anyway)
+                            Unconfirmed
 
                         Unconfirmed ->
                             Unconfirmed
