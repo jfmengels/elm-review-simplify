@@ -7201,7 +7201,8 @@ earlierOperationCanBeMovedAfterAsForPerformanceChecks config =
                                             , asLaterFn = config.asLaterFn
                                             , laterLastArg = laterLastArg
                                             , earlierFnRange = earlierFnCall.fnRange
-                                            , earlierFnCallLastArgRange = Node.range earlierFnCallLastArg
+                                            , earlierFnCallStyle = earlierFnCall.callStyle
+                                            , earlierFnCallLastArg = earlierFnCallLastArg
                                             }
                                             checkInfo
                                         )
@@ -7271,7 +7272,8 @@ operationWithSpecificFirstArgOnSpecificFnCanBeOptimizedBySwappingOperationsCheck
                                                 , asLaterFn = config.specificEarlierFn
                                                 , laterLastArg = laterLastArg
                                                 , earlierFnRange = earlierFnCall.fnRange
-                                                , earlierFnCallLastArgRange = Node.range earlierFnCallLastArg
+                                                , earlierFnCallStyle = earlierFnCall.callStyle
+                                                , earlierFnCallLastArg = earlierFnCallLastArg
                                                 }
                                                 checkInfo
                                             )
@@ -7335,7 +7337,8 @@ callEarlierOperationCanBeMovedAfterAsForPerformanceError :
     , asLaterFn : ( ModuleName, String )
     , laterLastArg : Node Expression
     , earlierFnRange : Range
-    , earlierFnCallLastArgRange : Range
+    , earlierFnCallStyle : FunctionCallStyle
+    , earlierFnCallLastArg : Node Expression
     }
     -> CallCheckInfo
     -> Error {}
@@ -7368,16 +7371,20 @@ callEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo =
             ]
         }
         checkInfo.fnRange
-        (extractAndInsertParenthesizedCallAroundReplacementLastArgFix
+        (extractAndInsertCallAroundReplacementLastArgFix
             { extractSourceCode = checkInfo.extractSourceCode
             , originalCallRange = checkInfo.parentRange
             , originalCallStyle = checkInfo.callStyle
             , originalLastArgRange = Node.range config.laterLastArg
-            , replacementLastArgRange = config.earlierFnCallLastArgRange
-            , parenthesizeReplacementLastArg = False
+            , replacementLastArgRange = Node.range config.earlierFnCallLastArg
+            , parenthesizeReplacementLastArg =
+                lastArgOfCallNeedsParens checkInfo.callStyle
+                    (Node.value config.earlierFnCallLastArg)
+            , parenthesize =
+                lastArgCallOfCallNeedsParens
+                    { parent = config.earlierFnCallStyle, lastArg = checkInfo.callStyle }
             }
-            ++ replaceBySubExpressionFix checkInfo.parentRange
-                config.laterLastArg
+            ++ replaceBySubExpressionFix checkInfo.parentRange config.laterLastArg
             |> consIf (config.earlierFn /= config.asLaterFn)
                 (\() ->
                     Fix.replaceRangeBy config.earlierFnRange
@@ -7386,8 +7393,35 @@ callEarlierOperationCanBeMovedAfterAsForPerformanceError config checkInfo =
         )
 
 
-extractAndInsertParenthesizedCallAroundReplacementLastArgFix :
+lastArgCallOfCallNeedsParens : { parent : FunctionCallStyle, lastArg : FunctionCallStyle } -> Bool
+lastArgCallOfCallNeedsParens style =
+    case style.lastArg of
+        CallStyle.Application ->
+            style.parent == CallStyle.Application
+
+        CallStyle.Pipe lastArgCallPipeDirection ->
+            style.parent /= CallStyle.Pipe lastArgCallPipeDirection
+
+
+lastArgOfCallNeedsParens : FunctionCallStyle -> Expression -> Bool
+lastArgOfCallNeedsParens callStyle lastArg =
+    case lastArg of
+        Expression.Application _ ->
+            callStyle == CallStyle.Application
+
+        Expression.OperatorApplication "<|" _ _ _ ->
+            callStyle /= CallStyle.pipeRightToLeft
+
+        Expression.OperatorApplication "|>" _ _ _ ->
+            callStyle /= CallStyle.pipeLeftToRight
+
+        _ ->
+            needsParens lastArg
+
+
+extractAndInsertCallAroundReplacementLastArgFix :
     { extractSourceCode : Range -> String
+    , parenthesize : Bool
     , originalCallRange : Range
     , originalCallStyle : FunctionCallStyle
     , originalLastArgRange : Range
@@ -7395,11 +7429,16 @@ extractAndInsertParenthesizedCallAroundReplacementLastArgFix :
     , parenthesizeReplacementLastArg : Bool
     }
     -> List Fix
-extractAndInsertParenthesizedCallAroundReplacementLastArgFix config =
+extractAndInsertCallAroundReplacementLastArgFix config =
     case config.originalCallStyle of
         CallStyle.Pipe CallStyle.LeftToRight ->
             [ Fix.insertAt config.replacementLastArgRange.start
-                ("("
+                ((if config.parenthesize then
+                    "("
+
+                  else
+                    ""
+                 )
                     ++ (if config.parenthesizeReplacementLastArg then
                             "("
 
@@ -7418,13 +7457,23 @@ extractAndInsertParenthesizedCallAroundReplacementLastArgFix config =
                         { start = config.originalLastArgRange.end
                         , end = config.originalCallRange.end
                         }
-                    ++ ")"
+                    ++ (if config.parenthesize then
+                            ")"
+
+                        else
+                            ""
+                       )
                 )
             ]
 
         _ ->
             [ Fix.insertAt config.replacementLastArgRange.start
-                ("("
+                ((if config.parenthesize then
+                    "("
+
+                  else
+                    ""
+                 )
                     ++ config.extractSourceCode
                         { start = config.originalCallRange.start
                         , end = config.originalLastArgRange.start
@@ -7443,7 +7492,12 @@ extractAndInsertParenthesizedCallAroundReplacementLastArgFix config =
                   else
                     ""
                  )
-                    ++ ")"
+                    ++ (if config.parenthesize then
+                            ")"
+
+                        else
+                            ""
+                       )
                 )
             ]
 
@@ -9703,8 +9757,9 @@ dictDiffChecks =
                                                                 ]
                                                             }
                                                             checkInfo.fnRange
-                                                            (extractAndInsertParenthesizedCallAroundReplacementLastArgFix
-                                                                { extractSourceCode = checkInfo.extractSourceCode
+                                                            (extractAndInsertCallAroundReplacementLastArgFix
+                                                                { parenthesize = True
+                                                                , extractSourceCode = checkInfo.extractSourceCode
                                                                 , replacementLastArgRange = checkInfo.parentRange
                                                                 , parenthesizeReplacementLastArg = True
                                                                 , originalCallRange = dictMapFnCall.nodeRange
