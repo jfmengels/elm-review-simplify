@@ -81,12 +81,12 @@ normalize resources node =
                     node
 
         Expression.OperatorApplication "<|" _ function extraArgument ->
-            addToFunctionCall
+            addToFunctionCall resources
                 (normalize resources function)
                 (normalize resources extraArgument)
 
         Expression.OperatorApplication "|>" _ extraArgument function ->
-            addToFunctionCall
+            addToFunctionCall resources
                 (normalize resources function)
                 (normalize resources extraArgument)
 
@@ -119,7 +119,7 @@ normalize resources node =
             toNode (Expression.OperatorApplication "<=" normalizedInfixDirection (normalize resources right) (normalize resources left))
 
         Expression.OperatorApplication operator _ left right ->
-            createOperation operator (normalize resources left) (normalize resources right)
+            createOperation resources operator (normalize resources left) (normalize resources right)
 
         Expression.FunctionOrValue rawModuleName string ->
             Expression.FunctionOrValue
@@ -307,18 +307,25 @@ toComparable a =
 
 {-| Expects normalized left and right
 -}
-createOperation : String -> Node Expression -> Node Expression -> Node Expression
-createOperation operator left right =
-    toNode
-        (if
-            operatorIsSymmetrical operator
-                && (toComparable left > toComparable right)
-         then
-            Expression.OperatorApplication operator normalizedInfixDirection right left
+createOperation : Infer.Resources a -> String -> Node Expression -> Node Expression -> Node Expression
+createOperation resources operator left right =
+    let
+        normalOperationExpression : Expression
+        normalOperationExpression =
+            if
+                operatorIsSymmetrical operator
+                    && (toComparable left > toComparable right)
+            then
+                Expression.OperatorApplication operator normalizedInfixDirection right left
 
-         else
-            Expression.OperatorApplication operator normalizedInfixDirection left right
-        )
+            else
+                Expression.OperatorApplication operator normalizedInfixDirection left right
+    in
+    if operator == "==" || operator == "/=" || operator == "&&" || operator == "||" then
+        toNodeAndInfer resources normalOperationExpression
+
+    else
+        toNode normalOperationExpression
 
 
 normalizedInfixDirection : Infix.InfixDirection
@@ -326,29 +333,39 @@ normalizedInfixDirection =
     Infix.Non
 
 
-addToFunctionCall : Node Expression -> Node Expression -> Node Expression
-addToFunctionCall functionCall extraArgument =
+addToFunctionCall : Infer.Resources a -> Node Expression -> Node Expression -> Node Expression
+addToFunctionCall resources functionCall extraArgument =
     case Node.value functionCall of
         Expression.ParenthesizedExpression expr ->
-            addToFunctionCall expr extraArgument
+            addToFunctionCall resources expr extraArgument
 
         Expression.Application [ Node _ (Expression.PrefixOperator operator), left ] ->
-            createOperation operator left extraArgument
+            createOperation resources operator left extraArgument
 
         Expression.Application (fnCall :: args) ->
             Expression.Application (fnCall :: (args ++ [ extraArgument ]))
                 |> toNode
 
         Expression.LetExpression { declarations, expression } ->
-            Expression.LetExpression { declarations = declarations, expression = addToFunctionCall expression extraArgument }
+            Expression.LetExpression { declarations = declarations, expression = addToFunctionCall resources expression extraArgument }
                 |> toNode
 
         Expression.IfBlock condition ifBranch elseBranch ->
-            Expression.IfBlock condition (addToFunctionCall ifBranch extraArgument) (addToFunctionCall elseBranch extraArgument)
+            Expression.IfBlock condition
+                (addToFunctionCall resources ifBranch extraArgument)
+                (addToFunctionCall resources elseBranch extraArgument)
                 |> toNode
 
         Expression.CaseExpression { expression, cases } ->
-            Expression.CaseExpression { expression = expression, cases = List.map (\( cond, expr ) -> ( cond, addToFunctionCall expr extraArgument )) cases }
+            Expression.CaseExpression
+                { expression = expression
+                , cases =
+                    List.map
+                        (\( cond, expr ) ->
+                            ( cond, addToFunctionCall resources expr extraArgument )
+                        )
+                        cases
+                }
                 |> toNode
 
         Expression.RecordAccessFunction fieldAccess ->
