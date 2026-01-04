@@ -370,6 +370,85 @@ a = (case x of
 a = True
 """
                         ]
+        , test "should not simplify case of with unconfirmed cased expressions, same patterns and always equal case results" <|
+            \() ->
+                """module A exposing (..)
+a = (case x of
+        X -> 1
+        Y -> 2
+    )
+    ==
+    (case y of
+        X -> 1
+        Y -> 2
+    )
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should simplify case of with equal cased expressions, same patterns but always unequal case results to True" <|
+            \() ->
+                """module A exposing (..)
+a = (case x of
+        X -> 1
+        Y -> 2
+    )
+    ==
+    (case x of
+        X -> 1
+        Y -> 2
+    )
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
+                            , under = """(case x of
+        X -> 1
+        Y -> 2
+    )
+    ==
+    (case x of
+        X -> 1
+        Y -> 2
+    )"""
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify case of with unconfirmed cased expressions, same patterns but always unequal case results to False" <|
+            \() ->
+                """module A exposing (..)
+a = (case x of
+        X -> 1
+        Y -> 2
+    )
+    ==
+    (case y of
+        X -> -1
+        Y -> -2
+    )
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in False"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by False." ]
+                            , under = """(case x of
+        X -> 1
+        Y -> 2
+    )
+    ==
+    (case y of
+        X -> -1
+        Y -> -2
+    )"""
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
         , test "should simplify record access comparison" <|
             \() ->
                 """module A exposing (..)
