@@ -598,7 +598,7 @@ compareHelp leftNode right canFlip =
             compareNumbers left right
 
         Expression.Negation left ->
-            case Node.value (removeParens right) of
+            case Node.value right of
                 Expression.Negation rightValue ->
                     compareHelp left rightValue canFlip
 
@@ -620,7 +620,7 @@ compareHelp leftNode right canFlip =
                         fallback ()
 
             else
-                case Node.value (removeParens right) of
+                case Node.value right of
                     Expression.OperatorApplication rightOp _ rightLeft rightRight ->
                         if leftOp == rightOp then
                             compareAll2Help leftLeft rightLeft leftRight rightRight
@@ -632,7 +632,7 @@ compareHelp leftNode right canFlip =
                         fallback ()
 
         Expression.Literal left ->
-            case Node.value (removeParens right) of
+            case Node.value right of
                 Expression.Literal rightValue ->
                     fromEquality (left == rightValue)
 
@@ -640,7 +640,7 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.CharLiteral left ->
-            case Node.value (removeParens right) of
+            case Node.value right of
                 Expression.CharLiteral rightValue ->
                     fromEquality (left == rightValue)
 
@@ -660,7 +660,7 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.ListExpr leftList ->
-            case Node.value (removeParens right) of
+            case Node.value right of
                 Expression.ListExpr rightList ->
                     compareLists leftList rightList ConfirmedEquality
 
@@ -668,7 +668,7 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.TupledExpression leftList ->
-            case Node.value (removeParens right) of
+            case Node.value right of
                 Expression.TupledExpression rightList ->
                     compareLists leftList rightList ConfirmedEquality
 
@@ -676,7 +676,7 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.RecordExpr leftList ->
-            case Node.value (removeParens right) of
+            case Node.value right of
                 Expression.RecordExpr rightList ->
                     compareRecords leftList rightList ConfirmedEquality
 
@@ -684,7 +684,7 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.RecordUpdateExpression leftBaseValue leftList ->
-            case Node.value (removeParens right) of
+            case Node.value right of
                 Expression.RecordUpdateExpression rightBaseValue rightList ->
                     compareRecords leftList
                         rightList
@@ -699,7 +699,7 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.Application (leftCalled :: leftArg0 :: leftArg1Up) ->
-            case Node.value (removeParens right) of
+            case Node.value right of
                 Expression.Application (rightCalled :: rightArg0 :: rightArg1Up) ->
                     case compareAll2Help leftCalled rightCalled leftArg0 rightArg0 of
                         ConfirmedEquality ->
@@ -712,7 +712,7 @@ compareHelp leftNode right canFlip =
                     fallback ()
 
         Expression.RecordAccess leftExpr leftName ->
-            case Node.value (removeParens right) of
+            case Node.value right of
                 Expression.RecordAccess rightExpr rightName ->
                     if Node.value leftName == Node.value rightName then
                         compareHelp leftExpr rightExpr canFlip
@@ -727,7 +727,7 @@ compareHelp leftNode right canFlip =
             ConfirmedEquality
 
         Expression.IfBlock leftCond leftThen leftElse ->
-            case Node.value (removeParens right) of
+            case Node.value right of
                 Expression.IfBlock rightCond rightThen rightElse ->
                     case compareHelp leftCond rightCond True of
                         ConfirmedEquality ->
@@ -1016,16 +1016,6 @@ fromEquality bool =
 
     else
         ConfirmedInequality
-
-
-removeParens : Node Expression -> Node Expression
-removeParens node =
-    case Node.value node of
-        Expression.ParenthesizedExpression expr ->
-            removeParens expr
-
-        _ ->
-            node
 
 
 getBool : Resources a -> Node Expression -> Maybe Bool
