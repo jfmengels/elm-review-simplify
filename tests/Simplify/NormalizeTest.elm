@@ -35,7 +35,7 @@ simpleNormalizationTests =
         [ test "should remove parentheses" <|
             \() ->
                 "(1)"
-                    |> normalizeAndExpect (Integer 1)
+                    |> normalizeAndExpect (Floatable 1)
         , test "should remove ranges of 'f a'" <|
             \() ->
                 "f a"
@@ -331,7 +331,7 @@ simpleNormalizationTests =
         , test "should normalize an integer negation" <|
             \() ->
                 "-1"
-                    |> normalizeAndExpect (Integer -1)
+                    |> normalizeAndExpect (Floatable -1)
         , test "should normalize a float negation" <|
             \() ->
                 "-1.1"
@@ -373,9 +373,9 @@ simpleNormalizationTests =
                 "{ field = (2), a = (1), z = (3) }"
                     |> normalizeAndExpect
                         (RecordExpr
-                            [ n ( n "a", n (Integer 1) )
-                            , n ( n "field", n (Integer 2) )
-                            , n ( n "z", n (Integer 3) )
+                            [ n ( n "a", n (Floatable 1) )
+                            , n ( n "field", n (Floatable 2) )
+                            , n ( n "z", n (Floatable 3) )
                             ]
                         )
         , test "should normalize record updates, and sort fields alphabetically" <|
@@ -384,16 +384,16 @@ simpleNormalizationTests =
                     |> normalizeAndExpect
                         (RecordUpdateExpression
                             (n "record")
-                            [ n ( n "a", n (Integer 1) )
-                            , n ( n "field", n (Integer 2) )
-                            , n ( n "z", n (Integer 3) )
+                            [ n ( n "a", n (Floatable 1) )
+                            , n ( n "field", n (Floatable 2) )
+                            , n ( n "z", n (Floatable 3) )
                             ]
                         )
-        , test "should normalize hex literals to integers" <|
+        , test "should normalize hex literals to number" <|
             \() ->
                 "0x100"
                     |> normalizeAndExpect
-                        (Integer 256)
+                        (Floatable 256)
         , test "should normalize let expressions" <|
             \() ->
                 """
@@ -410,7 +410,7 @@ simpleNormalizationTests =
                                 [ n
                                     (LetDestructuring
                                         (n (VarPattern "a"))
-                                        (n (Integer 1))
+                                        (n (Floatable 1))
                                     )
                                 , n
                                     (LetFunction
@@ -419,7 +419,7 @@ simpleNormalizationTests =
                                                 { arguments =
                                                     [ n (VarPattern "n")
                                                     ]
-                                                , expression = n (Integer 2)
+                                                , expression = n (Floatable 2)
                                                 , name = n "f"
                                                 }
                                         , documentation = Nothing
@@ -427,7 +427,7 @@ simpleNormalizationTests =
                                         }
                                     )
                                 ]
-                            , expression = n (Integer 2)
+                            , expression = n (Floatable 2)
                             }
                         )
         , test "should normalize case expressions" <|
@@ -453,7 +453,7 @@ simpleNormalizationTests =
                                             )
                                             (n (VarPattern "c"))
                                         )
-                                  , n (Integer 1)
+                                  , n (Floatable 1)
                                   )
                                 , ( n
                                         (ListPattern
@@ -461,7 +461,7 @@ simpleNormalizationTests =
                                             , n (VarPattern "b")
                                             ]
                                         )
-                                  , n (Integer 2)
+                                  , n (Floatable 2)
                                   )
                                 , ( n
                                         (RecordPattern
@@ -470,7 +470,7 @@ simpleNormalizationTests =
                                             , n "z"
                                             ]
                                         )
-                                  , n (Integer 3)
+                                  , n (Floatable 3)
                                   )
                                 , ( n
                                         (NamedPattern
@@ -479,10 +479,10 @@ simpleNormalizationTests =
                                             }
                                             [ n (NamedPattern { moduleName = [], name = "True" } []) ]
                                         )
-                                  , n (Integer 4)
+                                  , n (Floatable 4)
                                   )
                                 , ( n (AsPattern (n (VarPattern "a")) (n "b"))
-                                  , n (Integer 5)
+                                  , n (Floatable 5)
                                   )
                                 ]
                             , expression = n (FunctionOrValue [] "x")
@@ -569,13 +569,13 @@ moduleNameTests =
                         (CaseExpression
                             { cases =
                                 [ ( n (NamedPattern { moduleName = [ "Basics" ], name = "Just" } [ n (VarPattern "a") ])
-                                  , n (Integer 1)
+                                  , n (Floatable 1)
                                   )
                                 , ( n (NamedPattern { moduleName = [ "Basics" ], name = "Nothing" } [])
-                                  , n (Integer 2)
+                                  , n (Floatable 2)
                                   )
                                 , ( n AllPattern
-                                  , n (Integer 3)
+                                  , n (Floatable 3)
                                   )
                                 ]
                             , expression = n (FunctionOrValue [] "x")

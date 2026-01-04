@@ -173,9 +173,6 @@ normalizeExpression resources (Node expressionRange expression) =
                     normalizeExpression resources expr
             in
             case normalized of
-                Expression.Integer int ->
-                    Expression.Integer -int
-
                 Expression.Floatable float ->
                     Expression.Floatable -float
 
@@ -265,7 +262,10 @@ normalizeExpression resources (Node expressionRange expression) =
                 |> Expression.RecordUpdateExpression (toNode value)
 
         Expression.Hex int ->
-            Expression.Integer int
+            Expression.Floatable (Basics.toFloat int)
+
+        Expression.Integer int ->
+            Expression.Floatable (Basics.toFloat int)
 
         expr ->
             expr
@@ -600,9 +600,6 @@ compareHelp leftNode right canFlip =
                 Unconfirmed
     in
     case leftNode of
-        Expression.Integer left ->
-            compareNumbers (Basics.toFloat left) right
-
         Expression.Floatable left ->
             compareNumbers left right
 
@@ -882,12 +879,6 @@ compareNumbers leftValue right =
 getNumberValue : Expression -> Maybe Float
 getNumberValue node =
     case node of
-        Expression.Integer value ->
-            Just (Basics.toFloat value)
-
-        Expression.Hex int ->
-            Just (Basics.toFloat int)
-
         Expression.Floatable float ->
             Just float
 
@@ -1037,8 +1028,17 @@ justFalse =
 getInt : Resources a -> Node Expression -> Maybe Int
 getInt resources expressionNode =
     case normalizeExpression resources expressionNode of
-        Expression.Integer int ->
-            Just int
+        Expression.Floatable float ->
+            let
+                asInt : Int
+                asInt =
+                    Basics.round float
+            in
+            if Basics.toFloat asInt == float then
+                Just asInt
+
+            else
+                Nothing
 
         _ ->
             Nothing
@@ -1047,9 +1047,6 @@ getInt resources expressionNode =
 getNumber : Resources a -> Node Expression -> Maybe Float
 getNumber resources expressionNode =
     case normalizeExpression resources expressionNode of
-        Expression.Integer int ->
-            Just (Basics.toFloat int)
-
         Expression.Floatable float ->
             Just float
 
