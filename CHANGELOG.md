@@ -14,6 +14,9 @@ The rule now simplifies:
 - `Dict.filter (\k _ -> f k) (Dict.map g dict)` to `Dict.map g (Dict.filter (\k _ -> f k) dict)`
 - `Dict.diff (Dict.map f dict) remove` to `Dict.map f (Dict.diff dict remove)`
 
+Bug fixes:
+- `Cmd.map f (Task.attempt notIdentity task)` was incorrectly fixed to `Task.attempt f task` (same for `Task.perform`)
+
 ## [2.1.11] - 2025-12-30
 
 - Disabled `List.concat` simplifications that merged `List.concat` without structure.
