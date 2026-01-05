@@ -1,5 +1,5 @@
 module Simplify.Normalize exposing
-    ( Resources, normalizeExpression, normalizeButKeepRange
+    ( Resources, normalizeExpression, normalizeExpressionButKeepRange
     , Comparison(..), areAllTheSameAs, areTheSame, compare, compareExistingNormals
     , getBool, getInt, getNumber, isSpecificUnappliedBinaryOperation
     )
@@ -7,7 +7,7 @@ module Simplify.Normalize exposing
 {-| Bring expressions to a normal form,
 including simple evaluation using [`Simplify.Infer`](Simplify-Infer)
 
-@docs Resources, normalizeExpression, normalizeButKeepRange
+@docs Resources, normalizeExpression, normalizeExpressionButKeepRange
 
 
 ## equality
@@ -276,8 +276,8 @@ normalizeExpression resources (Node expressionRange expression) =
             expr
 
 
-normalizeButKeepRange : Resources a -> Node Expression -> Node Expression
-normalizeButKeepRange checkInfo node =
+normalizeExpressionButKeepRange : Resources a -> Node Expression -> Node Expression
+normalizeExpressionButKeepRange checkInfo node =
     Node (Node.range node) (normalizeExpression checkInfo node)
 
 
