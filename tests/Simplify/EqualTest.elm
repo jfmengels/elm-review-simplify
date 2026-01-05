@@ -322,6 +322,66 @@ a = (let x = 1 in f b c) == (c |> (let x = 1 in f b))
 a = True
 """
                         ]
+        , test "should simplify let expression with same let declarations and result to True" <|
+            \() ->
+                """module A exposing (..)
+a = (let x = 1 in f b c) == (let x = 1 in f b c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
+                            , under = "(let x = 1 in f b c) == (let x = 1 in f b c)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify let expression with same but reordered let function declarations and result to True" <|
+            \() ->
+                """module A exposing (..)
+a = (let x = 1
+         y = 2 in f b c) == (let y = 2
+                                 x = 1  in f b c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
+                            , under = """(let x = 1
+         y = 2 in f b c) == (let y = 2
+                                 x = 1  in f b c)"""
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should simplify let expression with same but reordered let declarations and result to True" <|
+            \() ->
+                """module A exposing (..)
+a = (let x = 1
+         () = ()
+         y = 2 in f b c) == (let y = 2
+                                 x = 1
+                                 () = ()  in f b c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
+                            , under = """(let x = 1
+         () = ()
+         y = 2 in f b c) == (let y = 2
+                                 x = 1
+                                 () = ()  in f b c)"""
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         , test "should simplify nested function calls using `|>`, even when function is wrapped in if expression" <|
             \() ->
                 """module A exposing (..)

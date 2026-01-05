@@ -408,11 +408,6 @@ simpleNormalizationTests =
                         (LetExpression
                             { declarations =
                                 [ n
-                                    (LetDestructuring
-                                        (n (VarPattern "a"))
-                                        (n (Floatable 1))
-                                    )
-                                , n
                                     (LetFunction
                                         { declaration =
                                             n
@@ -425,6 +420,11 @@ simpleNormalizationTests =
                                         , documentation = Nothing
                                         , signature = Nothing
                                         }
+                                    )
+                                , n
+                                    (LetDestructuring
+                                        (n (VarPattern "a"))
+                                        (n (Floatable 1))
                                     )
                                 ]
                             , expression = n (Floatable 2)

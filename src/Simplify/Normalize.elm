@@ -188,34 +188,43 @@ normalizeExpression resources (Node expressionRange expression) =
             Expression.LetExpression
                 { declarations =
                     -- possible improvement: sort
-                    List.map
-                        (\decl ->
-                            case Node.value decl of
-                                Expression.LetFunction function ->
-                                    let
-                                        declaration : Expression.FunctionImplementation
-                                        declaration =
-                                            Node.value function.declaration
-                                    in
-                                    Node.empty
-                                        (Expression.LetFunction
-                                            { documentation = Nothing
-                                            , signature = Nothing
-                                            , declaration =
-                                                Node.empty
-                                                    { name =
-                                                        -- possible improvement: assign indices and change the expression scope accordingly
-                                                        Node.empty (Node.value declaration.name)
-                                                    , arguments = List.map (\param -> normalizePatternNode resources.lookupTable param) declaration.arguments
-                                                    , expression = normalizeExpressionNode resources declaration.expression
-                                                    }
-                                            }
-                                        )
+                    letBlock.declarations
+                        |> List.map
+                            (\(Node _ letDeclaration) ->
+                                case letDeclaration of
+                                    Expression.LetFunction function ->
+                                        let
+                                            declaration : Expression.FunctionImplementation
+                                            declaration =
+                                                Node.value function.declaration
+                                        in
+                                        Node.empty
+                                            (Expression.LetFunction
+                                                { documentation = Nothing
+                                                , signature = Nothing
+                                                , declaration =
+                                                    Node.empty
+                                                        { name =
+                                                            -- possible improvement: assign indices and change the expression scope accordingly
+                                                            Node.empty (Node.value declaration.name)
+                                                        , arguments = List.map (\param -> normalizePatternNode resources.lookupTable param) declaration.arguments
+                                                        , expression = normalizeExpressionNode resources declaration.expression
+                                                        }
+                                                }
+                                            )
 
-                                Expression.LetDestructuring pattern expr ->
-                                    Node.empty (Expression.LetDestructuring (normalizePatternNode resources.lookupTable pattern) (normalizeExpressionNode resources expr))
-                        )
-                        letBlock.declarations
+                                    Expression.LetDestructuring pattern expr ->
+                                        Node.empty (Expression.LetDestructuring (normalizePatternNode resources.lookupTable pattern) (normalizeExpressionNode resources expr))
+                            )
+                        |> List.sortBy
+                            (\(Node _ letDeclaration) ->
+                                case letDeclaration of
+                                    Expression.LetFunction letVariableDeclaration ->
+                                        ( 0, Node.value (Node.value letVariableDeclaration.declaration).name )
+
+                                    Expression.LetDestructuring destructuringPattern _ ->
+                                        ( 1, patternToComparable destructuringPattern )
+                            )
                 , expression = normalizeExpressionNode resources letBlock.expression
                 }
 
