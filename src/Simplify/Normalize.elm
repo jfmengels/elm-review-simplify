@@ -271,31 +271,6 @@ normalizeExpression resources (Node expressionRange expression) =
             expr
 
 
-operatorIsSymmetrical : String -> Bool
-operatorIsSymmetrical operator =
-    case operator of
-        "+" ->
-            True
-
-        "*" ->
-            True
-
-        "||" ->
-            True
-
-        "&&" ->
-            True
-
-        "==" ->
-            True
-
-        "/=" ->
-            True
-
-        _ ->
-            False
-
-
 normalizeButKeepRange : Resources a -> Node Expression -> Node Expression
 normalizeButKeepRange checkInfo node =
     Node (Node.range node) (normalizeExpression checkInfo node)
@@ -320,35 +295,43 @@ toComparable a =
 -}
 createOperation : Infer.Resources a -> String -> Node Expression -> Node Expression -> Expression
 createOperation resources operator left right =
-    if operator == "==" || operator == "/=" || operator == "&&" || operator == "||" then
-        infer resources (createFallbackOperation operator left right)
+    case operator of
+        "==" ->
+            infer resources (createFallbackOperation operator left right)
 
-    else
-        case operator of
-            "+" ->
-                createNumberOperation (+) operator left right
+        "/=" ->
+            infer resources (createFallbackOperation operator left right)
 
-            "-" ->
-                createNumberOperation (-) operator left right
+        "&&" ->
+            infer resources (createFallbackOperation operator left right)
 
-            "*" ->
-                createNumberOperation (*) operator left right
+        "||" ->
+            infer resources (createFallbackOperation operator left right)
 
-            "/" ->
-                createNumberOperation (/) operator left right
+        "+" ->
+            createNumberOperation (+) operator left right
 
-            "//" ->
-                createNumberOperation
-                    (\l r ->
-                        -- not truncate because that would drop bits above 32
-                        Basics.toFloat (Basics.round l // Basics.round r)
-                    )
-                    operator
-                    left
-                    right
+        "-" ->
+            createNumberOperation (-) operator left right
 
-            _ ->
-                createFallbackOperation operator left right
+        "*" ->
+            createNumberOperation (*) operator left right
+
+        "/" ->
+            createNumberOperation (/) operator left right
+
+        "//" ->
+            createNumberOperation
+                (\l r ->
+                    -- not truncate because that would drop bits above 32
+                    Basics.toFloat (Basics.round l // Basics.round r)
+                )
+                operator
+                left
+                right
+
+        _ ->
+            createFallbackOperation operator left right
 
 
 createFallbackOperation : String -> Node Expression -> Node Expression -> Expression
@@ -361,6 +344,31 @@ createFallbackOperation operator left right =
 
     else
         Expression.OperatorApplication operator normalizedInfixDirection left right
+
+
+operatorIsSymmetrical : String -> Bool
+operatorIsSymmetrical operator =
+    case operator of
+        "+" ->
+            True
+
+        "*" ->
+            True
+
+        "||" ->
+            True
+
+        "&&" ->
+            True
+
+        "==" ->
+            True
+
+        "/=" ->
+            True
+
+        _ ->
+            False
 
 
 createNumberOperation : (Float -> Float -> Float) -> String -> Node Expression -> Node Expression -> Expression
