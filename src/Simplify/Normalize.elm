@@ -787,7 +787,11 @@ compareExistingNormals left right =
                             compareFields leftFields rightFields ConfirmedEquality
 
                         Expression.RecordUpdateExpression _ rightFields ->
-                            compareFields leftFields rightFields Unconfirmed
+                            compareFields leftFields
+                                rightFields
+                                -- because if all fields match,
+                                -- nothing is left of the original record in the record update
+                                ConfirmedEquality
 
                         _ ->
                             Unconfirmed
@@ -805,7 +809,11 @@ compareExistingNormals left right =
                                 )
 
                         Expression.RecordExpr rightFields ->
-                            compareFields leftFields rightFields Unconfirmed
+                            compareFields leftFields
+                                rightFields
+                                -- because if all fields match,
+                                -- nothing is left of the original record in the record update
+                                ConfirmedEquality
 
                         _ ->
                             Unconfirmed
