@@ -21,7 +21,6 @@ including simple evaluation using [`Simplify.Infer`](Simplify-Infer)
 
 -}
 
-import Dict exposing (Dict)
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Infix as Infix
 import Elm.Syntax.Node as Node exposing (Node(..))
@@ -770,10 +769,10 @@ compareExistingNormals left right =
                 Expression.RecordExpr leftFields ->
                     case right of
                         Expression.RecordExpr rightFields ->
-                            compareRecords leftFields rightFields ConfirmedEquality
+                            compareFields leftFields rightFields ConfirmedEquality
 
                         Expression.RecordUpdateExpression _ rightFields ->
-                            compareRecords leftFields rightFields Unconfirmed
+                            compareFields leftFields rightFields Unconfirmed
 
                         _ ->
                             Unconfirmed
@@ -781,7 +780,7 @@ compareExistingNormals left right =
                 Expression.RecordUpdateExpression (Node _ leftBaseRecordVariableName) leftFields ->
                     case right of
                         Expression.RecordUpdateExpression (Node _ rightBaseRecordVariableName) rightFields ->
-                            compareRecords leftFields
+                            compareFields leftFields
                                 rightFields
                                 (if leftBaseRecordVariableName == rightBaseRecordVariableName then
                                     ConfirmedEquality
@@ -791,7 +790,7 @@ compareExistingNormals left right =
                                 )
 
                         Expression.RecordExpr rightFields ->
-                            compareRecords leftFields rightFields Unconfirmed
+                            compareFields leftFields rightFields Unconfirmed
 
                         _ ->
                             Unconfirmed
@@ -999,65 +998,40 @@ compareAllConfirmedEqualityElseUnconfirmedHelp leftList rightList =
                             Unconfirmed
 
 
-type RecordFieldComparison
-    = MissingOtherValue
-    | HasBothValues Expression Expression
-
-
-compareRecords : List (Node Expression.RecordSetter) -> List (Node Expression.RecordSetter) -> Comparison -> Comparison
-compareRecords leftList rightList acc =
-    let
-        leftFields : Dict String (Node Expression)
-        leftFields =
-            List.foldl
-                (\(Node _ ( Node _ fieldName, fieldValue )) soFar ->
-                    Dict.insert fieldName fieldValue soFar
-                )
-                Dict.empty
-                leftList
-
-        rightFields : Dict String (Node Expression)
-        rightFields =
-            List.foldl
-                (\(Node _ ( Node _ fieldName, fieldValue )) soFar ->
-                    Dict.insert fieldName fieldValue soFar
-                )
-                Dict.empty
-                rightList
-
-        recordFieldComparisons : List RecordFieldComparison
-        recordFieldComparisons =
-            Dict.merge
-                (\key _ -> Dict.insert key MissingOtherValue)
-                (\key (Node _ a) (Node _ b) -> Dict.insert key (HasBothValues a b))
-                (\key _ -> Dict.insert key MissingOtherValue)
-                leftFields
-                rightFields
-                Dict.empty
-                |> Dict.values
-    in
-    compareRecordFields recordFieldComparisons acc
-
-
-compareRecordFields : List RecordFieldComparison -> Comparison -> Comparison
-compareRecordFields recordFieldComparisons acc =
-    case recordFieldComparisons of
+compareFields : List (Node Expression.RecordSetter) -> List (Node Expression.RecordSetter) -> Comparison -> Comparison
+compareFields leftList rightList acc =
+    case leftList of
         [] ->
-            acc
+            case rightList of
+                [] ->
+                    acc
 
-        MissingOtherValue :: rest ->
-            compareRecordFields rest Unconfirmed
+                _ :: _ ->
+                    Unconfirmed
 
-        (HasBothValues a b) :: rest ->
-            case compareExistingNormals a b of
-                ConfirmedInequality ->
-                    ConfirmedInequality
+        (Node _ ( Node _ leftField0Name, Node _ leftField0Value )) :: leftFields1Up ->
+            case rightList of
+                [] ->
+                    Unconfirmed
 
-                ConfirmedEquality ->
-                    compareRecordFields rest acc
+                (Node _ ( Node _ rightField0Name, Node _ rightField0Value )) :: rightFields1Up ->
+                    case Basics.compare leftField0Name rightField0Name of
+                        EQ ->
+                            case compareExistingNormals leftField0Value rightField0Value of
+                                ConfirmedInequality ->
+                                    ConfirmedInequality
 
-                Unconfirmed ->
-                    compareRecordFields rest Unconfirmed
+                                ConfirmedEquality ->
+                                    compareFields leftFields1Up rightFields1Up acc
+
+                                Unconfirmed ->
+                                    compareFields leftFields1Up rightFields1Up Unconfirmed
+
+                        LT ->
+                            compareFields leftFields1Up rightList Unconfirmed
+
+                        GT ->
+                            compareFields leftList rightFields1Up Unconfirmed
 
 
 compareCases : List Expression.Case -> List Expression.Case -> Comparison
