@@ -5010,7 +5010,7 @@ collectionCompareElementCountCheck collection checkInfo =
                         ++ isEmptyFnDescription
                         ++ " runs in constant time. "
                   )
-                    ++ "You can replace this expression by "
+                    ++ "You can replace this operation by "
                     ++ replacementDescription
                     ++ " on the "
                     ++ collection.represents
