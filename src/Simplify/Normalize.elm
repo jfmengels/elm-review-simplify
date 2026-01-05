@@ -188,6 +188,7 @@ normalizeExpression resources (Node expressionRange expression) =
         Expression.LetExpression letBlock ->
             Expression.LetExpression
                 { declarations =
+                    -- possible improvement: sort
                     List.map
                         (\decl ->
                             case Node.value decl of
@@ -203,7 +204,9 @@ normalizeExpression resources (Node expressionRange expression) =
                                             , signature = Nothing
                                             , declaration =
                                                 Node.empty
-                                                    { name = Node.empty (Node.value declaration.name)
+                                                    { name =
+                                                        -- possible improvement: assign indices and change the expression scope accordingly
+                                                        Node.empty (Node.value declaration.name)
                                                     , arguments = List.map (\param -> normalizePatternNode resources.lookupTable param) declaration.arguments
                                                     , expression = normalizeExpressionNode resources declaration.expression
                                                     }
