@@ -10101,35 +10101,39 @@ mapAfterConvertMapIdentityCanBeCombinedCheck config =
                             Nothing
 
                         Just convertMapFnCall ->
-                            case convertMapFnCall.argsAfterFirst of
-                                [ toConvertArg ] ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message =
-                                                qualifiedToString checkInfo.fn
-                                                    ++ " on "
-                                                    ++ qualifiedToString config.convertMapFn
-                                                    ++ " with an identity function can be combined"
-                                            , details =
-                                                [ "You can replace these operations by "
-                                                    ++ qualifiedToString config.convertMapFn
-                                                    ++ " with the function given to "
-                                                    ++ qualifiedToString (qualify checkInfo.fn checkInfo)
-                                                    ++ "."
-                                                ]
-                                            }
-                                            checkInfo.fnRange
-                                            (Fix.replaceRangeBy
+                            if AstHelpers.isIdentity checkInfo convertMapFnCall.firstArg then
+                                case convertMapFnCall.argsAfterFirst of
+                                    [ toConvertArg ] ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message =
+                                                    qualifiedToString checkInfo.fn
+                                                        ++ " on "
+                                                        ++ qualifiedToString config.convertMapFn
+                                                        ++ " with an identity function can be combined"
+                                                , details =
+                                                    [ "You can replace these operations by "
+                                                        ++ qualifiedToString config.convertMapFn
+                                                        ++ " with the function given to "
+                                                        ++ qualifiedToString (qualify checkInfo.fn checkInfo)
+                                                        ++ "."
+                                                    ]
+                                                }
                                                 checkInfo.fnRange
-                                                (qualifiedToString (qualify config.convertMapFn checkInfo))
-                                                :: replaceBySubExpressionFix
-                                                    (Node.range cmdArg)
-                                                    toConvertArg
+                                                (Fix.replaceRangeBy
+                                                    checkInfo.fnRange
+                                                    (qualifiedToString (qualify config.convertMapFn checkInfo))
+                                                    :: replaceBySubExpressionFix
+                                                        (Node.range cmdArg)
+                                                        toConvertArg
+                                                )
                                             )
-                                        )
 
-                                _ ->
-                                    Nothing
+                                    _ ->
+                                        Nothing
+
+                            else
+                                Nothing
     }
 
 

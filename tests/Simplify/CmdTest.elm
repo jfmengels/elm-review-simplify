@@ -160,7 +160,15 @@ a = Cmd.batch [ command0,  command1, command2 , command3,  command4, command5  ]
 cmdMapTests : Test
 cmdMapTests =
     describe "Cmd.map"
-        [ test "should replace Cmd.map identity cmd by cmd" <|
+        [ test "should not report Cmd.map with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a1 = Cmd.map f (Task.perform notIdentity task)
+a2 = Cmd.map f (Task.attempt notIdentity task)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Cmd.map identity cmd by cmd" <|
             \() ->
                 """module A exposing (..)
 a = Cmd.map identity cmd
