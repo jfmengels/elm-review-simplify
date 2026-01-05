@@ -4277,7 +4277,7 @@ addingOppositesCheck checkInfo =
         Nothing
 
     else
-        case Normalize.compare checkInfo checkInfo.left (Node Range.emptyRange (Expression.Negation checkInfo.right)) of
+        case Normalize.compare checkInfo checkInfo.left (Node.empty (Expression.Negation checkInfo.right)) of
             Normalize.ConfirmedEquality ->
                 Just
                     (Rule.errorWithFix
