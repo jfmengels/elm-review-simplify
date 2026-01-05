@@ -4816,7 +4816,7 @@ consChecks checkInfo =
 
 equalityChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
 equalityChecks isEqual checkInfo =
-    lengthOrSizeEqualityChecks isEqual checkInfo
+    elementCountEqualityTo0OperationChecks isEqual checkInfo
         |> onNothing
             (\() ->
                 checkOperationFromBothSides checkInfo
@@ -4883,155 +4883,145 @@ equalityChecks isEqual checkInfo =
             (\() -> comparisonWithEmptyChecks isEqual checkInfo)
 
 
-lengthOrSizeEqualityChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
-lengthOrSizeEqualityChecks isEqual checkInfo =
-    lengthOrSizeToEmptyChecks isEqual checkInfo checkInfo.right checkInfo.left
+elementCountEqualityTo0OperationChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
+elementCountEqualityTo0OperationChecks isEqual checkInfo =
+    checkOperationFromBothSides checkInfo
+        (\side ->
+            case Normalize.getInt checkInfo side.otherNode of
+                Just 0 ->
+                    case AstHelpers.getUnreducedValueOrFnOrFnCall side.node of
+                        Nothing ->
+                            Nothing
+
+                        Just call ->
+                            case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable call.fnRange of
+                                Nothing ->
+                                    Nothing
+
+                                Just callFn ->
+                                    case
+                                        compareElementCountChecks
+                                            { isEqual = isEqual
+                                            , operation = checkInfo.operator ++ " 0"
+                                            , fn = ( callFn, call.fnName )
+                                            }
+                                    of
+                                        Nothing ->
+                                            Nothing
+
+                                        Just error ->
+                                            let
+                                                isEmptyFnQualifiedString : String
+                                                isEmptyFnQualifiedString =
+                                                    qualifiedToString (qualify error.isEmptyFn checkInfo)
+                                            in
+                                            Just
+                                                (Rule.errorWithFix { message = error.message, details = error.details }
+                                                    call.fnRange
+                                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.node }
+                                                        ++ (if isEqual then
+                                                                [ Fix.replaceRangeBy call.fnRange isEmptyFnQualifiedString
+                                                                ]
+
+                                                            else
+                                                                let
+                                                                    notFn : String
+                                                                    notFn =
+                                                                        qualifiedToString (qualify Fn.Basics.not checkInfo)
+                                                                in
+                                                                case call.callStyle of
+                                                                    CallStyle.Application ->
+                                                                        [ Fix.replaceRangeBy call.fnRange (notFn ++ " (" ++ isEmptyFnQualifiedString)
+                                                                        , Fix.insertAt checkInfo.parentRange.end ")"
+                                                                        ]
+
+                                                                    CallStyle.Pipe CallStyle.LeftToRight ->
+                                                                        [ Fix.replaceRangeBy call.fnRange (isEmptyFnQualifiedString ++ " |> " ++ notFn)
+                                                                        ]
+
+                                                                    CallStyle.Pipe CallStyle.RightToLeft ->
+                                                                        [ Fix.replaceRangeBy call.fnRange (notFn ++ " <| " ++ isEmptyFnQualifiedString)
+                                                                        ]
+                                                           )
+                                                    )
+                                                )
+
+                _ ->
+                    Nothing
+        )
+
+
+compareElementCountChecks :
+    { isEqual : Bool, operation : String, fn : ( ModuleName, String ) }
+    ->
+        Maybe
+            { message : String
+            , details : List String
+            , isEmptyFn : ( ModuleName, String )
+            }
+compareElementCountChecks checkInfo =
+    -- , compareWithZeroCheck Fn.String.isEmpty Fn.String.length "String" is this the best replacement? Should it be == ""?
+    collectionCompareElementCountCheck listCollection checkInfo
         |> onNothing
-            (\() -> lengthOrSizeToEmptyChecks isEqual checkInfo checkInfo.left checkInfo.right)
+            (\() -> collectionCompareElementCountCheck dictCollection checkInfo)
+        |> onNothing
+            (\() -> collectionCompareElementCountCheck setCollection checkInfo)
+        |> onNothing
+            (\() -> collectionCompareElementCountCheck arrayCollection checkInfo)
 
 
-lengthOrSizeToEmptyChecks : Bool -> OperatorApplicationCheckInfo -> Node Expression -> Node Expression -> Maybe (Error {})
-lengthOrSizeToEmptyChecks isEqual checkInfo thisNode thatNode =
-    if Normalize.getInt checkInfo thatNode == Just 0 then
-        case compareWithZeroChecks checkInfo isEqual thisNode of
-            Just { message, details, fnRange, callStyle, newFunction } ->
-                let
-                    removeComparison : Fix
-                    removeComparison =
-                        Fix.removeRange <|
-                            case Range.compare (Node.range thisNode) (Node.range thatNode) of
-                                LT ->
-                                    { start = (Node.range thisNode).end
-                                    , end = (Node.range thatNode).end
-                                    }
+collectionCompareElementCountCheck :
+    TypeProperties (WithElementCountFn { a | isEmptyFn : ( ModuleName, String ) })
+    -> { isEqual : Bool, operation : String, fn : ( ModuleName, String ) }
+    ->
+        Maybe
+            { message : String
+            , details : List String
+            , isEmptyFn : ( ModuleName, String )
+            }
+collectionCompareElementCountCheck collection checkInfo =
+    if checkInfo.fn == collection.elementCount.fn then
+        let
+            isEmptyFnDescription : String
+            isEmptyFnDescription =
+                qualifiedToString (qualify collection.isEmptyFn defaultQualifyResources)
 
-                                _ ->
-                                    { start = (Node.range thatNode).start
-                                    , end = (Node.range thisNode).start
-                                    }
-                in
-                Just
-                    (Rule.errorWithFix { message = message, details = details }
-                        fnRange
-                        (if isEqual then
-                            [ Fix.replaceRangeBy fnRange newFunction
-                            , removeComparison
-                            ]
+            replacementDescription : String
+            replacementDescription =
+                if checkInfo.isEqual then
+                    isEmptyFnDescription
 
-                         else
-                            let
-                                notFn : String
-                                notFn =
-                                    qualifiedToString (qualify Fn.Basics.not checkInfo)
-                            in
-                            case callStyle of
-                                CallStyle.Application ->
-                                    [ Fix.replaceRangeBy fnRange (notFn ++ " (" ++ newFunction)
-                                    , removeComparison
-                                    , Fix.insertAt checkInfo.parentRange.end ")"
-                                    ]
+                else
+                    "not on " ++ isEmptyFnDescription
+        in
+        Just
+            { isEmptyFn = collection.isEmptyFn
+            , message = qualifiedToString collection.elementCount.fn ++ " " ++ checkInfo.operation ++ " can be replaced by " ++ replacementDescription
+            , details =
+                [ (if collection.elementCount.isConstantTime then
+                    ""
 
-                                CallStyle.Pipe CallStyle.LeftToRight ->
-                                    [ Fix.replaceRangeBy fnRange (newFunction ++ " |> " ++ notFn)
-                                    , removeComparison
-                                    ]
-
-                                CallStyle.Pipe CallStyle.RightToLeft ->
-                                    [ Fix.replaceRangeBy fnRange (notFn ++ " <| " ++ newFunction)
-                                    , removeComparison
-                                    ]
-                        )
-                    )
-
-            Nothing ->
-                Nothing
+                   else
+                    "Whereas "
+                        ++ qualifiedToString collection.elementCount.fn
+                        ++ " takes as long to run as the number of elements in the "
+                        ++ collection.represents
+                        ++ ", "
+                        ++ isEmptyFnDescription
+                        ++ " runs in constant time. "
+                  )
+                    ++ "You can replace this expression by "
+                    ++ replacementDescription
+                    ++ " on the "
+                    ++ collection.represents
+                    ++ " given to the "
+                    ++ qualifiedToString collection.elementCount.fn
+                    ++ " call."
+                ]
+            }
 
     else
         Nothing
-
-
-compareWithZeroChecks :
-    OperatorApplicationCheckInfo
-    -> Bool
-    -> Node Expression
-    ->
-        Maybe
-            { message : String
-            , details : List String
-            , fnRange : Range
-            , callStyle : FunctionCallStyle
-            , newFunction : String
-            }
-compareWithZeroChecks checkInfo isEqual node =
-    -- , compareWithZeroCheck Fn.String.isEmpty Fn.String.length "String" is this the best replacement? Should it be == ""?
-    compareLengthWithZeroCheck listCollection isEqual checkInfo node
-        |> onNothing
-            (\() -> compareLengthWithZeroCheck dictCollection isEqual checkInfo node)
-        |> onNothing
-            (\() -> compareLengthWithZeroCheck setCollection isEqual checkInfo node)
-        |> onNothing
-            (\() -> compareLengthWithZeroCheck arrayCollection isEqual checkInfo node)
-
-
-compareLengthWithZeroCheck :
-    TypeProperties (WithElementCountFn { a | isEmptyFn : ( ModuleName, String ) })
-    -> Bool
-    -> OperatorApplicationCheckInfo
-    -> Node Expression
-    ->
-        Maybe
-            { message : String
-            , details : List String
-            , fnRange : Range
-            , callStyle : FunctionCallStyle
-            , newFunction : String
-            }
-compareLengthWithZeroCheck collection isEqual checkInfo node =
-    case AstHelpers.getSpecificUnreducedFnCall collection.elementCount.fn checkInfo.lookupTable node of
-        Just call ->
-            let
-                newFunction : String
-                newFunction =
-                    qualifiedToString (qualify collection.isEmptyFn defaultQualifyResources)
-
-                replacementDescription : String
-                replacementDescription =
-                    if isEqual then
-                        newFunction
-
-                    else
-                        "not on " ++ newFunction
-            in
-            Just
-                { message = qualifiedToString collection.elementCount.fn ++ " " ++ checkInfo.operator ++ " 0 can be replaced by " ++ replacementDescription
-                , details =
-                    [ (if collection.elementCount.isConstantTime then
-                        ""
-
-                       else
-                        "Whereas "
-                            ++ qualifiedToString collection.elementCount.fn
-                            ++ " takes as long to run as the number of elements in the "
-                            ++ collection.represents
-                            ++ ", "
-                            ++ newFunction
-                            ++ " runs in constant time. "
-                      )
-                        ++ "You can replace this expression by "
-                        ++ replacementDescription
-                        ++ " on the "
-                        ++ collection.represents
-                        ++ " given to the "
-                        ++ qualifiedToString collection.elementCount.fn
-                        ++ " call."
-                    ]
-                , fnRange = call.fnRange
-                , callStyle = call.callStyle
-                , newFunction = qualifiedToString (qualify collection.isEmptyFn checkInfo)
-                }
-
-        Nothing ->
-            Nothing
 
 
 comparisonWithEmptyChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
