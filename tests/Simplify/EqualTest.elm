@@ -1251,7 +1251,7 @@ a = List.length l == 0
                         [ Review.Test.error
                             { message = "List.length == 0 can be replaced by List.isEmpty"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this expression by List.isEmpty on the list given to the List.length call."
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by List.isEmpty on the list given to the List.length call."
                                 ]
                             , under = "List.length"
                             }
@@ -1269,7 +1269,7 @@ a = 0 == List.length l
                         [ Review.Test.error
                             { message = "List.length == 0 can be replaced by List.isEmpty"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this expression by List.isEmpty on the list given to the List.length call."
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by List.isEmpty on the list given to the List.length call."
                                 ]
                             , under = "List.length"
                             }
@@ -1287,7 +1287,7 @@ a = (l |> List.length) == 0
                         [ Review.Test.error
                             { message = "List.length == 0 can be replaced by List.isEmpty"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this expression by List.isEmpty on the list given to the List.length call."
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by List.isEmpty on the list given to the List.length call."
                                 ]
                             , under = "List.length"
                             }
@@ -1305,7 +1305,7 @@ a = 0 == (l |> List.length)
                         [ Review.Test.error
                             { message = "List.length == 0 can be replaced by List.isEmpty"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this expression by List.isEmpty on the list given to the List.length call."
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by List.isEmpty on the list given to the List.length call."
                                 ]
                             , under = "List.length"
                             }
@@ -1323,7 +1323,7 @@ a = List.length l /= 0
                         [ Review.Test.error
                             { message = "List.length /= 0 can be replaced by not on List.isEmpty"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this expression by not on List.isEmpty on the list given to the List.length call."
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by not on List.isEmpty on the list given to the List.length call."
                                 ]
                             , under = "List.length"
                             }
@@ -1341,7 +1341,7 @@ a = 0 /= List.length l
                         [ Review.Test.error
                             { message = "List.length /= 0 can be replaced by not on List.isEmpty"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this expression by not on List.isEmpty on the list given to the List.length call."
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by not on List.isEmpty on the list given to the List.length call."
                                 ]
                             , under = "List.length"
                             }
@@ -1359,7 +1359,7 @@ a = (l |> List.length) /= 0
                         [ Review.Test.error
                             { message = "List.length /= 0 can be replaced by not on List.isEmpty"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this expression by not on List.isEmpty on the list given to the List.length call."
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by not on List.isEmpty on the list given to the List.length call."
                                 ]
                             , under = "List.length"
                             }
@@ -1377,7 +1377,7 @@ a = 0 /= (l |> List.length)
                         [ Review.Test.error
                             { message = "List.length /= 0 can be replaced by not on List.isEmpty"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this expression by not on List.isEmpty on the list given to the List.length call."
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by not on List.isEmpty on the list given to the List.length call."
                                 ]
                             , under = "List.length"
                             }
@@ -1396,7 +1396,7 @@ not = False
                         [ Review.Test.error
                             { message = "List.length /= 0 can be replaced by not on List.isEmpty"
                             , details =
-                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this expression by not on List.isEmpty on the list given to the List.length call."
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by not on List.isEmpty on the list given to the List.length call."
                                 ]
                             , under = "List.length"
                             }
@@ -1422,7 +1422,7 @@ a = Set.size s == 0
                         [ Review.Test.error
                             { message = "Set.size == 0 can be replaced by Set.isEmpty"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this expression by Set.isEmpty on the set given to the Set.size call."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this operation by Set.isEmpty on the set given to the Set.size call."
                                 ]
                             , under = "Set.size"
                             }
@@ -1442,7 +1442,7 @@ a = CoreSet.size s == 0
                         [ Review.Test.error
                             { message = "Set.size == 0 can be replaced by Set.isEmpty"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this expression by Set.isEmpty on the set given to the Set.size call."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this operation by Set.isEmpty on the set given to the Set.size call."
                                 ]
                             , under = "CoreSet.size"
                             }
@@ -1462,7 +1462,7 @@ a = size s == 0
                         [ Review.Test.error
                             { message = "Set.size == 0 can be replaced by Set.isEmpty"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this expression by Set.isEmpty on the set given to the Set.size call."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this operation by Set.isEmpty on the set given to the Set.size call."
                                 ]
                             , under = "size"
                             }
@@ -1482,7 +1482,7 @@ a = 0 == Set.size s
                         [ Review.Test.error
                             { message = "Set.size == 0 can be replaced by Set.isEmpty"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this expression by Set.isEmpty on the set given to the Set.size call."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this operation by Set.isEmpty on the set given to the Set.size call."
                                 ]
                             , under = "Set.size"
                             }
@@ -1502,7 +1502,7 @@ a = (s |> Set.size) == 0
                         [ Review.Test.error
                             { message = "Set.size == 0 can be replaced by Set.isEmpty"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this expression by Set.isEmpty on the set given to the Set.size call."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this operation by Set.isEmpty on the set given to the Set.size call."
                                 ]
                             , under = "Set.size"
                             }
@@ -1522,7 +1522,7 @@ a = 0 == (s |> Set.size)
                         [ Review.Test.error
                             { message = "Set.size == 0 can be replaced by Set.isEmpty"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this expression by Set.isEmpty on the set given to the Set.size call."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this operation by Set.isEmpty on the set given to the Set.size call."
                                 ]
                             , under = "Set.size"
                             }
@@ -1542,7 +1542,7 @@ a = Set.size s /= 0
                         [ Review.Test.error
                             { message = "Set.size /= 0 can be replaced by not on Set.isEmpty"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this expression by not on Set.isEmpty on the set given to the Set.size call."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this operation by not on Set.isEmpty on the set given to the Set.size call."
                                 ]
                             , under = "Set.size"
                             }
@@ -1562,7 +1562,7 @@ a = 0 /= Set.size s
                         [ Review.Test.error
                             { message = "Set.size /= 0 can be replaced by not on Set.isEmpty"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this expression by not on Set.isEmpty on the set given to the Set.size call."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this operation by not on Set.isEmpty on the set given to the Set.size call."
                                 ]
                             , under = "Set.size"
                             }
@@ -1582,7 +1582,7 @@ a = (s |> Set.size) /= 0
                         [ Review.Test.error
                             { message = "Set.size /= 0 can be replaced by not on Set.isEmpty"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this expression by not on Set.isEmpty on the set given to the Set.size call."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this operation by not on Set.isEmpty on the set given to the Set.size call."
                                 ]
                             , under = "Set.size"
                             }
@@ -1602,7 +1602,7 @@ a = 0 /= (s |> Set.size)
                         [ Review.Test.error
                             { message = "Set.size /= 0 can be replaced by not on Set.isEmpty"
                             , details =
-                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this expression by not on Set.isEmpty on the set given to the Set.size call."
+                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this operation by not on Set.isEmpty on the set given to the Set.size call."
                                 ]
                             , under = "Set.size"
                             }
@@ -1628,7 +1628,7 @@ a = Dict.size d == 0
                         [ Review.Test.error
                             { message = "Dict.size == 0 can be replaced by Dict.isEmpty"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this expression by Dict.isEmpty on the dict given to the Dict.size call."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this operation by Dict.isEmpty on the dict given to the Dict.size call."
                                 ]
                             , under = "Dict.size"
                             }
@@ -1648,7 +1648,7 @@ a = size d == 0
                         [ Review.Test.error
                             { message = "Dict.size == 0 can be replaced by Dict.isEmpty"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this expression by Dict.isEmpty on the dict given to the Dict.size call."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this operation by Dict.isEmpty on the dict given to the Dict.size call."
                                 ]
                             , under = "size"
                             }
@@ -1668,7 +1668,7 @@ a = 0 == Dict.size d
                         [ Review.Test.error
                             { message = "Dict.size == 0 can be replaced by Dict.isEmpty"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this expression by Dict.isEmpty on the dict given to the Dict.size call."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this operation by Dict.isEmpty on the dict given to the Dict.size call."
                                 ]
                             , under = "Dict.size"
                             }
@@ -1688,7 +1688,7 @@ a = (d |> Dict.size) == 0
                         [ Review.Test.error
                             { message = "Dict.size == 0 can be replaced by Dict.isEmpty"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this expression by Dict.isEmpty on the dict given to the Dict.size call."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this operation by Dict.isEmpty on the dict given to the Dict.size call."
                                 ]
                             , under = "Dict.size"
                             }
@@ -1708,7 +1708,7 @@ a = 0 == (d |> Dict.size)
                         [ Review.Test.error
                             { message = "Dict.size == 0 can be replaced by Dict.isEmpty"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this expression by Dict.isEmpty on the dict given to the Dict.size call."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this operation by Dict.isEmpty on the dict given to the Dict.size call."
                                 ]
                             , under = "Dict.size"
                             }
@@ -1728,7 +1728,7 @@ a = Dict.size d /= 0
                         [ Review.Test.error
                             { message = "Dict.size /= 0 can be replaced by not on Dict.isEmpty"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this expression by not on Dict.isEmpty on the dict given to the Dict.size call."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this operation by not on Dict.isEmpty on the dict given to the Dict.size call."
                                 ]
                             , under = "Dict.size"
                             }
@@ -1748,7 +1748,7 @@ a = 0 /= Dict.size d
                         [ Review.Test.error
                             { message = "Dict.size /= 0 can be replaced by not on Dict.isEmpty"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this expression by not on Dict.isEmpty on the dict given to the Dict.size call."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this operation by not on Dict.isEmpty on the dict given to the Dict.size call."
                                 ]
                             , under = "Dict.size"
                             }
@@ -1768,7 +1768,7 @@ a = (d |> Dict.size) /= 0
                         [ Review.Test.error
                             { message = "Dict.size /= 0 can be replaced by not on Dict.isEmpty"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this expression by not on Dict.isEmpty on the dict given to the Dict.size call."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this operation by not on Dict.isEmpty on the dict given to the Dict.size call."
                                 ]
                             , under = "Dict.size"
                             }
@@ -1788,7 +1788,7 @@ a = 0 /= (d |> Dict.size)
                         [ Review.Test.error
                             { message = "Dict.size /= 0 can be replaced by not on Dict.isEmpty"
                             , details =
-                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this expression by not on Dict.isEmpty on the dict given to the Dict.size call."
+                                [ "Whereas Dict.size takes as long to run as the number of elements in the dict, Dict.isEmpty runs in constant time. You can replace this operation by not on Dict.isEmpty on the dict given to the Dict.size call."
                                 ]
                             , under = "Dict.size"
                             }
@@ -1814,7 +1814,7 @@ a = Array.length array == 0
                         [ Review.Test.error
                             { message = "Array.length == 0 can be replaced by Array.isEmpty"
                             , details =
-                                [ "You can replace this expression by Array.isEmpty on the array given to the Array.length call."
+                                [ "You can replace this operation by Array.isEmpty on the array given to the Array.length call."
                                 ]
                             , under = "Array.length"
                             }
@@ -1834,7 +1834,7 @@ a = length array == 0
                         [ Review.Test.error
                             { message = "Array.length == 0 can be replaced by Array.isEmpty"
                             , details =
-                                [ "You can replace this expression by Array.isEmpty on the array given to the Array.length call."
+                                [ "You can replace this operation by Array.isEmpty on the array given to the Array.length call."
                                 ]
                             , under = "length"
                             }
@@ -1854,7 +1854,7 @@ a = 0 == Array.length array
                         [ Review.Test.error
                             { message = "Array.length == 0 can be replaced by Array.isEmpty"
                             , details =
-                                [ "You can replace this expression by Array.isEmpty on the array given to the Array.length call."
+                                [ "You can replace this operation by Array.isEmpty on the array given to the Array.length call."
                                 ]
                             , under = "Array.length"
                             }
@@ -1874,7 +1874,7 @@ a = (array |> Array.length) == 0
                         [ Review.Test.error
                             { message = "Array.length == 0 can be replaced by Array.isEmpty"
                             , details =
-                                [ "You can replace this expression by Array.isEmpty on the array given to the Array.length call."
+                                [ "You can replace this operation by Array.isEmpty on the array given to the Array.length call."
                                 ]
                             , under = "Array.length"
                             }
@@ -1894,7 +1894,7 @@ a = 0 == (array |> Array.length)
                         [ Review.Test.error
                             { message = "Array.length == 0 can be replaced by Array.isEmpty"
                             , details =
-                                [ "You can replace this expression by Array.isEmpty on the array given to the Array.length call."
+                                [ "You can replace this operation by Array.isEmpty on the array given to the Array.length call."
                                 ]
                             , under = "Array.length"
                             }
@@ -1914,7 +1914,7 @@ a = Array.length array /= 0
                         [ Review.Test.error
                             { message = "Array.length /= 0 can be replaced by not on Array.isEmpty"
                             , details =
-                                [ "You can replace this expression by not on Array.isEmpty on the array given to the Array.length call."
+                                [ "You can replace this operation by not on Array.isEmpty on the array given to the Array.length call."
                                 ]
                             , under = "Array.length"
                             }
@@ -1934,7 +1934,7 @@ a = 0 /= Array.length array
                         [ Review.Test.error
                             { message = "Array.length /= 0 can be replaced by not on Array.isEmpty"
                             , details =
-                                [ "You can replace this expression by not on Array.isEmpty on the array given to the Array.length call."
+                                [ "You can replace this operation by not on Array.isEmpty on the array given to the Array.length call."
                                 ]
                             , under = "Array.length"
                             }
@@ -1954,7 +1954,7 @@ a = (array |> Array.length) /= 0
                         [ Review.Test.error
                             { message = "Array.length /= 0 can be replaced by not on Array.isEmpty"
                             , details =
-                                [ "You can replace this expression by not on Array.isEmpty on the array given to the Array.length call."
+                                [ "You can replace this operation by not on Array.isEmpty on the array given to the Array.length call."
                                 ]
                             , under = "Array.length"
                             }
@@ -1974,7 +1974,7 @@ a = 0 /= (array |> Array.length)
                         [ Review.Test.error
                             { message = "Array.length /= 0 can be replaced by not on Array.isEmpty"
                             , details =
-                                [ "You can replace this expression by not on Array.isEmpty on the array given to the Array.length call."
+                                [ "You can replace this operation by not on Array.isEmpty on the array given to the Array.length call."
                                 ]
                             , under = "Array.length"
                             }
