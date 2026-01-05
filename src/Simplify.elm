@@ -9021,7 +9021,7 @@ setFromListChecks =
             (\checkInfo ->
                 case Node.value checkInfo.firstArg of
                     Expression.ListExpr elements ->
-                        case List.map (\element -> Normalize.normalizeButKeepRange checkInfo element) elements of
+                        case List.map (\element -> Normalize.normalizeExpressionButKeepRange checkInfo element) elements of
                             [] ->
                                 Nothing
 
@@ -9350,7 +9350,7 @@ dictFromListChecks =
                                         { entryRange = Node.range entry
                                         , first =
                                             AstHelpers.getTuple2 checkInfo.lookupTable entry
-                                                |> Maybe.map (\tuple -> Normalize.normalizeButKeepRange checkInfo tuple.first)
+                                                |> Maybe.map (\tuple -> Normalize.normalizeExpressionButKeepRange checkInfo tuple.first)
                                         }
                                 in
                                 allKeysDifferent checkInfo.expectNaN (toEntry first) (List.map toEntry rest)
@@ -9361,8 +9361,8 @@ dictFromListChecks =
                                                 { message = "Dict.fromList on a list with a duplicate entry will only keep one of them"
                                                 , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove earlier entries with duplicate keys." ]
                                                 }
-                                                (Normalize.normalizeButKeepRange checkInfo first)
-                                                (List.map (\entry -> Normalize.normalizeButKeepRange checkInfo entry) rest)
+                                                (Normalize.normalizeExpressionButKeepRange checkInfo first)
+                                                (List.map (\entry -> Normalize.normalizeExpressionButKeepRange checkInfo entry) rest)
                                         )
 
                     _ ->
