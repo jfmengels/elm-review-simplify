@@ -5053,10 +5053,10 @@ comparisonWithEmptyChecks isEqual checkInfo =
                     ( fnName ++ " ", "" )
 
             else if needsParens expr then
-                ( "not (" ++ fnName ++ " (", "))" )
+                ( qualifiedToString (qualify Fn.Basics.not checkInfo) ++ " (" ++ fnName ++ " (", "))" )
 
             else
-                ( "not (" ++ fnName ++ " ", ")" )
+                ( qualifiedToString (qualify Fn.Basics.not checkInfo) ++ " (" ++ fnName ++ " ", ")" )
     in
     case isEmpty checkInfo.lookupTable checkInfo.right of
         Just modName ->
