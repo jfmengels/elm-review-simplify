@@ -80,7 +80,7 @@ normalizeExpression resources (Node expressionRange expression) =
                             let
                                 recordAccess : Expression
                                 recordAccess =
-                                    Expression.RecordAccess normalizedArg1 (toNode (String.dropLeft 1 fieldAccess))
+                                    Expression.RecordAccess normalizedArg1 (Node.empty (String.dropLeft 1 fieldAccess))
                             in
                             case afterFirstArg of
                                 [] ->
@@ -88,14 +88,14 @@ normalizeExpression resources (Node expressionRange expression) =
 
                                 secondArg :: argsAfterSecond ->
                                     Expression.Application
-                                        (toNode recordAccess
+                                        (Node.empty recordAccess
                                             :: normalizeExpressionNode resources secondArg
                                             :: List.map (\arg -> normalizeExpressionNode resources arg) argsAfterSecond
                                         )
 
                         normalizedFn ->
                             Expression.Application
-                                (toNode normalizedFn
+                                (Node.empty normalizedFn
                                     :: normalizedArg1
                                     :: List.map (\arg -> normalizeExpressionNode resources arg) afterFirstArg
                                 )
@@ -180,7 +180,7 @@ normalizeExpression resources (Node expressionRange expression) =
                     Node.value subExpr
 
                 _ ->
-                    Expression.Negation (toNode normalized)
+                    Expression.Negation (Node.empty normalized)
 
         Expression.TupledExpression nodes ->
             Expression.TupledExpression (List.map (\part -> normalizeExpressionNode resources part) nodes)
@@ -197,13 +197,13 @@ normalizeExpression resources (Node expressionRange expression) =
                                         declaration =
                                             Node.value function.declaration
                                     in
-                                    toNode
+                                    Node.empty
                                         (Expression.LetFunction
                                             { documentation = Nothing
                                             , signature = Nothing
                                             , declaration =
-                                                toNode
-                                                    { name = toNode (Node.value declaration.name)
+                                                Node.empty
+                                                    { name = Node.empty (Node.value declaration.name)
                                                     , arguments = List.map (\param -> normalizePatternNode resources.lookupTable param) declaration.arguments
                                                     , expression = normalizeExpressionNode resources declaration.expression
                                                     }
@@ -211,7 +211,7 @@ normalizeExpression resources (Node expressionRange expression) =
                                         )
 
                                 Expression.LetDestructuring pattern expr ->
-                                    toNode (Expression.LetDestructuring (normalizePatternNode resources.lookupTable pattern) (normalizeExpressionNode resources expr))
+                                    Node.empty (Expression.LetDestructuring (normalizePatternNode resources.lookupTable pattern) (normalizeExpressionNode resources expr))
                         )
                         letBlock.declarations
                 , expression = normalizeExpressionNode resources letBlock.expression
@@ -238,7 +238,7 @@ normalizeExpression resources (Node expressionRange expression) =
 
                     resultNormalized ->
                         { args = lambdaPatternsNormalized
-                        , expression = toNode resultNormalized
+                        , expression = Node.empty resultNormalized
                         }
                 )
 
@@ -247,19 +247,19 @@ normalizeExpression resources (Node expressionRange expression) =
 
         Expression.RecordAccess expr (Node _ field) ->
             infer resources
-                (Expression.RecordAccess (normalizeExpressionNode resources expr) (toNode field))
+                (Expression.RecordAccess (normalizeExpressionNode resources expr) (Node.empty field))
 
         Expression.RecordExpr fields ->
             fields
                 |> List.sortBy (\(Node _ ( Node _ fieldName, _ )) -> fieldName)
-                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalizeExpressionNode resources expr ))
+                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> Node.empty ( Node.empty fieldName, normalizeExpressionNode resources expr ))
                 |> Expression.RecordExpr
 
         Expression.RecordUpdateExpression (Node _ value) nodes ->
             nodes
                 |> List.sortBy (\(Node _ ( Node _ fieldName, _ )) -> fieldName)
-                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> toNode ( toNode fieldName, normalizeExpressionNode resources expr ))
-                |> Expression.RecordUpdateExpression (toNode value)
+                |> List.map (\(Node _ ( Node _ fieldName, expr )) -> Node.empty ( Node.empty fieldName, normalizeExpressionNode resources expr ))
+                |> Expression.RecordUpdateExpression (Node.empty value)
 
         Expression.Hex int ->
             Expression.Floatable (Basics.toFloat int)
@@ -406,13 +406,13 @@ addToFunctionCall resources functionCall extraArgument =
         Expression.LetExpression { declarations, expression } ->
             Expression.LetExpression
                 { declarations = declarations
-                , expression = toNode (addToFunctionCall resources expression extraArgument)
+                , expression = Node.empty (addToFunctionCall resources expression extraArgument)
                 }
 
         Expression.IfBlock condition ifBranch elseBranch ->
             Expression.IfBlock condition
-                (toNode (addToFunctionCall resources ifBranch extraArgument))
-                (toNode (addToFunctionCall resources elseBranch extraArgument))
+                (Node.empty (addToFunctionCall resources ifBranch extraArgument))
+                (Node.empty (addToFunctionCall resources elseBranch extraArgument))
 
         Expression.CaseExpression { expression, cases } ->
             Expression.CaseExpression
@@ -420,13 +420,13 @@ addToFunctionCall resources functionCall extraArgument =
                 , cases =
                     List.map
                         (\( cond, expr ) ->
-                            ( cond, toNode (addToFunctionCall resources expr extraArgument) )
+                            ( cond, Node.empty (addToFunctionCall resources expr extraArgument) )
                         )
                         cases
                 }
 
         Expression.RecordAccessFunction fieldAccess ->
-            Expression.RecordAccess extraArgument (toNode (String.dropLeft 1 fieldAccess))
+            Expression.RecordAccess extraArgument (Node.empty (String.dropLeft 1 fieldAccess))
 
         Expression.FunctionOrValue [ "Basics" ] "not" ->
             case Node.value extraArgument of
@@ -496,7 +496,7 @@ reduceLambda resources lambda =
                     case leftRightReduced.callArguments of
                         [ callArgument ] ->
                             { lambdaPatterns = leftRightReduced.lambdaPatterns
-                            , result = Expression.Application [ toNode (Expression.PrefixOperator operator), callArgument ]
+                            , result = Expression.Application [ Node.empty (Expression.PrefixOperator operator), callArgument ]
                             }
 
                         [] ->
@@ -514,7 +514,7 @@ reduceLambda resources lambda =
                                 case rightLeftReduced.callArguments of
                                     [ callArgument ] ->
                                         { lambdaPatterns = rightLeftReduced.lambdaPatterns
-                                        , result = Expression.Application [ toNode (Expression.PrefixOperator operator), callArgument ]
+                                        , result = Expression.Application [ Node.empty (Expression.PrefixOperator operator), callArgument ]
                                         }
 
                                     [] ->
@@ -552,7 +552,7 @@ reduceLambda resources lambda =
 
 normalizePatternNode : ModuleNameLookupTable -> Node Pattern -> Node Pattern
 normalizePatternNode lookupTable node =
-    toNode (normalizePattern lookupTable node)
+    Node.empty (normalizePattern lookupTable node)
 
 
 normalizePattern : ModuleNameLookupTable -> Node Pattern -> Pattern
@@ -568,7 +568,7 @@ normalizePattern lookupTable node =
             Pattern.RecordPattern
                 (fields
                     |> List.sortBy (\(Node _ fieldName) -> fieldName)
-                    |> List.map (\(Node _ fieldName) -> toNode fieldName)
+                    |> List.map (\(Node _ fieldName) -> Node.empty fieldName)
                 )
 
         Pattern.UnConsPattern element list ->
@@ -577,7 +577,7 @@ normalizePattern lookupTable node =
                     Pattern.ListPattern (normalizePatternNode lookupTable element :: elements)
 
                 normalizedList ->
-                    Pattern.UnConsPattern (normalizePatternNode lookupTable element) (toNode normalizedList)
+                    Pattern.UnConsPattern (normalizePatternNode lookupTable element) (Node.empty normalizedList)
 
         Pattern.ListPattern elements ->
             Pattern.ListPattern (List.map (\element -> normalizePatternNode lookupTable element) elements)
@@ -595,18 +595,13 @@ normalizePattern lookupTable node =
             Pattern.NamedPattern nameRef (List.map (\value -> normalizePatternNode lookupTable value) values)
 
         Pattern.AsPattern aliasPattern (Node _ asName) ->
-            Pattern.AsPattern (normalizePatternNode lookupTable aliasPattern) (toNode asName)
+            Pattern.AsPattern (normalizePatternNode lookupTable aliasPattern) (Node.empty asName)
 
         Pattern.HexPattern int ->
             Pattern.IntPattern int
 
         pattern ->
             pattern
-
-
-toNode : a -> Node a
-toNode =
-    Node.empty
 
 
 
