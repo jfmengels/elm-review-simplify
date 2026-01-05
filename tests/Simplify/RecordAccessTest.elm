@@ -288,7 +288,7 @@ a = { d | b = 3 } |> .c
 a = d.c
 """
                         ]
-        , test "should replace constructing record composition into field access function by contructing that field's value" <|
+        , test "should replace constructing record composition into field access function by constructing that field's value" <|
             \() ->
                 """module A exposing (..)
 a = .b << (\\x -> { b = f <| x })
@@ -304,7 +304,7 @@ a = .b << (\\x -> { b = f <| x })
 a = (\\x -> (f <| x))
 """
                         ]
-        , test "should replace constructing record update composition into field access function by contructing the updated field" <|
+        , test "should replace constructing record update composition into field access function by constructing the updated field" <|
             \() ->
                 """module A exposing (..)
 a = .d << (\\x -> { b | d = f <| x, c = 1 })
@@ -320,7 +320,7 @@ a = .d << (\\x -> { b | d = f <| x, c = 1 })
 a = (\\x -> (f <| x))
 """
                         ]
-        , test "should replace constructing record update composition into unrelated field access function by contructing the unchanged record" <|
+        , test "should replace constructing record update composition into unrelated field access function by constructing the unchanged record" <|
             \() ->
                 """module A exposing (..)
 a = .e << (\\x -> { x | b = y })
