@@ -222,8 +222,9 @@ normalizeExpression resources (Node expressionRange expression) =
         Expression.CaseExpression caseBlock ->
             Expression.CaseExpression
                 { cases =
-                    -- possible improvement: sort by case pattern
-                    List.map (\( pattern, expr ) -> ( normalizePatternNode resources.lookupTable pattern, normalizeExpressionNode resources expr )) caseBlock.cases
+                    caseBlock.cases
+                        |> List.map (\( pattern, expr ) -> ( normalizePatternNode resources.lookupTable pattern, normalizeExpressionNode resources expr ))
+                        |> List.sortBy (\( pattern, _ ) -> patternToComparable pattern)
                 , expression = normalizeExpressionNode resources caseBlock.expression
                 }
 
@@ -290,9 +291,14 @@ infer resources element =
             element
 
 
-toComparable : Node Expression -> String
-toComparable a =
-    Elm.Writer.write (Elm.Writer.writeExpression a)
+expressionToComparable : Node Expression -> String
+expressionToComparable expressionNode =
+    Elm.Writer.write (Elm.Writer.writeExpression expressionNode)
+
+
+patternToComparable : Node Pattern -> String
+patternToComparable patternNode =
+    Elm.Writer.write (Elm.Writer.writePattern patternNode)
 
 
 {-| Expects normalized left and right
@@ -342,7 +348,7 @@ createFallbackOperation : String -> Node Expression -> Node Expression -> Expres
 createFallbackOperation operator left right =
     if
         operatorIsSymmetrical operator
-            && (toComparable left > toComparable right)
+            && (expressionToComparable left > expressionToComparable right)
     then
         Expression.OperatorApplication operator normalizedInfixDirection right left
 

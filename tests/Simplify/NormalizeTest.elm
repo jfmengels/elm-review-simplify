@@ -456,12 +456,24 @@ simpleNormalizationTests =
                                   , n (Floatable 1)
                                   )
                                 , ( n
+                                        (NamedPattern
+                                            { moduleName = [ "Basics" ]
+                                            , name = "Just"
+                                            }
+                                            [ n (NamedPattern { moduleName = [], name = "True" } []) ]
+                                        )
+                                  , n (Floatable 4)
+                                  )
+                                , ( n
                                         (ListPattern
                                             [ n (VarPattern "a")
                                             , n (VarPattern "b")
                                             ]
                                         )
                                   , n (Floatable 2)
+                                  )
+                                , ( n (AsPattern (n (VarPattern "a")) (n "b"))
+                                  , n (Floatable 5)
                                   )
                                 , ( n
                                         (RecordPattern
@@ -471,18 +483,6 @@ simpleNormalizationTests =
                                             ]
                                         )
                                   , n (Floatable 3)
-                                  )
-                                , ( n
-                                        (NamedPattern
-                                            { moduleName = [ "Basics" ]
-                                            , name = "Just"
-                                            }
-                                            [ n (NamedPattern { moduleName = [], name = "True" } []) ]
-                                        )
-                                  , n (Floatable 4)
-                                  )
-                                , ( n (AsPattern (n (VarPattern "a")) (n "b"))
-                                  , n (Floatable 5)
                                   )
                                 ]
                             , expression = n (FunctionOrValue [] "x")
