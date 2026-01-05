@@ -15452,9 +15452,16 @@ callWithTwoEqualArgumentsReturnsEitherArgumentCheck argumentProperties =
                     case
                         listFind
                             (\argInLeft ->
+                                let
+                                    argInLeftNormal : Expression
+                                    argInLeftNormal =
+                                        Normalize.normalizeExpression checkInfo argInLeft.arg
+                                in
                                 List.any
                                     (\argInRight ->
-                                        Normalize.compare checkInfo argInLeft.arg argInRight.arg
+                                        Normalize.compareExistingNormals
+                                            argInLeftNormal
+                                            (Normalize.normalizeExpression checkInfo argInRight.arg)
                                             == Normalize.ConfirmedEquality
                                     )
                                     argsInRight
@@ -15531,9 +15538,16 @@ callWithTwoEqualArgumentsReturnsEitherArgumentCheck argumentProperties =
                                                 case
                                                     listFind
                                                         (\laterInnerArg ->
+                                                            let
+                                                                laterInnerArgNormal : Expression
+                                                                laterInnerArgNormal =
+                                                                    Normalize.normalizeExpression checkInfo laterInnerArg.arg
+                                                            in
                                                             List.any
                                                                 (\earlierInnerArg ->
-                                                                    Normalize.compare checkInfo laterInnerArg.arg earlierInnerArg.arg
+                                                                    Normalize.compareExistingNormals
+                                                                        laterInnerArgNormal
+                                                                        (Normalize.normalizeExpression checkInfo earlierInnerArg.arg)
                                                                         == Normalize.ConfirmedEquality
                                                                 )
                                                                 earlierInnerArgs
@@ -15563,10 +15577,18 @@ callWithTwoEqualArgumentsReturnsEitherArgumentCheck argumentProperties =
                                                             }
 
                                             Nothing ->
+                                                let
+                                                    earlierArgNormal : Expression
+                                                    earlierArgNormal =
+                                                        Normalize.normalizeExpression checkInfo earlierArg
+                                                in
                                                 if
                                                     List.any
                                                         (\laterInnerArg ->
-                                                            Normalize.compare checkInfo laterInnerArg.arg earlierArg == Normalize.ConfirmedEquality
+                                                            Normalize.compareExistingNormals
+                                                                (Normalize.normalizeExpression checkInfo laterInnerArg.arg)
+                                                                earlierArgNormal
+                                                                == Normalize.ConfirmedEquality
                                                         )
                                                         laterInnerArgs
                                                 then
@@ -15589,9 +15611,14 @@ callWithTwoEqualArgumentsReturnsEitherArgumentCheck argumentProperties =
                                                     Nothing
 
                                     Nothing ->
+                                        let
+                                            laterArgNormal : Expression
+                                            laterArgNormal =
+                                                Normalize.normalizeExpression checkInfo laterArg
+                                        in
                                         case maybeEarlierInnerArgs of
                                             Nothing ->
-                                                case Normalize.compare checkInfo earlierArg laterArg of
+                                                case Normalize.compareExistingNormals (Normalize.normalizeExpression checkInfo earlierArg) laterArgNormal of
                                                     Normalize.ConfirmedEquality ->
                                                         Just
                                                             { info =
@@ -15616,7 +15643,10 @@ callWithTwoEqualArgumentsReturnsEitherArgumentCheck argumentProperties =
                                                 if
                                                     List.any
                                                         (\earlierInnerArg ->
-                                                            Normalize.compare checkInfo earlierInnerArg.arg laterArg == Normalize.ConfirmedEquality
+                                                            Normalize.compareExistingNormals
+                                                                (Normalize.normalizeExpression checkInfo earlierInnerArg.arg)
+                                                                laterArgNormal
+                                                                == Normalize.ConfirmedEquality
                                                         )
                                                         earlierInnerArgs
                                                 then
