@@ -4885,83 +4885,69 @@ equalityChecks isEqual checkInfo =
 
 lengthOrSizeEqualityChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
 lengthOrSizeEqualityChecks isEqual checkInfo =
-    case Node.value checkInfo.left of
-        Expression.Integer leftInt ->
-            case Node.value checkInfo.right of
-                Expression.Integer _ ->
-                    Nothing
-
-                _ ->
-                    case leftInt of
-                        0 ->
-                            lengthOrSizeToEmptyChecks isEqual checkInfo checkInfo.right checkInfo.left
-
-                        _ ->
-                            Nothing
-
-        _ ->
-            case Node.value checkInfo.right of
-                Expression.Integer 0 ->
-                    lengthOrSizeToEmptyChecks isEqual checkInfo checkInfo.left checkInfo.right
-
-                _ ->
-                    Nothing
+    lengthOrSizeToEmptyChecks isEqual checkInfo checkInfo.right checkInfo.left
+        |> onNothing
+            (\() -> lengthOrSizeToEmptyChecks isEqual checkInfo checkInfo.left checkInfo.right)
 
 
 lengthOrSizeToEmptyChecks : Bool -> OperatorApplicationCheckInfo -> Node Expression -> Node Expression -> Maybe (Error {})
 lengthOrSizeToEmptyChecks isEqual checkInfo thisNode thatNode =
-    case compareWithZeroChecks checkInfo isEqual thisNode of
-        Just { message, details, fnRange, callStyle, newFunction } ->
-            let
-                removeComparison : Fix
-                removeComparison =
-                    Fix.removeRange <|
-                        case Range.compare (Node.range thisNode) (Node.range thatNode) of
-                            LT ->
-                                { start = (Node.range thisNode).end
-                                , end = (Node.range thatNode).end
-                                }
+    if Normalize.getInt checkInfo thatNode == Just 0 then
+        case compareWithZeroChecks checkInfo isEqual thisNode of
+            Just { message, details, fnRange, callStyle, newFunction } ->
+                let
+                    removeComparison : Fix
+                    removeComparison =
+                        Fix.removeRange <|
+                            case Range.compare (Node.range thisNode) (Node.range thatNode) of
+                                LT ->
+                                    { start = (Node.range thisNode).end
+                                    , end = (Node.range thatNode).end
+                                    }
 
-                            _ ->
-                                { start = (Node.range thatNode).start
-                                , end = (Node.range thisNode).start
-                                }
-            in
-            Just
-                (Rule.errorWithFix { message = message, details = details }
-                    fnRange
-                    (if isEqual then
-                        [ Fix.replaceRangeBy fnRange newFunction
-                        , removeComparison
-                        ]
+                                _ ->
+                                    { start = (Node.range thatNode).start
+                                    , end = (Node.range thisNode).start
+                                    }
+                in
+                Just
+                    (Rule.errorWithFix { message = message, details = details }
+                        fnRange
+                        (if isEqual then
+                            [ Fix.replaceRangeBy fnRange newFunction
+                            , removeComparison
+                            ]
 
-                     else
-                        let
-                            notFn : String
-                            notFn =
-                                qualifiedToString (qualify Fn.Basics.not checkInfo)
-                        in
-                        case callStyle of
-                            CallStyle.Application ->
-                                [ Fix.replaceRangeBy fnRange (notFn ++ " (" ++ newFunction)
-                                , removeComparison
-                                , Fix.insertAt checkInfo.parentRange.end ")"
-                                ]
+                         else
+                            let
+                                notFn : String
+                                notFn =
+                                    qualifiedToString (qualify Fn.Basics.not checkInfo)
+                            in
+                            case callStyle of
+                                CallStyle.Application ->
+                                    [ Fix.replaceRangeBy fnRange (notFn ++ " (" ++ newFunction)
+                                    , removeComparison
+                                    , Fix.insertAt checkInfo.parentRange.end ")"
+                                    ]
 
-                            CallStyle.Pipe CallStyle.LeftToRight ->
-                                [ Fix.replaceRangeBy fnRange (newFunction ++ " |> " ++ notFn)
-                                , removeComparison
-                                ]
+                                CallStyle.Pipe CallStyle.LeftToRight ->
+                                    [ Fix.replaceRangeBy fnRange (newFunction ++ " |> " ++ notFn)
+                                    , removeComparison
+                                    ]
 
-                            CallStyle.Pipe CallStyle.RightToLeft ->
-                                [ Fix.replaceRangeBy fnRange (notFn ++ " <| " ++ newFunction)
-                                , removeComparison
-                                ]
+                                CallStyle.Pipe CallStyle.RightToLeft ->
+                                    [ Fix.replaceRangeBy fnRange (notFn ++ " <| " ++ newFunction)
+                                    , removeComparison
+                                    ]
+                        )
                     )
-                )
 
-        Nothing ->
-            Nothing
+            Nothing ->
+                Nothing
+
+    else
+        Nothing
 
 
 compareWithZeroChecks :
@@ -4978,16 +4964,17 @@ compareWithZeroChecks :
             }
 compareWithZeroChecks checkInfo isEqual node =
     -- , compareWithZeroCheck Fn.String.isEmpty Fn.String.length "String" is this the best replacement? Should it be == ""?
-    compareWithZeroCheck Fn.List.isEmpty Fn.List.length "List" isEqual checkInfo node
-        |> onNothing (\() -> compareWithZeroCheck Fn.Dict.isEmpty Fn.Dict.size "Dict" isEqual checkInfo node)
-        |> onNothing (\() -> compareWithZeroCheck Fn.Set.isEmpty Fn.Set.size "Set" isEqual checkInfo node)
-        |> onNothing (\() -> compareWithZeroCheck Fn.Array.isEmpty Fn.Array.length "Array" isEqual checkInfo node)
+    compareLengthWithZeroCheck listCollection isEqual checkInfo node
+        |> onNothing
+            (\() -> compareLengthWithZeroCheck dictCollection isEqual checkInfo node)
+        |> onNothing
+            (\() -> compareLengthWithZeroCheck setCollection isEqual checkInfo node)
+        |> onNothing
+            (\() -> compareLengthWithZeroCheck arrayCollection isEqual checkInfo node)
 
 
-compareWithZeroCheck :
-    ( ModuleName, String )
-    -> ( ModuleName, String )
-    -> String
+compareLengthWithZeroCheck :
+    TypeProperties (WithElementCountFn { a | isEmptyFn : ( ModuleName, String ) })
     -> Bool
     -> OperatorApplicationCheckInfo
     -> Node Expression
@@ -4999,36 +4986,48 @@ compareWithZeroCheck :
             , callStyle : FunctionCallStyle
             , newFunction : String
             }
-compareWithZeroCheck newFn oldFn structName isEqual checkInfo node =
-    case AstHelpers.getSpecificUnreducedFnCall oldFn checkInfo.lookupTable node of
+compareLengthWithZeroCheck collection isEqual checkInfo node =
+    case AstHelpers.getSpecificUnreducedFnCall collection.elementCount.fn checkInfo.lookupTable node of
         Just call ->
             let
                 newFunction : String
                 newFunction =
-                    qualifiedToString (qualify newFn defaultQualifyResources)
+                    qualifiedToString (qualify collection.isEmptyFn defaultQualifyResources)
 
                 replacementDescription : String
                 replacementDescription =
                     if isEqual then
-                        "`" ++ newFunction ++ "`"
+                        newFunction
 
                     else
-                        "`" ++ newFunction ++ "` and `not`"
+                        "not on " ++ newFunction
             in
             Just
-                { message = "This can be replaced with a call to " ++ replacementDescription
+                { message = qualifiedToString collection.elementCount.fn ++ " " ++ checkInfo.operator ++ " 0 can be replaced by " ++ replacementDescription
                 , details =
-                    [ "Whereas "
-                        ++ qualifiedToString (qualify oldFn checkInfo)
-                        ++ " takes as long to run as the number of elements in the "
-                        ++ structName
-                        ++ ", "
-                        ++ newFunction
-                        ++ " runs in constant time."
+                    [ (if collection.elementCount.isConstantTime then
+                        ""
+
+                       else
+                        "Whereas "
+                            ++ qualifiedToString collection.elementCount.fn
+                            ++ " takes as long to run as the number of elements in the "
+                            ++ collection.represents
+                            ++ ", "
+                            ++ newFunction
+                            ++ " runs in constant time. "
+                      )
+                        ++ "You can replace this expression by "
+                        ++ replacementDescription
+                        ++ " on the "
+                        ++ collection.represents
+                        ++ " given to the "
+                        ++ qualifiedToString collection.elementCount.fn
+                        ++ " call."
                     ]
                 , fnRange = call.fnRange
                 , callStyle = call.callStyle
-                , newFunction = qualifiedToString (qualify newFn checkInfo)
+                , newFunction = qualifiedToString (qualify collection.isEmptyFn checkInfo)
                 }
 
         Nothing ->
@@ -10568,6 +10567,12 @@ type alias CollectionProperties otherProperties =
     }
 
 
+type alias WithElementCountFn otherProperties =
+    { otherProperties
+        | elementCount : { fn : ( ModuleName, String ), isConstantTime : Bool }
+    }
+
+
 {-| Properties of a type that under specific operations has a constant element that "annihilates"
 all others, which means any application with one such element results in that element:
 
@@ -11110,7 +11115,7 @@ jsonDecoderFailingConstruct =
     fnCallConstructWithOneValueProperties (A "failing decoder") Fn.Json.Decode.fail
 
 
-listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties (MappableProperties {})))))
+listCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties (MappableProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) }))))))
 listCollection =
     { represents = "list"
     , representsPlural = "lists"
@@ -11123,6 +11128,8 @@ listCollection =
         }
     , wrap = listSingletonConstruct
     , mapFn = Fn.List.map
+    , isEmptyFn = Fn.List.isEmpty
+    , elementCount = { fn = Fn.List.length, isConstantTime = False }
     , fromList = ConstructionAsList
     }
 
@@ -11379,7 +11386,7 @@ stringGetElements resources expressionNode =
             )
 
 
-arrayCollection : TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties ConstantProperties (MappableProperties {}))))
+arrayCollection : TypeProperties (CollectionProperties (ConstructibleFromListProperties (EmptiableProperties ConstantProperties (MappableProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) })))))
 arrayCollection =
     { represents = "array"
     , representsPlural = "arrays"
@@ -11392,6 +11399,8 @@ arrayCollection =
         }
     , fromList = ConstructionFromListCall Fn.Array.fromList
     , mapFn = Fn.Array.map
+    , isEmptyFn = Fn.Array.isEmpty
+    , elementCount = { fn = Fn.Array.length, isConstantTime = True }
     }
 
 
@@ -11460,7 +11469,7 @@ arrayDetermineLength resources expressionNode =
             )
 
 
-setCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties (MappableProperties {})))))
+setCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties (MappableProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) }))))))
 setCollection =
     { represents = "set"
     , representsPlural = "sets"
@@ -11474,6 +11483,8 @@ setCollection =
     , wrap = setSingletonConstruct
     , fromList = ConstructionFromListCall Fn.Set.fromList
     , mapFn = Fn.Set.map
+    , isEmptyFn = Fn.Set.isEmpty
+    , elementCount = { fn = Fn.Set.size, isConstantTime = False }
     }
 
 
@@ -11589,7 +11600,7 @@ setDetermineSize resources expressionNode =
             )
 
 
-dictCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties {})))
+dictCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) }))))
 dictCollection =
     { represents = "dict"
     , representsPlural = "dicts"
@@ -11601,6 +11612,8 @@ dictCollection =
         , get = dictGetValues
         }
     , fromList = ConstructionFromListCall Fn.Dict.fromList
+    , isEmptyFn = Fn.Dict.isEmpty
+    , elementCount = { fn = Fn.Dict.size, isConstantTime = False }
     }
 
 
