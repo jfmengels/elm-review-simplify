@@ -909,13 +909,22 @@ a = { x | a = 1 } == { a = 2 }
 a = False
 """
                         ]
-        , test "should not simplify equality of record update and record with same field values" <|
+        , test "should simplify equality of record update and record with same field values to True, as that means nothing is left of the original record in the update" <|
             \() ->
                 """module A exposing (..)
 a = { x | a = 1 } == { a = 1 }
 """
                     |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectNoErrors
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
+                            , under = "{ x | a = 1 } == { a = 1 }"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         , test "should simplify equality of record and record update different field values" <|
             \() ->
                 """module A exposing (..)
@@ -932,13 +941,22 @@ a = { a = 1 } == { x | a = 2 }
 a = False
 """
                         ]
-        , test "should not simplify equality of record and record update with same field values" <|
+        , test "should simplify equality of record and record update with same field values to True, as that means nothing is left of the original record in the update" <|
             \() ->
                 """module A exposing (..)
 a = { a = 1 } == { x | a = 1 }
 """
                     |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectNoErrors
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
+                            , under = "{ a = 1 } == { x | a = 1 }"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         , test "should simplify equality of record updates with same base values and field values" <|
             \() ->
                 """module A exposing (..)

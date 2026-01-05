@@ -483,7 +483,7 @@ a = (let b = c in (f x).e.f)
         , test "should simplify record accesses for if/then/else expressions" <|
             \() ->
                 """module A exposing (..)
-a = (if x then { f = 3 } else { z | f = 3 }).f
+a = (if x then { f = 3 } else { z | f = 4 }).f
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -493,13 +493,13 @@ a = (if x then { f = 3 } else { z | f = 3 }).f
                             , under = ".f"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (if x then { f = 3 }.f else { z | f = 3 }.f)
+a = (if x then { f = 3 }.f else { z | f = 4 }.f)
 """
                         ]
         , test "should simplify record accesses for if/then/else expressions (using access function application)" <|
             \() ->
                 """module A exposing (..)
-a = .f (if x then { f = 3 } else { z | f = 3 })
+a = .f (if x then { f = 3 } else { z | f = 4 })
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -509,13 +509,13 @@ a = .f (if x then { f = 3 } else { z | f = 3 })
                             , under = ".f"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (if x then { f = 3 }.f else { z | f = 3 }.f)
+a = (if x then { f = 3 }.f else { z | f = 4 }.f)
 """
                         ]
         , test "should simplify record accesses for if/then/else expressions (using access function <|)" <|
             \() ->
                 """module A exposing (..)
-a = .f <| if x then { f = 3 } else { z | f = 3 }
+a = .f <| if x then { f = 3 } else { z | f = 4 }
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -525,13 +525,13 @@ a = .f <| if x then { f = 3 } else { z | f = 3 }
                             , under = ".f"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = if x then { f = 3 }.f else { z | f = 3 }.f
+a = if x then { f = 3 }.f else { z | f = 4 }.f
 """
                         ]
         , test "should simplify record accesses for if/then/else expressions (using access function |>)" <|
             \() ->
                 """module A exposing (..)
-a = (if x then { f = 3 } else { z | f = 3 }) |> .f
+a = (if x then { f = 3 } else { z | f = 4 }) |> .f
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -541,7 +541,7 @@ a = (if x then { f = 3 } else { z | f = 3 }) |> .f
                             , under = ".f"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = (if x then { f = 3 }.f else { z | f = 3 }.f)
+a = (if x then { f = 3 }.f else { z | f = 4 }.f)
 """
                         ]
         , test "should not simplify record accesses if some branches are not records" <|
