@@ -556,8 +556,8 @@ normalizePatternNode lookupTable node =
 
 
 normalizePattern : ModuleNameLookupTable -> Node Pattern -> Pattern
-normalizePattern lookupTable node =
-    case Node.value node of
+normalizePattern lookupTable (Node patternRange pattern) =
+    case pattern of
         Pattern.ParenthesizedPattern inParens ->
             normalizePattern lookupTable inParens
 
@@ -587,7 +587,7 @@ normalizePattern lookupTable node =
                 nameRef : Pattern.QualifiedNameRef
                 nameRef =
                     { moduleName =
-                        ModuleNameLookupTable.moduleNameFor lookupTable node
+                        ModuleNameLookupTable.moduleNameAt lookupTable patternRange
                             |> Maybe.withDefault qualifiedNameRef.moduleName
                     , name = qualifiedNameRef.name
                     }
@@ -595,12 +595,34 @@ normalizePattern lookupTable node =
             Pattern.NamedPattern nameRef (List.map (\value -> normalizePatternNode lookupTable value) values)
 
         Pattern.AsPattern aliasPattern (Node _ asName) ->
-            Pattern.AsPattern (normalizePatternNode lookupTable aliasPattern) (Node.empty asName)
+            Pattern.AsPattern (normalizePatternNode lookupTable aliasPattern)
+                -- possible improvement: assign indices and change the expression scope accordingly
+                (Node.empty asName)
 
         Pattern.HexPattern int ->
             Pattern.IntPattern int
 
-        pattern ->
+        Pattern.AllPattern ->
+            Pattern.AllPattern
+
+        Pattern.UnitPattern ->
+            Pattern.UnitPattern
+
+        Pattern.CharPattern _ ->
+            pattern
+
+        Pattern.StringPattern _ ->
+            pattern
+
+        Pattern.IntPattern _ ->
+            pattern
+
+        Pattern.VarPattern _ ->
+            -- possible improvement: assign indices and change the expression scope accordingly
+            pattern
+
+        -- invalid syntax
+        Pattern.FloatPattern _ ->
             pattern
 
 
