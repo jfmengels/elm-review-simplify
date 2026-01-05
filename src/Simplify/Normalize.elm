@@ -222,7 +222,9 @@ normalizeExpression resources (Node expressionRange expression) =
 
         Expression.CaseExpression caseBlock ->
             Expression.CaseExpression
-                { cases = List.map (\( pattern, expr ) -> ( normalizePatternNode resources.lookupTable pattern, normalizeExpressionNode resources expr )) caseBlock.cases
+                { cases =
+                    -- possible improvement: sort by case pattern
+                    List.map (\( pattern, expr ) -> ( normalizePatternNode resources.lookupTable pattern, normalizeExpressionNode resources expr )) caseBlock.cases
                 , expression = normalizeExpressionNode resources caseBlock.expression
                 }
 
@@ -1060,7 +1062,6 @@ compareRecordFields recordFieldComparisons acc =
 
 compareCases : List Expression.Case -> List Expression.Case -> Comparison
 compareCases leftCases rightCases =
-    -- possible improvement: sort by case pattern
     case leftCases of
         [] ->
             case rightCases of
