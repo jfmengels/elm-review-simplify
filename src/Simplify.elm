@@ -5038,12 +5038,12 @@ compareWithZeroCheck newFn oldFn structName isEqual checkInfo node =
 comparisonWithEmptyChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
 comparisonWithEmptyChecks isEqual checkInfo =
     let
-        surroundWith : ModuleName -> Node Expression -> ( String, String )
-        surroundWith modName (Node _ expr) =
+        surroundWith : ( ModuleName, String ) -> Node Expression -> ( String, String )
+        surroundWith isEmptyFn (Node _ expr) =
             let
                 fnName : String
                 fnName =
-                    qualifiedToString (qualify ( modName, "isEmpty" ) checkInfo)
+                    qualifiedToString (qualify isEmptyFn checkInfo)
             in
             if isEqual then
                 if needsParens expr then
@@ -5058,14 +5058,14 @@ comparisonWithEmptyChecks isEqual checkInfo =
             else
                 ( qualifiedToString (qualify Fn.Basics.not checkInfo) ++ " (" ++ fnName ++ " ", ")" )
     in
-    case isEmpty checkInfo.lookupTable checkInfo.right of
-        Just modName ->
+    case getEmptyCollection checkInfo.lookupTable checkInfo.right of
+        Just emptyCollection ->
             let
                 ( left, right ) =
-                    surroundWith modName checkInfo.left
+                    surroundWith emptyCollection.isEmptyFn checkInfo.left
             in
             Just
-                (Rule.errorWithFix (toComparisonWithEmptyErrorInfo modName)
+                (Rule.errorWithFix (toComparisonWithEmptyErrorInfo emptyCollection)
                     (Range.combine [ checkInfo.operatorRange, checkInfo.rightRange ])
                     [ Fix.insertAt checkInfo.leftRange.start left
                     , Fix.replaceRangeBy
@@ -5077,14 +5077,14 @@ comparisonWithEmptyChecks isEqual checkInfo =
                 )
 
         Nothing ->
-            case isEmpty checkInfo.lookupTable checkInfo.left of
-                Just modName ->
+            case getEmptyCollection checkInfo.lookupTable checkInfo.left of
+                Just emptyCollection ->
                     let
                         ( left, right ) =
-                            surroundWith modName checkInfo.right
+                            surroundWith emptyCollection.isEmptyFn checkInfo.right
                     in
                     Just
-                        (Rule.errorWithFix (toComparisonWithEmptyErrorInfo modName)
+                        (Rule.errorWithFix (toComparisonWithEmptyErrorInfo emptyCollection)
                             (Range.combine [ checkInfo.leftRange, checkInfo.operatorRange ])
                             [ Fix.replaceRangeBy
                                 { start = checkInfo.leftRange.start
@@ -5099,31 +5099,33 @@ comparisonWithEmptyChecks isEqual checkInfo =
                     Nothing
 
 
-toComparisonWithEmptyErrorInfo : ModuleName -> { message : String, details : List String }
-toComparisonWithEmptyErrorInfo modName =
+toComparisonWithEmptyErrorInfo :
+    { represents : String, isEmptyFn : ( ModuleName, String ) }
+    -> { message : String, details : List String }
+toComparisonWithEmptyErrorInfo emptyCollection =
     let
         modIsEmpty : String
         modIsEmpty =
-            qualifiedToString (qualify ( modName, "isEmpty" ) defaultQualifyResources)
+            qualifiedToString (qualify emptyCollection.isEmptyFn defaultQualifyResources)
     in
-    { message = "Comparison with an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " can be replaced by a call to " ++ modIsEmpty
-    , details = [ "You can replace this comparison to an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " with a call to " ++ modIsEmpty ++ ", which is more efficient." ]
+    { message = "Comparison with an empty " ++ emptyCollection.represents ++ " can be replaced by a call to " ++ modIsEmpty
+    , details = [ "You can replace this comparison to an empty " ++ emptyCollection.represents ++ " with a call to " ++ modIsEmpty ++ ", which is more efficient." ]
     }
 
 
 comparisonWithEmptyCheckInPrefixOperator : ModuleNameLookupTable -> Range -> Node Expression -> Maybe (Error {})
 comparisonWithEmptyCheckInPrefixOperator lookupTable operatorRange arg =
-    case isEmpty lookupTable arg of
-        Just modName ->
+    case getEmptyCollection lookupTable arg of
+        Just emptyCollection ->
             let
                 modIsEmpty : String
                 modIsEmpty =
-                    qualifiedToString (qualify ( modName, "isEmpty" ) defaultQualifyResources)
+                    qualifiedToString (qualify emptyCollection.isEmptyFn defaultQualifyResources)
             in
             Just
                 (Rule.errorWithFix
-                    { message = "Comparison with an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " can be replaced by a call to " ++ modIsEmpty
-                    , details = [ "You can replace this comparison to an empty " ++ String.toLower (AstHelpers.moduleNameToString modName) ++ " with a call to " ++ modIsEmpty ++ ", which is more efficient." ]
+                    { message = "Comparison with an empty " ++ emptyCollection.represents ++ " can be replaced by a call to " ++ modIsEmpty
+                    , details = [ "You can replace this comparison to an empty " ++ emptyCollection.represents ++ " with a call to " ++ modIsEmpty ++ ", which is more efficient." ]
                     }
                     (Range.combine [ operatorRange, Node.range arg ])
                     [ Fix.replaceRangeBy
@@ -5140,24 +5142,24 @@ comparisonWithEmptyCheckInPrefixOperator lookupTable operatorRange arg =
 
 {-| If the expression is [], Array.empty, Set.empty or Dict.empty, return the module name.
 -}
-isEmpty : ModuleNameLookupTable -> Node Expression -> Maybe ModuleName
-isEmpty lookupTable node =
+getEmptyCollection : ModuleNameLookupTable -> Node Expression -> Maybe { represents : String, isEmptyFn : ( ModuleName, String ) }
+getEmptyCollection lookupTable node =
     case AstHelpers.removeParens node of
         Node _ (Expression.ListExpr []) ->
-            Just listModuleName
+            Just { represents = "list", isEmptyFn = Fn.List.isEmpty }
 
         Node range (Expression.FunctionOrValue _ "empty") ->
             case ModuleNameLookupTable.moduleNameAt lookupTable range of
-                Just modName ->
-                    case modName of
+                Just moduleOrigin ->
+                    case moduleOrigin of
                         [ "Array" ] ->
-                            Just modName
+                            Just { represents = "array", isEmptyFn = Fn.Array.isEmpty }
 
                         [ "Set" ] ->
-                            Just modName
+                            Just { represents = "set", isEmptyFn = Fn.Set.isEmpty }
 
                         [ "Dict" ] ->
-                            Just modName
+                            Just { represents = "dict", isEmptyFn = Fn.Dict.isEmpty }
 
                         _ ->
                             Nothing
