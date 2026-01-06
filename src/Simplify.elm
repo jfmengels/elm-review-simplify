@@ -15765,26 +15765,31 @@ unnecessarySpecificFnBeforeCheck :
 unnecessarySpecificFnBeforeCheck config =
     { call =
         \checkInfo ->
-            case AstHelpers.getSpecificUnreducedFnCall config.fn checkInfo.lookupTable checkInfo.firstArg of
-                Just mapUnrelatedCall ->
-                    case fullyAppliedLastArg { argCount = config.fnArgCount, firstArg = mapUnrelatedCall.firstArg, argsAfterFirst = mapUnrelatedCall.argsAfterFirst } of
+            case fullyAppliedLastArg checkInfo of
+                Nothing ->
+                    Nothing
+
+                Just lastArg ->
+                    case AstHelpers.getSpecificUnreducedFnCall config.fn checkInfo.lookupTable lastArg of
                         Nothing ->
                             Nothing
 
-                        Just unmappedTuple ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Unnecessary " ++ qualifiedToString config.fn ++ " before " ++ qualifiedToString checkInfo.fn
-                                    , details = [ config.whyUnnecessary ++ ". You can replace the " ++ qualifiedToString config.fn ++ " call by the unchanged " ++ config.fnLastArgRepresents ++ "." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (replaceBySubExpressionFix mapUnrelatedCall.nodeRange
-                                        unmappedTuple
-                                    )
-                                )
+                        Just mapUnrelatedCall ->
+                            case fullyAppliedLastArg { argCount = config.fnArgCount, firstArg = mapUnrelatedCall.firstArg, argsAfterFirst = mapUnrelatedCall.argsAfterFirst } of
+                                Nothing ->
+                                    Nothing
 
-                Nothing ->
-                    Nothing
+                                Just unmappedTuple ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message = "Unnecessary " ++ qualifiedToString config.fn ++ " before " ++ qualifiedToString checkInfo.fn
+                                            , details = [ config.whyUnnecessary ++ ". You can replace the " ++ qualifiedToString config.fn ++ " call by the unchanged " ++ config.fnLastArgRepresents ++ "." ]
+                                            }
+                                            checkInfo.fnRange
+                                            (replaceBySubExpressionFix mapUnrelatedCall.nodeRange
+                                                unmappedTuple
+                                            )
+                                        )
     , composition =
         \checkInfo ->
             if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == config.fn) then
