@@ -2,6 +2,7 @@
 
 The rule now simplifies:
 - `String.length str == 0` to `String.isEmpty str` (including all the variations mentioned in "Other improvements")
+- `List.foldl (\( k, v ) -> f k v) init (Dict.toList dict)` to `Dict.foldl (\k v -> f k v) init dict` (same for foldr)
 
 ## [Unreleased]
 

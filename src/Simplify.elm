@@ -868,6 +868,9 @@ Destructuring using case expressions
     List.foldl f initial (List.reverse list)
     --> List.foldr f initial list
 
+    List.foldl (\( k, v ) -> f k v) init (Dict.toList dict)
+    --> Dict.foldl (\k v -> f k v) init dict
+
     Array.foldl f x (Array.fromList list)
     --> List.foldl f x array
 
@@ -8540,6 +8543,28 @@ listFoldOnDictEntryPartListChecks config =
                                         :: ignoreSecondIncomingFix checkInfo reduceArg
                                 }
 
+                        ( [ "Dict" ], "toList" ) ->
+                            case getLambdaDestructuringFirstIncomingTuple reduceArg of
+                                Nothing ->
+                                    Nothing
+
+                                Just tuplePattern ->
+                                    Just
+                                        { info =
+                                            { message = "To fold over dict entries, you don't need to convert to a list"
+                                            , details =
+                                                [ "You can replace this composition by "
+                                                    ++ qualifiedToString config.combinedFn
+                                                    ++ " and split the incoming entry tuple pattern into separate key and value patterns in the reduce function."
+                                                ]
+                                            }
+                                        , fix =
+                                            Fix.replaceRangeBy checkInfo.later.fnRange
+                                                (qualifiedToString (qualify config.combinedFn checkInfo))
+                                                :: Fix.removeRange checkInfo.earlier.removeRange
+                                                :: spreadPatternTuplePartsFix tuplePattern
+                                        }
+
                         _ ->
                             Nothing
 
@@ -8549,7 +8574,10 @@ listFoldOnDictEntryPartListChecks config =
         \checkInfo ->
             case checkInfo.argsAfterFirst of
                 [ _, foldedOverArg ] ->
-                    case AstHelpers.getSpecificUnreducedFnCall Fn.Dict.values checkInfo.lookupTable foldedOverArg of
+                    (case AstHelpers.getSpecificUnreducedFnCall Fn.Dict.values checkInfo.lookupTable foldedOverArg of
+                        Nothing ->
+                            Nothing
+
                         Just dictValuesCall ->
                             Just
                                 (Rule.errorWithFix
@@ -8569,35 +8597,107 @@ listFoldOnDictEntryPartListChecks config =
                                             dictValuesCall.firstArg
                                     )
                                 )
+                    )
+                        |> onNothing
+                            (\() ->
+                                case AstHelpers.getSpecificUnreducedFnCall Fn.Dict.keys checkInfo.lookupTable foldedOverArg of
+                                    Nothing ->
+                                        Nothing
 
-                        Nothing ->
-                            case AstHelpers.getSpecificUnreducedFnCall Fn.Dict.keys checkInfo.lookupTable foldedOverArg of
-                                Just dictKeysCall ->
-                                    Just
-                                        (Rule.errorWithFix
-                                            { message = "To fold over dict keys, you don't need to convert to a list"
-                                            , details =
-                                                [ "You can replace these calls by "
-                                                    ++ qualifiedToString config.combinedFn
-                                                    ++ " and ignore the second incoming value in the reduce function."
-                                                ]
-                                            }
-                                            checkInfo.fnRange
-                                            (Fix.replaceRangeBy checkInfo.fnRange
-                                                (qualifiedToString (qualify config.combinedFn checkInfo))
-                                                :: ignoreSecondIncomingFix checkInfo checkInfo.firstArg
-                                                ++ replaceBySubExpressionFix
-                                                    (Node.range foldedOverArg)
-                                                    dictKeysCall.firstArg
+                                    Just dictKeysCall ->
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = "To fold over dict keys, you don't need to convert to a list"
+                                                , details =
+                                                    [ "You can replace these calls by "
+                                                        ++ qualifiedToString config.combinedFn
+                                                        ++ " and ignore the second incoming value in the reduce function."
+                                                    ]
+                                                }
+                                                checkInfo.fnRange
+                                                (Fix.replaceRangeBy checkInfo.fnRange
+                                                    (qualifiedToString (qualify config.combinedFn checkInfo))
+                                                    :: ignoreSecondIncomingFix checkInfo checkInfo.firstArg
+                                                    ++ replaceBySubExpressionFix
+                                                        (Node.range foldedOverArg)
+                                                        dictKeysCall.firstArg
+                                                )
                                             )
-                                        )
+                            )
+                        |> onNothing
+                            (\() ->
+                                case AstHelpers.getSpecificUnreducedFnCall Fn.Dict.toList checkInfo.lookupTable foldedOverArg of
+                                    Nothing ->
+                                        Nothing
 
-                                Nothing ->
-                                    Nothing
+                                    Just dictToListCall ->
+                                        case getLambdaDestructuringFirstIncomingTuple checkInfo.firstArg of
+                                            Nothing ->
+                                                Nothing
+
+                                            Just tuplePattern ->
+                                                Just
+                                                    (Rule.errorWithFix
+                                                        { message = "To fold over dict entries, you don't need to convert to a list"
+                                                        , details =
+                                                            [ "You can replace these calls by "
+                                                                ++ qualifiedToString config.combinedFn
+                                                                ++ " and split the incoming entry tuple pattern into separate key and value patterns in the reduce function."
+                                                            ]
+                                                        }
+                                                        checkInfo.fnRange
+                                                        (Fix.replaceRangeBy checkInfo.fnRange
+                                                            (qualifiedToString (qualify config.combinedFn checkInfo))
+                                                            :: spreadPatternTuplePartsFix tuplePattern
+                                                            ++ replaceBySubExpressionFix
+                                                                (Node.range foldedOverArg)
+                                                                dictToListCall.firstArg
+                                                        )
+                                                    )
+                            )
 
                 _ ->
                     Nothing
     }
+
+
+spreadPatternTuplePartsFix : Node ( Node Pattern, Node Pattern ) -> List Fix
+spreadPatternTuplePartsFix (Node entryPatternRange ( lambdaKeyPattern, lambdaValuePattern )) =
+    Fix.replaceRangeBy
+        { start = (Node.range lambdaKeyPattern).end
+        , end = (Node.range lambdaValuePattern).start
+        }
+        " "
+        :: replaceBySubPatternFix
+            { start = entryPatternRange.start
+            , end = (Node.range lambdaKeyPattern).end
+            }
+            lambdaKeyPattern
+        ++ replaceBySubPatternFix
+            { start = (Node.range lambdaValuePattern).start
+            , end = entryPatternRange.end
+            }
+            lambdaValuePattern
+
+
+getLambdaDestructuringFirstIncomingTuple : Node Expression -> Maybe (Node ( Node Pattern, Node Pattern ))
+getLambdaDestructuringFirstIncomingTuple expressionNode =
+    case AstHelpers.removeParens expressionNode of
+        Node _ (Expression.LambdaExpression lambda) ->
+            case lambda.args of
+                [] ->
+                    Nothing
+
+                firstLambdaPattern :: _ ->
+                    case AstHelpers.removeParensFromPattern firstLambdaPattern of
+                        Node tuplePatternRange (Pattern.TuplePattern [ first, second ]) ->
+                            Just (Node tuplePatternRange ( first, second ))
+
+                        _ ->
+                            Nothing
+
+        _ ->
+            Nothing
 
 
 ignoreFirstIncomingFix : QualifyResources a -> Node Expression -> List Fix
@@ -19131,6 +19231,15 @@ keepOnlyAndParenthesizeFix config =
     ]
 
 
+replaceBySubPatternFix : Range -> Node Pattern -> List Fix
+replaceBySubPatternFix outerRange (Node subRange sub) =
+    if patternNeedsParens sub then
+        keepOnlyAndParenthesizeFix { parentRange = outerRange, keep = subRange }
+
+    else
+        keepOnlyFix { parentRange = outerRange, keep = subRange }
+
+
 replaceBySubExpressionFix : Range -> Node Expression -> List Fix
 replaceBySubExpressionFix outerRange (Node exprRange exprValue) =
     if needsParens exprValue then
@@ -19982,6 +20091,61 @@ callReplacementNeedsParens originalCallStyle replacementExpression =
 
         _ ->
             needsParens replacementExpression
+
+
+patternNeedsParens : Pattern -> Bool
+patternNeedsParens pattern =
+    case pattern of
+        Pattern.AllPattern ->
+            False
+
+        Pattern.UnitPattern ->
+            False
+
+        Pattern.HexPattern _ ->
+            False
+
+        Pattern.IntPattern _ ->
+            False
+
+        Pattern.CharPattern _ ->
+            False
+
+        Pattern.StringPattern _ ->
+            False
+
+        Pattern.VarPattern _ ->
+            False
+
+        Pattern.ParenthesizedPattern _ ->
+            False
+
+        Pattern.TuplePattern _ ->
+            False
+
+        Pattern.RecordPattern _ ->
+            False
+
+        Pattern.ListPattern _ ->
+            False
+
+        Pattern.AsPattern _ _ ->
+            True
+
+        Pattern.UnConsPattern _ _ ->
+            True
+
+        Pattern.NamedPattern _ values ->
+            case values of
+                [] ->
+                    False
+
+                _ :: _ ->
+                    True
+
+        -- invalid syntax
+        Pattern.FloatPattern _ ->
+            False
 
 
 needsParens : Expression -> Bool
