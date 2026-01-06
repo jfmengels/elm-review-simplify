@@ -4215,54 +4215,86 @@ valueOrFnOrFnCallThenOperatorCallCompositionChecks : ValueOrFnOrFnCallThenOperat
 valueOrFnOrFnCallThenOperatorCallCompositionChecks checkInfo =
     case checkInfo.later.operator of
         "==" ->
-            valueOrFnOrFnCallThenOperatorCallEqualityChecks True checkInfo
+            elementCountFnThenCompareSpecificIntOperationChecks
+                { isEmpty = True, specificInt = 0, intRightInDescription = True }
+                checkInfo
 
         "/=" ->
-            valueOrFnOrFnCallThenOperatorCallEqualityChecks False checkInfo
+            elementCountFnThenCompareSpecificIntOperationChecks
+                { isEmpty = False, specificInt = 0, intRightInDescription = True }
+                checkInfo
+
+        ">" ->
+            elementCountFnThenCompareSpecificIntOperationChecks
+                { isEmpty = True, specificInt = 1, intRightInDescription = False }
+                checkInfo
+
+        ">=" ->
+            elementCountFnThenCompareSpecificIntOperationChecks
+                { isEmpty = True, specificInt = 0, intRightInDescription = False }
+                checkInfo
+
+        "<" ->
+            elementCountFnThenCompareSpecificIntOperationChecks
+                { isEmpty = False, specificInt = 0, intRightInDescription = False }
+                checkInfo
+
+        "<=" ->
+            elementCountFnThenCompareSpecificIntOperationChecks
+                { isEmpty = False, specificInt = 1, intRightInDescription = False }
+                checkInfo
 
         _ ->
             Nothing
 
 
-valueOrFnOrFnCallThenOperatorCallEqualityChecks : Bool -> ValueOrFnOrFnCallThenOperatorCallCheckInfo -> Maybe ErrorInfoAndFix
-valueOrFnOrFnCallThenOperatorCallEqualityChecks isEqual checkInfo =
+elementCountFnThenCompareSpecificIntOperationChecks :
+    { isEmpty : Bool, specificInt : Int, intRightInDescription : Bool }
+    -> ValueOrFnOrFnCallThenOperatorCallCheckInfo
+    -> Maybe ErrorInfoAndFix
+elementCountFnThenCompareSpecificIntOperationChecks config checkInfo =
     case checkInfo.earlier.args of
         _ :: _ ->
             Nothing
 
         [] ->
-            case Normalize.getInt checkInfo checkInfo.later.arg of
-                Just 0 ->
-                    case
-                        compareElementCountChecks
-                            { isEqual = isEqual
-                            , operation = checkInfo.later.operator ++ " 0"
-                            , replaceByInstruction =
-                                \descriptions ->
-                                    "replace this composition by " ++ descriptions.replacementOperation
-                            , fn = checkInfo.earlier.fn
+            if Normalize.getInt checkInfo checkInfo.later.arg == Just config.specificInt then
+                case
+                    compareElementCountChecks
+                        { isEmpty = config.isEmpty
+                        , operation =
+                            \fn ->
+                                if config.intRightInDescription then
+                                    fn ++ " " ++ checkInfo.later.operator ++ " " ++ String.fromInt config.specificInt
+
+                                else
+                                    String.fromInt config.specificInt ++ " " ++ checkInfo.later.operator ++ " " ++ fn
+                        , replaceByInstruction =
+                            \descriptions ->
+                                "replace this composition by " ++ descriptions.replacementOperation
+                        , fn = checkInfo.earlier.fn
+                        }
+                of
+                    Nothing ->
+                        Nothing
+
+                    Just error ->
+                        Just
+                            { info = { message = error.message, details = error.details }
+                            , fix =
+                                [ Fix.replaceRangeBy checkInfo.earlier.range
+                                    (qualifiedToString (qualify error.isEmptyFn checkInfo))
+                                , if config.isEmpty then
+                                    Fix.removeRange checkInfo.later.removeRange
+
+                                  else
+                                    Fix.replaceRangeBy checkInfo.later.range
+                                        (qualifiedToString (qualify Fn.Basics.not checkInfo))
+                                ]
                             }
-                    of
-                        Nothing ->
-                            Nothing
 
-                        Just error ->
-                            Just
-                                { info = { message = error.message, details = error.details }
-                                , fix =
-                                    [ Fix.replaceRangeBy checkInfo.earlier.range
-                                        (qualifiedToString (qualify error.isEmptyFn checkInfo))
-                                    , if isEqual then
-                                        Fix.removeRange checkInfo.later.removeRange
-
-                                      else
-                                        Fix.replaceRangeBy checkInfo.later.range
-                                            (qualifiedToString (qualify Fn.Basics.not checkInfo))
-                                    ]
-                                }
-
-                _ ->
-                    Nothing
+            else
+                Nothing
 
 
 compositionIntoChecks : Dict ( ModuleName, String ) ( Int, CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix )
@@ -5007,82 +5039,101 @@ elementCountEqualityTo0OperationChecks : Bool -> OperatorApplicationCheckInfo ->
 elementCountEqualityTo0OperationChecks isEqual checkInfo =
     checkOperationFromBothSides checkInfo
         (\side ->
-            case Normalize.getInt checkInfo side.otherNode of
-                Just 0 ->
-                    case AstHelpers.getUnreducedValueOrFnOrFnCall side.node of
-                        Nothing ->
-                            Nothing
-
-                        Just call ->
-                            case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable call.fnRange of
-                                Nothing ->
-                                    Nothing
-
-                                Just callFn ->
-                                    case
-                                        compareElementCountChecks
-                                            { isEqual = isEqual
-                                            , operation = checkInfo.operator ++ " 0"
-                                            , replaceByInstruction =
-                                                \descriptions ->
-                                                    "replace this operation by "
-                                                        ++ descriptions.replacementOperation
-                                                        ++ " on the "
-                                                        ++ descriptions.collection
-                                                        ++ " given to the "
-                                                        ++ descriptions.elementCountFn
-                                                        ++ " call"
-                                            , fn = ( callFn, call.fnName )
-                                            }
-                                    of
-                                        Nothing ->
-                                            Nothing
-
-                                        Just error ->
-                                            let
-                                                isEmptyFnQualifiedString : String
-                                                isEmptyFnQualifiedString =
-                                                    qualifiedToString (qualify error.isEmptyFn checkInfo)
-                                            in
-                                            Just
-                                                (Rule.errorWithFix { message = error.message, details = error.details }
-                                                    call.fnRange
-                                                    (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range side.node }
-                                                        ++ (if isEqual then
-                                                                [ Fix.replaceRangeBy call.fnRange isEmptyFnQualifiedString
-                                                                ]
-
-                                                            else
-                                                                let
-                                                                    notFn : String
-                                                                    notFn =
-                                                                        qualifiedToString (qualify Fn.Basics.not checkInfo)
-                                                                in
-                                                                case call.callStyle of
-                                                                    CallStyle.Application ->
-                                                                        [ Fix.replaceRangeBy call.fnRange (notFn ++ " (" ++ isEmptyFnQualifiedString)
-                                                                        , Fix.insertAt checkInfo.parentRange.end ")"
-                                                                        ]
-
-                                                                    CallStyle.Pipe CallStyle.LeftToRight ->
-                                                                        [ Fix.replaceRangeBy call.fnRange (isEmptyFnQualifiedString ++ " |> " ++ notFn)
-                                                                        ]
-
-                                                                    CallStyle.Pipe CallStyle.RightToLeft ->
-                                                                        [ Fix.replaceRangeBy call.fnRange (notFn ++ " <| " ++ isEmptyFnQualifiedString)
-                                                                        ]
-                                                           )
-                                                    )
-                                                )
-
-                _ ->
-                    Nothing
+            compareElementCountToSpecificIntOperationOneSidedChecks
+                { isEmpty = isEqual
+                , specificInt = 0
+                , operation = \fn -> fn ++ " " ++ checkInfo.operator ++ " 0"
+                , potentialElementCount = side.node
+                , potentialInt = side.otherNode
+                }
+                checkInfo
         )
 
 
+compareElementCountToSpecificIntOperationOneSidedChecks :
+    { isEmpty : Bool
+    , specificInt : Int
+    , operation : String -> String
+    , potentialElementCount : Node Expression
+    , potentialInt : Node Expression
+    }
+    -> OperatorApplicationCheckInfo
+    -> Maybe (Error {})
+compareElementCountToSpecificIntOperationOneSidedChecks config checkInfo =
+    if Normalize.getInt checkInfo config.potentialInt == Just config.specificInt then
+        case AstHelpers.getUnreducedValueOrFnOrFnCall config.potentialElementCount of
+            Nothing ->
+                Nothing
+
+            Just call ->
+                case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable call.fnRange of
+                    Nothing ->
+                        Nothing
+
+                    Just callFn ->
+                        case
+                            compareElementCountChecks
+                                { isEmpty = config.isEmpty
+                                , operation = config.operation
+                                , replaceByInstruction =
+                                    \descriptions ->
+                                        "replace this operation by "
+                                            ++ descriptions.replacementOperation
+                                            ++ " on the "
+                                            ++ descriptions.collection
+                                            ++ " given to the "
+                                            ++ descriptions.elementCountFn
+                                            ++ " call"
+                                , fn = ( callFn, call.fnName )
+                                }
+                        of
+                            Nothing ->
+                                Nothing
+
+                            Just error ->
+                                let
+                                    isEmptyFnQualifiedString : String
+                                    isEmptyFnQualifiedString =
+                                        qualifiedToString (qualify error.isEmptyFn checkInfo)
+                                in
+                                Just
+                                    (Rule.errorWithFix { message = error.message, details = error.details }
+                                        call.fnRange
+                                        (keepOnlyFix { parentRange = checkInfo.parentRange, keep = Node.range config.potentialElementCount }
+                                            ++ (if config.isEmpty then
+                                                    [ Fix.replaceRangeBy call.fnRange isEmptyFnQualifiedString
+                                                    ]
+
+                                                else
+                                                    let
+                                                        notFn : String
+                                                        notFn =
+                                                            qualifiedToString (qualify Fn.Basics.not checkInfo)
+                                                    in
+                                                    case call.callStyle of
+                                                        CallStyle.Application ->
+                                                            [ Fix.replaceRangeBy call.fnRange (notFn ++ " (" ++ isEmptyFnQualifiedString)
+                                                            , Fix.insertAt checkInfo.parentRange.end ")"
+                                                            ]
+
+                                                        CallStyle.Pipe CallStyle.LeftToRight ->
+                                                            [ Fix.replaceRangeBy call.fnRange (isEmptyFnQualifiedString ++ " |> " ++ notFn)
+                                                            ]
+
+                                                        CallStyle.Pipe CallStyle.RightToLeft ->
+                                                            [ Fix.replaceRangeBy call.fnRange (notFn ++ " <| " ++ isEmptyFnQualifiedString)
+                                                            ]
+                                               )
+                                        )
+                                    )
+
+    else
+        Nothing
+
+
 compareElementCountChecks :
-    { isEqual : Bool
-    , operation : String
+    { isEmpty : Bool
+    , operation : String -> String
     , replaceByInstruction :
         { collection : String, elementCountFn : String, replacementOperation : String }
         -> String
@@ -5108,8 +5159,8 @@ compareElementCountChecks checkInfo =
 collectionCompareElementCountCheck :
     TypeProperties (WithElementCountFn { a | isEmptyFn : ( ModuleName, String ) })
     ->
-        { isEqual : Bool
-        , operation : String
+        { isEmpty : Bool
+        , operation : String -> String
         , replaceByInstruction :
             { collection : String, elementCountFn : String, replacementOperation : String }
             -> String
@@ -5130,7 +5181,7 @@ collectionCompareElementCountCheck collection checkInfo =
 
             replacementDescription : String
             replacementDescription =
-                if checkInfo.isEqual then
+                if checkInfo.isEmpty then
                     isEmptyFnDescription
 
                 else
@@ -5138,7 +5189,7 @@ collectionCompareElementCountCheck collection checkInfo =
         in
         Just
             { isEmptyFn = collection.isEmptyFn
-            , message = qualifiedToString collection.elementCount.fn ++ " " ++ checkInfo.operation ++ " can be replaced by " ++ replacementDescription
+            , message = checkInfo.operation (qualifiedToString collection.elementCount.fn) ++ " can be replaced by " ++ replacementDescription
             , details =
                 [ (if collection.elementCount.isConstantTime then
                     ""
@@ -5308,128 +5359,216 @@ getEmptyCollection lookupTable node =
 
 lessThanChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 lessThanChecks checkInfo =
-    case Normalize.compare checkInfo checkInfo.left checkInfo.right of
-        Normalize.ConfirmedEquality ->
-            -- also: NaN < NaN --> False
-            Just
-                (Rule.errorWithFix
-                    { message =
-                        "(" ++ checkInfo.operator ++ ") with two equal operands results in False"
-                    , details = [ "You can replace this call by False." ]
+    compareElementCountToSpecificIntOperationOneSidedChecks
+        { isEmpty = True
+        , specificInt = 1
+        , operation = \fn -> fn ++ " < 1"
+        , potentialElementCount = checkInfo.left
+        , potentialInt = checkInfo.right
+        }
+        checkInfo
+        |> onNothing
+            (\() ->
+                compareElementCountToSpecificIntOperationOneSidedChecks
+                    { isEmpty = False
+                    , specificInt = 0
+                    , operation = \fn -> "0 < " ++ fn
+                    , potentialElementCount = checkInfo.right
+                    , potentialInt = checkInfo.left
                     }
-                    checkInfo.operatorRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify Fn.Basics.falseVariant checkInfo))
-                    ]
-                )
+                    checkInfo
+            )
+        |> onNothing
+            (\() ->
+                case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+                    Normalize.ConfirmedEquality ->
+                        -- also: NaN < NaN --> False
+                        Just
+                            (Rule.errorWithFix
+                                { message =
+                                    "(" ++ checkInfo.operator ++ ") with two equal operands results in False"
+                                , details = [ "You can replace this call by False." ]
+                                }
+                                checkInfo.operatorRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange
+                                    (qualifiedToString (qualify Fn.Basics.falseVariant checkInfo))
+                                ]
+                            )
 
-        _ ->
-            comparisonOperatorCheck (\order -> order == LT) checkInfo
+                    _ ->
+                        comparisonOperatorCheck (\order -> order == LT) checkInfo
+            )
 
 
 lessThanOrEqualToChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 lessThanOrEqualToChecks checkInfo =
-    case Normalize.compare checkInfo checkInfo.left checkInfo.right of
-        Normalize.ConfirmedEquality ->
-            -- because: NaN <= NaN --> False
-            if
-                checkInfo.expectNaN
-                    && (AstHelpers.couldBeValueContainingNaN checkInfo.left
-                            || AstHelpers.couldBeValueContainingNaN checkInfo.right
-                       )
-            then
-                Nothing
+    compareElementCountToSpecificIntOperationOneSidedChecks
+        { isEmpty = True
+        , specificInt = 0
+        , operation = \fn -> fn ++ " <= 0"
+        , potentialElementCount = checkInfo.left
+        , potentialInt = checkInfo.right
+        }
+        checkInfo
+        |> onNothing
+            (\() ->
+                compareElementCountToSpecificIntOperationOneSidedChecks
+                    { isEmpty = False
+                    , specificInt = 1
+                    , operation = \fn -> "1 <= " ++ fn
+                    , potentialElementCount = checkInfo.right
+                    , potentialInt = checkInfo.left
+                    }
+                    checkInfo
+            )
+        |> onNothing
+            (\() ->
+                case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+                    Normalize.ConfirmedEquality ->
+                        -- because: NaN <= NaN --> False
+                        if
+                            checkInfo.expectNaN
+                                && (AstHelpers.couldBeValueContainingNaN checkInfo.left
+                                        || AstHelpers.couldBeValueContainingNaN checkInfo.right
+                                   )
+                        then
+                            Nothing
 
-            else
-                Just
-                    (Rule.errorWithFix
-                        { message =
-                            "(" ++ checkInfo.operator ++ ") with two equal operands results in True"
-                        , details = [ "You can replace this call by True." ]
-                        }
-                        checkInfo.operatorRange
-                        [ Fix.replaceRangeBy checkInfo.parentRange
-                            (qualifiedToString (qualify Fn.Basics.trueVariant checkInfo))
-                        ]
-                    )
+                        else
+                            Just
+                                (Rule.errorWithFix
+                                    { message =
+                                        "(" ++ checkInfo.operator ++ ") with two equal operands results in True"
+                                    , details = [ "You can replace this call by True." ]
+                                    }
+                                    checkInfo.operatorRange
+                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                        (qualifiedToString (qualify Fn.Basics.trueVariant checkInfo))
+                                    ]
+                                )
 
-        _ ->
-            comparisonOperatorCheck
-                (\order ->
-                    case order of
-                        LT ->
-                            True
+                    _ ->
+                        comparisonOperatorCheck
+                            (\order ->
+                                case order of
+                                    LT ->
+                                        True
 
-                        EQ ->
-                            True
+                                    EQ ->
+                                        True
 
-                        GT ->
-                            False
-                )
-                checkInfo
+                                    GT ->
+                                        False
+                            )
+                            checkInfo
+            )
 
 
 greaterThanChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 greaterThanChecks checkInfo =
-    case Normalize.compare checkInfo checkInfo.left checkInfo.right of
-        Normalize.ConfirmedEquality ->
-            -- because: NaN > NaN --> True (unlike <)
-            if
-                checkInfo.expectNaN
-                    && (AstHelpers.couldBeValueContainingNaN checkInfo.left
-                            || AstHelpers.couldBeValueContainingNaN checkInfo.right
-                       )
-            then
-                Nothing
+    compareElementCountToSpecificIntOperationOneSidedChecks
+        { isEmpty = True
+        , specificInt = 1
+        , operation = \fn -> "1 > " ++ fn
+        , potentialElementCount = checkInfo.right
+        , potentialInt = checkInfo.left
+        }
+        checkInfo
+        |> onNothing
+            (\() ->
+                compareElementCountToSpecificIntOperationOneSidedChecks
+                    { isEmpty = False
+                    , specificInt = 0
+                    , operation = \fn -> fn ++ " > 0"
+                    , potentialElementCount = checkInfo.left
+                    , potentialInt = checkInfo.right
+                    }
+                    checkInfo
+            )
+        |> onNothing
+            (\() ->
+                case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+                    Normalize.ConfirmedEquality ->
+                        -- because: NaN > NaN --> True (unlike <)
+                        if
+                            checkInfo.expectNaN
+                                && (AstHelpers.couldBeValueContainingNaN checkInfo.left
+                                        || AstHelpers.couldBeValueContainingNaN checkInfo.right
+                                   )
+                        then
+                            Nothing
 
-            else
-                Just
-                    (Rule.errorWithFix
-                        { message =
-                            "(" ++ checkInfo.operator ++ ") with two equal operands results in False"
-                        , details = [ "You can replace this call by False." ]
-                        }
-                        checkInfo.operatorRange
-                        [ Fix.replaceRangeBy checkInfo.parentRange
-                            (qualifiedToString (qualify Fn.Basics.falseVariant checkInfo))
-                        ]
-                    )
+                        else
+                            Just
+                                (Rule.errorWithFix
+                                    { message =
+                                        "(" ++ checkInfo.operator ++ ") with two equal operands results in False"
+                                    , details = [ "You can replace this call by False." ]
+                                    }
+                                    checkInfo.operatorRange
+                                    [ Fix.replaceRangeBy checkInfo.parentRange
+                                        (qualifiedToString (qualify Fn.Basics.falseVariant checkInfo))
+                                    ]
+                                )
 
-        _ ->
-            comparisonOperatorCheck (\order -> order == GT) checkInfo
+                    _ ->
+                        comparisonOperatorCheck (\order -> order == GT) checkInfo
+            )
 
 
 greaterThanOrEqualToChecks : OperatorApplicationCheckInfo -> Maybe (Error {})
 greaterThanOrEqualToChecks checkInfo =
-    case Normalize.compare checkInfo checkInfo.left checkInfo.right of
-        Normalize.ConfirmedEquality ->
-            -- also: NaN >= NaN --> True
-            Just
-                (Rule.errorWithFix
-                    { message =
-                        "(" ++ checkInfo.operator ++ ") with two equal operands results in True"
-                    , details = [ "You can replace this call by True." ]
+    compareElementCountToSpecificIntOperationOneSidedChecks
+        { isEmpty = True
+        , specificInt = 0
+        , operation = \fn -> "0 >= " ++ fn
+        , potentialElementCount = checkInfo.right
+        , potentialInt = checkInfo.left
+        }
+        checkInfo
+        |> onNothing
+            (\() ->
+                compareElementCountToSpecificIntOperationOneSidedChecks
+                    { isEmpty = False
+                    , specificInt = 1
+                    , operation = \fn -> fn ++ " >= 1"
+                    , potentialElementCount = checkInfo.left
+                    , potentialInt = checkInfo.right
                     }
-                    checkInfo.operatorRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange
-                        (qualifiedToString (qualify Fn.Basics.trueVariant checkInfo))
-                    ]
-                )
+                    checkInfo
+            )
+        |> onNothing
+            (\() ->
+                case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+                    Normalize.ConfirmedEquality ->
+                        -- also: NaN >= NaN --> True
+                        Just
+                            (Rule.errorWithFix
+                                { message =
+                                    "(" ++ checkInfo.operator ++ ") with two equal operands results in True"
+                                , details = [ "You can replace this call by True." ]
+                                }
+                                checkInfo.operatorRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange
+                                    (qualifiedToString (qualify Fn.Basics.trueVariant checkInfo))
+                                ]
+                            )
 
-        _ ->
-            comparisonOperatorCheck
-                (\order ->
-                    case order of
-                        LT ->
-                            False
+                    _ ->
+                        comparisonOperatorCheck
+                            (\order ->
+                                case order of
+                                    LT ->
+                                        False
 
-                        EQ ->
-                            True
+                                    EQ ->
+                                        True
 
-                        GT ->
-                            True
-                )
-                checkInfo
+                                    GT ->
+                                        True
+                            )
+                            checkInfo
+            )
 
 
 comparisonOperatorCheck : (Order -> Bool) -> OperatorApplicationCheckInfo -> Maybe (Error {})
@@ -17268,8 +17407,8 @@ caseElementCountOf0Checks checkInfo =
                             Just callFn ->
                                 case
                                     compareElementCountChecks
-                                        { isEqual = True
-                                        , operation = "matched against 0"
+                                        { isEmpty = True
+                                        , operation = \fn -> fn ++ " matched against 0"
                                         , replaceByInstruction =
                                             \descriptions ->
                                                 "replace this operation by an if-then-else testing for "

@@ -58,6 +58,34 @@ all =
                     |> compareFloatNaNIsEqual -(abs -n)
                     |> Expect.equal EQ
             )
+        , Test.fuzz (Fuzz.list Fuzz.unit)
+            "(>) 1 << List.length is the same as List.isEmpty"
+            (\list ->
+                ((>) 1 << List.length) list
+                    |> Expect.equal
+                        (List.isEmpty list)
+            )
+        , Test.fuzz (Fuzz.list Fuzz.unit)
+            "(>=) 0 << List.length is the same as List.isEmpty"
+            (\list ->
+                ((>=) 0 << List.length) list
+                    |> Expect.equal
+                        (List.isEmpty list)
+            )
+        , Test.fuzz (Fuzz.list Fuzz.unit)
+            "(<) 0 << List.length is the same as not << List.isEmpty"
+            (\list ->
+                ((<) 0 << List.length) list
+                    |> Expect.equal
+                        ((not << List.isEmpty) list)
+            )
+        , Test.fuzz (Fuzz.list Fuzz.unit)
+            "(<=) 1 << List.length is the same as not << List.isEmpty"
+            (\list ->
+                ((<=) 1 << List.length) list
+                    |> Expect.equal
+                        ((not << List.isEmpty) list)
+            )
         , Test.fuzz
             (Fuzz.map Dict.fromList
                 (Fuzz.list
