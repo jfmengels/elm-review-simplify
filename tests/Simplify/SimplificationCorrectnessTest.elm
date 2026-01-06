@@ -309,6 +309,14 @@ all =
                 List.maximum (List.range start end)
                     |> Expect.equal (Just end)
             )
+        , Test.fuzz
+            -- fails when generating NaN and checking with compareListOf
+            (Fuzz.list Fuzz.string)
+            "Set.fromList << List.reverse is the same as Set.fromList"
+            (\list ->
+                Set.fromList (List.reverse list)
+                    |> Expect.equal (Set.fromList list)
+            )
         ]
 
 

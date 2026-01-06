@@ -1371,6 +1371,170 @@ import Set
 a = (f >> g)
 """
                         ]
+        , test "should not report Set.fromList on List.reverse when expectNaN is enabled"
+            (\() ->
+                """module A exposing (..)
+import Set
+a0 = Set.fromList (List.reverse list)
+a1 = Set.fromList << List.reverse
+a2 = List.reverse >> Set.fromList
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace Set.fromList (List.reverse list) by Set.fromList list" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList (List.reverse list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.reverse before Set.fromList"
+                            , details = [ "Reordering a list does not affect its final representation as a set. You can replace the List.reverse call by the unchanged list." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList list
+"""
+                        ]
+        , test "should replace (List.reverse <| f <| x) |> Set.fromList by (f <| x) |> Set.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = (List.reverse <| f <| x) |> Set.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.reverse before Set.fromList"
+                            , details = [ "Reordering a list does not affect its final representation as a set. You can replace the List.reverse call by the unchanged list." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = (f <| x) |> Set.fromList
+"""
+                        ]
+        , test "should replace Set.fromList << List.reverse by Set.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList << List.reverse
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.reverse before Set.fromList"
+                            , details = [ "Reordering a list does not affect its final representation as a set. You can remove the List.reverse call." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList
+"""
+                        ]
+        , test "should replace List.reverse >> Set.fromList by Set.fromList" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = List.reverse >> Set.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.reverse before Set.fromList"
+                            , details = [ "Reordering a list does not affect its final representation as a set. You can remove the List.reverse call." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList
+"""
+                        ]
+        , test "should not report Set.fromList on List.sort when expectNaN is enabled"
+            (\() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList (List.sort list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace Set.fromList (List.sort list) by Set.fromList list" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList (List.sort list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort before Set.fromList"
+                            , details = [ "Reordering a list does not affect its final representation as a set. You can replace the List.sort call by the unchanged list." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList list
+"""
+                        ]
+        , test "should not report Set.fromList on List.sortBy when expectNaN is enabled"
+            (\() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList (List.sortBy f list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace Set.fromList (List.sortBy f list) by Set.fromList list" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList (List.sortBy f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortBy before Set.fromList"
+                            , details = [ "Reordering a list does not affect its final representation as a set. You can replace the List.sortBy call by the unchanged list." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList list
+"""
+                        ]
+        , test "should not report Set.fromList on List.sortWith when expectNaN is enabled"
+            (\() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList (List.sortWith f list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace Set.fromList (List.sortWith f list) by Set.fromList list" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.fromList (List.sortWith f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortWith before Set.fromList"
+                            , details = [ "Reordering a list does not affect its final representation as a set. You can replace the List.sortWith call by the unchanged list." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.fromList list
+"""
+                        ]
         ]
 
 
