@@ -11,6 +11,7 @@ The rule now simplifies:
 - `List.minimum (List.reverse list)` to `List.minimum list` (same for `List.sort`, `List.sortBy`, `List.sortWith`) when [`expectNaN`] is not enabled
 - `List.maximum (List.reverse list)` to `List.maximum list` (same for `List.sort`, `List.sortBy`, `List.sortWith`) when [`expectNaN`] is not enabled
 - `Set.fromList (List.reverse list)` to `Set.fromList list` (same for `List.sort`, `List.sortBy`, `List.sortWith`) when [`expectNaN`] is not enabled
+- `Dict.diff dict (Dict.map f remove)` to `Dict.diff dict remove`
 
 Other improvements:
 - The various equality checks for lengths/sizes against 0 are now also supported for composition into partially applied prefix operators and also `case` expressions like

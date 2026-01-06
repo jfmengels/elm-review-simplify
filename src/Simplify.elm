@@ -1459,6 +1459,9 @@ Destructuring using case expressions
     Dict.diff dict Dict.empty
     --> dict
 
+    Dict.diff dict (Dict.map f remove)
+    --> Dict.diff dict remove
+
     Dict.diff (Dict.map f dict) remove
     --> Dict.map f (Dict.diff dict remove)
 
@@ -10134,7 +10137,13 @@ dictIntersectChecks =
 dictDiffChecks : IntoFnCheck
 dictDiffChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall
+        [ unnecessarySpecificFnBeforeCheck
+            { fn = Fn.Dict.map
+            , fnArgCount = 2
+            , fnLastArgRepresents = "dict"
+            , whyUnnecessary = qualifiedToString Fn.Dict.diff ++ " removes all keys present in the second dict, therefore mapping only its values will have no effect"
+            }
+        , intoFnCheckOnlyCall
             (\checkInfo ->
                 collectionDiffChecks dictCollection checkInfo
                     |> onNothing

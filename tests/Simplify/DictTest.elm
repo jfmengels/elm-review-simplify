@@ -2140,6 +2140,42 @@ import Dict
 a = dict
 """
                         ]
+        , test "should replace Dict.diff dict (Dict.map f remove) by Dict.diff dict remove" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.diff dict (Dict.map f remove)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Dict.map before Dict.diff"
+                            , details = [ "Dict.diff removes all keys present in the second dict, therefore mapping only its values will have no effect. You can replace the Dict.map call by the unchanged dict." ]
+                            , under = "Dict.diff"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.diff dict remove
+"""
+                        ]
+        , test "should replace Dict.diff dict << Dict.map f by Dict.diff dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.diff dict << Dict.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Dict.map before Dict.diff"
+                            , details = [ "Dict.diff removes all keys present in the second dict, therefore mapping only its values will have no effect. You can remove the Dict.map call." ]
+                            , under = "Dict.diff"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.diff dict
+"""
+                        ]
         , test "should replace Dict.diff (Dict.map f dict) remove by Dict.map f (Dict.diff dict remove)" <|
             \() ->
                 """module A exposing (..)
