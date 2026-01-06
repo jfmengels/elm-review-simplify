@@ -5322,7 +5322,8 @@ comparisonWithEmptyCheckInPrefixOperator lookupTable operatorRange arg =
             Nothing
 
 
-{-| If the expression is [], Array.empty, Set.empty or Dict.empty, return the module name.
+{-| If the expression is [], Array.empty, Set.empty or Dict.empty, return
+the associated collection name and isEmpty reference.
 -}
 getEmptyCollection : ModuleNameLookupTable -> Node Expression -> Maybe { represents : String, isEmptyFn : ( ModuleName, String ) }
 getEmptyCollection lookupTable node =
