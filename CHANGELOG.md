@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.1.12] - 2026-01-06
+
 The rule now simplifies:
 - `List.head (List.map f list)` to `Maybe.map f (List.head list)`
 - `List.take n (List.map f list)` to `List.map f (List.take n list)`
@@ -808,7 +810,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/2.1.11...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/2.1.12...HEAD
+[2.1.12]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.12
 [2.1.11]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.11
 [2.1.10]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.10
 [2.1.9]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.9
