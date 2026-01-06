@@ -444,6 +444,9 @@ Destructuring using case expressions
     String.length "abc"
     --> 3
 
+    String.length str == 0
+    --> String.isEmpty str
+
     String.repeat n ""
     --> ""
 
@@ -5146,8 +5149,9 @@ compareElementCountChecks :
             , isEmptyFn : ( ModuleName, String )
             }
 compareElementCountChecks checkInfo =
-    -- , compareWithZeroCheck Fn.String.isEmpty Fn.String.length "String" is this the best replacement? Should it be == ""?
     collectionCompareElementCountCheck listCollection checkInfo
+        |> onNothing
+            (\() -> collectionCompareElementCountCheck stringCollection checkInfo)
         |> onNothing
             (\() -> collectionCompareElementCountCheck dictCollection checkInfo)
         |> onNothing
@@ -11550,7 +11554,7 @@ listDetermineLength resources expressionNode =
             )
 
 
-stringCollection : TypeProperties (CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties {}))))
+stringCollection : TypeProperties (CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) })))))
 stringCollection =
     { represents = "string"
     , representsPlural = "strings"
@@ -11563,6 +11567,8 @@ stringCollection =
         }
     , wrap = singleCharConstruct
     , fromList = ConstructionFromListCall Fn.String.fromList
+    , isEmptyFn = Fn.String.isEmpty
+    , elementCount = { fn = Fn.String.length, isConstantTime = True }
     }
 
 
