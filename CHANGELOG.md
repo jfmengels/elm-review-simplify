@@ -5,6 +5,11 @@
 The rule now simplifies:
 - `String.length str == 0` to `String.isEmpty str` (including all the variations mentioned in "Other improvements")
 - `List.foldl (\( k, v ) -> f k v) init (Dict.toList dict)` to `Dict.foldl (\k v -> f k v) init dict` (same for foldr)
+- `List.sum (List.reverse list)` to `List.sum list` (same for `List.sort`, `List.sortBy`, `List.sortWith`)
+- `List.product (List.reverse list)` to `List.product list` (same for `List.sort`, `List.sortBy`, `List.sortWith`)
+- `List.minimum (List.reverse list)` to `List.minimum list` (same for `List.sort`, `List.sortBy`, `List.sortWith`) when [`expectNaN`] is not enabled
+- `List.maximum (List.reverse list)` to `List.maximum list` (same for `List.sort`, `List.sortBy`, `List.sortWith`) when [`expectNaN`] is not enabled
+- `Set.fromList (List.reverse list)` to `Set.fromList list` (same for `List.sort`, `List.sortBy`, `List.sortWith`) when [`expectNaN`] is not enabled
 
 Other improvements:
 - The various equality checks for lengths/sizes against 0 are now also supported for composition into partially applied prefix operators and also `case` expressions like

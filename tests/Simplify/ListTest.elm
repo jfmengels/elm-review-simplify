@@ -3877,6 +3877,70 @@ a = [ a, 0 / 0.0, b ] |> List.sum
 a = (0 / 0.0)
 """
                         ]
+        , test "should replace List.sum (List.reverse list) by List.sum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sum (List.reverse list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.reverse before List.sum"
+                            , details = [ "Reordering a list does not affect its combined sum. You can replace the List.reverse call by the unchanged list." ]
+                            , under = "List.sum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum list
+"""
+                        ]
+        , test "should replace List.sum (List.sort list) by List.sum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sum (List.sort list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort before List.sum"
+                            , details = [ "Reordering a list does not affect its combined sum. You can replace the List.sort call by the unchanged list." ]
+                            , under = "List.sum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum list
+"""
+                        ]
+        , test "should replace List.sum (List.sortBy f list) by List.sum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sum (List.sortBy f list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortBy before List.sum"
+                            , details = [ "Reordering a list does not affect its combined sum. You can replace the List.sortBy call by the unchanged list." ]
+                            , under = "List.sum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum list
+"""
+                        ]
+        , test "should replace List.sum (List.sortWith f list) by List.sum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.sum (List.sortWith f list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortWith before List.sum"
+                            , details = [ "Reordering a list does not affect its combined sum. You can replace the List.sortWith call by the unchanged list." ]
+                            , under = "List.sum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sum list
+"""
+                        ]
         ]
 
 
@@ -4082,6 +4146,70 @@ a = [ a, 0 / 0.0, b ] |> List.product
 a = (0 / 0.0)
 """
                         ]
+        , test "should replace List.product (List.reverse list) by List.product list" <|
+            \() ->
+                """module A exposing (..)
+a = List.product (List.reverse list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.reverse before List.product"
+                            , details = [ "Reordering a list does not affect its combined product. You can replace the List.reverse call by the unchanged list." ]
+                            , under = "List.product"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.product list
+"""
+                        ]
+        , test "should replace List.product (List.sort list) by List.product list" <|
+            \() ->
+                """module A exposing (..)
+a = List.product (List.sort list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort before List.product"
+                            , details = [ "Reordering a list does not affect its combined product. You can replace the List.sort call by the unchanged list." ]
+                            , under = "List.product"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.product list
+"""
+                        ]
+        , test "should replace List.product (List.sortBy f list) by List.product list" <|
+            \() ->
+                """module A exposing (..)
+a = List.product (List.sortBy f list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortBy before List.product"
+                            , details = [ "Reordering a list does not affect its combined product. You can replace the List.sortBy call by the unchanged list." ]
+                            , under = "List.product"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.product list
+"""
+                        ]
+        , test "should replace List.product (List.sortWith f list) by List.product list" <|
+            \() ->
+                """module A exposing (..)
+a = List.product (List.sortWith f list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortWith before List.product"
+                            , details = [ "Reordering a list does not affect its combined product. You can replace the List.sortWith call by the unchanged list." ]
+                            , under = "List.product"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.product list
+"""
+                        ]
         ]
 
 
@@ -4233,6 +4361,102 @@ a = List.range 2 3 |> List.minimum
 a = 2 |> Just
 """
                         ]
+        , test "should not report List.minimum on List.reverse when expectNaN is enabled"
+            (\() ->
+                """module A exposing (..)
+a = List.minimum (List.reverse list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace List.minimum (List.reverse list) by List.minimum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.minimum (List.reverse list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.reverse before List.minimum"
+                            , details = [ "Reordering a list does not affect its overall minimum. You can replace the List.reverse call by the unchanged list." ]
+                            , under = "List.minimum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.minimum list
+"""
+                        ]
+        , test "should not report List.minimum on List.sort when expectNaN is enabled"
+            (\() ->
+                """module A exposing (..)
+a = List.minimum (List.sort list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace List.minimum (List.sort list) by List.minimum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.minimum (List.sort list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort before List.minimum"
+                            , details = [ "Reordering a list does not affect its overall minimum. You can replace the List.sort call by the unchanged list." ]
+                            , under = "List.minimum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.minimum list
+"""
+                        ]
+        , test "should not report List.minimum on List.sortBy when expectNaN is enabled"
+            (\() ->
+                """module A exposing (..)
+a = List.minimum (List.sortBy f list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace List.minimum (List.sortBy f list) by List.minimum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.minimum (List.sortBy f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortBy before List.minimum"
+                            , details = [ "Reordering a list does not affect its overall minimum. You can replace the List.sortBy call by the unchanged list." ]
+                            , under = "List.minimum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.minimum list
+"""
+                        ]
+        , test "should not report List.minimum on List.sortWith when expectNaN is enabled"
+            (\() ->
+                """module A exposing (..)
+a = List.minimum (List.sortWith f list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace List.minimum (List.sortWith f list) by List.minimum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.minimum (List.sortWith f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortWith before List.minimum"
+                            , details = [ "Reordering a list does not affect its overall minimum. You can replace the List.sortWith call by the unchanged list." ]
+                            , under = "List.minimum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.minimum list
+"""
+                        ]
         ]
 
 
@@ -4350,6 +4574,102 @@ a = List.range 2 3 |> List.maximum
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 3 |> Just
+"""
+                        ]
+        , test "should not report List.maximum on List.reverse when expectNaN is enabled"
+            (\() ->
+                """module A exposing (..)
+a = List.maximum (List.reverse list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace List.maximum (List.reverse list) by List.maximum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.maximum (List.reverse list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.reverse before List.maximum"
+                            , details = [ "Reordering a list does not affect its overall maximum. You can replace the List.reverse call by the unchanged list." ]
+                            , under = "List.maximum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.maximum list
+"""
+                        ]
+        , test "should not report List.maximum on List.sort when expectNaN is enabled"
+            (\() ->
+                """module A exposing (..)
+a = List.maximum (List.sort list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace List.maximum (List.sort list) by List.maximum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.maximum (List.sort list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort before List.maximum"
+                            , details = [ "Reordering a list does not affect its overall maximum. You can replace the List.sort call by the unchanged list." ]
+                            , under = "List.maximum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.maximum list
+"""
+                        ]
+        , test "should not report List.maximum on List.sortBy when expectNaN is enabled"
+            (\() ->
+                """module A exposing (..)
+a = List.maximum (List.sortBy f list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace List.maximum (List.sortBy f list) by List.maximum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.maximum (List.sortBy f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortBy before List.maximum"
+                            , details = [ "Reordering a list does not affect its overall maximum. You can replace the List.sortBy call by the unchanged list." ]
+                            , under = "List.maximum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.maximum list
+"""
+                        ]
+        , test "should not report List.maximum on List.sortWith when expectNaN is enabled"
+            (\() ->
+                """module A exposing (..)
+a = List.maximum (List.sortWith f list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace List.maximum (List.sortWith f list) by List.maximum list" <|
+            \() ->
+                """module A exposing (..)
+a = List.maximum (List.sortWith f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortWith before List.maximum"
+                            , details = [ "Reordering a list does not affect its overall maximum. You can replace the List.sortWith call by the unchanged list." ]
+                            , under = "List.maximum"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.maximum list
 """
                         ]
         ]

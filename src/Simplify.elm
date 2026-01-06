@@ -784,6 +784,10 @@ Destructuring using case expressions
     List.sum [ a, 0 / 0, b ]
     --> 0 / 0
 
+    -- same for List.sort, List.sortBy, List.sortWith
+    List.sum (List.reverse list)
+    --> List.sum list
+
     List.product []
     --> 1
 
@@ -792,6 +796,10 @@ Destructuring using case expressions
 
     List.product [ a, 1, b ]
     --> List.product [ a, b ]
+
+    -- same for List.sort, List.sortBy, List.sortWith
+    List.product (List.reverse list)
+    --> List.product list
 
     -- when `expectNaN` is not enabled
     List.product [ a, 0, b ]
@@ -810,6 +818,10 @@ Destructuring using case expressions
     List.minimum (List.range 2 3)
     --> Just 2
 
+    -- when expectNaN is not enabled, same for List.sort, List.sortBy, List.sortWith
+    List.minimum (List.reverse list)
+    --> List.minimum list
+
     List.maximum []
     --> Nothing
 
@@ -818,6 +830,10 @@ Destructuring using case expressions
 
     List.maximum (List.range 2 3)
     --> Just 3
+
+    -- when expectNaN is not enabled, same for List.sort, List.sortBy, List.sortWith
+    List.maximum (List.reverse list)
+    --> List.maximum list
 
     List.foldr (++) "" list
     --> String.concat list
@@ -1218,6 +1234,10 @@ Destructuring using case expressions
 
     Set.fromList [ a, a ]
     --> Set.fromList [ a ]
+
+    -- when expectNaN is not enabled, same for List.sort, List.sortBy, List.sortWith
+    Set.fromList (List.reverse list)
+    --> Set.fromList list
 
     Set.map f Set.empty -- same for Set.filter, Set.remove...
     --> Set.empty
@@ -3862,6 +3882,25 @@ intoFnChecksFirstThatConstructsError intoFnCheckList =
     , composition =
         \checkInfo ->
             findMap (\fnCheck -> fnCheck.composition checkInfo) intoFnCheckList
+    }
+
+
+intoFnCheckOnlyWhenExpectNaNIsNotEnabled : IntoFnCheck -> IntoFnCheck
+intoFnCheckOnlyWhenExpectNaNIsNotEnabled intoFnCheck =
+    { call =
+        \checkInfo ->
+            if checkInfo.expectNaN then
+                Nothing
+
+            else
+                intoFnCheck.call checkInfo
+    , composition =
+        \checkInfo ->
+            if checkInfo.expectNaN then
+                Nothing
+
+            else
+                intoFnCheck.composition checkInfo
     }
 
 
@@ -8043,6 +8082,7 @@ listSumChecks : IntoFnCheck
 listSumChecks =
     intoFnChecksFirstThatConstructsError
         [ onWrappedReturnsItsValueCheck listCollection
+        , listReorderOperationsBeforeAreUnnecessaryChecks "combined sum"
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection checkInfo
@@ -8070,6 +8110,7 @@ listProductChecks : IntoFnCheck
 listProductChecks =
     intoFnChecksFirstThatConstructsError
         [ onWrappedReturnsItsValueCheck listCollection
+        , listReorderOperationsBeforeAreUnnecessaryChecks "combined product"
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection checkInfo
@@ -8136,6 +8177,8 @@ listMinimumChecks =
                         )
             )
         , onWrappedReturnsJustItsValueCheck listCollection
+        , intoFnCheckOnlyWhenExpectNaNIsNotEnabled
+            (listReorderOperationsBeforeAreUnnecessaryChecks "overall minimum")
         ]
 
 
@@ -8176,6 +8219,8 @@ listMaximumChecks =
                         )
             )
         , onWrappedReturnsJustItsValueCheck listCollection
+        , intoFnCheckOnlyWhenExpectNaNIsNotEnabled
+            (listReorderOperationsBeforeAreUnnecessaryChecks "overall maximum")
         ]
 
 
@@ -9381,6 +9426,8 @@ setFromListChecks =
                     _ ->
                         Nothing
             )
+        , intoFnCheckOnlyWhenExpectNaNIsNotEnabled
+            (listReorderOperationsBeforeAreUnnecessaryChecks "final representation as a set")
         ]
 
 
@@ -15656,6 +15703,43 @@ leftPipeExample =
     """
 Before: (fn3 << fn2) <| fn1 <| data
 After:   fn3 <| fn2  <| fn1 <| data"""
+
+
+{-| `unnecessarySpecificFnBeforeCheck` for reverse and sort fns
+-}
+listReorderOperationsBeforeAreUnnecessaryChecks : String -> IntoFnCheck
+listReorderOperationsBeforeAreUnnecessaryChecks propertyUnaffectedByReorderingDescription =
+    let
+        whyUnnecessary : String
+        whyUnnecessary =
+            "Reordering a list does not affect its " ++ propertyUnaffectedByReorderingDescription
+    in
+    intoFnChecksFirstThatConstructsError
+        [ unnecessarySpecificFnBeforeCheck
+            { fn = Fn.List.reverse
+            , fnArgCount = 1
+            , fnLastArgRepresents = "list"
+            , whyUnnecessary = whyUnnecessary
+            }
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.List.sort
+            , fnArgCount = 1
+            , fnLastArgRepresents = "list"
+            , whyUnnecessary = whyUnnecessary
+            }
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.List.sortBy
+            , fnArgCount = 2
+            , fnLastArgRepresents = "list"
+            , whyUnnecessary = whyUnnecessary
+            }
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.List.sortWith
+            , fnArgCount = 2
+            , fnLastArgRepresents = "list"
+            , whyUnnecessary = whyUnnecessary
+            }
+        ]
 
 
 
