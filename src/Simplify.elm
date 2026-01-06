@@ -6654,49 +6654,16 @@ tuplePartChecks partConfig =
                     )
                     (AstHelpers.getTuple2 checkInfo.lookupTable checkInfo.firstArg)
             )
-        , tuplePartOnMapUnrelatedCheck partConfig.mapUnrelatedFn
+        , unnecessarySpecificFnBeforeCheck
+            { fn = partConfig.mapUnrelatedFn
+            , fnArgCount = 2
+            , fnLastArgRepresents = "tuple"
+            , whyUnnecessary = "Changing a tuple part which ultimately isn't accessed is unnecessary"
+            }
         , tuplePartOnMapPartCheck partConfig.mapFn
         , tuplePartMapOnMapBothCheck
             { argIndex = partConfig.mapBothArgIndex }
         ]
-
-
-tuplePartOnMapUnrelatedCheck : ( ModuleName, String ) -> IntoFnCheck
-tuplePartOnMapUnrelatedCheck mapUnrelatedFn =
-    { call =
-        \checkInfo ->
-            case AstHelpers.getSpecificUnreducedFnCall mapUnrelatedFn checkInfo.lookupTable checkInfo.firstArg of
-                Just mapUnrelatedCall ->
-                    case mapUnrelatedCall.argsAfterFirst of
-                        [ unmappedTuple ] ->
-                            Just
-                                (Rule.errorWithFix
-                                    { message = "Unnecessary " ++ qualifiedToString mapUnrelatedFn ++ " before " ++ qualifiedToString checkInfo.fn
-                                    , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can replace the " ++ qualifiedToString mapUnrelatedFn ++ " call by the unchanged tuple." ]
-                                    }
-                                    checkInfo.fnRange
-                                    (keepOnlyFix { parentRange = mapUnrelatedCall.nodeRange, keep = Node.range unmappedTuple })
-                                )
-
-                        _ ->
-                            Nothing
-
-                Nothing ->
-                    Nothing
-    , composition =
-        \checkInfo ->
-            if checkInfo.earlier.fn == mapUnrelatedFn then
-                Just
-                    { info =
-                        { message = "Unnecessary " ++ qualifiedToString mapUnrelatedFn ++ " before " ++ qualifiedToString checkInfo.later.fn
-                        , details = [ "Changing a tuple part which ultimately isn't accessed is unnecessary. You can remove the " ++ qualifiedToString mapUnrelatedFn ++ " call." ]
-                        }
-                    , fix = [ Fix.removeRange checkInfo.earlier.removeRange ]
-                    }
-
-            else
-                Nothing
-    }
 
 
 tuplePartOnMapPartCheck : ( ModuleName, String ) -> IntoFnCheck
@@ -15693,6 +15660,52 @@ After:   fn3 <| fn2  <| fn1 <| data"""
 
 
 -- GENERIC CHECKS
+
+
+unnecessarySpecificFnBeforeCheck :
+    { fn : ( ModuleName, String )
+    , fnArgCount : Int
+    , fnLastArgRepresents : String
+    , whyUnnecessary : String
+    }
+    -> IntoFnCheck
+unnecessarySpecificFnBeforeCheck config =
+    { call =
+        \checkInfo ->
+            case AstHelpers.getSpecificUnreducedFnCall config.fn checkInfo.lookupTable checkInfo.firstArg of
+                Just mapUnrelatedCall ->
+                    case fullyAppliedLastArg { argCount = config.fnArgCount, firstArg = mapUnrelatedCall.firstArg, argsAfterFirst = mapUnrelatedCall.argsAfterFirst } of
+                        Nothing ->
+                            Nothing
+
+                        Just unmappedTuple ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message = "Unnecessary " ++ qualifiedToString config.fn ++ " before " ++ qualifiedToString checkInfo.fn
+                                    , details = [ config.whyUnnecessary ++ ". You can replace the " ++ qualifiedToString config.fn ++ " call by the unchanged " ++ config.fnLastArgRepresents ++ "." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (replaceBySubExpressionFix mapUnrelatedCall.nodeRange
+                                        unmappedTuple
+                                    )
+                                )
+
+                Nothing ->
+                    Nothing
+    , composition =
+        \checkInfo ->
+            if onlyLastArgIsCurried checkInfo.later && (checkInfo.earlier.fn == config.fn) then
+                Just
+                    { info =
+                        { message = "Unnecessary " ++ qualifiedToString config.fn ++ " before " ++ qualifiedToString checkInfo.later.fn
+                        , details = [ config.whyUnnecessary ++ ". You can remove the " ++ qualifiedToString config.fn ++ " call." ]
+                        }
+                    , fix = [ Fix.removeRange checkInfo.earlier.removeRange ]
+                    }
+
+            else
+                Nothing
+    }
 
 
 {-| Condense applying the same function with equal arguments (except the last one) twice in sequence into one.
