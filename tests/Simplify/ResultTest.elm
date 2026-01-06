@@ -1287,6 +1287,38 @@ a = Err >> Result.toMaybe
 a = always Nothing
 """
                         ]
+        , test "should replace Result.toMaybe (Result.mapError f result) by Result.toMaybe result" <|
+            \() ->
+                """module A exposing (..)
+a = Result.toMaybe (Result.mapError f result)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Result.mapError before Result.toMaybe"
+                            , details = [ "Result.toMaybe converts any error value to Nothing, so changing that value is unnecessary. You can replace the Result.mapError call by the unchanged result." ]
+                            , under = "Result.toMaybe"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Result.toMaybe result
+"""
+                        ]
+        , test "should replace Result.toMaybe << Result.mapError f by Result.toMaybe" <|
+            \() ->
+                """module A exposing (..)
+a = Result.toMaybe << Result.mapError f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Result.mapError before Result.toMaybe"
+                            , details = [ "Result.toMaybe converts any error value to Nothing, so changing that value is unnecessary. You can remove the Result.mapError call." ]
+                            , under = "Result.toMaybe"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Result.toMaybe
+"""
+                        ]
         ]
 
 

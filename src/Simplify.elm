@@ -633,6 +633,9 @@ Destructuring using case expressions
     Result.toMaybe (Err e)
     --> Nothing
 
+    Result.toMaybe (Result.mapError f result)
+    --> Result.toMaybe result
+
 
 ### Lists
 
@@ -7266,6 +7269,12 @@ resultToMaybeChecks : IntoFnCheck
 resultToMaybeChecks =
     intoFnChecksFirstThatConstructsError
         [ unwrapToMaybeChecks resultWithOkAsWrap
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.Result.mapError
+            , fnArgCount = 2
+            , fnLastArgRepresents = "result"
+            , whyUnnecessary = qualifiedToString Fn.Result.toMaybe ++ " converts any error value to Nothing, so changing that value is unnecessary"
+            }
         , intoFnCheckOnlyComposition
             (\checkInfo ->
                 case checkInfo.earlier.fn of
