@@ -4361,7 +4361,13 @@ listFoldlTests =
         [ test "should not report List.foldl used with okay arguments" <|
             \() ->
                 """module A exposing (..)
-a = List.foldl (\\el soFar -> soFar - el) 20 list
+a0 = List.foldl (\\el soFar -> soFar - el) 20 list
+a1 = List.foldr << Dict.toList
+a2 = List.foldr f << Dict.toList
+a3 = List.foldr (\\(k,v) -> f) << Dict.toList
+a4 = List.foldr f init << Dict.toList
+a5 = List.foldr f init (Dict.toList dict)
+a6 = List.foldr (\\tuple -> f) init (Dict.toList dict)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
