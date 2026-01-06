@@ -2,23 +2,6 @@
 
 ## [Unreleased]
 
-## [2.1.12] - 2026-01-06
-
-The rule now simplifies:
-- `List.head (List.map f list)` to `Maybe.map f (List.head list)`
-- `List.take n (List.map f list)` to `List.map f (List.take n list)`
-- `List.take n (List.indexedMap f list)` to `List.indexedMap f (List.take n list)`
-- `List.drop n (List.map f list)` to `List.map f (List.drop n list)`
-- `Array.get i (Array.map f array)` to `Maybe.map f (Array.get i array)`
-- `Array.slice start end (Array.map f array)` to `Array.map f (Array.slice start end array)`
-- `Array.slice 0 end (Array.indexedMap f array)` to `Array.indexedMap f (Array.slice 0 end array)`
-- `Dict.remove k (Dict.map g dict)` to `Dict.map g (Dict.remove k dict)`
-- `Dict.filter (\k _ -> f k) (Dict.map g dict)` to `Dict.map g (Dict.filter (\k _ -> f k) dict)`
-- `Dict.diff (Dict.map f dict) remove` to `Dict.map f (Dict.diff dict remove)`
-
-Bug fixes:
-- `Cmd.map f (Task.attempt notIdentity task)` was incorrectly fixed to `Task.attempt f task` (same for `Task.perform`)
-
 Other improvements:
 - The various equality checks for lengths/sizes against 0 are now also supported for composition into partially applied prefix operators and also `case` expressions like
   ```elm
@@ -35,6 +18,23 @@ Other improvements:
     y
   ```
 - In addition, various directional comparisons of lengths/sizes with 0/1 are now also turned into (not on) isEmpty, for example: `0 >= Set.size set` to `Set.isEmpty set`
+
+## [2.1.12] - 2026-01-06
+
+The rule now simplifies:
+- `List.head (List.map f list)` to `Maybe.map f (List.head list)`
+- `List.take n (List.map f list)` to `List.map f (List.take n list)`
+- `List.take n (List.indexedMap f list)` to `List.indexedMap f (List.take n list)`
+- `List.drop n (List.map f list)` to `List.map f (List.drop n list)`
+- `Array.get i (Array.map f array)` to `Maybe.map f (Array.get i array)`
+- `Array.slice start end (Array.map f array)` to `Array.map f (Array.slice start end array)`
+- `Array.slice 0 end (Array.indexedMap f array)` to `Array.indexedMap f (Array.slice 0 end array)`
+- `Dict.remove k (Dict.map g dict)` to `Dict.map g (Dict.remove k dict)`
+- `Dict.filter (\k _ -> f k) (Dict.map g dict)` to `Dict.map g (Dict.filter (\k _ -> f k) dict)`
+- `Dict.diff (Dict.map f dict) remove` to `Dict.map f (Dict.diff dict remove)`
+
+Bug fixes:
+- `Cmd.map f (Task.attempt notIdentity task)` was incorrectly fixed to `Task.attempt f task` (same for `Task.perform`)
 
 ## [2.1.11] - 2025-12-30
 
