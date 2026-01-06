@@ -9,6 +9,9 @@ all : Test
 all =
     describe "comparison tests"
         [ lessThanTests
+        , lessThanOrEqualToTests
+        , greaterThanOrEqualToTests
+        , greaterThanTests
         ]
 
 
@@ -359,6 +362,240 @@ a = 1 <= 2
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = True
+"""
+                        ]
+        , test "should replace List.length l < 1 with List.isEmpty l" <|
+            \() ->
+                """module A exposing (..)
+a = List.length l < 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.length < 1 can be replaced by List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by List.isEmpty on the list given to the List.length call."
+                                ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty l
+"""
+                        ]
+        , test "should replace 0 < List.length l with not (List.isEmpty l)" <|
+            \() ->
+                """module A exposing (..)
+a = 0 < List.length l
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "0 < List.length can be replaced by not on List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by not on List.isEmpty on the list given to the List.length call."
+                                ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not (List.isEmpty l)
+"""
+                        ]
+        , test "should replace (<) 0 << List.length with List.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = (<) 0 << List.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "0 < List.length can be replaced by not on List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this composition by not on List.isEmpty."
+                                ]
+                            , under = "(<)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not << List.isEmpty
+"""
+                        ]
+        ]
+
+
+greaterThanOrEqualToTests : Test
+greaterThanOrEqualToTests =
+    describe ">="
+        [ test "should replace 0 >= List.length l with List.isEmpty l" <|
+            \() ->
+                """module A exposing (..)
+a = 0 >= List.length l
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "0 >= List.length can be replaced by List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by List.isEmpty on the list given to the List.length call."
+                                ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty l
+"""
+                        ]
+        , test "should replace List.length l >= 1 with not (List.isEmpty l)" <|
+            \() ->
+                """module A exposing (..)
+a = List.length l >= 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.length >= 1 can be replaced by not on List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by not on List.isEmpty on the list given to the List.length call."
+                                ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not (List.isEmpty l)
+"""
+                        ]
+        , test "should replace (>=) 0 << List.length with List.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = (>=) 0 << List.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "0 >= List.length can be replaced by List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this composition by List.isEmpty."
+                                ]
+                            , under = "(>=)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty
+"""
+                        ]
+        ]
+
+
+lessThanOrEqualToTests : Test
+lessThanOrEqualToTests =
+    describe "<="
+        [ test "should replace List.length l <= 0 with List.isEmpty l" <|
+            \() ->
+                """module A exposing (..)
+a = List.length l <= 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.length <= 0 can be replaced by List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by List.isEmpty on the list given to the List.length call."
+                                ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty l
+"""
+                        ]
+        , test "should replace 1 <= List.length l with List.isEmpty l" <|
+            \() ->
+                """module A exposing (..)
+a = 1 <= List.length l
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "1 <= List.length can be replaced by not on List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by not on List.isEmpty on the list given to the List.length call."
+                                ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not (List.isEmpty l)
+"""
+                        ]
+        , test "should replace (<=) 1 << List.length with List.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = (<=) 1 << List.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "1 <= List.length can be replaced by not on List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this composition by not on List.isEmpty."
+                                ]
+                            , under = "(<=)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not << List.isEmpty
+"""
+                        ]
+        ]
+
+
+greaterThanTests : Test
+greaterThanTests =
+    describe ">"
+        [ test "should replace 1 > List.length l with List.isEmpty l" <|
+            \() ->
+                """module A exposing (..)
+a = 1 > List.length l
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "1 > List.length can be replaced by List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by List.isEmpty on the list given to the List.length call."
+                                ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty l
+"""
+                        ]
+        , test "should replace List.length l > 0 with List.isEmpty l" <|
+            \() ->
+                """module A exposing (..)
+a = List.length l > 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.length > 0 can be replaced by not on List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by not on List.isEmpty on the list given to the List.length call."
+                                ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not (List.isEmpty l)
+"""
+                        ]
+        , test "should replace (>) 1 << List.length with List.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = (>) 1 << List.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "1 > List.length can be replaced by List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this composition by List.isEmpty."
+                                ]
+                            , under = "(>)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty
 """
                         ]
         ]

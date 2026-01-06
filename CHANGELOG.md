@@ -19,6 +19,23 @@ The rule now simplifies:
 Bug fixes:
 - `Cmd.map f (Task.attempt notIdentity task)` was incorrectly fixed to `Task.attempt f task` (same for `Task.perform`)
 
+Other improvements:
+- The various equality checks for lengths/sizes against 0 are now also supported for composition into partially applied prefix operators and also `case` expressions like
+  ```elm
+  case Set.size set of
+      0 -> x
+      _ -> y
+  ```
+  to
+  ```elm
+  if Set.isEmpty set then
+    x
+  
+  else
+    y
+  ```
+- In addition, various directional comparisons of lengths/sizes with 0/1 are now also turned into (not on) isEmpty, for example: `0 >= Set.size set` to `Set.isEmpty set`
+
 ## [2.1.11] - 2025-12-30
 
 - Disabled `List.concat` simplifications that merged `List.concat` without structure.
