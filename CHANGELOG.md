@@ -1,10 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
 The rule now simplifies:
 - `String.length str == 0` to `String.isEmpty str` (including all the variations mentioned in "Other improvements")
 - `List.foldl (\( k, v ) -> f k v) init (Dict.toList dict)` to `Dict.foldl (\k v -> f k v) init dict` (same for foldr)
-
-## [Unreleased]
 
 Other improvements:
 - The various equality checks for lengths/sizes against 0 are now also supported for composition into partially applied prefix operators and also `case` expressions like
