@@ -1,6 +1,7 @@
 module Simplify.AstHelpers exposing
     ( removeParens, removeParensFromPattern
     , ReduceLambdaResources, reduceLambda
+    , getSingleArgCall
     , getValueOrFnOrFnCall, getUnreducedValueOrFnOrFnCall
     , getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
     , getCollapsedLambda
@@ -32,6 +33,7 @@ module Simplify.AstHelpers exposing
 
 ### value/function/function call/composition
 
+@docs getSingleArgCall
 @docs getValueOrFnOrFnCall, getUnreducedValueOrFnOrFnCall
 @docs getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
 
@@ -380,6 +382,66 @@ isSpecificValueReference lookupTable ( moduleOriginToCheckFor, nameToCheckFor ) 
 
         _ ->
             False
+
+
+getSingleArgCall :
+    Node Expression
+    ->
+        Maybe
+            { called : Node Expression
+            , arg : Node Expression
+            , callStyle : FunctionCallStyle
+            }
+getSingleArgCall expressionNode =
+    case removeParens expressionNode of
+        Node _ (Expression.ParenthesizedExpression inParens) ->
+            getSingleArgCall inParens
+
+        Node _ (Expression.Application (innerCalled :: firstArg :: argsAfterFirst)) ->
+            case List.reverse argsAfterFirst of
+                [] ->
+                    Just
+                        { callStyle = CallStyle.pipeLeftToRight
+                        , called = innerCalled
+                        , arg = firstArg
+                        }
+
+                lastArg :: argsBeforeLastReverse ->
+                    Just
+                        { callStyle = CallStyle.pipeLeftToRight
+                        , called =
+                            Node
+                                { start = (Node.range innerCalled).start
+                                , end =
+                                    case argsBeforeLastReverse of
+                                        [] ->
+                                            (Node.range firstArg).end
+
+                                        argBeforeLastArg :: _ ->
+                                            (Node.range argBeforeLastArg).end
+                                }
+                                (Expression.Application
+                                    (innerCalled :: firstArg :: List.reverse argsBeforeLastReverse)
+                                )
+                        , arg = lastArg
+                        }
+
+        Node _ (Expression.OperatorApplication "|>" _ arg called) ->
+            Just
+                { callStyle = CallStyle.pipeLeftToRight
+                , called = called
+                , arg = arg
+                }
+
+        Node _ (Expression.OperatorApplication "<|" _ called arg) ->
+            Just
+                { callStyle = CallStyle.pipeRightToLeft
+                , called = called
+                , arg = arg
+                }
+
+        _ ->
+            Nothing
 
 
 {-| Like `getValueOrFnOrFnCall` but skipping the check for a reduced lambda.

@@ -1,7 +1,7 @@
 module Simplify.Normalize exposing
     ( Resources, normalizeExpression, normalizeExpressionButKeepRange
     , Comparison(..), areAllTheSameAs, areTheSame, compare, compareExistingNormals
-    , getBool, getInt, getNumber, isSpecificUnappliedBinaryOperation
+    , getBool, getInt, getNumber, getUnappliedBinaryOperation, isSpecificUnappliedBinaryOperation
     )
 
 {-| Bring expressions to a normal form,
@@ -17,7 +17,7 @@ including simple evaluation using [`Simplify.Infer`](Simplify-Infer)
 
 ## parse
 
-@docs getBool, getInt, getNumber, isSpecificUnappliedBinaryOperation
+@docs getBool, getInt, getNumber, getUnappliedBinaryOperation, isSpecificUnappliedBinaryOperation
 
 -}
 
@@ -1186,6 +1186,19 @@ getNumber resources expressionNode =
     case normalizeExpression resources expressionNode of
         Expression.Floatable float ->
             Just float
+
+        _ ->
+            Nothing
+
+
+{-| Parse a given expression as an operator function
+(either a function reducible to the operator in prefix notation `(op)` or a lambda `\a b -> a op b`).
+-}
+getUnappliedBinaryOperation : Resources a -> Node Expression -> Maybe String
+getUnappliedBinaryOperation resources expressionNode =
+    case normalizeExpression resources expressionNode of
+        Expression.PrefixOperator operator ->
+            Just operator
 
         _ ->
             Nothing
