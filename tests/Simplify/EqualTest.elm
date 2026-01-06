@@ -1349,6 +1349,84 @@ a = (==) 0 << List.length
 a = List.isEmpty
 """
                         ]
+        , test "should replace case List.length l of 0->x; _->y with if List.isEmpty l then x else y" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case  List.length l        of
+        ((0)) -> x
+        ((_))  ->y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.length matched against 0 can be replaced by List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by an if-then-else testing for List.isEmpty on the list given to the List.length call, and returning the result of the case matching 0 in the then branch and the result of the branch matching on _ in the else branch."
+                                ]
+                            , under = "case"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    if  List.isEmpty l then
+                 x
+
+    else
+                 y
+"""
+                        ]
+        , test "should replace case List.length l of 0x0->x; _->y with if List.isEmpty l then x else y" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case List.length l of
+        0x0->x
+        _ -> y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.length matched against 0 can be replaced by List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by an if-then-else testing for List.isEmpty on the list given to the List.length call, and returning the result of the case matching 0 in the then branch and the result of the branch matching on _ in the else branch."
+                                ]
+                            , under = "case"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    if List.isEmpty l then
+             x
+
+    else
+             y
+"""
+                        ]
+        , test "should replace case l |> List.length of 0->x; _->y with if l |> List.isEmpty then x else y" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case l |> List.length of
+        0 -> x
+        _ -> y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.length matched against 0 can be replaced by List.isEmpty"
+                            , details =
+                                [ "Whereas List.length takes as long to run as the number of elements in the list, List.isEmpty runs in constant time. You can replace this operation by an if-then-else testing for List.isEmpty on the list given to the List.length call, and returning the result of the case matching 0 in the then branch and the result of the branch matching on _ in the else branch."
+                                ]
+                            , under = "case"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    if l |> List.isEmpty then
+             x
+
+    else
+             y
+"""
+                        ]
         , test "should replace List.length l /= 0 with not (List.isEmpty l)" <|
             \() ->
                 """module A exposing (..)
@@ -1721,6 +1799,34 @@ a = (/=) 0 << Set.size
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
 a = not << Set.isEmpty
+"""
+                        ]
+        , test "should replace case Set.size l of 0->x; _->y with if Set.isEmpty l then x else y" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a =
+    case Set.size l of
+        0 -> x
+        _ -> y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.size matched against 0 can be replaced by Set.isEmpty"
+                            , details =
+                                [ "Whereas Set.size takes as long to run as the number of elements in the set, Set.isEmpty runs in constant time. You can replace this operation by an if-then-else testing for Set.isEmpty on the set given to the Set.size call, and returning the result of the case matching 0 in the then branch and the result of the branch matching on _ in the else branch."
+                                ]
+                            , under = "case"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a =
+    if Set.isEmpty l then
+             x
+
+    else
+             y
 """
                         ]
         ]
@@ -2173,6 +2279,34 @@ a = (/=) 0 << Array.length
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = not << Array.isEmpty
+"""
+                        ]
+        , test "should replace case Array.length l of 0->x; _->y with if Array.isEmpty l then x else y" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a =
+    case Array.length l of
+        0 -> x
+        _ -> y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.length matched against 0 can be replaced by Array.isEmpty"
+                            , details =
+                                [ "You can replace this operation by an if-then-else testing for Array.isEmpty on the array given to the Array.length call, and returning the result of the case matching 0 in the then branch and the result of the branch matching on _ in the else branch."
+                                ]
+                            , under = "case"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a =
+    if Array.isEmpty l then
+             x
+
+    else
+             y
 """
                         ]
         ]

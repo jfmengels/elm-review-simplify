@@ -4,6 +4,7 @@ module Simplify.AstHelpers exposing
     , getSingleArgCall
     , getValueOrFnOrFnCall, getUnreducedValueOrFnOrFnCall
     , getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
+    , patternGetInt
     , getCollapsedLambda
     , isIdentity, getAlwaysResult
     , isTupleFirstAccess, isTupleSecondAccess
@@ -40,6 +41,7 @@ module Simplify.AstHelpers exposing
 
 ### certain kind
 
+@docs patternGetInt
 @docs getCollapsedLambda
 @docs isIdentity, getAlwaysResult
 @docs isTupleFirstAccess, isTupleSecondAccess
@@ -439,6 +441,22 @@ getSingleArgCall expressionNode =
                 , called = called
                 , arg = arg
                 }
+
+        _ ->
+            Nothing
+
+
+patternGetInt : Node Pattern -> Maybe Int
+patternGetInt (Node _ pattern) =
+    case pattern of
+        Pattern.ParenthesizedPattern inParens ->
+            patternGetInt inParens
+
+        Pattern.IntPattern int ->
+            Just int
+
+        Pattern.HexPattern int ->
+            Just int
 
         _ ->
             Nothing
