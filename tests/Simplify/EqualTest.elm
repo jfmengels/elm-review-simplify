@@ -1232,6 +1232,7 @@ a = 1 == ({ a = 1 }).b
 """
                         ]
         , listIsEmptyTests
+        , stringIsEmptyTests
         , setIsEmptyTests
         , dictIsEmptyTests
         , arrayIsEmptyTests
@@ -2303,6 +2304,238 @@ a =
 import Array
 a =
     if Array.isEmpty l then
+             x
+
+    else
+             y
+"""
+                        ]
+        ]
+
+
+stringIsEmptyTests : Test
+stringIsEmptyTests =
+    describe "String.length should be `String.isEmpty`"
+        [ test "should replace String.length string == 0 with String.isEmpty string" <|
+            \() ->
+                """module A exposing (..)
+a = String.length string == 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.length == 0 can be replaced by String.isEmpty"
+                            , details =
+                                [ "You can replace this operation by String.isEmpty on the string given to the String.length call."
+                                ]
+                            , under = "String.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.isEmpty string
+"""
+                        ]
+        , test "should replace length string == 0 with isEmpty string" <|
+            \() ->
+                """module A exposing (..)
+import String as SomethingElse exposing (..)
+a = length string == 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.length == 0 can be replaced by String.isEmpty"
+                            , details =
+                                [ "You can replace this operation by String.isEmpty on the string given to the String.length call."
+                                ]
+                            , under = "length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import String as SomethingElse exposing (..)
+a = isEmpty string
+"""
+                        ]
+        , test "should replace 0 == String.length string with String.isEmpty string" <|
+            \() ->
+                """module A exposing (..)
+a = 0 == String.length string
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.length == 0 can be replaced by String.isEmpty"
+                            , details =
+                                [ "You can replace this operation by String.isEmpty on the string given to the String.length call."
+                                ]
+                            , under = "String.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.isEmpty string
+"""
+                        ]
+        , test "should replace (string |> String.length) == 0 with string |> String.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = (string |> String.length) == 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.length == 0 can be replaced by String.isEmpty"
+                            , details =
+                                [ "You can replace this operation by String.isEmpty on the string given to the String.length call."
+                                ]
+                            , under = "String.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (string |> String.isEmpty)
+"""
+                        ]
+        , test "should replace 0 == (string |> String.length) with String.isEmpty string" <|
+            \() ->
+                """module A exposing (..)
+a = 0 == (string |> String.length)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.length == 0 can be replaced by String.isEmpty"
+                            , details =
+                                [ "You can replace this operation by String.isEmpty on the string given to the String.length call."
+                                ]
+                            , under = "String.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (string |> String.isEmpty)
+"""
+                        ]
+        , test "should replace String.length string /= 0 with not (String.isEmpty string)" <|
+            \() ->
+                """module A exposing (..)
+a = String.length string /= 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.length /= 0 can be replaced by not on String.isEmpty"
+                            , details =
+                                [ "You can replace this operation by not on String.isEmpty on the string given to the String.length call."
+                                ]
+                            , under = "String.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not (String.isEmpty string)
+"""
+                        ]
+        , test "should replace 0 /= String.length string with not (String.isEmpty string)" <|
+            \() ->
+                """module A exposing (..)
+a = 0 /= String.length string
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.length /= 0 can be replaced by not on String.isEmpty"
+                            , details =
+                                [ "You can replace this operation by not on String.isEmpty on the string given to the String.length call."
+                                ]
+                            , under = "String.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not (String.isEmpty string)
+"""
+                        ]
+        , test "should replace (string |> String.length) /= 0 with (string |> String.isEmpty |> not)" <|
+            \() ->
+                """module A exposing (..)
+a = (string |> String.length) /= 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.length /= 0 can be replaced by not on String.isEmpty"
+                            , details =
+                                [ "You can replace this operation by not on String.isEmpty on the string given to the String.length call."
+                                ]
+                            , under = "String.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (string |> String.isEmpty |> not)
+"""
+                        ]
+        , test "should replace 0 /= (string |> String.length) with (string |> String.isEmpty |> not)" <|
+            \() ->
+                """module A exposing (..)
+a = 0 /= (string |> String.length)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.length /= 0 can be replaced by not on String.isEmpty"
+                            , details =
+                                [ "You can replace this operation by not on String.isEmpty on the string given to the String.length call."
+                                ]
+                            , under = "String.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (string |> String.isEmpty |> not)
+"""
+                        ]
+        , test "should replace (==) 0 << String.length with String.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = (==) 0 << String.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.length == 0 can be replaced by String.isEmpty"
+                            , details =
+                                [ "You can replace this composition by String.isEmpty."
+                                ]
+                            , under = "(==)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.isEmpty
+"""
+                        ]
+        , test "should replace (/=) 0 << String.length with String.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = (/=) 0 << String.length
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.length /= 0 can be replaced by not on String.isEmpty"
+                            , details =
+                                [ "You can replace this composition by not on String.isEmpty."
+                                ]
+                            , under = "(/=)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not << String.isEmpty
+"""
+                        ]
+        , test "should replace case String.length l of 0->x; _->y with if String.isEmpty l then x else y" <|
+            \() ->
+                """module A exposing (..)
+a =
+    case String.length l of
+        0 -> x
+        _ -> y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.length matched against 0 can be replaced by String.isEmpty"
+                            , details =
+                                [ "You can replace this operation by an if-then-else testing for String.isEmpty on the string given to the String.length call, and returning the result of the case matching 0 in the then branch and the result of the branch matching on _ in the else branch."
+                                ]
+                            , under = "case"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+    if String.isEmpty l then
              x
 
     else
