@@ -4120,7 +4120,7 @@ valueOrFnOrFnCallThenAnyCompositionChecks :
     , args : List (Node Expression)
     , removeRange : Range
     }
-    -> { a | later : { b | node : Node Expression, removeRange : Range }, lookupTable : ModuleNameLookupTable, importCustomTypes : Dict ModuleName (Dict String { variantNames : Set String, allParametersAreUsedInVariants : Bool }), moduleCustomTypes : Dict String { variantNames : Set String, allParametersAreUsedInVariants : Bool }, expectNaN : Bool, importLookup : ImportLookup, moduleBindings : Set String, localBindings : RangeDict (Set String), extractSourceCode : Range -> String, inferredConstants : ( Infer.Inferred, List Infer.Inferred ), isEmbeddedInComposition : Bool }
+    -> CompositionCheckInfo
     -> Maybe (Error {})
 valueOrFnOrFnCallThenAnyCompositionChecks earlier checkInfo =
     case AstHelpers.getValueOrFnOrFnCall checkInfo checkInfo.later.node of
