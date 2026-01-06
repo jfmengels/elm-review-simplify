@@ -3433,11 +3433,14 @@ expressionVisitorHelp (Node expressionRange expression) config context =
             onlyMaybeError
                 (caseOfChecks
                     { lookupTable = context.lookupTable
+                    , importLookup = context.importLookup
                     , moduleCustomTypes = context.moduleCustomTypes
                     , importCustomTypes = context.importCustomTypes
                     , extractSourceCode = context.extractSourceCode
                     , customTypesToReportInCases = context.customTypesToReportInCases
                     , inferredConstants = context.inferredConstants
+                    , moduleBindings = context.moduleBindings
+                    , localBindings = context.localBindings
                     , parentRange = expressionRange
                     , caseOf = caseBlock
                     }
@@ -17242,31 +17245,107 @@ caseOfChecks checkInfo =
         |> onNothing (\() -> booleanCaseOfChecks checkInfo)
         |> onNothing (\() -> destructuringCaseOfChecks checkInfo)
         |> onNothing (\() -> caseOfWithUnreachableCasesChecks checkInfo)
+        |> onNothing (\() -> caseElementCountOf0Checks checkInfo)
+
+
+caseElementCountOf0Checks : CaseOfCheckInfo -> Maybe (Error {})
+caseElementCountOf0Checks checkInfo =
+    case checkInfo.caseOf.cases of
+        [ ( firstCasePattern, firstCaseResult ), ( lastCasePattern, lastCaseResult ) ] ->
+            if
+                (AstHelpers.patternGetInt firstCasePattern == Just 0)
+                    && (Node.value (AstHelpers.removeParensFromPattern lastCasePattern) == Pattern.AllPattern)
+            then
+                case AstHelpers.getUnreducedValueOrFnOrFnCall checkInfo.caseOf.expression of
+                    Nothing ->
+                        Nothing
+
+                    Just call ->
+                        case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable call.fnRange of
+                            Nothing ->
+                                Nothing
+
+                            Just callFn ->
+                                case
+                                    compareElementCountChecks
+                                        { isEqual = True
+                                        , operation = "matched against 0"
+                                        , replaceByInstruction =
+                                            \descriptions ->
+                                                "replace this operation by an if-then-else testing for "
+                                                    ++ descriptions.replacementOperation
+                                                    ++ " on the "
+                                                    ++ descriptions.collection
+                                                    ++ " given to the "
+                                                    ++ descriptions.elementCountFn
+                                                    ++ " call, and returning the result of the case matching 0 in the then branch and the result of the branch matching on _ in the else branch"
+                                        , fn = ( callFn, call.fnName )
+                                        }
+                                of
+                                    Nothing ->
+                                        Nothing
+
+                                    Just error ->
+                                        let
+                                            thisCaseKeywordRange : Range
+                                            thisCaseKeywordRange =
+                                                caseKeyWordRange checkInfo.parentRange
+                                        in
+                                        Just
+                                            (Rule.errorWithFix
+                                                { message = error.message, details = error.details }
+                                                thisCaseKeywordRange
+                                                [ Fix.replaceRangeBy thisCaseKeywordRange "if"
+                                                , Fix.replaceRangeBy call.fnRange
+                                                    (qualifiedToString (qualify error.isEmptyFn checkInfo))
+                                                , Fix.replaceRangeBy
+                                                    { start = (Node.range checkInfo.caseOf.expression).end
+                                                    , end = (Node.range firstCaseResult).start
+                                                    }
+                                                    (" then\n" ++ String.repeat ((Node.range firstCaseResult).start.column - 1) " ")
+                                                , Fix.replaceRangeBy
+                                                    { start = (Node.range firstCaseResult).end
+                                                    , end = (Node.range lastCaseResult).start
+                                                    }
+                                                    ("\n\n"
+                                                        ++ String.repeat (thisCaseKeywordRange.start.column - 1) " "
+                                                        ++ "else\n"
+                                                        ++ String.repeat ((Node.range lastCaseResult).start.column - 1) " "
+                                                    )
+                                                ]
+                                            )
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
 
 
 type alias CaseOfCheckInfo =
-    { lookupTable : ModuleNameLookupTable
-    , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
-    , moduleCustomTypes :
-        Dict
-            String
-            { variantNames : Set String
-            , allParametersAreUsedInVariants : Bool
-            }
-    , importCustomTypes :
-        Dict
-            ModuleName
-            (Dict
+    QualifyResources
+        { lookupTable : ModuleNameLookupTable
+        , customTypesToReportInCases : Set ( ModuleName, ConstructorName )
+        , moduleCustomTypes :
+            Dict
                 String
                 { variantNames : Set String
                 , allParametersAreUsedInVariants : Bool
                 }
-            )
-    , extractSourceCode : Range -> String
-    , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
-    , parentRange : Range
-    , caseOf : Expression.CaseBlock
-    }
+        , importCustomTypes :
+            Dict
+                ModuleName
+                (Dict
+                    String
+                    { variantNames : Set String
+                    , allParametersAreUsedInVariants : Bool
+                    }
+                )
+        , extractSourceCode : Range -> String
+        , inferredConstants : ( Infer.Inferred, List Infer.Inferred )
+        , parentRange : Range
+        , caseOf : Expression.CaseBlock
+        }
 
 
 sameBodyForCaseOfChecks :
