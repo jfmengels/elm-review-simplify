@@ -4743,10 +4743,10 @@ a = Dict.keys >> List.foldl (\\a s -> f a s) init
 a = Dict.foldl (\\a _ s -> f a s) init
 """
                         ]
-        , test "should replace List.foldl (\\(k,v) -> f k v) init (Dict.toList list) by Dict.foldl (\\k v -> f k v) init list" <|
+        , test "should replace List.foldl (\\(k,v) -> f k v) init (Dict.toList dict) by Dict.foldl (\\k v -> f k v) init dict" <|
             \() ->
                 """module A exposing (..)
-a = List.foldl (\\(k,v) -> f k v) init (Dict.toList list)
+a = List.foldl (\\(k,v) -> f k v) init (Dict.toList dict)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -4757,7 +4757,7 @@ a = List.foldl (\\(k,v) -> f k v) init (Dict.toList list)
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Dict.foldl (\\k v -> f k v) init list
+a = Dict.foldl (\\k v -> f k v) init dict
 """
                         ]
         , test "should replace dict |> Dict.toList |> List.foldl (\\(Variant k,Variant v) acc -> f k v acc) init by dict |> Dict.foldl (\\(Variant k) (Variant v) acc -> f k v acc) init" <|
@@ -6092,10 +6092,10 @@ a = Dict.keys >> List.foldr (\\a s -> f a s) init
 a = Dict.foldr (\\a _ s -> f a s) init
 """
                         ]
-        , test "should replace List.foldr (\\(k,v) -> f k v) init (Dict.toList list) by Dict.foldr (\\k v -> f k v) init list" <|
+        , test "should replace List.foldr (\\(k,v) -> f k v) init (Dict.toList dict) by Dict.foldr (\\k v -> f k v) init dict" <|
             \() ->
                 """module A exposing (..)
-a = List.foldr (\\(k,v) -> f k v) init (Dict.toList list)
+a = List.foldr (\\(k,v) -> f k v) init (Dict.toList dict)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -6106,7 +6106,7 @@ a = List.foldr (\\(k,v) -> f k v) init (Dict.toList list)
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = Dict.foldr (\\k v -> f k v) init list
+a = Dict.foldr (\\k v -> f k v) init dict
 """
                         ]
         , test "should replace List.foldr (\\(k,v) -> f k v) init << Dict.toList by Dict.foldr (\\k v -> f k v) init" <|
