@@ -4091,51 +4091,16 @@ compositionChecks checkInfo =
             (\() ->
                 case AstHelpers.getValueOrFnOrFnCall checkInfo checkInfo.earlier.node of
                     Just earlierFnOrCall ->
-                        case AstHelpers.getValueOrFnOrFnCall checkInfo checkInfo.later.node of
-                            Just laterFnOrCall ->
-                                case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable earlierFnOrCall.fnRange of
-                                    Just earlierFnModuleName ->
-                                        case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable laterFnOrCall.fnRange of
-                                            Just laterFnModuleName ->
-                                                case Dict.get ( laterFnModuleName, laterFnOrCall.fnName ) compositionIntoChecks of
-                                                    Just ( laterArgCount, compositionIntoChecksForSpecificLater ) ->
-                                                        compositionIntoChecksForSpecificLater
-                                                            { expectNaN = checkInfo.expectNaN
-                                                            , lookupTable = checkInfo.lookupTable
-                                                            , importLookup = checkInfo.importLookup
-                                                            , importCustomTypes = checkInfo.importCustomTypes
-                                                            , moduleCustomTypes = checkInfo.moduleCustomTypes
-                                                            , moduleBindings = checkInfo.moduleBindings
-                                                            , localBindings = checkInfo.localBindings
-                                                            , extractSourceCode = checkInfo.extractSourceCode
-                                                            , inferredConstants = checkInfo.inferredConstants
-                                                            , later =
-                                                                { range = laterFnOrCall.nodeRange
-                                                                , fn = ( laterFnModuleName, laterFnOrCall.fnName )
-                                                                , fnRange = laterFnOrCall.fnRange
-                                                                , args = laterFnOrCall.args
-                                                                , argCount = laterArgCount
-                                                                , removeRange = checkInfo.later.removeRange
-                                                                }
-                                                            , earlier =
-                                                                { range = earlierFnOrCall.nodeRange
-                                                                , fn = ( earlierFnModuleName, earlierFnOrCall.fnName )
-                                                                , fnRange = earlierFnOrCall.fnRange
-                                                                , args = earlierFnOrCall.args
-                                                                , removeRange = checkInfo.earlier.removeRange
-                                                                }
-                                                            , isEmbeddedInComposition = checkInfo.isEmbeddedInComposition
-                                                            }
-                                                            |> Maybe.map (\e -> Rule.errorWithFix e.info laterFnOrCall.fnRange e.fix)
-
-                                                    Nothing ->
-                                                        Nothing
-
-                                            Nothing ->
-                                                Nothing
-
-                                    Nothing ->
-                                        Nothing
+                        case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable earlierFnOrCall.fnRange of
+                            Just earlierFnModuleName ->
+                                valueOrFnOrFnCallThenAnyCompositionChecks
+                                    { range = earlierFnOrCall.nodeRange
+                                    , fn = ( earlierFnModuleName, earlierFnOrCall.fnName )
+                                    , fnRange = earlierFnOrCall.fnRange
+                                    , args = earlierFnOrCall.args
+                                    , removeRange = checkInfo.earlier.removeRange
+                                    }
+                                    checkInfo
 
                             Nothing ->
                                 Nothing
@@ -4143,6 +4108,158 @@ compositionChecks checkInfo =
                     Nothing ->
                         Nothing
             )
+
+
+valueOrFnOrFnCallThenAnyCompositionChecks :
+    { range : Range
+    , fn : ( ModuleName, String )
+    , fnRange : Range
+    , args : List (Node Expression)
+    , removeRange : Range
+    }
+    -> { a | later : { b | node : Node Expression, removeRange : Range }, lookupTable : ModuleNameLookupTable, importCustomTypes : Dict ModuleName (Dict String { variantNames : Set String, allParametersAreUsedInVariants : Bool }), moduleCustomTypes : Dict String { variantNames : Set String, allParametersAreUsedInVariants : Bool }, expectNaN : Bool, importLookup : ImportLookup, moduleBindings : Set String, localBindings : RangeDict (Set String), extractSourceCode : Range -> String, inferredConstants : ( Infer.Inferred, List Infer.Inferred ), isEmbeddedInComposition : Bool }
+    -> Maybe (Error {})
+valueOrFnOrFnCallThenAnyCompositionChecks earlier checkInfo =
+    case AstHelpers.getValueOrFnOrFnCall checkInfo checkInfo.later.node of
+        Just laterFnOrCall ->
+            case ModuleNameLookupTable.moduleNameAt checkInfo.lookupTable laterFnOrCall.fnRange of
+                Just laterFnModuleName ->
+                    case Dict.get ( laterFnModuleName, laterFnOrCall.fnName ) compositionIntoChecks of
+                        Just ( laterArgCount, compositionIntoChecksForSpecificLater ) ->
+                            compositionIntoChecksForSpecificLater
+                                { expectNaN = checkInfo.expectNaN
+                                , lookupTable = checkInfo.lookupTable
+                                , importLookup = checkInfo.importLookup
+                                , importCustomTypes = checkInfo.importCustomTypes
+                                , moduleCustomTypes = checkInfo.moduleCustomTypes
+                                , moduleBindings = checkInfo.moduleBindings
+                                , localBindings = checkInfo.localBindings
+                                , extractSourceCode = checkInfo.extractSourceCode
+                                , inferredConstants = checkInfo.inferredConstants
+                                , later =
+                                    { range = laterFnOrCall.nodeRange
+                                    , fn = ( laterFnModuleName, laterFnOrCall.fnName )
+                                    , fnRange = laterFnOrCall.fnRange
+                                    , args = laterFnOrCall.args
+                                    , argCount = laterArgCount
+                                    , removeRange = checkInfo.later.removeRange
+                                    }
+                                , earlier = earlier
+                                , isEmbeddedInComposition = checkInfo.isEmbeddedInComposition
+                                }
+                                |> Maybe.map (\e -> Rule.errorWithFix e.info laterFnOrCall.fnRange e.fix)
+
+                        Nothing ->
+                            Nothing
+
+                Nothing ->
+                    Nothing
+
+        Nothing ->
+            case AstHelpers.getSingleArgCall checkInfo.later.node of
+                Nothing ->
+                    Nothing
+
+                Just laterSingleArgCall ->
+                    case Normalize.getUnappliedBinaryOperation checkInfo laterSingleArgCall.called of
+                        Nothing ->
+                            Nothing
+
+                        Just operator ->
+                            valueOrFnOrFnCallThenOperatorCallCompositionChecks
+                                { lookupTable = checkInfo.lookupTable
+                                , importLookup = checkInfo.importLookup
+                                , inferredConstants = checkInfo.inferredConstants
+                                , importCustomTypes = checkInfo.importCustomTypes
+                                , moduleCustomTypes = checkInfo.moduleCustomTypes
+                                , moduleBindings = checkInfo.moduleBindings
+                                , localBindings = checkInfo.localBindings
+                                , earlier = earlier
+                                , later =
+                                    { range = Node.range checkInfo.later.node
+                                    , operator = operator
+                                    , arg = laterSingleArgCall.arg
+                                    , removeRange = checkInfo.later.removeRange
+                                    }
+                                }
+                                |> Maybe.map
+                                    (\e ->
+                                        Rule.errorWithFix e.info (Node.range laterSingleArgCall.called) e.fix
+                                    )
+
+
+type alias ValueOrFnOrFnCallThenOperatorCallCheckInfo =
+    QualifyResources
+        (Normalize.Resources
+            { earlier :
+                { range : Range
+                , fn : ( ModuleName, String )
+                , fnRange : Range
+                , args : List (Node Expression)
+                , removeRange : Range
+                }
+            , later :
+                { range : Range
+                , operator : String
+                , arg : Node Expression
+                , removeRange : Range
+                }
+            }
+        )
+
+
+valueOrFnOrFnCallThenOperatorCallCompositionChecks : ValueOrFnOrFnCallThenOperatorCallCheckInfo -> Maybe ErrorInfoAndFix
+valueOrFnOrFnCallThenOperatorCallCompositionChecks checkInfo =
+    case checkInfo.later.operator of
+        "==" ->
+            valueOrFnOrFnCallThenOperatorCallEqualityChecks True checkInfo
+
+        "/=" ->
+            valueOrFnOrFnCallThenOperatorCallEqualityChecks False checkInfo
+
+        _ ->
+            Nothing
+
+
+valueOrFnOrFnCallThenOperatorCallEqualityChecks : Bool -> ValueOrFnOrFnCallThenOperatorCallCheckInfo -> Maybe ErrorInfoAndFix
+valueOrFnOrFnCallThenOperatorCallEqualityChecks isEqual checkInfo =
+    case checkInfo.earlier.args of
+        _ :: _ ->
+            Nothing
+
+        [] ->
+            case Normalize.getInt checkInfo checkInfo.later.arg of
+                Just 0 ->
+                    case
+                        compareElementCountChecks
+                            { isEqual = isEqual
+                            , operation = checkInfo.later.operator ++ " 0"
+                            , replaceByInstruction =
+                                \descriptions ->
+                                    "replace this composition by " ++ descriptions.replacementOperation
+                            , fn = checkInfo.earlier.fn
+                            }
+                    of
+                        Nothing ->
+                            Nothing
+
+                        Just error ->
+                            Just
+                                { info = { message = error.message, details = error.details }
+                                , fix =
+                                    [ Fix.replaceRangeBy checkInfo.earlier.range
+                                        (qualifiedToString (qualify error.isEmptyFn checkInfo))
+                                    , if isEqual then
+                                        Fix.removeRange checkInfo.later.removeRange
+
+                                      else
+                                        Fix.replaceRangeBy checkInfo.later.range
+                                            (qualifiedToString (qualify Fn.Basics.not checkInfo))
+                                    ]
+                                }
+
+                _ ->
+                    Nothing
 
 
 compositionIntoChecks : Dict ( ModuleName, String ) ( Int, CompositionIntoCheckInfo -> Maybe ErrorInfoAndFix )
@@ -4903,6 +5020,15 @@ elementCountEqualityTo0OperationChecks isEqual checkInfo =
                                         compareElementCountChecks
                                             { isEqual = isEqual
                                             , operation = checkInfo.operator ++ " 0"
+                                            , replaceByInstruction =
+                                                \descriptions ->
+                                                    "replace this operation by "
+                                                        ++ descriptions.replacementOperation
+                                                        ++ " on the "
+                                                        ++ descriptions.collection
+                                                        ++ " given to the "
+                                                        ++ descriptions.elementCountFn
+                                                        ++ " call"
                                             , fn = ( callFn, call.fnName )
                                             }
                                     of
@@ -4952,7 +5078,13 @@ elementCountEqualityTo0OperationChecks isEqual checkInfo =
 
 
 compareElementCountChecks :
-    { isEqual : Bool, operation : String, fn : ( ModuleName, String ) }
+    { isEqual : Bool
+    , operation : String
+    , replaceByInstruction :
+        { collection : String, elementCountFn : String, replacementOperation : String }
+        -> String
+    , fn : ( ModuleName, String )
+    }
     ->
         Maybe
             { message : String
@@ -4972,7 +5104,14 @@ compareElementCountChecks checkInfo =
 
 collectionCompareElementCountCheck :
     TypeProperties (WithElementCountFn { a | isEmptyFn : ( ModuleName, String ) })
-    -> { isEqual : Bool, operation : String, fn : ( ModuleName, String ) }
+    ->
+        { isEqual : Bool
+        , operation : String
+        , replaceByInstruction :
+            { collection : String, elementCountFn : String, replacementOperation : String }
+            -> String
+        , fn : ( ModuleName, String )
+        }
     ->
         Maybe
             { message : String
@@ -5010,13 +5149,13 @@ collectionCompareElementCountCheck collection checkInfo =
                         ++ isEmptyFnDescription
                         ++ " runs in constant time. "
                   )
-                    ++ "You can replace this operation by "
-                    ++ replacementDescription
-                    ++ " on the "
-                    ++ collection.represents
-                    ++ " given to the "
-                    ++ qualifiedToString collection.elementCount.fn
-                    ++ " call."
+                    ++ "You can "
+                    ++ checkInfo.replaceByInstruction
+                        { replacementOperation = replacementDescription
+                        , collection = collection.represents
+                        , elementCountFn = qualifiedToString collection.elementCount.fn
+                        }
+                    ++ "."
                 ]
             }
 
