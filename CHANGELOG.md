@@ -5,6 +5,7 @@
 The rule now simplifies:
 - `String.length str == 0` to `String.isEmpty str` (including all the variations mentioned in "Other improvements")
 - `List.foldl (\( k, v ) -> f k v) init (Dict.toList dict)` to `Dict.foldl (\k v -> f k v) init dict` (same for foldr)
+- `List.head (List.intersperse sep list)` to `List.head list`
 - `List.sum (List.reverse list)` to `List.sum list` (same for `List.sort`, `List.sortBy`, `List.sortWith`)
 - `List.product (List.reverse list)` to `List.product list` (same for `List.sort`, `List.sortBy`, `List.sortWith`)
 - `List.minimum (List.reverse list)` to `List.minimum list` (same for `List.sort`, `List.sortBy`, `List.sortWith`) when [`expectNaN`] is not enabled

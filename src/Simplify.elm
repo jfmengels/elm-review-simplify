@@ -666,6 +666,9 @@ Destructuring using case expressions
     List.head (a :: bToZ)
     --> Just a
 
+    List.head (List.intersperse sep list)
+    --> List.head list
+
     List.head (List.map f list)
     --> Maybe.map f (List.head list)
 
@@ -7419,6 +7422,12 @@ listHeadChecks =
             , earlierFnArgCount = 2
             , earlierFnOperationArgsDescription = "function"
             , asLaterFn = Fn.Maybe.map
+            }
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.List.intersperse
+            , fnArgCount = 2
+            , fnLastArgRepresents = "list"
+            , whyUnnecessary = "Interspersed elements will only appear from the second element onward, and an empty list will remain empty, so the head will be unchanged"
             }
         ]
 

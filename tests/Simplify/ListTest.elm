@@ -1283,6 +1283,38 @@ a = List.head (List.reverse (List.sort list))
 a = List.maximum list
 """
                         ]
+        , test "should replace List.head (List.intersperse sep list) by List.head list" <|
+            \() ->
+                """module A exposing (..)
+a = List.head (List.intersperse sep list)
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.intersperse before List.head"
+                            , details = [ "Interspersed elements will only appear from the second element onward, and an empty list will remain empty, so the head will be unchanged. You can replace the List.intersperse call by the unchanged list." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.head list
+"""
+                        ]
+        , test "should replace List.head << List.intersperse sep by List.head" <|
+            \() ->
+                """module A exposing (..)
+a = List.head << List.intersperse sep
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.intersperse before List.head"
+                            , details = [ "Interspersed elements will only appear from the second element onward, and an empty list will remain empty, so the head will be unchanged. You can remove the List.intersperse call." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.head
+"""
+                        ]
         , test "should replace List.head (List.map f list) by Maybe.map f (List.head list)" <|
             \() ->
                 """module A exposing (..)
