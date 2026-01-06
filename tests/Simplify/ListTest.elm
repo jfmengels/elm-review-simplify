@@ -4743,6 +4743,78 @@ a = Dict.keys >> List.foldl (\\a s -> f a s) init
 a = Dict.foldl (\\a _ s -> f a s) init
 """
                         ]
+        , test "should replace List.foldl (\\(k,v) -> f k v) init (Dict.toList list) by Dict.foldl (\\k v -> f k v) init list" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (\\(k,v) -> f k v) init (Dict.toList list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict entries, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldl and split the incoming entry tuple pattern into separate key and value patterns in the reduce function." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldl (\\k v -> f k v) init list
+"""
+                        ]
+        , test "should replace dict |> Dict.toList |> List.foldl (\\(Variant k,Variant v) acc -> f k v acc) init by dict |> Dict.foldl (\\(Variant k) (Variant v) acc -> f k v acc) init" <|
+            \() ->
+                """module A exposing (..)
+type Variant = Variant Int
+a = dict |> Dict.toList |> List.foldl (\\(Variant k,Variant v) acc -> f k v acc) init
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict entries, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldl and split the incoming entry tuple pattern into separate key and value patterns in the reduce function." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+type Variant = Variant Int
+a = dict |> Dict.foldl (\\(Variant k) (Variant v) acc -> f k v acc) init
+"""
+                        ]
+        , test "should replace List.foldl (\\(k,v) -> f k v) init << Dict.toList by Dict.foldl (\\k v -> f k v) init" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldl (\\(k,v) -> f k v) init << Dict.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict entries, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace this composition by Dict.foldl and split the incoming entry tuple pattern into separate key and value patterns in the reduce function." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldl (\\k v -> f k v) init
+"""
+                        ]
+        , test "should replace Dict.toList >> List.foldl (\\(Variant k,Variant v) acc -> f k v acc) init by Dict.foldl (\\(Variant k) (Variant v) acc -> f k v acc) init" <|
+            \() ->
+                """module A exposing (..)
+type Variant = Variant Int
+a = Dict.toList >> List.foldl (\\(Variant k,Variant v) acc -> f k v acc) init
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict entries, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace this composition by Dict.foldl and split the incoming entry tuple pattern into separate key and value patterns in the reduce function." ]
+                            , under = "List.foldl"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+type Variant = Variant Int
+a = Dict.foldl (\\(Variant k) (Variant v) acc -> f k v acc) init
+"""
+                        ]
         , test "should replace List.foldl f x << List.reverse by List.foldr f x" <|
             \() ->
                 """module A exposing (..)
@@ -6018,6 +6090,40 @@ a = Dict.keys >> List.foldr (\\a s -> f a s) init
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = Dict.foldr (\\a _ s -> f a s) init
+"""
+                        ]
+        , test "should replace List.foldr (\\(k,v) -> f k v) init (Dict.toList list) by Dict.foldr (\\k v -> f k v) init list" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\(k,v) -> f k v) init (Dict.toList list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict entries, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace these calls by Dict.foldr and split the incoming entry tuple pattern into separate key and value patterns in the reduce function." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldr (\\k v -> f k v) init list
+"""
+                        ]
+        , test "should replace List.foldr (\\(k,v) -> f k v) init << Dict.toList by Dict.foldr (\\k v -> f k v) init" <|
+            \() ->
+                """module A exposing (..)
+a = List.foldr (\\(k,v) -> f k v) init << Dict.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To fold over dict entries, you don't need to convert to a list"
+                            , details =
+                                [ "You can replace this composition by Dict.foldr and split the incoming entry tuple pattern into separate key and value patterns in the reduce function." ]
+                            , under = "List.foldr"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Dict.foldr (\\k v -> f k v) init
 """
                         ]
         , test "should replace List.foldr f x (List.reverse list) by List.foldl f x list" <|
