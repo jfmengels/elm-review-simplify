@@ -1,7 +1,7 @@
 # Changelog
 
 The rule now simplifies:
-- `String.length str == 0` to `String.isEmpty str` (including all the variations mentioned in "Other improvements"ü)
+- `String.length str == 0` to `String.isEmpty str` (including all the variations mentioned in "Other improvements")
 
 ## [Unreleased]
 
