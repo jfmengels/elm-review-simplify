@@ -5961,7 +5961,7 @@ absOnNegatedChecks =
                                 ++ " before "
                                 ++ qualifiedToString checkInfo.later.fn
                         , details =
-                            [ "You can remove the composition with "
+                            [ "You can replace this composition by "
                                 ++ qualifiedToString (qualify Fn.Basics.negate defaultQualifyResources)
                                 ++ "."
                             ]

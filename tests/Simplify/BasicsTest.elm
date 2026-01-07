@@ -1040,7 +1040,7 @@ a = abs << negate
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Unnecessary Basics.negate before Basics.abs"
-                            , details = [ "You can remove the composition with negate." ]
+                            , details = [ "You can replace this composition by negate." ]
                             , under = "abs"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
