@@ -262,6 +262,13 @@ b = toFloat n
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not report normalized integer arguments which aren't literals" <|
+            \() ->
+                """module A exposing (..)
+a = toFloat (0.5 + 0.5)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should simplify toFloat 1 to 1" <|
             \() ->
                 """module A exposing (..)
@@ -337,6 +344,14 @@ roundTests =
                 """module A exposing (..)
 a = round
 b = round n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report normalized integer arguments which aren't literals" <|
+            \() ->
+                """module A exposing (..)
+a0 = round (0.5 + 0.5)
+a1 = if x == 1 then round x else 0
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -459,6 +474,14 @@ b = ceiling n
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not report normalized integer arguments which aren't literals" <|
+            \() ->
+                """module A exposing (..)
+a0 = ceiling (0.5 + 0.5)
+a1 = if x == 1 then ceiling x else 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should simplify ceiling 1 to 1" <|
             \() ->
                 """module A exposing (..)
@@ -578,6 +601,14 @@ b = floor n
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not report normalized integer arguments which aren't literals" <|
+            \() ->
+                """module A exposing (..)
+a0 = floor (0.5 + 0.5)
+a1 = if x == 1 then floor x else 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should simplify floor 1 to 1" <|
             \() ->
                 """module A exposing (..)
@@ -633,6 +664,22 @@ a = floor 0x1
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = 0x1
+"""
+                        ]
+        , test "should simplify floor 1.0 to 1" <|
+            \() ->
+                """module A exposing (..)
+a = floor 1.0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Basics.floor on a number literal can be evaluated"
+                            , details = [ "You can replace this call by the resulting Int value." ]
+                            , under = "floor"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 1
 """
                         ]
         , test "should simplify floor 1.1 to 1" <|
@@ -694,6 +741,14 @@ truncateTests =
                 """module A exposing (..)
 a = truncate
 b = truncate n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report normalized integer arguments which aren't literals" <|
+            \() ->
+                """module A exposing (..)
+a0 = truncate (0.5 + 0.5)
+a1 = if x == 1 then truncate x else 0
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
