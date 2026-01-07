@@ -7878,6 +7878,38 @@ a = List.all not [ b, True, c ]
 a = False
 """
                         ]
+        , test "should replace List.all f (List.repeat n a) by n <= 0 || f a" <|
+            \() ->
+                """module A exposing (..)
+a = List.all f (List.repeat n b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.all on List.repeat is the same as checking whether the repeat count is 0 or negative or the function passes for the element to repeat"
+                            , details = [ "You can replace this call by (the count argument given to List.repeat) <= 0 || (the function argument given to List.all) (the element to repeat argument given to List.repeat)." ]
+                            , under = "List.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ((n <= 0) || (f b))
+"""
+                        ]
+        , test "should replace List.all (f <| y) <| List.repeat n <| g <| x by n <= 0 || f <| y <| g <| x" <|
+            \() ->
+                """module A exposing (..)
+a = List.all (f <| y) <| List.repeat n <| g <| x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.all on List.repeat is the same as checking whether the repeat count is 0 or negative or the function passes for the element to repeat"
+                            , details = [ "You can replace this call by (the count argument given to List.repeat) <= 0 || (the function argument given to List.all) (the element to repeat argument given to List.repeat)." ]
+                            , under = "List.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ((n <= 0) || ((f <| y) <| (g <| x)))
+"""
+                        ]
         ]
 
 
