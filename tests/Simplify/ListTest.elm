@@ -2073,6 +2073,8 @@ a10 = List.map (\\( a, b ) -> a) (Array.toIndexedList array)
 a11 = List.map Tuple.first (Array.toIndexedList array)
 a12 = List.map (f >> Tuple.second) (Array.toIndexedList array)
 a13 = List.map Tuple.first << Array.toIndexedList
+a14 = List.repeat n (List.map f)
+a15 = List.repeat n << List.map f
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -2684,6 +2686,145 @@ a = Array.toIndexedList >> List.map (\\( _, part1 ) -> part1)
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = Array.toList
+"""
+                        ]
+        , test "should replace List.map f (List.repeat n a) by List.repeat n (f a)" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f (List.repeat n b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on List.repeat is the same as List.repeat with the mapped element"
+                            , details = [ "You can replace this call by the List.repeat operation but with the function given to the List.map operation applied to the original element to repeat." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.repeat n (f b)
+"""
+                        ]
+        , test "should replace List.map f (List.repeat n <| g <| a) by List.repeat n <| f (g <| a)" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f (List.repeat n <| g <| b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on List.repeat is the same as List.repeat with the mapped element"
+                            , details = [ "You can replace this call by the List.repeat operation but with the function given to the List.map operation applied to the original element to repeat." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.repeat n <| (f (g <| b)))
+"""
+                        ]
+        , test "should replace List.map (f ; x) (List.repeat n a) by List.repeat n ((f ; x) ; a)" <|
+            \() ->
+                """module A exposing (..)
+a = List.map (f
+                x) (List.repeat n b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on List.repeat is the same as List.repeat with the mapped element"
+                            , details = [ "You can replace this call by the List.repeat operation but with the function given to the List.map operation applied to the original element to repeat." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.repeat n ((f
+                x)
+                                  b)
+"""
+                        ]
+        , test "should replace List.map f (List.repeat n (g ; a)) by List.repeat n (f ; (g ; a))" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f (List.repeat n (g
+                                b))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on List.repeat is the same as List.repeat with the mapped element"
+                            , details = [ "You can replace this call by the List.repeat operation but with the function given to the List.map operation applied to the original element to repeat." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.repeat n (f
+                              (g
+                                b))
+"""
+                        ]
+        , test "should replace List.map (f ; x) (List.repeat n (g ; a)) by List.repeat n ((f ; x) ; (g ; a))" <|
+            \() ->
+                """module A exposing (..)
+a = List.map (f
+                x) (List.repeat n (g
+                                    b))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on List.repeat is the same as List.repeat with the mapped element"
+                            , details = [ "You can replace this call by the List.repeat operation but with the function given to the List.map operation applied to the original element to repeat." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.repeat n ((f
+                x)
+                                  (g
+                                    b))
+"""
+                        ]
+        , test "should replace List.map f << List.repeat n by List.repeat n << f" <|
+            \() ->
+                """module A exposing (..)
+a = List.map f << List.repeat n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on List.repeat is the same as List.repeat with the mapped element"
+                            , details = [ "You can replace this composition by composing the function argument given to the List.map operation before the List.repeat operation." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.repeat n << f)
+"""
+                        ]
+        , test "should replace (List.map <| f <| x) << List.repeat n by List.repeat n << (f <| x)" <|
+            \() ->
+                """module A exposing (..)
+a = (List.map <| f <| x) << List.repeat n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on List.repeat is the same as List.repeat with the mapped element"
+                            , details = [ "You can replace this composition by composing the function argument given to the List.map operation before the List.repeat operation." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.repeat n << (f <| x))
+"""
+                        ]
+        , test "should replace List.repeat n >> List.map f by f >> List.repeat n" <|
+            \() ->
+                """module A exposing (..)
+a = List.repeat n >> List.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map on List.repeat is the same as List.repeat with the mapped element"
+                            , details = [ "You can replace this composition by composing the function argument given to the List.map operation before the List.repeat operation." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (f >> List.repeat n)
 """
                         ]
         ]
