@@ -14,6 +14,11 @@
   
   You can read more about this problem in the [documentation of javascript's `Math.sumPrecise()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/sumPrecise#description)
 
+The rule now simplifies:
+- `List.map f (List.repeat n a)` to `List.repeat n (f a)`
+- `Array.map f (Array.repeat n a)` to `Array.repeat n (f a)`
+- `String.map f (String.repeat n (String.fromChar c))` to `String.repeat n (String.fromChar (f c))`
+
 ## [2.1.13] - 2026-01-07
 
 The rule now simplifies:
@@ -27,9 +32,6 @@ The rule now simplifies:
 - `Set.fromList (List.reverse list)` to `Set.fromList list` (same for `List.sort`, `List.sortBy`, `List.sortWith`) when [`expectNaN`] is not enabled
 - `Dict.diff dict (Dict.map f remove)` to `Dict.diff dict remove`
 - `Result.toMaybe (Result.mapError f result)` to `Result.toMaybe result`
-- `List.map f (List.repeat n a)` to `List.repeat n (f a)`
-- `Array.map f (Array.repeat n a)` to `Array.repeat n (f a)`
-- `String.map f (String.repeat n (String.fromChar c))` to `String.repeat n (String.fromChar (f c))`
 
 Other improvements:
 - The various equality checks for lengths/sizes against 0 are now also supported for composition into partially applied prefix operators and also `case` expressions like
