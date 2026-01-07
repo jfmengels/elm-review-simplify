@@ -20,6 +20,7 @@ The rule now simplifies:
 - `String.map f (String.repeat n (String.fromChar c))` to `String.repeat n (String.fromChar (f c))`
 - `List.head (List.repeat n a)` to `if n >= 1 then Just a else Nothing`
 - `Set.fromList (List.repeat n a)` to `if n >= 1 then Set.singleton a else Set.empty` when [`expectNaN`] is not enabled
+- `List.any f (List.repeat n a)` to `n >= 1 && f a`
 
 ## [2.1.13] - 2026-01-07
 

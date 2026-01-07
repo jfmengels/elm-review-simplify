@@ -8040,6 +8040,38 @@ a = List.any not [ b, False, c ]
 a = True
 """
                         ]
+        , test "should replace List.any f (List.repeat n a) by n >= 1 && f a" <|
+            \() ->
+                """module A exposing (..)
+a = List.any f (List.repeat n b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.any on List.repeat is the same as checking whether the repeat count is positive and the function passes for the element to repeat"
+                            , details = [ "You can replace this call by (the count argument given to List.repeat) >= 1 && (the function argument given to List.any) (the element to repeat argument given to List.repeat)." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ((n >= 1) && (f b))
+"""
+                        ]
+        , test "should replace List.any (f <| y) <| List.repeat n <| g <| x by n >= 1 && f <| y <| g <| x" <|
+            \() ->
+                """module A exposing (..)
+a = List.any (f <| y) <| List.repeat n <| g <| x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.any on List.repeat is the same as checking whether the repeat count is positive and the function passes for the element to repeat"
+                            , details = [ "You can replace this call by (the count argument given to List.repeat) >= 1 && (the function argument given to List.any) (the element to repeat argument given to List.repeat)." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ((n >= 1) && ((f <| y) <| (g <| x)))
+"""
+                        ]
         ]
 
 

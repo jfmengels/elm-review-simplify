@@ -940,6 +940,9 @@ Destructuring using case expressions
     List.any ((==) x) list
     --> List.member x list
 
+    List.any f (List.repeat n a)
+    --> n >= 1 && f a
+
     List.range 6 3
     --> []
 
@@ -9062,13 +9065,72 @@ listAllChecks =
 
 listAnyChecks : IntoFnCheck
 listAnyChecks =
-    intoFnCheckOnlyCall
-        (\checkInfo ->
-            emptiableAnyChecks listCollection checkInfo
-                |> onNothing (\() -> collectionAnyChecks listCollection checkInfo)
-                |> onNothing
-                    (\() -> operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck Fn.List.member checkInfo)
-        )
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (\checkInfo ->
+                emptiableAnyChecks listCollection checkInfo
+                    |> onNothing (\() -> collectionAnyChecks listCollection checkInfo)
+                    |> onNothing
+                        (\() -> operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck Fn.List.member checkInfo)
+                    |> onNothing (\() -> listAnyOnRepeatCallCheck checkInfo)
+            )
+        ]
+
+
+listAnyOnRepeatCallCheck : CallCheckInfo -> Maybe (Error {})
+listAnyOnRepeatCallCheck checkInfo =
+    case fullyAppliedLastArg checkInfo of
+        Nothing ->
+            Nothing
+
+        Just listArg ->
+            case AstHelpers.getSpecificUnreducedFnCall Fn.List.repeat checkInfo.lookupTable listArg of
+                Nothing ->
+                    Nothing
+
+                Just listRepeatCall ->
+                    case listRepeatCall.argsAfterFirst of
+                        [ elementToRepeatArg ] ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message =
+                                        qualifiedToString checkInfo.fn
+                                            ++ " on "
+                                            ++ qualifiedToString Fn.List.repeat
+                                            ++ " is the same as checking whether the repeat count is positive and the function passes for the element to repeat"
+                                    , details =
+                                        [ "You can replace this call by (the count argument given to "
+                                            ++ qualifiedToString Fn.List.repeat
+                                            ++ ") >= 1 && (the function argument given to "
+                                            ++ qualifiedToString checkInfo.fn
+                                            ++ ") (the element to repeat argument given to "
+                                            ++ qualifiedToString Fn.List.repeat
+                                            ++ ")."
+                                        ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.insertAt checkInfo.parentRange.start
+                                        ("(("
+                                            ++ parenthesizeIf
+                                                (needsParens (Node.value listRepeatCall.firstArg))
+                                                (checkInfo.extractSourceCode
+                                                    (Node.range listRepeatCall.firstArg)
+                                                )
+                                            ++ " >= 1) && ("
+                                        )
+                                        :: Fix.insertAt checkInfo.parentRange.end
+                                            "))"
+                                        :: replaceBySubExpressionFix
+                                            (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+                                            checkInfo.firstArg
+                                        ++ replaceBySubExpressionFix
+                                            (Node.range listArg)
+                                            elementToRepeatArg
+                                    )
+                                )
+
+                        _ ->
+                            Nothing
 
 
 listFilterChecks : IntoFnCheck
