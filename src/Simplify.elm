@@ -19660,12 +19660,11 @@ toNestedTupleFixFromPartial ( firstPart, secondPartUp ) =
 
 
 rangeContainsLocation : Location -> Range -> Bool
-rangeContainsLocation location =
-    \range ->
-        not
-            ((Range.compareLocations location range.start == LT)
-                || (Range.compareLocations location range.end == GT)
-            )
+rangeContainsLocation location range =
+    not
+        ((Range.compareLocations location range.start == LT)
+            || (Range.compareLocations location range.end == GT)
+        )
 
 
 rangeWithoutBoundaries : Range -> Range
