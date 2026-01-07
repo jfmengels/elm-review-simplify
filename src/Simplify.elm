@@ -16796,7 +16796,12 @@ while `fullyAppliedLastArg` on `Array.set 3 "Hitagi" arr` would return `Just arr
 -}
 fullyAppliedLastArg : { callInfo | firstArg : Node Expression, argsAfterFirst : List (Node Expression), argCount : Int } -> Maybe (Node Expression)
 fullyAppliedLastArg callInfo =
-    List.drop (callInfo.argCount - 1) (callInfo.firstArg :: callInfo.argsAfterFirst) |> List.head
+    case callInfo.argCount of
+        1 ->
+            Just callInfo.firstArg
+
+        argCountAtLeast2 ->
+            List.drop (argCountAtLeast2 - 2) callInfo.argsAfterFirst |> List.head
 
 
 onlyLastArgIsCurried : { function | args : List (Node Expression), argCount : Int } -> Bool
