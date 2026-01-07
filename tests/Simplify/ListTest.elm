@@ -1555,6 +1555,86 @@ a = List.map f >> List.head
 a = (List.head >> Maybe.map f)
 """
                         ]
+        , test "should replace List.head (List.repeat n a) by if n >= 1 then Just a else Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = List.head (List.repeat n b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.head on List.repeat will result in Just the repeated element if the count is positive and Nothing otherwise"
+                            , details = [ "You can replace this call by if (the count argument given to List.repeat) >= 1 then Just (the element to repeat argument given to List.repeat) else Nothing." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (if n >= 1 then
+                             Just b
+
+    else
+                             Nothing)
+"""
+                        ]
+        , test "should replace List.head (List.repeat (x |> f) <| g <| y) by if (x |> f) >= 1 then Just (g <| y) else Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = List.head (List.repeat (x |> f) <| g <| y)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.head on List.repeat will result in Just the repeated element if the count is positive and Nothing otherwise"
+                            , details = [ "You can replace this call by if (the count argument given to List.repeat) >= 1 then Just (the element to repeat argument given to List.repeat) else Nothing." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (if (x |> f) >= 1 then
+                                       Just (g <| y)
+
+    else
+                                       Nothing)
+"""
+                        ]
+        , test "should replace List.head << List.repeat (x |> f) by if n >= 1 then Just else always Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = List.head << List.repeat (x |> f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.head on List.repeat will result in Just the repeated element if the count is positive and Nothing otherwise"
+                            , details = [ "You can replace this composition by if (the count argument given to List.repeat) >= 1 then Just else always Nothing." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (if (x |> f) >= 1 then
+        Just
+
+    else
+        always Nothing)
+"""
+                        ]
+        , test "should replace List.repeat (x |> f) >> List.head by if n >= 1 then Just else always Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = List.repeat (x |> f) >> List.head
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.head on List.repeat will result in Just the repeated element if the count is positive and Nothing otherwise"
+                            , details = [ "You can replace this composition by if (the count argument given to List.repeat) >= 1 then Just else always Nothing." ]
+                            , under = "List.head"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (if (x |> f) >= 1 then
+                                Just
+
+                            else
+                                always Nothing)
+"""
+                        ]
         ]
 
 

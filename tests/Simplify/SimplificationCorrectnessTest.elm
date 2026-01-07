@@ -329,6 +329,23 @@ all =
                     |> Expect.equal
                         (String.repeat n (String.fromChar (Char.toUpper c)))
             )
+        , Test.fuzz
+            -- fails when generating NaN and checking with compareListOf
+            (Fuzz.pair
+                (Fuzz.intRange -100 100)
+                Fuzz.string
+            )
+            "Set.fromList << List.repeat n is the same as if n >= 1 then Set.singleton else always Set.empty"
+            (\( n, elementToRepeat ) ->
+                Set.fromList (List.repeat n elementToRepeat)
+                    |> Expect.equalSets
+                        (if n >= 1 then
+                            Set.singleton elementToRepeat
+
+                         else
+                            Set.empty
+                        )
+            )
         ]
 
 

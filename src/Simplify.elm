@@ -678,6 +678,9 @@ Destructuring using case expressions
     List.head (List.map f list)
     --> Maybe.map f (List.head list)
 
+    List.head (List.repeat n a)
+    --> if n >= 1 then Just a else Nothing
+
     List.tail []
     --> Nothing
 
@@ -1245,6 +1248,10 @@ Destructuring using case expressions
     -- when expectNaN is not enabled, same for List.sort, List.sortBy, List.sortWith
     Set.fromList (List.reverse list)
     --> Set.fromList list
+
+    -- when expectNaN is not enabled
+    Set.fromList (List.repeat n a)
+    --> if n >= 1 then Set.singleton a else Set.empty
 
     Set.map f Set.empty -- same for Set.filter, Set.remove...
     --> Set.empty
@@ -7508,6 +7515,11 @@ listHeadChecks =
             , fnLastArgRepresents = "list"
             , whyUnnecessary = "Interspersed elements will only appear from the second element onward, and an empty list will remain empty, so the head will be unchanged"
             }
+        , onRepeatReturnsWrapElementIfCountIsPositiveOtherwiseAlwaysFn
+            { repeatFn = Fn.List.repeat
+            , wrapFnOnRepeatCountPositive = Fn.Maybe.justVariant
+            , fnOnRepeatCountNotPositive = Fn.Maybe.nothingVariant
+            }
         ]
 
 
@@ -9518,6 +9530,13 @@ setFromListChecks =
             )
         , intoFnCheckOnlyWhenExpectNaNIsNotEnabled
             (listReorderOperationsBeforeAreUnnecessaryChecks "final representation as a set")
+        , intoFnCheckOnlyWhenExpectNaNIsNotEnabled
+            (onRepeatReturnsWrapElementIfCountIsPositiveOtherwiseAlwaysFn
+                { repeatFn = Fn.List.repeat
+                , wrapFnOnRepeatCountPositive = Fn.Set.singleton
+                , fnOnRepeatCountNotPositive = Fn.Set.empty
+                }
+            )
         ]
 
 
@@ -12490,6 +12509,157 @@ oneOfWeightedConstantsWithOneAndRestChecks wrapper checkInfo =
 
         Nothing ->
             Nothing
+
+
+{-| The check
+
+    f (repeat n a)
+    --> if n >= 1 then wrapOnPositive a else onNotPositive
+
+    f << repeat n
+    --> if n >= 1 then wrapOnPositive else always onNotPositive
+
+-}
+onRepeatReturnsWrapElementIfCountIsPositiveOtherwiseAlwaysFn :
+    { repeatFn : ( ModuleName, String )
+    , wrapFnOnRepeatCountPositive : ( ModuleName, String )
+    , fnOnRepeatCountNotPositive : ( ModuleName, String )
+    }
+    -> IntoFnCheck
+onRepeatReturnsWrapElementIfCountIsPositiveOtherwiseAlwaysFn config =
+    { composition =
+        \checkInfo ->
+            if (checkInfo.earlier.fn == config.repeatFn) && onlyLastArgIsCurried checkInfo.later then
+                case checkInfo.earlier.args of
+                    [ repeatCountArg ] ->
+                        let
+                            ifIndentation : String
+                            ifIndentation =
+                                String.repeat (checkInfo.later.range.start.column - 1) " "
+                        in
+                        Just
+                            { info =
+                                { message =
+                                    qualifiedToString checkInfo.later.fn
+                                        ++ " on "
+                                        ++ qualifiedToString config.repeatFn
+                                        ++ " will result in "
+                                        ++ qualifiedToString (qualify config.wrapFnOnRepeatCountPositive defaultQualifyResources)
+                                        ++ " the repeated element if the count is positive and "
+                                        ++ qualifiedToString (qualify config.fnOnRepeatCountNotPositive defaultQualifyResources)
+                                        ++ " otherwise"
+                                , details =
+                                    [ "You can replace this composition by if (the count argument given to "
+                                        ++ qualifiedToString config.repeatFn
+                                        ++ ") >= 1 then "
+                                        ++ qualifiedToString (qualify config.wrapFnOnRepeatCountPositive defaultQualifyResources)
+                                        ++ " else always "
+                                        ++ qualifiedToString (qualify config.fnOnRepeatCountNotPositive defaultQualifyResources)
+                                        ++ "."
+                                    ]
+                                }
+                            , fix =
+                                [ Fix.removeRange checkInfo.earlier.removeRange
+                                , Fix.replaceRangeBy checkInfo.later.range
+                                    ("(if "
+                                        ++ parenthesizeIf
+                                            (needsParens (Node.value repeatCountArg))
+                                            (checkInfo.extractSourceCode
+                                                (Node.range repeatCountArg)
+                                            )
+                                        ++ " >= 1 then\n"
+                                        ++ ifIndentation
+                                        ++ "    "
+                                        ++ qualifiedToString (qualify config.wrapFnOnRepeatCountPositive checkInfo)
+                                        ++ "\n\n"
+                                        ++ ifIndentation
+                                        ++ "else\n"
+                                        ++ ifIndentation
+                                        ++ "    "
+                                        ++ qualifiedToString (qualify Fn.Basics.always checkInfo)
+                                        ++ " "
+                                        ++ qualifiedToString (qualify config.fnOnRepeatCountNotPositive checkInfo)
+                                        ++ ")"
+                                    )
+                                ]
+                            }
+
+                    _ ->
+                        Nothing
+
+            else
+                Nothing
+    , call =
+        \checkInfo ->
+            case fullyAppliedLastArg checkInfo of
+                Nothing ->
+                    Nothing
+
+                Just lastArg ->
+                    case AstHelpers.getSpecificUnreducedFnCall config.repeatFn checkInfo.lookupTable lastArg of
+                        Nothing ->
+                            Nothing
+
+                        Just repeatFnCall ->
+                            case repeatFnCall.argsAfterFirst of
+                                [ elementToRepeatArg ] ->
+                                    let
+                                        branchIndentation : String
+                                        branchIndentation =
+                                            String.repeat ((Node.range elementToRepeatArg).start.column - 1) " "
+                                    in
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                qualifiedToString checkInfo.fn
+                                                    ++ " on "
+                                                    ++ qualifiedToString config.repeatFn
+                                                    ++ " will result in "
+                                                    ++ qualifiedToString (qualify config.wrapFnOnRepeatCountPositive defaultQualifyResources)
+                                                    ++ " the repeated element if the count is positive and "
+                                                    ++ qualifiedToString (qualify config.fnOnRepeatCountNotPositive defaultQualifyResources)
+                                                    ++ " otherwise"
+                                            , details =
+                                                [ "You can replace this call by if (the count argument given to "
+                                                    ++ qualifiedToString config.repeatFn
+                                                    ++ ") >= 1 then "
+                                                    ++ qualifiedToString (qualify config.wrapFnOnRepeatCountPositive defaultQualifyResources)
+                                                    ++ " (the element to repeat argument given to "
+                                                    ++ qualifiedToString config.repeatFn
+                                                    ++ ") else "
+                                                    ++ qualifiedToString (qualify config.fnOnRepeatCountNotPositive defaultQualifyResources)
+                                                    ++ "."
+                                                ]
+                                            }
+                                            checkInfo.fnRange
+                                            (Fix.insertAt checkInfo.parentRange.start
+                                                ("(if "
+                                                    ++ parenthesizeIf
+                                                        (needsParens (Node.value repeatFnCall.firstArg))
+                                                        (checkInfo.extractSourceCode
+                                                            (Node.range repeatFnCall.firstArg)
+                                                        )
+                                                    ++ " >= 1 then\n"
+                                                    ++ branchIndentation
+                                                    ++ qualifiedToString (qualify config.wrapFnOnRepeatCountPositive checkInfo)
+                                                    ++ " "
+                                                )
+                                                :: Fix.insertAt checkInfo.parentRange.end
+                                                    ("\n\n"
+                                                        ++ String.repeat (checkInfo.parentRange.start.column - 1) " "
+                                                        ++ "else\n"
+                                                        ++ branchIndentation
+                                                        ++ qualifiedToString (qualify config.fnOnRepeatCountNotPositive checkInfo)
+                                                        ++ ")"
+                                                    )
+                                                :: replaceBySubExpressionFix checkInfo.parentRange
+                                                    elementToRepeatArg
+                                            )
+                                        )
+
+                                _ ->
+                                    Nothing
+    }
 
 
 {-| The check
