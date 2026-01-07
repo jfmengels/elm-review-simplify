@@ -790,10 +790,6 @@ Destructuring using case expressions
     List.sum [ a, 0 / 0, b ]
     --> 0 / 0
 
-    -- same for List.sort, List.sortBy, List.sortWith
-    List.sum (List.reverse list)
-    --> List.sum list
-
     List.product []
     --> 1
 
@@ -802,10 +798,6 @@ Destructuring using case expressions
 
     List.product [ a, 1, b ]
     --> List.product [ a, b ]
-
-    -- same for List.sort, List.sortBy, List.sortWith
-    List.product (List.reverse list)
-    --> List.product list
 
     -- when `expectNaN` is not enabled
     List.product [ a, 0, b ]
@@ -8103,7 +8095,6 @@ listSumChecks : IntoFnCheck
 listSumChecks =
     intoFnChecksFirstThatConstructsError
         [ onWrappedReturnsItsValueCheck listCollection
-        , listReorderOperationsBeforeAreUnnecessaryChecks "combined sum"
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 callOnEmptyReturnsCheck { resultAsString = \_ -> "0" } listCollection checkInfo
@@ -8131,7 +8122,6 @@ listProductChecks : IntoFnCheck
 listProductChecks =
     intoFnChecksFirstThatConstructsError
         [ onWrappedReturnsItsValueCheck listCollection
-        , listReorderOperationsBeforeAreUnnecessaryChecks "combined product"
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 callOnEmptyReturnsCheck { resultAsString = \_ -> "1" } listCollection checkInfo

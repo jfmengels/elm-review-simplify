@@ -3909,70 +3909,16 @@ a = [ a, 0 / 0.0, b ] |> List.sum
 a = (0 / 0.0)
 """
                         ]
-        , test "should replace List.sum (List.reverse list) by List.sum list" <|
+        , test "should not report List.sum (reorderingOperation list) due to precision loss, see the changelog for 2.1.14" <|
             \() ->
                 """module A exposing (..)
-a = List.sum (List.reverse list)
+a0 = List.sum (List.reverse list)
+a1 = List.sum (List.sort list)
+a2 = List.sum (List.sortBy f list)
+a3 = List.sum (List.sortWith f list)
 """
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary List.reverse before List.sum"
-                            , details = [ "Reordering a list does not affect its combined sum. You can replace the List.reverse call by the unchanged list." ]
-                            , under = "List.sum"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = List.sum list
-"""
-                        ]
-        , test "should replace List.sum (List.sort list) by List.sum list" <|
-            \() ->
-                """module A exposing (..)
-a = List.sum (List.sort list)
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary List.sort before List.sum"
-                            , details = [ "Reordering a list does not affect its combined sum. You can replace the List.sort call by the unchanged list." ]
-                            , under = "List.sum"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = List.sum list
-"""
-                        ]
-        , test "should replace List.sum (List.sortBy f list) by List.sum list" <|
-            \() ->
-                """module A exposing (..)
-a = List.sum (List.sortBy f list)
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary List.sortBy before List.sum"
-                            , details = [ "Reordering a list does not affect its combined sum. You can replace the List.sortBy call by the unchanged list." ]
-                            , under = "List.sum"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = List.sum list
-"""
-                        ]
-        , test "should replace List.sum (List.sortWith f list) by List.sum list" <|
-            \() ->
-                """module A exposing (..)
-a = List.sum (List.sortWith f list)
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary List.sortWith before List.sum"
-                            , details = [ "Reordering a list does not affect its combined sum. You can replace the List.sortWith call by the unchanged list." ]
-                            , under = "List.sum"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = List.sum list
-"""
-                        ]
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
@@ -4178,70 +4124,16 @@ a = [ a, 0 / 0.0, b ] |> List.product
 a = (0 / 0.0)
 """
                         ]
-        , test "should replace List.product (List.reverse list) by List.product list" <|
+        , test "should not report List.product (reorderingOperation list) due to precision loss, see the changelog for 2.1.14" <|
             \() ->
                 """module A exposing (..)
-a = List.product (List.reverse list)
+a0 = List.product (List.reverse list)
+a1 = List.product (List.sort list)
+a2 = List.product (List.sortBy f list)
+a3 = List.product (List.sortWith f list)
 """
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary List.reverse before List.product"
-                            , details = [ "Reordering a list does not affect its combined product. You can replace the List.reverse call by the unchanged list." ]
-                            , under = "List.product"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = List.product list
-"""
-                        ]
-        , test "should replace List.product (List.sort list) by List.product list" <|
-            \() ->
-                """module A exposing (..)
-a = List.product (List.sort list)
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary List.sort before List.product"
-                            , details = [ "Reordering a list does not affect its combined product. You can replace the List.sort call by the unchanged list." ]
-                            , under = "List.product"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = List.product list
-"""
-                        ]
-        , test "should replace List.product (List.sortBy f list) by List.product list" <|
-            \() ->
-                """module A exposing (..)
-a = List.product (List.sortBy f list)
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary List.sortBy before List.product"
-                            , details = [ "Reordering a list does not affect its combined product. You can replace the List.sortBy call by the unchanged list." ]
-                            , under = "List.product"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = List.product list
-"""
-                        ]
-        , test "should replace List.product (List.sortWith f list) by List.product list" <|
-            \() ->
-                """module A exposing (..)
-a = List.product (List.sortWith f list)
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary List.sortWith before List.product"
-                            , details = [ "Reordering a list does not affect its combined product. You can replace the List.sortWith call by the unchanged list." ]
-                            , under = "List.product"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = List.product list
-"""
-                        ]
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
