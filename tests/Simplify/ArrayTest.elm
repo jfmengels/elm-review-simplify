@@ -496,7 +496,7 @@ a = (f >> g)
 
 arrayMapTests : Test
 arrayMapTests =
-    describe "List.map"
+    describe "Array.map"
         [ test "should not report Array.map used with okay arguments" <|
             \() ->
                 """module A exposing (..)
