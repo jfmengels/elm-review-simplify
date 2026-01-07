@@ -705,6 +705,9 @@ Destructuring using case expressions
     List.map f [ a ]
     --> [ f a ]
 
+    List.map f (List.repeat n a)
+    --> List.repeat n (f a)
+
     List.filter f (List.filter f list)
     --> List.filter f list
 
@@ -1076,6 +1079,9 @@ Destructuring using case expressions
 
     Array.map identity array
     --> array
+
+    Array.map f (Array.repeat n a)
+    --> Array.repeat n (f a)
 
     Array.indexedMap (\_ value -> f value) array
     --> Array.map (\value -> f value) array
@@ -7902,6 +7908,7 @@ listMapChecks =
             , earlierFn = Fn.Dict.toList
             , combinedFn = Fn.Dict.values
             }
+        , mapOnRepeatAppliesTheFunctionToTheRepeatedElementCheck Fn.List.repeat
         ]
 
 
@@ -9254,7 +9261,10 @@ arrayInitializeChecks =
 
 arrayMapChecks : IntoFnCheck
 arrayMapChecks =
-    emptiableMapChecks arrayCollection
+    intoFnChecksFirstThatConstructsError
+        [ emptiableMapChecks arrayCollection
+        , mapOnRepeatAppliesTheFunctionToTheRepeatedElementCheck Fn.Array.repeat
+        ]
 
 
 arrayIndexedMapChecks : IntoFnCheck
@@ -12411,6 +12421,138 @@ oneOfWeightedConstantsWithOneAndRestChecks wrapper checkInfo =
 
         Nothing ->
             Nothing
+
+
+{-| The check
+
+    map f (repeat n a)
+    --> repeat n (f a)
+
+    map f << repeat n
+    --> repeat n << f
+
+-}
+mapOnRepeatAppliesTheFunctionToTheRepeatedElementCheck : ( ModuleName, String ) -> IntoFnCheck
+mapOnRepeatAppliesTheFunctionToTheRepeatedElementCheck repeatFn =
+    { composition =
+        \checkInfo ->
+            if checkInfo.earlier.fn == repeatFn then
+                case checkInfo.later.args of
+                    [ elementChangeFunctionArg ] ->
+                        Just
+                            { info =
+                                { message =
+                                    qualifiedToString checkInfo.later.fn
+                                        ++ " on "
+                                        ++ qualifiedToString repeatFn
+                                        ++ " is the same as "
+                                        ++ qualifiedToString repeatFn
+                                        ++ " with the mapped element"
+                                , details =
+                                    [ "You can replace this composition by composing the function argument given to the "
+                                        ++ qualifiedToString checkInfo.later.fn
+                                        ++ " operation before the "
+                                        ++ qualifiedToString repeatFn
+                                        ++ " operation."
+                                    ]
+                                }
+                            , fix =
+                                Fix.removeRange checkInfo.later.removeRange
+                                    :: composeWithEarlierFix
+                                        { range = checkInfo.earlier.range
+                                        , direction = compositionCheckInfoDirection checkInfo
+                                        , earlier =
+                                            parenthesizeIf
+                                                (needsParens (Node.value elementChangeFunctionArg))
+                                                (checkInfo.extractSourceCode
+                                                    (Node.range elementChangeFunctionArg)
+                                                )
+                                        }
+                            }
+
+                    _ ->
+                        Nothing
+
+            else
+                Nothing
+    , call =
+        \checkInfo ->
+            case checkInfo.argsAfterFirst of
+                [ mappedArg ] ->
+                    case AstHelpers.getSpecificUnreducedFnCall repeatFn checkInfo.lookupTable mappedArg of
+                        Nothing ->
+                            Nothing
+
+                        Just repeatFnCall ->
+                            case repeatFnCall.argsAfterFirst of
+                                [ elementToRepeatArg ] ->
+                                    let
+                                        elementToRepeatArgNeedsParens : Bool
+                                        elementToRepeatArgNeedsParens =
+                                            needsParens (Node.value elementToRepeatArg)
+                                    in
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                qualifiedToString checkInfo.fn
+                                                    ++ " on "
+                                                    ++ qualifiedToString repeatFn
+                                                    ++ " is the same as "
+                                                    ++ qualifiedToString repeatFn
+                                                    ++ " with the mapped element"
+                                            , details =
+                                                [ "You can replace this call by the "
+                                                    ++ qualifiedToString repeatFn
+                                                    ++ " operation but with the function given to the "
+                                                    ++ qualifiedToString checkInfo.fn
+                                                    ++ " operation applied to the original element to repeat."
+                                                ]
+                                            }
+                                            checkInfo.fnRange
+                                            (Fix.insertAt (Node.range elementToRepeatArg).start
+                                                ("("
+                                                    ++ parenthesizeIf
+                                                        (needsParens (Node.value checkInfo.firstArg))
+                                                        (checkInfo.extractSourceCode
+                                                            (Node.range checkInfo.firstArg)
+                                                        )
+                                                    ++ (if
+                                                            rangeSpansMultipleLines (Node.range elementToRepeatArg)
+                                                                || rangeSpansMultipleLines (Node.range checkInfo.firstArg)
+                                                        then
+                                                            "\n" ++ String.repeat ((Node.range elementToRepeatArg).start.column - 1) " "
+
+                                                        else
+                                                            " "
+                                                       )
+                                                    ++ (if elementToRepeatArgNeedsParens then
+                                                            "("
+
+                                                        else
+                                                            ""
+                                                       )
+                                                )
+                                                :: Fix.insertAt (Node.range elementToRepeatArg).end
+                                                    ((if elementToRepeatArgNeedsParens then
+                                                        ")"
+
+                                                      else
+                                                        ""
+                                                     )
+                                                        ++ ")"
+                                                    )
+                                                :: replaceCallBySubExpressionFix checkInfo.parentRange
+                                                    checkInfo.callStyle
+                                                    mappedArg
+                                            )
+                                        )
+
+                                _ ->
+                                    Nothing
+
+                _ ->
+                    Nothing
+    }
 
 
 {-| The map checks
@@ -19299,6 +19441,15 @@ getRecordTypeAliasConstructorCall expressionNode checkInfo =
 -- FIX HELPERS
 
 
+parenthesizeIf : Bool -> String -> String
+parenthesizeIf shouldParenthesize source =
+    if shouldParenthesize then
+        "(" ++ source ++ ")"
+
+    else
+        source
+
+
 parenthesizeIfNeededFix : Node Expression -> List Fix
 parenthesizeIfNeededFix (Node expressionRange expression) =
     if needsParens expression then
@@ -19657,6 +19808,11 @@ toNestedTupleFixFromPartial ( firstPart, secondPartUp ) =
 
         second :: thirdUp ->
             "(" ++ firstPart ++ ", " ++ toNestedTupleFixFromPartial ( second, thirdUp ) ++ ")"
+
+
+rangeSpansMultipleLines : Range -> Bool
+rangeSpansMultipleLines range =
+    range.start.row /= range.end.row
 
 
 rangeContainsLocation : Location -> Range -> Bool

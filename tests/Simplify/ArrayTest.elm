@@ -669,6 +669,42 @@ import Array
 a = identity
 """
                         ]
+        , test "should replace Array.map f (Array.repeat n a) by Array.repeat n (f a)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.map f (Array.repeat n b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.map on Array.repeat is the same as Array.repeat with the mapped element"
+                            , details = [ "You can replace this call by the Array.repeat operation but with the function given to the Array.map operation applied to the original element to repeat." ]
+                            , under = "Array.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.repeat n (f b)
+"""
+                        ]
+        , test "should replace Array.map f << Array.repeat n by Array.repeat n << f" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.map f << Array.repeat n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.map on Array.repeat is the same as Array.repeat with the mapped element"
+                            , details = [ "You can replace this composition by composing the function argument given to the Array.map operation before the Array.repeat operation." ]
+                            , under = "Array.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (Array.repeat n << f)
+"""
+                        ]
         ]
 
 

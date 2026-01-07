@@ -27,6 +27,8 @@ The rule now simplifies:
 - `Set.fromList (List.reverse list)` to `Set.fromList list` (same for `List.sort`, `List.sortBy`, `List.sortWith`) when [`expectNaN`] is not enabled
 - `Dict.diff dict (Dict.map f remove)` to `Dict.diff dict remove`
 - `Result.toMaybe (Result.mapError f result)` to `Result.toMaybe result`
+- `List.map f (List.repeat n a)` to `List.repeat n (f a)`
+- `Array.map f (Array.repeat n a)` to `Array.repeat n (f a)`
 
 Other improvements:
 - The various equality checks for lengths/sizes against 0 are now also supported for composition into partially applied prefix operators and also `case` expressions like
