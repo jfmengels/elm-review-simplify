@@ -317,6 +317,18 @@ all =
                 Set.fromList (List.reverse list)
                     |> Expect.equal (Set.fromList list)
             )
+        , Test.fuzz
+            (Fuzz.pair
+                -- too large numbers lead to RangeError: Invalid string length
+                (Fuzz.intRange -100 100)
+                Fuzz.char
+            )
+            "String.map f (String.repeat n (String.fromChar c)) is the same as String.repeat n (String.fromChar (f c))"
+            (\( n, c ) ->
+                String.map Char.toUpper (String.repeat n (String.fromChar c))
+                    |> Expect.equal
+                        (String.repeat n (String.fromChar (Char.toUpper c)))
+            )
         ]
 
 

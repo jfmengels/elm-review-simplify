@@ -29,6 +29,7 @@ The rule now simplifies:
 - `Result.toMaybe (Result.mapError f result)` to `Result.toMaybe result`
 - `List.map f (List.repeat n a)` to `List.repeat n (f a)`
 - `Array.map f (Array.repeat n a)` to `Array.repeat n (f a)`
+- `String.map f (String.repeat n (String.fromChar c))` to `String.repeat n (String.fromChar (f c))`
 
 Other improvements:
 - The various equality checks for lengths/sizes against 0 are now also supported for composition into partially applied prefix operators and also `case` expressions like
