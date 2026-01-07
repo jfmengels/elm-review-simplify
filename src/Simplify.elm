@@ -5890,7 +5890,7 @@ basicsToFloatChecks : IntoFnCheck
 basicsToFloatChecks =
     intoFnCheckOnlyCall
         (\checkInfo ->
-            case Normalize.getInt checkInfo checkInfo.firstArg of
+            case AstHelpers.getUncomputedInt checkInfo.firstArg of
                 Just _ ->
                     Just
                         (Rule.errorWithFix
@@ -6331,7 +6331,7 @@ compareComparableExpressionLists leftList rightList =
 
 evaluateConversionToIntOnNumberCheck : (Float -> Int) -> CallCheckInfo -> Maybe (Error {})
 evaluateConversionToIntOnNumberCheck operation checkInfo =
-    case Normalize.getInt checkInfo checkInfo.firstArg of
+    case AstHelpers.getUncomputedInt checkInfo.firstArg of
         Just _ ->
             Just
                 (Rule.errorWithFix
