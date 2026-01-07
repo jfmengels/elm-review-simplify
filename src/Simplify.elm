@@ -702,6 +702,9 @@ Destructuring using case expressions
     List.member -999 [ 0, 1 ]
     --> False
 
+    List.member needle (List.repeat n b)
+    --> n >= 1 && needle == b
+
     List.map f [] -- same for most List functions like List.filter, List.filterMap, ...
     --> []
 
@@ -8101,6 +8104,7 @@ listMemberChecks =
                     checkInfo
                     |> onNothing (\() -> knownMemberChecks listCollection checkInfo)
                     |> onNothing (\() -> wrapperMemberChecks listCollection checkInfo)
+                    |> onNothing (\() -> listMemberOnRepeatCallCheck checkInfo)
             )
         , containsElementOnConversionFnCallCanBeCombinedCheck
             { combinedOperationRepresents = "check for a set member"
@@ -8109,6 +8113,113 @@ listMemberChecks =
             , combinedFn = Fn.Set.member
             }
         ]
+
+
+listMemberOnRepeatCallCheck : CallCheckInfo -> Maybe (Error {})
+listMemberOnRepeatCallCheck checkInfo =
+    case fullyAppliedLastArg checkInfo of
+        Nothing ->
+            Nothing
+
+        Just listArg ->
+            case AstHelpers.getSpecificUnreducedFnCall Fn.List.repeat checkInfo.lookupTable listArg of
+                Nothing ->
+                    Nothing
+
+                Just listRepeatCall ->
+                    case listRepeatCall.argsAfterFirst of
+                        [ elementToRepeatArg ] ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message =
+                                        qualifiedToString checkInfo.fn
+                                            ++ " on "
+                                            ++ qualifiedToString Fn.List.repeat
+                                            ++ " is the same as checking whether the repeat count is positive and the element to repeat equals the checked member"
+                                    , details =
+                                        [ "You can replace this call by (the count argument given to "
+                                            ++ qualifiedToString Fn.List.repeat
+                                            ++ ") >= 1 && (the checked member argument given to "
+                                            ++ qualifiedToString checkInfo.fn
+                                            ++ ") == (the element to repeat argument given to "
+                                            ++ qualifiedToString Fn.List.repeat
+                                            ++ ")."
+                                        ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.insertAt checkInfo.parentRange.start
+                                        ("(("
+                                            ++ parenthesizeIf
+                                                (needsParens (Node.value listRepeatCall.firstArg))
+                                                (checkInfo.extractSourceCode
+                                                    (Node.range listRepeatCall.firstArg)
+                                                )
+                                            ++ " >= 1) && ("
+                                        )
+                                        :: Fix.insertAt checkInfo.parentRange.end
+                                            "))"
+                                        :: replaceByEqualsOperationOn2SubExpressions
+                                            checkInfo.parentRange
+                                            checkInfo.firstArg
+                                            elementToRepeatArg
+                                    )
+                                )
+
+                        _ ->
+                            Nothing
+
+
+replaceByEqualsOperationOn2SubExpressions : Range -> Node Expression -> Node Expression -> List Fix
+replaceByEqualsOperationOn2SubExpressions parentRange aSub bSub =
+    case Range.compareLocations (Node.range aSub).start (Node.range bSub).start of
+        LT ->
+            replaceByEqualsOperationOn2SubExpressionsInOrder parentRange aSub bSub
+
+        _ ->
+            replaceByEqualsOperationOn2SubExpressionsInOrder parentRange bSub aSub
+
+
+replaceByEqualsOperationOn2SubExpressionsInOrder : Range -> Node Expression -> Node Expression -> List Fix
+replaceByEqualsOperationOn2SubExpressionsInOrder parentRange (Node leftSubRange leftSub) (Node rightSubRange rightSub) =
+    let
+        leftSubNeedsParens : Bool
+        leftSubNeedsParens =
+            needsParens leftSub
+
+        rightSubNeedsParens : Bool
+        rightSubNeedsParens =
+            needsParens rightSub
+    in
+    [ Fix.replaceRangeBy { start = parentRange.start, end = leftSubRange.start }
+        (if leftSubNeedsParens then
+            "("
+
+         else
+            ""
+        )
+    , Fix.replaceRangeBy { start = leftSubRange.end, end = rightSubRange.start }
+        ((if leftSubNeedsParens then
+            ")"
+
+          else
+            ""
+         )
+            ++ " == "
+            ++ (if rightSubNeedsParens then
+                    "("
+
+                else
+                    ""
+               )
+        )
+    , Fix.replaceRangeBy { start = rightSubRange.end, end = parentRange.end }
+        (if rightSubNeedsParens then
+            ")"
+
+         else
+            ""
+        )
+    ]
 
 
 containsElementOnConversionFnCallCanBeCombinedCheck :
