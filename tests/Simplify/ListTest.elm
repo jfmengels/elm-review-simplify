@@ -2128,6 +2128,38 @@ import Set
 a = Set.member x
 """
                         ]
+        , test "should replace List.member needle (List.repeat n a) by n >= 1 && a == needle" <|
+            \() ->
+                """module A exposing (..)
+a = List.member needle (List.repeat n b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.member on List.repeat is the same as checking whether the repeat count is positive and the element to repeat equals the checked member"
+                            , details = [ "You can replace this call by (the count argument given to List.repeat) >= 1 && (the checked member argument given to List.member) == (the element to repeat argument given to List.repeat)." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ((n >= 1) && (needle == b))
+"""
+                        ]
+        , test "should replace List.member (f <| y) <| List.repeat n <| g <| x by n >= 1 && (f <| y) == (g <| x)" <|
+            \() ->
+                """module A exposing (..)
+a = List.member (f <| y) <| List.repeat n <| g <| x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.member on List.repeat is the same as checking whether the repeat count is positive and the element to repeat equals the checked member"
+                            , details = [ "You can replace this call by (the count argument given to List.repeat) >= 1 && (the checked member argument given to List.member) == (the element to repeat argument given to List.repeat)." ]
+                            , under = "List.member"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ((n >= 1) && ((f <| y) == (g <| x)))
+"""
+                        ]
         ]
 
 
