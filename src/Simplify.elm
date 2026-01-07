@@ -1071,7 +1071,7 @@ Destructuring using case expressions
     Array.toList (Array.repeat n a)
     --> List.repeat n a
 
-    Array.map f Array.empty -- same for Array.filter
+    Array.map f Array.empty -- same for Array.filter, Array.indexedMap, ...
     --> Array.empty
 
     Array.map identity array
