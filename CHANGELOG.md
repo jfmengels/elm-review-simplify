@@ -31,6 +31,9 @@ Other improvements:
   ```
 - In addition, various directional comparisons of lengths/sizes with 0/1 are now also turned into (not on) isEmpty, for example: `0 >= Set.size set` to `Set.isEmpty set`
 
+Bug fixes:
+- `Basics.toFloat`, `Basics.round`, `Basics.truncate`, `Basics.floor`, `Basics.ceiling` previously tried to simplify non-literal arguments, leading to issues like `floor (1 / 4 * 100)` being fixed to `1 / 4 * 100`
+
 ## [2.1.12] - 2026-01-06
 
 The rule now simplifies:
