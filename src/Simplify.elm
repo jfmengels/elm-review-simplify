@@ -922,6 +922,9 @@ Destructuring using case expressions
     List.all not [ a, False, b ]
     --> List.all not [ a, b ]
 
+    List.all f (List.repeat n a)
+    --> n <= 0 || f a
+
     List.any f []
     --> False
 
@@ -9171,7 +9174,64 @@ listAllChecks =
         (\checkInfo ->
             emptiableAllChecks listCollection checkInfo
                 |> onNothing (\() -> collectionAllChecks listCollection checkInfo)
+                |> onNothing (\() -> listAllOnRepeatCallCheck checkInfo)
         )
+
+
+listAllOnRepeatCallCheck : CallCheckInfo -> Maybe (Error {})
+listAllOnRepeatCallCheck checkInfo =
+    case fullyAppliedLastArg checkInfo of
+        Nothing ->
+            Nothing
+
+        Just listArg ->
+            case AstHelpers.getSpecificUnreducedFnCall Fn.List.repeat checkInfo.lookupTable listArg of
+                Nothing ->
+                    Nothing
+
+                Just listRepeatCall ->
+                    case listRepeatCall.argsAfterFirst of
+                        [ elementToRepeatArg ] ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message =
+                                        qualifiedToString checkInfo.fn
+                                            ++ " on "
+                                            ++ qualifiedToString Fn.List.repeat
+                                            ++ " is the same as checking whether the repeat count is 0 or negative or the function passes for the element to repeat"
+                                    , details =
+                                        [ "You can replace this call by (the count argument given to "
+                                            ++ qualifiedToString Fn.List.repeat
+                                            ++ ") <= 0 || (the function argument given to "
+                                            ++ qualifiedToString checkInfo.fn
+                                            ++ ") (the element to repeat argument given to "
+                                            ++ qualifiedToString Fn.List.repeat
+                                            ++ ")."
+                                        ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.insertAt checkInfo.parentRange.start
+                                        ("(("
+                                            ++ parenthesizeIf
+                                                (needsParens (Node.value listRepeatCall.firstArg))
+                                                (checkInfo.extractSourceCode
+                                                    (Node.range listRepeatCall.firstArg)
+                                                )
+                                            ++ " <= 0) || ("
+                                        )
+                                        :: Fix.insertAt checkInfo.parentRange.end
+                                            "))"
+                                        :: replaceBySubExpressionFix
+                                            (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+                                            checkInfo.firstArg
+                                        ++ replaceBySubExpressionFix
+                                            (Node.range listArg)
+                                            elementToRepeatArg
+                                    )
+                                )
+
+                        _ ->
+                            Nothing
 
 
 listAnyChecks : IntoFnCheck
