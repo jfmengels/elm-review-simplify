@@ -9236,16 +9236,14 @@ listAllOnRepeatCallCheck checkInfo =
 
 listAnyChecks : IntoFnCheck
 listAnyChecks =
-    intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall
-            (\checkInfo ->
-                emptiableAnyChecks listCollection checkInfo
-                    |> onNothing (\() -> collectionAnyChecks listCollection checkInfo)
-                    |> onNothing
-                        (\() -> operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck Fn.List.member checkInfo)
-                    |> onNothing (\() -> listAnyOnRepeatCallCheck checkInfo)
-            )
-        ]
+    intoFnCheckOnlyCall
+        (\checkInfo ->
+            emptiableAnyChecks listCollection checkInfo
+                |> onNothing (\() -> collectionAnyChecks listCollection checkInfo)
+                |> onNothing
+                    (\() -> operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck Fn.List.member checkInfo)
+                |> onNothing (\() -> listAnyOnRepeatCallCheck checkInfo)
+        )
 
 
 listAnyOnRepeatCallCheck : CallCheckInfo -> Maybe (Error {})
