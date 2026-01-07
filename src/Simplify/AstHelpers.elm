@@ -9,7 +9,7 @@ module Simplify.AstHelpers exposing
     , isIdentity, getAlwaysResult
     , isTupleFirstAccess, isTupleSecondAccess
     , getAccessingRecord, getRecordAccessFunction
-    , getOrder, getBool, getBoolPattern, getUncomputedNumberValue
+    , getOrder, getBool, getBoolPattern, getUncomputedInt, getUncomputedNumberValue
     , getCollapsedCons, getListLiteral, isListLiteral, getListSingleton
     , getTuple2, getTuple2Literal
     , boolToString, emptyStringAsString
@@ -46,7 +46,7 @@ module Simplify.AstHelpers exposing
 @docs isIdentity, getAlwaysResult
 @docs isTupleFirstAccess, isTupleSecondAccess
 @docs getAccessingRecord, getRecordAccessFunction
-@docs getOrder, getBool, getBoolPattern, getUncomputedNumberValue
+@docs getOrder, getBool, getBoolPattern, getUncomputedInt, getUncomputedNumberValue
 @docs getCollapsedCons, getListLiteral, isListLiteral, getListSingleton
 @docs getTuple2, getTuple2Literal
 
@@ -604,6 +604,22 @@ getRecordAccessFunction expressionNode =
     case expressionNode of
         Node _ (Expression.RecordAccessFunction fieldName) ->
             Just (String.replace "." "" fieldName)
+
+        _ ->
+            Nothing
+
+
+getUncomputedInt : Node Expression -> Maybe Float
+getUncomputedInt expressionNode =
+    case Node.value (removeParens expressionNode) of
+        Expression.Integer n ->
+            Just (toFloat n)
+
+        Expression.Hex n ->
+            Just (toFloat n)
+
+        Expression.Negation expr ->
+            Maybe.map negate (getUncomputedNumberValue expr)
 
         _ ->
             Nothing
