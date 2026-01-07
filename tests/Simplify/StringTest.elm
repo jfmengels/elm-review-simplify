@@ -27,6 +27,7 @@ all =
         , stringLeftTests
         , stringDropRightTests
         , stringDropLeftTests
+        , stringMapTests
         , stringFoldlTests
         , stringFoldrTests
         ]
@@ -2084,6 +2085,61 @@ a = String.dropRight n (String.map f string)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        ]
+
+
+stringMapTests : Test
+stringMapTests =
+    describe "String.map"
+        [ test "should not report String.map with okay arguments"
+            (\() ->
+                """module A exposing (..)
+a0 = String.map
+a1 = String.map f
+a2 = String.map f str
+a3 = String.map f (String.repeat n str)
+a4 = String.repeat n (String.map f str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace String.map f (String.repeat n (String.fromChar c)) by String.repeat n (String.fromChar (f c))" <|
+            \() ->
+                """module A exposing (..)
+a = String.map f (String.repeat n (String.fromChar c))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.map on String.repeat on String.fromChar is the same as String.repeat on String.fromChar with the mapped char"
+                            , details = [ "You can replace this call by the String.repeat on String.fromChar operation but with the function given to the String.map operation applied to the original char." ]
+                            , under = "String.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.repeat n (String.fromChar (f c))
+"""
+                        ]
+        , test "should replace String.map (f ; x) (String.repeat n <| String.fromChar (g ; y)) by String.repeat n <| String.fromChar ((f ; x) ; (g ; y))" <|
+            \() ->
+                """module A exposing (..)
+a = String.map (f
+                x) (String.repeat n<|String.fromChar (g
+                                                        y))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.map on String.repeat on String.fromChar is the same as String.repeat on String.fromChar with the mapped char"
+                            , details = [ "You can replace this call by the String.repeat on String.fromChar operation but with the function given to the String.map operation applied to the original char." ]
+                            , under = "String.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (String.repeat n<|String.fromChar ((f
+                x)
+                                                     (g
+                                                        y)))
+"""
+                        ]
         ]
 
 

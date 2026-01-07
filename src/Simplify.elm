@@ -519,6 +519,9 @@ Destructuring using case expressions
     String.slice -1 -2 str
     --> ""
 
+    String.map f (String.repeat n (String.fromChar c))
+    --> String.repeat n (String.fromChar (f c))
+
     -- The following simplifications for String.foldl also work for String.foldr
     String.foldl f initial ""
     --> initial
@@ -4048,6 +4051,7 @@ intoFnChecks =
     , ( Fn.String.slice, ( 3, stringSliceChecks ) )
     , ( Fn.String.left, ( 2, stringLeftChecks ) )
     , ( Fn.String.right, ( 2, stringRightChecks ) )
+    , ( Fn.String.map, ( 2, stringMapChecks ) )
     , ( Fn.String.append, ( 2, stringAppendChecks ) )
     , ( Fn.String.foldl, ( 3, stringFoldlChecks ) )
     , ( Fn.String.foldr, ( 3, stringFoldrChecks ) )
@@ -7053,6 +7057,71 @@ stringLeftChecks =
 stringRightChecks : IntoFnCheck
 stringRightChecks =
     collectionTakeChecks stringCollection
+
+
+stringMapChecks : IntoFnCheck
+stringMapChecks =
+    intoFnCheckOnlyCall
+        (\checkInfo ->
+            case checkInfo.argsAfterFirst of
+                [ mappedArg ] ->
+                    case AstHelpers.getSpecificUnreducedFnCall Fn.String.repeat checkInfo.lookupTable mappedArg of
+                        Nothing ->
+                            Nothing
+
+                        Just repeatFnCall ->
+                            case repeatFnCall.argsAfterFirst of
+                                [ stringToRepeatArg ] ->
+                                    case AstHelpers.getSpecificUnreducedFnCall Fn.String.fromChar checkInfo.lookupTable stringToRepeatArg of
+                                        Nothing ->
+                                            Nothing
+
+                                        Just toRepeatStringFromCharCall ->
+                                            Just
+                                                (Rule.errorWithFix
+                                                    { message =
+                                                        qualifiedToString checkInfo.fn
+                                                            ++ " on "
+                                                            ++ qualifiedToString Fn.String.repeat
+                                                            ++ " on "
+                                                            ++ qualifiedToString Fn.String.fromChar
+                                                            ++ " is the same as "
+                                                            ++ qualifiedToString Fn.String.repeat
+                                                            ++ " on "
+                                                            ++ qualifiedToString Fn.String.fromChar
+                                                            ++ " with the mapped char"
+                                                    , details =
+                                                        [ "You can replace this call by the "
+                                                            ++ qualifiedToString Fn.String.repeat
+                                                            ++ " on "
+                                                            ++ qualifiedToString Fn.String.fromChar
+                                                            ++ " operation but with the function given to the "
+                                                            ++ qualifiedToString checkInfo.fn
+                                                            ++ " operation applied to the original char."
+                                                        ]
+                                                    }
+                                                    checkInfo.fnRange
+                                                    (wrapInApplicationFix
+                                                        { arg = toRepeatStringFromCharCall.firstArg
+                                                        , function =
+                                                            parenthesizeIf
+                                                                (needsParens (Node.value checkInfo.firstArg))
+                                                                (checkInfo.extractSourceCode
+                                                                    (Node.range checkInfo.firstArg)
+                                                                )
+                                                        }
+                                                        ++ replaceCallBySubExpressionFix checkInfo.parentRange
+                                                            checkInfo.callStyle
+                                                            mappedArg
+                                                    )
+                                                )
+
+                                _ ->
+                                    Nothing
+
+                _ ->
+                    Nothing
+        )
 
 
 stringReplaceChecks : IntoFnCheck
@@ -12486,11 +12555,6 @@ mapOnRepeatAppliesTheFunctionToTheRepeatedElementCheck repeatFn =
                         Just repeatFnCall ->
                             case repeatFnCall.argsAfterFirst of
                                 [ elementToRepeatArg ] ->
-                                    let
-                                        elementToRepeatArgNeedsParens : Bool
-                                        elementToRepeatArgNeedsParens =
-                                            needsParens (Node.value elementToRepeatArg)
-                                    in
                                     Just
                                         (Rule.errorWithFix
                                             { message =
@@ -12509,39 +12573,16 @@ mapOnRepeatAppliesTheFunctionToTheRepeatedElementCheck repeatFn =
                                                 ]
                                             }
                                             checkInfo.fnRange
-                                            (Fix.insertAt (Node.range elementToRepeatArg).start
-                                                ("("
-                                                    ++ parenthesizeIf
+                                            (wrapInApplicationFix
+                                                { arg = elementToRepeatArg
+                                                , function =
+                                                    parenthesizeIf
                                                         (needsParens (Node.value checkInfo.firstArg))
                                                         (checkInfo.extractSourceCode
                                                             (Node.range checkInfo.firstArg)
                                                         )
-                                                    ++ (if
-                                                            rangeSpansMultipleLines (Node.range elementToRepeatArg)
-                                                                || rangeSpansMultipleLines (Node.range checkInfo.firstArg)
-                                                        then
-                                                            "\n" ++ String.repeat ((Node.range elementToRepeatArg).start.column - 1) " "
-
-                                                        else
-                                                            " "
-                                                       )
-                                                    ++ (if elementToRepeatArgNeedsParens then
-                                                            "("
-
-                                                        else
-                                                            ""
-                                                       )
-                                                )
-                                                :: Fix.insertAt (Node.range elementToRepeatArg).end
-                                                    ((if elementToRepeatArgNeedsParens then
-                                                        ")"
-
-                                                      else
-                                                        ""
-                                                     )
-                                                        ++ ")"
-                                                    )
-                                                :: replaceCallBySubExpressionFix checkInfo.parentRange
+                                                }
+                                                ++ replaceCallBySubExpressionFix checkInfo.parentRange
                                                     checkInfo.callStyle
                                                     mappedArg
                                             )
@@ -13569,6 +13610,44 @@ operationWithSpecificArgsIsEquivalentToFnError config checkInfo =
                     (qualifiedToString (qualify config.replacementFn checkInfo))
                 ]
         )
+
+
+wrapInApplicationFix : { arg : Node Expression, function : String } -> List Fix
+wrapInApplicationFix config =
+    let
+        elementToRepeatArgNeedsParens : Bool
+        elementToRepeatArgNeedsParens =
+            needsParens (Node.value config.arg)
+    in
+    [ Fix.insertAt (Node.range config.arg).start
+        ("("
+            ++ config.function
+            ++ (if
+                    rangeSpansMultipleLines (Node.range config.arg)
+                        || String.contains "\n" config.function
+                then
+                    "\n" ++ String.repeat ((Node.range config.arg).start.column - 1) " "
+
+                else
+                    " "
+               )
+            ++ (if elementToRepeatArgNeedsParens then
+                    "("
+
+                else
+                    ""
+               )
+        )
+    , Fix.insertAt (Node.range config.arg).end
+        ((if elementToRepeatArgNeedsParens then
+            ")"
+
+          else
+            ""
+         )
+            ++ ")"
+        )
+    ]
 
 
 fixToCall :
