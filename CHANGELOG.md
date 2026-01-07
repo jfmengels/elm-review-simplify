@@ -1,6 +1,18 @@
 # Changelog
 
 ## [Unreleased]
+- Disabled `List.sum` and `List.product` simplifications on list reordering operations: `List.reverse`, `List.sort`, `List.sortBy`, `List.sortWith`.
+  Applying floating point operations across elements using lots of intermediate temporary numbers can loose some amount of precision, and importantly the order in which the numbers are traversed will influence how much precision is lost. An illustrative example by [Sébastien Besnier](https://github.com/sebsheep):
+  ```elm
+  List.sum (1 :: List.repeat 100000 (2^(-53)))
+  ```
+  will result in `1` because the tiny fraction gets "swallowed" by the much larger accumulated value whereas
+  ```elm
+  List.sum (List.reverse (1 :: List.repeat 100000 (2^(-53))))
+  ```
+  will result in a more correct `1.0000000000111022`.
+  
+  You can read more about this problem in the [documentation of javascript's `Math.sumPrecise()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/sumPrecise#description)
 
 ## [2.1.13] - 2026-01-07
 
