@@ -1236,6 +1236,7 @@ a = 1 == ({ a = 1 }).b
         , setIsEmptyTests
         , dictIsEmptyTests
         , arrayIsEmptyTests
+        , nonOverlappingBoundsTests
         ]
 
 
@@ -2540,6 +2541,204 @@ a =
 
     else
              y
+"""
+                        ]
+        ]
+
+
+nonOverlappingBoundsTests : Test
+nonOverlappingBoundsTests =
+    describe "non-overlapping bounds"
+        [ test "should replace String.length str == -1 by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.length str == -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be at least 0 and the right number was determined to be exactly -1."
+                                ]
+                            , under = "=="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace String.length str + 1 == 0 by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.length str + 1 == 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be at least 1 and the right number was determined to be exactly 0."
+                                ]
+                            , under = "=="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace 1 - String.length str == 2 by False" <|
+            \() ->
+                """module A exposing (..)
+a = 1 - String.length str == 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be at most 1 and the right number was determined to be exactly 2."
+                                ]
+                            , under = "=="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace -(String.length str + 1) == 0 by False" <|
+            \() ->
+                """module A exposing (..)
+a = -(String.length str + 1) == 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be at most -1 and the right number was determined to be exactly 0."
+                                ]
+                            , under = "=="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace -2 * (String.length str + 1) == -1 by False" <|
+            \() ->
+                """module A exposing (..)
+a = -2 * (String.length str + 1) == -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be at most -2 and the right number was determined to be exactly -1."
+                                ]
+                            , under = "=="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace abs n * (String.length str + 1) == -1 by False" <|
+            \() ->
+                """module A exposing (..)
+a = abs n * (String.length str + 1) == -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be at least 0 and the right number was determined to be exactly -1."
+                                ]
+                            , under = "=="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should not report abs n == -(abs m) because if n and m are 0 this will be True" <|
+            \() ->
+                """module A exposing (..)
+a = abs n == -(abs m)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace Basics.clamp 2 3 n == Basics.max 4 m by False" <|
+            \() ->
+                """module A exposing (..)
+a = Basics.clamp 2 3 n == Basics.max 4 m
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be between 2 and 3 inclusive and the right number was determined to be at least 4."
+                                ]
+                            , under = "=="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace Basics.clamp 2 3 n == Basics.min 1 m by False" <|
+            \() ->
+                """module A exposing (..)
+a = Basics.clamp 2 3 n == Basics.min 1 m
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be between 2 and 3 inclusive and the right number was determined to be at most 1."
+                                ]
+                            , under = "=="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should not report String.length str == min 0 n as both intervals contain 0" <|
+            \() ->
+                """module A exposing (..)
+a = String.length str == min 0 n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report max 1 n == min 0 m when expectNaN is enabled" <|
+            \() ->
+                """module A exposing (..)
+a = max 1 n == min 0 m
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.length str /= -1 by True" <|
+            \() ->
+                """module A exposing (..)
+a = String.length str /= -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(/=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be at least 0 and the right number was determined to be exactly -1."
+                                ]
+                            , under = "/="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
 """
                         ]
         ]

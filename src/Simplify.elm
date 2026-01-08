@@ -86,6 +86,11 @@ Below is the list of all kinds of simplifications this rule applies.
     1 < 2 -- same for >=, <=, < for any comparable operands
     --> True
 
+    -- when `expectNaN` is not enabled
+    -- whenever number intervals for both sides are known to always pass or fail a comparison
+    List.length l >= min -1 n
+    --> True
+
     n < n
     --> False
 
@@ -5088,7 +5093,16 @@ equalityChecks isEqual checkInfo =
             )
         |> onNothing
             (\() ->
-                case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+                let
+                    leftNormal : Expression
+                    leftNormal =
+                        Normalize.normalizeExpression checkInfo checkInfo.left
+
+                    rightNormal : Expression
+                    rightNormal =
+                        Normalize.normalizeExpression checkInfo checkInfo.right
+                in
+                case Normalize.compareExistingNormals leftNormal rightNormal of
                     Normalize.ConfirmedEquality ->
                         if
                             checkInfo.expectNaN
@@ -5105,10 +5119,114 @@ equalityChecks isEqual checkInfo =
                         Just (comparisonError (not isEqual) checkInfo)
 
                     Normalize.Unconfirmed ->
-                        Nothing
+                        compareNumberIntervalsResultsInOperationCheck
+                            { leftNormal = leftNormal
+                            , rightNormal = rightNormal
+                            , boundsOrderToResult =
+                                \boundsOrder ->
+                                    case boundsMaybeEqual boundsOrder of
+                                        CanBeEqual ->
+                                            Nothing
+
+                                        CannotBeEqual ->
+                                            Just
+                                                (if isEqual then
+                                                    Fn.Basics.falseVariant
+
+                                                 else
+                                                    Fn.Basics.trueVariant
+                                                )
+                            }
+                            checkInfo
             )
         |> onNothing
             (\() -> comparisonWithEmptyChecks isEqual checkInfo)
+
+
+numberBoundsToDescription : { min : Float, max : Float } -> String
+numberBoundsToDescription numberBounds =
+    if numberBounds.min == numberBounds.max then
+        "exactly " ++ String.fromFloat numberBounds.min
+
+    else if Basics.isInfinite numberBounds.min then
+        if Basics.isInfinite numberBounds.max then
+            "any number"
+
+        else
+            "at most " ++ String.fromFloat numberBounds.max
+
+    else if Basics.isInfinite numberBounds.max then
+        "at least " ++ String.fromFloat numberBounds.min
+
+    else
+        "between "
+            ++ String.fromFloat numberBounds.min
+            ++ " and "
+            ++ String.fromFloat numberBounds.max
+            ++ " inclusive"
+
+
+compareNumberIntervalsResultsInOperationCheck :
+    { leftNormal : Expression
+    , rightNormal : Expression
+    , boundsOrderToResult : BoundsOrder -> Maybe ( ModuleName, String )
+    }
+    -> OperatorApplicationCheckInfo
+    -> Maybe (Error {})
+compareNumberIntervalsResultsInOperationCheck config checkInfo =
+    if
+        checkInfo.expectNaN
+            && (AstHelpers.couldBeValueContainingNaN checkInfo.left
+                    || AstHelpers.couldBeValueContainingNaN checkInfo.right
+               )
+    then
+        Nothing
+
+    else
+        let
+            leftNumberBounds : { min : Float, max : Float }
+            leftNumberBounds =
+                normalGetNumberBounds config.leftNormal
+
+            rightNumberBounds : { min : Float, max : Float }
+            rightNumberBounds =
+                normalGetNumberBounds config.rightNormal
+        in
+        case numberBoundsCompare leftNumberBounds rightNumberBounds of
+            Nothing ->
+                Nothing
+
+            Just boundsOrder ->
+                case config.boundsOrderToResult boundsOrder of
+                    Nothing ->
+                        Nothing
+
+                    Just result ->
+                        Just
+                            (Rule.errorWithFix
+                                { message =
+                                    "("
+                                        ++ checkInfo.operator
+                                        ++ ") comparison will result in "
+                                        ++ qualifiedToString (qualify result defaultQualifyResources)
+                                , details =
+                                    [ "Based on the values and/or the context, we can determine that the interval of the left number is always "
+                                        ++ boundsOrderToDescription boundsOrder
+                                        ++ " the interval of the right number. As a result, this operation can be replaced by "
+                                        ++ qualifiedToString (qualify result defaultQualifyResources)
+                                        ++ "."
+                                    , "The left number was determined to be "
+                                        ++ numberBoundsToDescription leftNumberBounds
+                                        ++ " and the right number was determined to be "
+                                        ++ numberBoundsToDescription rightNumberBounds
+                                        ++ "."
+                                    ]
+                                }
+                                checkInfo.operatorRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange
+                                    (qualifiedToString (qualify result checkInfo))
+                                ]
+                            )
 
 
 elementCountEqualityTo0OperationChecks : Bool -> OperatorApplicationCheckInfo -> Maybe (Error {})
@@ -5458,7 +5576,16 @@ lessThanChecks checkInfo =
             )
         |> onNothing
             (\() ->
-                case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+                let
+                    leftNormal : Expression
+                    leftNormal =
+                        Normalize.normalizeExpression checkInfo checkInfo.left
+
+                    rightNormal : Expression
+                    rightNormal =
+                        Normalize.normalizeExpression checkInfo checkInfo.right
+                in
+                case Normalize.compareExistingNormals leftNormal rightNormal of
                     Normalize.ConfirmedEquality ->
                         -- also: NaN < NaN --> False
                         Just
@@ -5474,7 +5601,23 @@ lessThanChecks checkInfo =
                             )
 
                     _ ->
-                        comparisonOperatorCheck (\order -> order == LT) checkInfo
+                        comparisonOperatorCheck
+                            { leftNormal = leftNormal
+                            , rightNormal = rightNormal
+                            , orderSatisfiesOperator = \order -> order == LT
+                            , boundsOrderToResult =
+                                \boundsOrder ->
+                                    case boundsOrder of
+                                        BoundsLess CanBeEqual ->
+                                            Nothing
+
+                                        BoundsLess CannotBeEqual ->
+                                            Just Fn.Basics.trueVariant
+
+                                        BoundsGreater _ ->
+                                            Just Fn.Basics.falseVariant
+                            }
+                            checkInfo
             )
 
 
@@ -5501,7 +5644,16 @@ lessThanOrEqualToChecks checkInfo =
             )
         |> onNothing
             (\() ->
-                case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+                let
+                    leftNormal : Expression
+                    leftNormal =
+                        Normalize.normalizeExpression checkInfo checkInfo.left
+
+                    rightNormal : Expression
+                    rightNormal =
+                        Normalize.normalizeExpression checkInfo checkInfo.right
+                in
+                case Normalize.compareExistingNormals leftNormal rightNormal of
                     Normalize.ConfirmedEquality ->
                         -- because: NaN <= NaN --> False
                         if
@@ -5527,17 +5679,31 @@ lessThanOrEqualToChecks checkInfo =
 
                     _ ->
                         comparisonOperatorCheck
-                            (\order ->
-                                case order of
-                                    LT ->
-                                        True
+                            { leftNormal = leftNormal
+                            , rightNormal = rightNormal
+                            , orderSatisfiesOperator =
+                                \order ->
+                                    case order of
+                                        LT ->
+                                            True
 
-                                    EQ ->
-                                        True
+                                        EQ ->
+                                            True
 
-                                    GT ->
-                                        False
-                            )
+                                        GT ->
+                                            False
+                            , boundsOrderToResult =
+                                \boundsOrder ->
+                                    case boundsOrder of
+                                        BoundsLess _ ->
+                                            Just Fn.Basics.trueVariant
+
+                                        BoundsGreater CannotBeEqual ->
+                                            Just Fn.Basics.falseVariant
+
+                                        BoundsGreater CanBeEqual ->
+                                            Nothing
+                            }
                             checkInfo
             )
 
@@ -5565,7 +5731,16 @@ greaterThanChecks checkInfo =
             )
         |> onNothing
             (\() ->
-                case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+                let
+                    leftNormal : Expression
+                    leftNormal =
+                        Normalize.normalizeExpression checkInfo checkInfo.left
+
+                    rightNormal : Expression
+                    rightNormal =
+                        Normalize.normalizeExpression checkInfo checkInfo.right
+                in
+                case Normalize.compareExistingNormals leftNormal rightNormal of
                     Normalize.ConfirmedEquality ->
                         -- because: NaN > NaN --> True (unlike <)
                         if
@@ -5590,7 +5765,23 @@ greaterThanChecks checkInfo =
                                 )
 
                     _ ->
-                        comparisonOperatorCheck (\order -> order == GT) checkInfo
+                        comparisonOperatorCheck
+                            { leftNormal = leftNormal
+                            , rightNormal = rightNormal
+                            , orderSatisfiesOperator = \order -> order == GT
+                            , boundsOrderToResult =
+                                \boundsOrder ->
+                                    case boundsOrder of
+                                        BoundsGreater CanBeEqual ->
+                                            Nothing
+
+                                        BoundsGreater CannotBeEqual ->
+                                            Just Fn.Basics.trueVariant
+
+                                        BoundsLess _ ->
+                                            Just Fn.Basics.falseVariant
+                            }
+                            checkInfo
             )
 
 
@@ -5617,7 +5808,16 @@ greaterThanOrEqualToChecks checkInfo =
             )
         |> onNothing
             (\() ->
-                case Normalize.compare checkInfo checkInfo.left checkInfo.right of
+                let
+                    leftNormal : Expression
+                    leftNormal =
+                        Normalize.normalizeExpression checkInfo checkInfo.left
+
+                    rightNormal : Expression
+                    rightNormal =
+                        Normalize.normalizeExpression checkInfo checkInfo.right
+                in
+                case Normalize.compareExistingNormals leftNormal rightNormal of
                     Normalize.ConfirmedEquality ->
                         -- also: NaN >= NaN --> True
                         Just
@@ -5634,32 +5834,50 @@ greaterThanOrEqualToChecks checkInfo =
 
                     _ ->
                         comparisonOperatorCheck
-                            (\order ->
-                                case order of
-                                    LT ->
-                                        False
+                            { leftNormal = leftNormal
+                            , rightNormal = rightNormal
+                            , orderSatisfiesOperator =
+                                \order ->
+                                    case order of
+                                        LT ->
+                                            False
 
-                                    EQ ->
-                                        True
+                                        EQ ->
+                                            True
 
-                                    GT ->
-                                        True
-                            )
+                                        GT ->
+                                            True
+                            , boundsOrderToResult =
+                                \boundsOrder ->
+                                    case boundsOrder of
+                                        BoundsGreater _ ->
+                                            Just Fn.Basics.trueVariant
+
+                                        BoundsLess CanBeEqual ->
+                                            Nothing
+
+                                        BoundsLess CannotBeEqual ->
+                                            Just Fn.Basics.falseVariant
+                            }
                             checkInfo
             )
 
 
-comparisonOperatorCheck : (Order -> Bool) -> OperatorApplicationCheckInfo -> Maybe (Error {})
-comparisonOperatorCheck orderSatisfiesOperator checkInfo =
+comparisonOperatorCheck :
+    { leftNormal : Expression
+    , rightNormal : Expression
+    , orderSatisfiesOperator : Order -> Bool
+    , boundsOrderToResult : BoundsOrder -> Maybe ( ModuleName, String )
+    }
+    -> OperatorApplicationCheckInfo
+    -> Maybe (Error {})
+comparisonOperatorCheck config checkInfo =
     case evaluateCompare checkInfo checkInfo.left checkInfo.right of
-        Undetermined ->
-            Nothing
-
         Determined order ->
             let
                 result : Bool
                 result =
-                    orderSatisfiesOperator order
+                    config.orderSatisfiesOperator order
 
                 resultReference : ( ModuleName, String )
                 resultReference =
@@ -5689,6 +5907,14 @@ comparisonOperatorCheck orderSatisfiesOperator checkInfo =
                         (qualifiedToString (qualify resultReference checkInfo))
                     ]
                 )
+
+        Undetermined ->
+            compareNumberIntervalsResultsInOperationCheck
+                { leftNormal = config.leftNormal
+                , rightNormal = config.rightNormal
+                , boundsOrderToResult = config.boundsOrderToResult
+                }
+                checkInfo
 
 
 orderToCompareOperationDescription : Order -> String
@@ -19997,6 +20223,266 @@ getRecordTypeAliasConstructorCall expressionNode checkInfo =
                                         , fieldNames = fieldNames
                                         }
                                     )
+
+
+type BoundsOrder
+    = BoundsLess MaybeEqual
+    | BoundsGreater MaybeEqual
+
+
+type MaybeEqual
+    = CannotBeEqual
+    | CanBeEqual
+
+
+boundsMaybeEqual : BoundsOrder -> MaybeEqual
+boundsMaybeEqual boundsOrder =
+    case boundsOrder of
+        BoundsLess maybeEqual ->
+            maybeEqual
+
+        BoundsGreater maybeEqual ->
+            maybeEqual
+
+
+boundsOrderToDescription : BoundsOrder -> String
+boundsOrderToDescription boundsOrder =
+    case boundsOrder of
+        BoundsLess CannotBeEqual ->
+            "less than"
+
+        BoundsLess CanBeEqual ->
+            "less than or equal to"
+
+        BoundsGreater CannotBeEqual ->
+            "greater than"
+
+        BoundsGreater CanBeEqual ->
+            "greater than or equal to"
+
+
+numberBoundsCompare :
+    { min : Float, max : Float }
+    -> { min : Float, max : Float }
+    -> Maybe BoundsOrder
+numberBoundsCompare leftBounds rightBounds =
+    if leftBounds.max < rightBounds.min then
+        Just (BoundsLess CannotBeEqual)
+
+    else if rightBounds.max < leftBounds.min then
+        Just (BoundsGreater CannotBeEqual)
+
+    else
+    -- some overlap
+    if
+        leftBounds.max <= rightBounds.max
+    then
+        if
+            (leftBounds.min < rightBounds.min)
+                || (leftBounds |> numberBoundsAreExactly rightBounds.min)
+        then
+            Just (BoundsLess CanBeEqual)
+
+        else
+            -- rightBounds includes leftBounds
+            Nothing
+
+    else
+    -- rightBounds.max < leftBounds.max
+    if
+        (rightBounds.min < leftBounds.min)
+            || (rightBounds |> numberBoundsAreExactly leftBounds.min)
+    then
+        Just (BoundsGreater CanBeEqual)
+
+    else
+        -- leftBounds includes rightBounds
+        Nothing
+
+
+numberBoundsAreExactly : Float -> { min : Float, max : Float } -> Bool
+numberBoundsAreExactly exactNumber numberBounds =
+    numberBounds.min == exactNumber && numberBounds.max == exactNumber
+
+
+normalGetNumberBounds : Expression -> { min : Float, max : Float }
+normalGetNumberBounds expressionNormal =
+    case expressionNormal of
+        Expression.Floatable int ->
+            { min = int, max = int }
+
+        Expression.Negation (Node _ inNegation) ->
+            numberBoundsNegate (normalGetNumberBounds inNegation)
+
+        Expression.Application ((Node _ (Expression.FunctionOrValue moduleOrigin name)) :: args) ->
+            let
+                fn : ( ModuleName, String )
+                fn =
+                    ( moduleOrigin, name )
+            in
+            case args of
+                [ Node _ arg0 ] ->
+                    if
+                        (fn == Fn.Array.length)
+                            || (fn == Fn.List.length)
+                            || (fn == Fn.String.length)
+                            || (fn == Fn.Set.size)
+                            || (fn == Fn.Dict.size)
+                    then
+                        { min = 0, max = positiveInfinity }
+
+                    else if fn == Fn.Basics.abs then
+                        let
+                            arg0NumberBounds : { min : Float, max : Float }
+                            arg0NumberBounds =
+                                normalGetNumberBounds arg0
+                        in
+                        if arg0NumberBounds.min >= 0 then
+                            arg0NumberBounds
+
+                        else if arg0NumberBounds.max <= 0 then
+                            numberBoundsNegate arg0NumberBounds
+
+                        else
+                            -- min <= -1 && max >= 1
+                            { min = 0, max = max -arg0NumberBounds.min arg0NumberBounds.max }
+
+                    else
+                        numberBoundsUnknown
+
+                [ Node _ arg0, Node _ arg1 ] ->
+                    if fn == Fn.Basics.min then
+                        numberBoundsCombineEachBoundWith Basics.min
+                            (normalGetNumberBounds arg0)
+                            (normalGetNumberBounds arg1)
+
+                    else if fn == Fn.Basics.max then
+                        numberBoundsCombineEachBoundWith Basics.max
+                            (normalGetNumberBounds arg0)
+                            (normalGetNumberBounds arg1)
+
+                    else
+                        numberBoundsUnknown
+
+                [ Node _ arg0, Node _ arg1, _ ] ->
+                    if fn == Fn.Basics.clamp then
+                        let
+                            minNormal : { min : Float, max : Float }
+                            minNormal =
+                                normalGetNumberBounds arg0
+
+                            maxNormal : { min : Float, max : Float }
+                            maxNormal =
+                                normalGetNumberBounds arg1
+                        in
+                        -- note that  clamp lo hi  is different from both
+                        --     max lo (min hi n)
+                        --     min hi (max lo)
+                        -- as it can both return values greater than hi and less than lo
+                        { min =
+                            -- not minNormal.min because
+                            -- e.g. with Basics.clamp 10 0, giving it 11 would return 0
+                            Basics.min minNormal.min maxNormal.min
+                        , max =
+                            -- not maxNormal.max because
+                            -- e.g. with Basics.clamp 10 0, giving it 1 would return 10
+                            Basics.max minNormal.max maxNormal.max
+                        }
+
+                    else
+                        numberBoundsUnknown
+
+                _ ->
+                    numberBoundsUnknown
+
+        Expression.OperatorApplication operator _ (Node _ left) (Node _ right) ->
+            case operator of
+                "+" ->
+                    numberBoundsCombineEachBoundWith (+)
+                        (normalGetNumberBounds left)
+                        (normalGetNumberBounds right)
+
+                "-" ->
+                    numberBoundsCombineEachBoundWith (+)
+                        (normalGetNumberBounds left)
+                        (numberBoundsNegate (normalGetNumberBounds right))
+
+                "*" ->
+                    let
+                        leftBounds : { min : Float, max : Float }
+                        leftBounds =
+                            normalGetNumberBounds left
+
+                        rightBounds : { min : Float, max : Float }
+                        rightBounds =
+                            normalGetNumberBounds right
+
+                        leftMinTimesRightMin : Float
+                        leftMinTimesRightMin =
+                            leftBounds.min * rightBounds.min
+
+                        leftMinTimesRightMax : Float
+                        leftMinTimesRightMax =
+                            leftBounds.min * rightBounds.max
+
+                        leftMaxTimesRightMin : Float
+                        leftMaxTimesRightMin =
+                            leftBounds.max * rightBounds.min
+
+                        leftMaxTimesRightMax : Float
+                        leftMaxTimesRightMax =
+                            leftBounds.max * rightBounds.max
+                    in
+                    { min =
+                        leftMinTimesRightMin
+                            |> min leftMinTimesRightMax
+                            |> min leftMaxTimesRightMin
+                            |> min leftMaxTimesRightMax
+                    , max =
+                        leftMinTimesRightMin
+                            |> max leftMinTimesRightMax
+                            |> max leftMaxTimesRightMin
+                            |> max leftMaxTimesRightMax
+                    }
+
+                _ ->
+                    numberBoundsUnknown
+
+        _ ->
+            numberBoundsUnknown
+
+
+numberBoundsNegate : { max : Float, min : Float } -> { min : Float, max : Float }
+numberBoundsNegate numberBounds =
+    { min = -numberBounds.max
+    , max = -numberBounds.min
+    }
+
+
+numberBoundsCombineEachBoundWith :
+    (Float -> Float -> Float)
+    -> { min : Float, max : Float }
+    -> { min : Float, max : Float }
+    -> { min : Float, max : Float }
+numberBoundsCombineEachBoundWith combineBound leftBounds rightBounds =
+    { min = combineBound leftBounds.min rightBounds.min
+    , max = combineBound leftBounds.max rightBounds.max
+    }
+
+
+numberBoundsUnknown : { min : Float, max : Float }
+numberBoundsUnknown =
+    { min = negativeInfinity, max = positiveInfinity }
+
+
+positiveInfinity : Float
+positiveInfinity =
+    1 / 0.0
+
+
+negativeInfinity : Float
+negativeInfinity =
+    -(1 / 0.0)
 
 
 

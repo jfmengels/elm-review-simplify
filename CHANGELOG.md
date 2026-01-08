@@ -24,6 +24,7 @@ The rule now simplifies:
 - `List.any f (List.repeat n a)` to `n >= 1 && f a`
 - `List.member needle (List.repeat n b)` to `n >= 1 && needle == b`
 - `List.all f (List.repeat n a)` to `n <= 0 || f a`
+- comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 
 ## [2.1.13] - 2026-01-07
 

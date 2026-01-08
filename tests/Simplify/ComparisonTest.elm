@@ -402,6 +402,58 @@ a = (<) 0 << List.length
 a = not << List.isEmpty
 """
                         ]
+        , test "should not replace List.length l < min 0 n when expectNaN is enabled" <|
+            \() ->
+                """module A exposing (..)
+a = List.length l < min 0 n
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.length l < 0 by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.length l < 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than or equal to the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be at least 0 and the right number was determined to be exactly 0."
+                                ]
+                            , under = "<"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace min -1 n < 0 by True" <|
+            \() ->
+                """module A exposing (..)
+a = min -1 n < 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be at most -1 and the right number was determined to be exactly 0."
+                                ]
+                            , under = "<"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should not report min 0 n < 0 because the two intervals overlap at 0" <|
+            \() ->
+                """module A exposing (..)
+a = min 0 n < 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
@@ -460,6 +512,77 @@ a = (>=) 0 << List.length
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = List.isEmpty
+"""
+                        ]
+        , test "should not replace List.length l >= min -1 n when expectNaN is enabled" <|
+            \() ->
+                """module A exposing (..)
+a = List.length l >= min -1 n
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should not replace min 0 n >= 0 because the two intervals overlap at 0" <|
+            \() ->
+                """module A exposing (..)
+a = min 0 n >= 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace min -1 n >= 0 by False" <|
+            \() ->
+                """module A exposing (..)
+a = min -1 n >= 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>=) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be at most -1 and the right number was determined to be exactly 0."
+                                ]
+                            , under = ">="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace List.length l >= 0 by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.length l >= 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be at least 0 and the right number was determined to be exactly 0."
+                                ]
+                            , under = ">="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace List.length l >= -1 by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.length l >= -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be at least 0 and the right number was determined to be exactly -1."
+                                ]
+                            , under = ">="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
 """
                         ]
         ]
@@ -522,6 +645,58 @@ a = (<=) 1 << List.length
 a = not << List.isEmpty
 """
                         ]
+        , test "should not replace List.length l <= min -1 n when expectNaN is enabled" <|
+            \() ->
+                """module A exposing (..)
+a = List.length l <= min -1 n
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.length l <= -1 by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.length l <= -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be at least 0 and the right number was determined to be exactly -1."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace min 0 n <= 0 by True" <|
+            \() ->
+                """module A exposing (..)
+a = min 0 n <= 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be at most 0 and the right number was determined to be exactly 0."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should not report max 0 n <= 0 because the two intervals overlap at 0" <|
+            \() ->
+                """module A exposing (..)
+a = max 0 n <= 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
@@ -582,4 +757,56 @@ a = (>) 1 << List.length
 a = List.isEmpty
 """
                         ]
+        , test "should not replace List.length l > max -1 n when expectNaN is enabled" <|
+            \() ->
+                """module A exposing (..)
+a = List.length l > max -1 n
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should replace List.length l > -1 by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.length l > -1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be at least 0 and the right number was determined to be exactly -1."
+                                ]
+                            , under = ">"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace min 0 n > 0 by False" <|
+            \() ->
+                """module A exposing (..)
+a = min 0 n > 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be at most 0 and the right number was determined to be exactly 0."
+                                ]
+                            , under = ">"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should not report max 0 n > 0 because the two intervals overlap at 0" <|
+            \() ->
+                """module A exposing (..)
+a = max 0 n > 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
