@@ -1400,6 +1400,10 @@ Destructuring using case expressions
     Dict.fromList [ ( key, a ), ( key, b ) ]
     --> Dict.fromList [ ( key, b ) ]
 
+    -- when expectNaN is not enabled
+    Dict.fromList (List.repeat n a)
+    --> if n >= 1 then Dict.fromList [ a ] else Dict.empty
+
     Dict.isEmpty Dict.empty
     --> True
 
@@ -10065,7 +10069,7 @@ dictFromListChecks =
         , onSpecificFnCallReturnsItsLastArgCheck Fn.Dict.toList
         , intoFnCheckOnlyCall
             (\checkInfo ->
-                case Node.value checkInfo.firstArg of
+                (case Node.value checkInfo.firstArg of
                     Expression.ListExpr elements ->
                         case elements of
                             [] ->
@@ -10098,8 +10102,81 @@ dictFromListChecks =
 
                     _ ->
                         Nothing
+                )
+                    |> onNothing (\() -> dictMapOnRepeatCheck checkInfo)
             )
         ]
+
+
+dictMapOnRepeatCheck : CallCheckInfo -> Maybe (Error {})
+dictMapOnRepeatCheck checkInfo =
+    if checkInfo.expectNaN then
+        Nothing
+
+    else
+        case AstHelpers.getSpecificUnreducedFnCall Fn.List.repeat checkInfo.lookupTable checkInfo.firstArg of
+            Nothing ->
+                Nothing
+
+            Just repeatFnCall ->
+                case repeatFnCall.argsAfterFirst of
+                    [ elementToRepeatArg ] ->
+                        let
+                            branchIndentation : String
+                            branchIndentation =
+                                String.repeat ((Node.range elementToRepeatArg).start.column - 1) " "
+                        in
+                        Just
+                            (Rule.errorWithFix
+                                { message =
+                                    qualifiedToString checkInfo.fn
+                                        ++ " on "
+                                        ++ qualifiedToString Fn.List.repeat
+                                        ++ " will result in a dict singleton with the repeated element if the count is positive and "
+                                        ++ qualifiedToString Fn.Dict.empty
+                                        ++ " otherwise"
+                                , details =
+                                    [ "You can replace this call by if (the count argument given to "
+                                        ++ qualifiedToString Fn.List.repeat
+                                        ++ ") >= 1 then "
+                                        ++ qualifiedToString Fn.Dict.fromList
+                                        ++ " [ (the element to repeat argument given to "
+                                        ++ qualifiedToString Fn.List.repeat
+                                        ++ ") ] else "
+                                        ++ qualifiedToString Fn.Dict.empty
+                                        ++ "."
+                                    ]
+                                }
+                                checkInfo.fnRange
+                                (Fix.insertAt checkInfo.parentRange.start
+                                    ("(if "
+                                        ++ parenthesizeIf
+                                            (needsParens (Node.value repeatFnCall.firstArg))
+                                            (checkInfo.extractSourceCode
+                                                (Node.range repeatFnCall.firstArg)
+                                            )
+                                        ++ " >= 1 then\n"
+                                        ++ branchIndentation
+                                    )
+                                    :: Fix.insertAt checkInfo.parentRange.end
+                                        ("\n\n"
+                                            ++ String.repeat (checkInfo.parentRange.start.column - 1) " "
+                                            ++ "else\n"
+                                            ++ branchIndentation
+                                            ++ qualifiedToString (qualify Fn.Dict.empty checkInfo)
+                                            ++ ")"
+                                        )
+                                    :: keepOnlyAndSurroundWithFix
+                                        { parentRange = Node.range checkInfo.firstArg
+                                        , keep = Node.range elementToRepeatArg
+                                        , left = "[ "
+                                        , right = " ]"
+                                        }
+                                )
+                            )
+
+                    _ ->
+                        Nothing
 
 
 allKeysDifferent : Bool -> { entryRange : Range, first : Maybe (Node Expression) } -> List { entryRange : Range, first : Maybe (Node Expression) } -> Maybe (Error {})
