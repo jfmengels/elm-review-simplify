@@ -11,6 +11,39 @@ all : Test
 all =
     Test.describe "simplification correctness"
         [ Test.fuzz
+            (Fuzz.pair
+                (Fuzz.pair fuzzFloatWithoutNaN fuzzFloatWithoutNaN
+                    |> Fuzz.map
+                        (\( min, max ) ->
+                            if min > max then
+                                ( max, min )
+
+                            else
+                                ( min, max )
+                        )
+                )
+                Fuzz.float
+            )
+            "negating a number with bounds min,max has bounds -max,-min"
+            (\( ( min, max ), n ) ->
+                let
+                    negatedInBounds : Float
+                    negatedInBounds =
+                        -(Basics.clamp min max n)
+                in
+                (negatedInBounds >= -max && negatedInBounds <= -min)
+                    |> Expect.equal True
+                    |> Expect.onFail
+                        (Debug.toString
+                            { min = min
+                            , max = max
+                            , inBounds = Basics.clamp min max n
+                            , expectedNegatedBounds = ( -max, -min )
+                            , actualNegated = negatedInBounds
+                            }
+                        )
+            )
+        , Test.fuzz
             Fuzz.float
             "abs after abs has no effect"
             (\n ->
@@ -347,6 +380,11 @@ all =
                         )
             )
         ]
+
+
+fuzzFloatWithoutNaN : Fuzz.Fuzzer Float
+fuzzFloatWithoutNaN =
+    Fuzz.float |> Fuzz.filter (\float -> Basics.not (Basics.isNaN float))
 
 
 compareFloatNaNIsEqual : Float -> Float -> Order
