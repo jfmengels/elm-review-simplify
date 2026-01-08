@@ -1535,6 +1535,54 @@ import Set
 a = Set.fromList list
 """
                         ]
+        , test "should not replace Set.fromList (List.repeat n a) when expectNaN is enabled" <|
+            \() ->
+                """module A exposing (..)
+a0 = Set.fromList (List.repeat n b)
+a1 = Set.fromList << List.repeat n
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should replace Set.fromList (List.repeat n a) by if n >= 1 then Set.singleton a else Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.fromList (List.repeat n b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.fromList on List.repeat will result in Set.singleton the repeated element if the count is positive and Set.empty otherwise"
+                            , details = [ "You can replace this call by if (the count argument given to List.repeat) >= 1 then Set.singleton (the element to repeat argument given to List.repeat) else Set.empty." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (if n >= 1 then
+                                Set.singleton b
+
+    else
+                                Set.empty)
+"""
+                        ]
+        , test "should replace Set.fromList << List.repeat n by if n >= 1 then Set.singleton else always Set.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Set.fromList << List.repeat n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.fromList on List.repeat will result in Set.singleton the repeated element if the count is positive and Set.empty otherwise"
+                            , details = [ "You can replace this composition by if (the count argument given to List.repeat) >= 1 then Set.singleton else always Set.empty." ]
+                            , under = "Set.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (if n >= 1 then
+        Set.singleton
+
+    else
+        always Set.empty)
+"""
+                        ]
         ]
 
 
@@ -1654,54 +1702,6 @@ a = Set.fromList [ 'a', thing, 'a' ]
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
 a = Set.fromList [ thing, 'a' ]
-"""
-                        ]
-        , test "should replace Set.fromList (List.repeat n a) when expectNaN is enabled" <|
-            \() ->
-                """module A exposing (..)
-a0 = Set.fromList (List.repeat n b)
-a1 = Set.fromList << List.repeat n
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectNoErrors
-        , test "should replace Set.fromList (List.repeat n a) by if n >= 1 then Set.singleton a else Set.empty" <|
-            \() ->
-                """module A exposing (..)
-a = Set.fromList (List.repeat n b)
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Set.fromList on List.repeat will result in Set.singleton the repeated element if the count is positive and Set.empty otherwise"
-                            , details = [ "You can replace this call by if (the count argument given to List.repeat) >= 1 then Set.singleton (the element to repeat argument given to List.repeat) else Set.empty." ]
-                            , under = "Set.fromList"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = (if n >= 1 then
-                                Set.singleton b
-
-    else
-                                Set.empty)
-"""
-                        ]
-        , test "should replace Set.fromList << List.repeat n by if n >= 1 then Set.singleton else always Set.empty" <|
-            \() ->
-                """module A exposing (..)
-a = Set.fromList << List.repeat n
-"""
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Set.fromList on List.repeat will result in Set.singleton the repeated element if the count is positive and Set.empty otherwise"
-                            , details = [ "You can replace this composition by if (the count argument given to List.repeat) >= 1 then Set.singleton else always Set.empty." ]
-                            , under = "Set.fromList"
-                            }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = (if n >= 1 then
-        Set.singleton
-
-    else
-        always Set.empty)
 """
                         ]
         ]
