@@ -477,6 +477,34 @@ import Dict
 a = Dict.fromList [ let a = 0 in ( 0, 0 ) ]
 """
                         ]
+        , test "should not replace Dict.fromList (List.repeat n a) when expectNaN is enabled" <|
+            \() ->
+                """module A exposing (..)
+a0 = Dict.fromList (List.repeat n b)
+a1 = Dict.fromList << List.repeat n
+"""
+                    |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should replace Dict.fromList (List.repeat n a) by if n >= 1 then Dict.fromList [ a ] else Dict.empty" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.fromList (List.repeat n b)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Dict.fromList on List.repeat will result in a dict singleton with the repeated element if the count is positive and Dict.empty otherwise"
+                            , details = [ "You can replace this call by if (the count argument given to List.repeat) >= 1 then Dict.fromList [ (the element to repeat argument given to List.repeat) ] else Dict.empty." ]
+                            , under = "Dict.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (if n >= 1 then
+                                 Dict.fromList [ b ]
+
+    else
+                                 Dict.empty)
+"""
+                        ]
         ]
 
 
