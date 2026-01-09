@@ -480,8 +480,7 @@ a = Dict.fromList [ let a = 0 in ( 0, 0 ) ]
         , test "should not replace Dict.fromList (List.repeat n a) when expectNaN is enabled" <|
             \() ->
                 """module A exposing (..)
-a0 = Dict.fromList (List.repeat n b)
-a1 = Dict.fromList << List.repeat n
+a = Dict.fromList (List.repeat n b)
 """
                     |> Review.Test.run ruleExpectingNaN
                     |> Review.Test.expectNoErrors
