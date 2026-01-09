@@ -10103,13 +10103,13 @@ dictFromListChecks =
                     _ ->
                         Nothing
                 )
-                    |> onNothing (\() -> dictMapOnRepeatCheck checkInfo)
+                    |> onNothing (\() -> dictFromListOnRepeatCheck checkInfo)
             )
         ]
 
 
-dictMapOnRepeatCheck : CallCheckInfo -> Maybe (Error {})
-dictMapOnRepeatCheck checkInfo =
+dictFromListOnRepeatCheck : CallCheckInfo -> Maybe (Error {})
+dictFromListOnRepeatCheck checkInfo =
     if checkInfo.expectNaN then
         Nothing
 
