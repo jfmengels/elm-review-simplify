@@ -36,6 +36,15 @@ simpleNormalizationTests =
             \() ->
                 "(1)"
                     |> normalizeAndExpect (Floatable 1)
+        , test "should apply Basics.negate to known number" <|
+            \() ->
+                "Basics.negate 1"
+                    |> normalizeAndExpect (Floatable -1)
+        , test "should normalize Basics.negate n to -n" <|
+            \() ->
+                "Basics.negate n"
+                    |> normalizeAndExpect
+                        (Negation (Node.empty (FunctionOrValue [] "n")))
         , test "should remove ranges of 'f a'" <|
             \() ->
                 "f a"
