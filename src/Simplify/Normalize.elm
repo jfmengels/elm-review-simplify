@@ -166,20 +166,7 @@ normalizeExpression resources (Node expressionRange expression) =
                 (normalizeExpressionNode resources else_)
 
         Expression.Negation expr ->
-            let
-                normalized : Expression
-                normalized =
-                    normalizeExpression resources expr
-            in
-            case normalized of
-                Expression.Floatable float ->
-                    Expression.Floatable -float
-
-                Expression.Negation subExpr ->
-                    Node.value subExpr
-
-                _ ->
-                    Expression.Negation (Node.empty normalized)
+            createNegation (normalizeExpression resources expr)
 
         Expression.TupledExpression nodes ->
             Expression.TupledExpression (List.map (\part -> normalizeExpressionNode resources part) nodes)
@@ -308,6 +295,21 @@ expressionToComparable expressionNode =
 patternToComparable : Node Pattern -> String
 patternToComparable patternNode =
     Elm.Writer.write (Elm.Writer.writePattern patternNode)
+
+
+{-| Expects normalized expression
+-}
+createNegation : Expression -> Expression
+createNegation normalized =
+    case normalized of
+        Expression.Floatable float ->
+            Expression.Floatable -float
+
+        Expression.Negation subExpr ->
+            Node.value subExpr
+
+        _ ->
+            Expression.Negation (Node.empty normalized)
 
 
 {-| Expects normalized left and right
