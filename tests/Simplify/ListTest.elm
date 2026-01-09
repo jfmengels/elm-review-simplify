@@ -4012,6 +4012,118 @@ import Array
 a = Array.isEmpty array
 """
                         ]
+        , test "should replace List.isEmpty (List.filter f list) by not (List.all f list)" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (List.filter f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.isEmpty on List.filter is the same as Basics.not on List.any"
+                            , details = [ "You can replace this call by Basics.not on List.any with the function given to List.filter." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not (List.any f list)
+"""
+                        ]
+        , test "should replace List.filter f list |> List.isEmpty by List.all f list |> not" <|
+            \() ->
+                """module A exposing (..)
+a = List.filter f list |> List.isEmpty
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.isEmpty on List.filter is the same as Basics.not on List.any"
+                            , details = [ "You can replace this call by Basics.not on List.any with the function given to List.filter." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.any f list |> not
+"""
+                        ]
+        , test "should replace List.isEmpty (List.filter (not << f) list) by List.all f list" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (List.filter (not << f) list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.isEmpty on List.filter with a function into Basics.not can be combined into List.all"
+                            , details = [ "You can replace this call by List.all with the function given to List.filter before the Basics.not." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.all f list
+"""
+                        ]
+        , test "should replace List.isEmpty (List.filter (\\el -> f el |> not) list) by List.all (\\el -> f el) list" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (List.filter (\\el -> f el |> not) list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.isEmpty on List.filter with a function into Basics.not can be combined into List.all"
+                            , details = [ "You can replace this call by List.all with the function given to List.filter before the Basics.not." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.all (\\el -> (f el)) list
+"""
+                        ]
+        , test "should replace List.isEmpty (List.filter (if c then not << f else \\el -> if d then g el |> not else not <| h el) list) by List.all (if c then f else \\el -> if g el else h el) list" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (List.filter (if c then not << f else \\el -> if d then g el |> not else not <| h el) list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.isEmpty on List.filter with a function into Basics.not can be combined into List.all"
+                            , details = [ "You can replace this call by List.all with the function given to List.filter before the Basics.not." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.all (if c then f else \\el -> if d then (g el) else (h el)) list
+"""
+                        ]
+        , test "should replace List.isEmpty << List.filter f by not << List.any f" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty << List.filter f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.isEmpty on List.filter is the same as Basics.not on List.any"
+                            , details = [ "You can replace this composition by List.any with the function given to List.filter, then Basics.not." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not << List.any f
+"""
+                        ]
+        , test "should replace List.isEmpty << List.filter (not << f) by List.all f" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty << List.filter (not << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.isEmpty on List.filter with a function into Basics.not can be combined into List.all"
+                            , details = [ "You can replace this composition by List.all with the function given to List.filter before the Basics.not." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.all f
+"""
+                        ]
         ]
 
 
