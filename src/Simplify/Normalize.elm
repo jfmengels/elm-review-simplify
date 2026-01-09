@@ -68,36 +68,18 @@ normalizeExpression resources (Node expressionRange expression) =
 
         Expression.Application nodes ->
             case nodes of
-                fn :: firstArg :: afterFirstArg ->
-                    let
-                        normalizedArg1 : Node Expression
-                        normalizedArg1 =
-                            normalizeExpressionNode resources firstArg
-                    in
-                    case normalizeExpression resources fn of
-                        Expression.RecordAccessFunction fieldAccess ->
-                            let
-                                recordAccess : Expression
-                                recordAccess =
-                                    Expression.RecordAccess normalizedArg1 (Node.empty (String.dropLeft 1 fieldAccess))
-                            in
-                            case afterFirstArg of
-                                [] ->
-                                    recordAccess
-
-                                secondArg :: argsAfterSecond ->
-                                    Expression.Application
-                                        (Node.empty recordAccess
-                                            :: normalizeExpressionNode resources secondArg
-                                            :: List.map (\arg -> normalizeExpressionNode resources arg) argsAfterSecond
-                                        )
-
-                        normalizedFn ->
-                            Expression.Application
-                                (Node.empty normalizedFn
-                                    :: normalizedArg1
-                                    :: List.map (\arg -> normalizeExpressionNode resources arg) afterFirstArg
-                                )
+                functionNode :: firstArg :: afterFirstArg ->
+                    List.foldl
+                        (\arg functionNormalSoFar ->
+                            addToFunctionCall resources
+                                (Node.empty functionNormalSoFar)
+                                (normalizeExpressionNode resources arg)
+                        )
+                        (addToFunctionCall resources
+                            (normalizeExpressionNode resources functionNode)
+                            (normalizeExpressionNode resources firstArg)
+                        )
+                        afterFirstArg
 
                 _ ->
                     expression
@@ -447,7 +429,8 @@ addToFunctionCall resources functionCall extraArgument =
                 }
 
         Expression.RecordAccessFunction fieldAccess ->
-            Expression.RecordAccess extraArgument (Node.empty (String.dropLeft 1 fieldAccess))
+            infer resources
+                (Expression.RecordAccess extraArgument (Node.empty (String.dropLeft 1 fieldAccess)))
 
         Expression.FunctionOrValue [ "Basics" ] "not" ->
             case Node.value extraArgument of

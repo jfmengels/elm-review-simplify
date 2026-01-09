@@ -163,6 +163,19 @@ a =
   else
     3
 """
+                        , Review.Test.error
+                            { message = "The condition will always evaluate to False"
+                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.atExactly { start = { row = 4, column = 5 }, end = { row = 4, column = 7 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if x then
+    2
+  else
+    3
+"""
                         ]
         , test "should remove duplicate nested conditions (x inside the else)" <|
             \() ->
@@ -220,6 +233,19 @@ a =
       2
     else
       3
+"""
+                        , Review.Test.error
+                            { message = "The condition will always evaluate to True"
+                            , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.atExactly { start = { row = 6, column = 5 }, end = { row = 6, column = 7 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if x then
+    1
+  else
+    2
 """
                         ]
         , test "should remove duplicate nested conditions (x part of a nested condition)" <|
@@ -901,6 +927,18 @@ a =
     2
   else
     3
+"""
+                        , Review.Test.error
+                            { message = "The condition will always evaluate to True"
+                            , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.atExactly { start = { row = 5, column = 8 }, end = { row = 5, column = 10 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if a || b then
+    1
+  else 2
 """
                         ]
         , test "should remove branches where the condition may not match (not (a || b) --> not a --> not b)" <|
