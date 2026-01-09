@@ -541,6 +541,22 @@ a = (case x of
 a = False
 """
                         ]
+        , test "should simplify -n == negate n" <|
+            \() ->
+                """module A exposing (..)
+a = -n == negate n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(==) comparison will result in True"
+                            , details = [ "Based on the values and/or the context, we can determine the result. You can replace this operation by True." ]
+                            , under = "-n == negate n"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         , test "should simplify record access comparison" <|
             \() ->
                 """module A exposing (..)
