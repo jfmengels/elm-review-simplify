@@ -2,7 +2,7 @@ module Simplify.SetTest exposing (all)
 
 import Review.Test
 import Test exposing (Test, describe, test)
-import TestHelpers exposing (ruleExpectingNaN, ruleWithDefaults)
+import TestHelpers exposing (ruleExpectingNaN, ruleWithDefaults, whenNotExpectingNaN)
 
 
 all : Test
@@ -1371,25 +1371,13 @@ import Set
 a = (f >> g)
 """
                         ]
-        , test "should not report Set.fromList on List.reverse when expectNaN is enabled"
-            (\() ->
-                """module A exposing (..)
-import Set
-a0 = Set.fromList (List.reverse list)
-a1 = Set.fromList << List.reverse
-a2 = List.reverse >> Set.fromList
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectNoErrors
-            )
         , test "should replace Set.fromList (List.reverse list) by Set.fromList list" <|
             \() ->
                 """module A exposing (..)
 import Set
 a = Set.fromList (List.reverse list)
 """
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
+                    |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "Unnecessary List.reverse before Set.fromList"
                             , details = [ "Reordering a list does not affect its final representation as a set. You can replace the List.reverse call by the unchanged list." ]
@@ -1424,8 +1412,7 @@ a = (f <| x) |> Set.fromList
 import Set
 a = Set.fromList << List.reverse
 """
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
+                    |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "Unnecessary List.reverse before Set.fromList"
                             , details = [ "Reordering a list does not affect its final representation as a set. You can remove the List.reverse call." ]
@@ -1442,8 +1429,7 @@ a = Set.fromList
 import Set
 a = List.reverse >> Set.fromList
 """
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
+                    |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "Unnecessary List.reverse before Set.fromList"
                             , details = [ "Reordering a list does not affect its final representation as a set. You can remove the List.reverse call." ]
@@ -1454,23 +1440,13 @@ import Set
 a = Set.fromList
 """
                         ]
-        , test "should not report Set.fromList on List.sort when expectNaN is enabled"
-            (\() ->
-                """module A exposing (..)
-import Set
-a = Set.fromList (List.sort list)
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectNoErrors
-            )
         , test "should replace Set.fromList (List.sort list) by Set.fromList list" <|
             \() ->
                 """module A exposing (..)
 import Set
 a = Set.fromList (List.sort list)
 """
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
+                    |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "Unnecessary List.sort before Set.fromList"
                             , details = [ "Reordering a list does not affect its final representation as a set. You can replace the List.sort call by the unchanged list." ]
@@ -1481,23 +1457,13 @@ import Set
 a = Set.fromList list
 """
                         ]
-        , test "should not report Set.fromList on List.sortBy when expectNaN is enabled"
-            (\() ->
-                """module A exposing (..)
-import Set
-a = Set.fromList (List.sortBy f list)
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectNoErrors
-            )
         , test "should replace Set.fromList (List.sortBy f list) by Set.fromList list" <|
             \() ->
                 """module A exposing (..)
 import Set
 a = Set.fromList (List.sortBy f list)
 """
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
+                    |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "Unnecessary List.sortBy before Set.fromList"
                             , details = [ "Reordering a list does not affect its final representation as a set. You can replace the List.sortBy call by the unchanged list." ]
@@ -1508,23 +1474,13 @@ import Set
 a = Set.fromList list
 """
                         ]
-        , test "should not report Set.fromList on List.sortWith when expectNaN is enabled"
-            (\() ->
-                """module A exposing (..)
-import Set
-a = Set.fromList (List.sortWith f list)
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectNoErrors
-            )
         , test "should replace Set.fromList (List.sortWith f list) by Set.fromList list" <|
             \() ->
                 """module A exposing (..)
 import Set
 a = Set.fromList (List.sortWith f list)
 """
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
+                    |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "Unnecessary List.sortWith before Set.fromList"
                             , details = [ "Reordering a list does not affect its final representation as a set. You can replace the List.sortWith call by the unchanged list." ]
@@ -1535,21 +1491,12 @@ import Set
 a = Set.fromList list
 """
                         ]
-        , test "should not replace Set.fromList (List.repeat n a) when expectNaN is enabled" <|
-            \() ->
-                """module A exposing (..)
-a0 = Set.fromList (List.repeat n b)
-a1 = Set.fromList << List.repeat n
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectNoErrors
         , test "should replace Set.fromList (List.repeat n a) by if n >= 1 then Set.singleton a else Set.empty" <|
             \() ->
                 """module A exposing (..)
 a = Set.fromList (List.repeat n b)
 """
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
+                    |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "Set.fromList on List.repeat will result in Set.singleton the repeated element if the count is positive and Set.empty otherwise"
                             , details = [ "You can replace this call by if (the count argument given to List.repeat) >= 1 then Set.singleton (the element to repeat argument given to List.repeat) else Set.empty." ]
@@ -1568,8 +1515,7 @@ a = (if n >= 1 then
                 """module A exposing (..)
 a = Set.fromList << List.repeat n
 """
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
+                    |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "Set.fromList on List.repeat will result in Set.singleton the repeated element if the count is positive and Set.empty otherwise"
                             , details = [ "You can replace this composition by if (the count argument given to List.repeat) >= 1 then Set.singleton else always Set.empty." ]
@@ -1620,8 +1566,7 @@ a = []
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.fromList [ key, key ]
-b = Set.fromList [ ( 1, "", [ 'a', b ] ), ( 1, "", [ 'a', b ] ) ]
+a = Set.fromList [ ( 1, "", [ 'a', b ] ), ( 1, "", [ 'a', b ] ) ]
 """
                     |> Review.Test.run TestHelpers.ruleExpectingNaN
                     |> Review.Test.expectNoErrors
@@ -1631,8 +1576,7 @@ b = Set.fromList [ ( 1, "", [ 'a', b ] ), ( 1, "", [ 'a', b ] ) ]
 import Set
 a = Set.fromList [ key, key ]
 """
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
+                    |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "Set.fromList on a list with a duplicate key will only keep one of them"
                             , details = [ "Maybe one of the keys was supposed to be a different value? If not, you can remove one of the duplicate keys." ]
@@ -1645,7 +1589,7 @@ import Set
 a = Set.fromList [ key ]
 """
                         ]
-        , test "should replace Set.fromList [ 0, 0 ] by Set.fromList [ 0 ] when expecting NaN because keys are literals" <|
+        , test "should replace Set.fromList [ 0, 0 ] by Set.fromList [ 0 ] even when expecting NaN because keys are literals" <|
             \() ->
                 """module A exposing (..)
 import Set
@@ -2031,7 +1975,7 @@ import Set
 a = True
 """
                         ]
-        , test "should replace Set.member 1 (Set.fromList [ 0, 1, 2 ]) by True when expecting NaN" <|
+        , test "should replace Set.member 1 (Set.fromList [ 0, 1, 2 ]) by True even when expecting NaN" <|
             \() ->
                 """module A exposing (..)
 import Set
@@ -2067,7 +2011,7 @@ import Set
 a = False
 """
                         ]
-        , test "should replace Set.member 0 (Set.fromList [ 2, 3, 1 ]) by False when expecting NaN" <|
+        , test "should replace Set.member 0 (Set.fromList [ 2, 3, 1 ]) by False even when expecting NaN" <|
             \() ->
                 """module A exposing (..)
 import Set
@@ -2107,8 +2051,7 @@ a = Set.member 2 << Set.fromList
 import Set
 a = Set.member x (Set.fromList list)
 """
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
+                    |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "To check for a list member, you don't need to convert to a set"
                             , details = [ "Using List.member directly is meant for this exact purpose and will also be faster." ]
@@ -2125,8 +2068,7 @@ a = List.member x list
 import Set
 a = Set.member x << Set.fromList
 """
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
+                    |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "To check for a list member, you don't need to convert to a set"
                             , details = [ "Using List.member directly is meant for this exact purpose and will also be faster." ]
@@ -2143,8 +2085,7 @@ a = List.member x
 import Set
 a = Set.fromList >> Set.member x
 """
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
+                    |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "To check for a list member, you don't need to convert to a set"
                             , details = [ "Using List.member directly is meant for this exact purpose and will also be faster." ]
