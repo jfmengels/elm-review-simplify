@@ -794,6 +794,12 @@ Destructuring using case expressions
     List.isEmpty (x :: xs)
     --> False
 
+    List.isEmpty (List.filter f list)
+    --> not (List.any f list)
+
+    List.isEmpty (List.filter (not << f) list)
+    --> List.all f list
+
     List.sum []
     --> 0
 
@@ -9358,7 +9364,201 @@ listIsEmptyChecks =
             , earlierFn = Fn.Dict.keys
             , combinedFn = Fn.Dict.isEmpty
             }
+        , listIsEmptyOnListFilterChecks
         ]
+
+
+listIsEmptyOnListFilterChecks : IntoFnCheck
+listIsEmptyOnListFilterChecks =
+    { composition =
+        \checkInfo ->
+            if checkInfo.earlier.fn == Fn.List.filter then
+                case checkInfo.earlier.args of
+                    [ elementIsBadCheck ] ->
+                        Just
+                            (case getFunctionIntoNot checkInfo elementIsBadCheck of
+                                Just functionsIntoNot ->
+                                    { info =
+                                        { message =
+                                            qualifiedToString checkInfo.later.fn
+                                                ++ " on "
+                                                ++ qualifiedToString Fn.List.filter
+                                                ++ " with a function into "
+                                                ++ qualifiedToString Fn.Basics.not
+                                                ++ " can be combined into "
+                                                ++ qualifiedToString Fn.List.all
+                                        , details =
+                                            [ "You can replace this composition by "
+                                                ++ qualifiedToString Fn.List.all
+                                                ++ " with the function given to "
+                                                ++ qualifiedToString Fn.List.filter
+                                                ++ " before the "
+                                                ++ qualifiedToString Fn.Basics.not
+                                                ++ "."
+                                            ]
+                                        }
+                                    , fix =
+                                        Fix.removeRange checkInfo.later.removeRange
+                                            :: Fix.replaceRangeBy checkInfo.earlier.fnRange
+                                                (qualifiedToString (qualify Fn.List.all checkInfo))
+                                            :: (functionsIntoNot
+                                                    |> List.concatMap
+                                                        (\intoNot ->
+                                                            replaceBySubExpressionFix intoNot.withNotRange
+                                                                intoNot.withoutNot
+                                                        )
+                                               )
+                                    }
+
+                                Nothing ->
+                                    { info =
+                                        { message =
+                                            qualifiedToString checkInfo.later.fn
+                                                ++ " on "
+                                                ++ qualifiedToString Fn.List.filter
+                                                ++ " is the same as "
+                                                ++ qualifiedToString Fn.Basics.not
+                                                ++ " on "
+                                                ++ qualifiedToString Fn.List.any
+                                        , details =
+                                            [ "You can replace this composition by "
+                                                ++ qualifiedToString Fn.List.any
+                                                ++ " with the function given to "
+                                                ++ qualifiedToString Fn.List.filter
+                                                ++ ", then "
+                                                ++ qualifiedToString Fn.Basics.not
+                                                ++ "."
+                                            ]
+                                        }
+                                    , fix =
+                                        [ Fix.replaceRangeBy checkInfo.later.fnRange
+                                            (qualifiedToString (qualify Fn.Basics.not checkInfo))
+                                        , Fix.replaceRangeBy checkInfo.earlier.fnRange
+                                            (qualifiedToString (qualify Fn.List.any checkInfo))
+                                        ]
+                                    }
+                            )
+
+                    _ ->
+                        Nothing
+
+            else
+                Nothing
+    , call =
+        \checkInfo ->
+            case AstHelpers.getSpecificUnreducedFnCall Fn.List.filter checkInfo.lookupTable checkInfo.firstArg of
+                Nothing ->
+                    Nothing
+
+                Just filterCall ->
+                    Just
+                        (case getFunctionIntoNot checkInfo filterCall.firstArg of
+                            Just functionsIntoNot ->
+                                Rule.errorWithFix
+                                    { message =
+                                        qualifiedToString checkInfo.fn
+                                            ++ " on "
+                                            ++ qualifiedToString Fn.List.filter
+                                            ++ " with a function into "
+                                            ++ qualifiedToString Fn.Basics.not
+                                            ++ " can be combined into "
+                                            ++ qualifiedToString Fn.List.all
+                                    , details =
+                                        [ "You can replace this call by "
+                                            ++ qualifiedToString Fn.List.all
+                                            ++ " with the function given to "
+                                            ++ qualifiedToString Fn.List.filter
+                                            ++ " before the "
+                                            ++ qualifiedToString Fn.Basics.not
+                                            ++ "."
+                                        ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.replaceRangeBy filterCall.fnRange
+                                        (qualifiedToString (qualify Fn.List.all checkInfo))
+                                        :: replaceCallBySubExpressionFix checkInfo.parentRange
+                                            checkInfo.callStyle
+                                            checkInfo.firstArg
+                                        ++ (functionsIntoNot
+                                                |> List.concatMap
+                                                    (\intoNot ->
+                                                        replaceBySubExpressionFix intoNot.withNotRange
+                                                            intoNot.withoutNot
+                                                    )
+                                           )
+                                    )
+
+                            Nothing ->
+                                Rule.errorWithFix
+                                    { message =
+                                        qualifiedToString checkInfo.fn
+                                            ++ " on "
+                                            ++ qualifiedToString Fn.List.filter
+                                            ++ " is the same as "
+                                            ++ qualifiedToString Fn.Basics.not
+                                            ++ " on "
+                                            ++ qualifiedToString Fn.List.any
+                                    , details =
+                                        [ "You can replace this call by "
+                                            ++ qualifiedToString Fn.Basics.not
+                                            ++ " on "
+                                            ++ qualifiedToString Fn.List.any
+                                            ++ " with the function given to "
+                                            ++ qualifiedToString Fn.List.filter
+                                            ++ "."
+                                        ]
+                                    }
+                                    checkInfo.fnRange
+                                    [ Fix.replaceRangeBy checkInfo.fnRange
+                                        (qualifiedToString (qualify Fn.Basics.not checkInfo))
+                                    , Fix.replaceRangeBy filterCall.fnRange
+                                        (qualifiedToString (qualify Fn.List.any checkInfo))
+                                    ]
+                        )
+    }
+
+
+getFunctionIntoNot : AstHelpers.ReduceLambdaResources a -> Node Expression -> Maybe (List { withNotRange : Range, withoutNot : Node Expression })
+getFunctionIntoNot resources expressionNode =
+    sameInAllBranches
+        (\fullFunctionBranch ->
+            case AstHelpers.removeParens fullFunctionBranch of
+                Node _ (Expression.LambdaExpression lambda) ->
+                    case lambda.args of
+                        [ _ ] ->
+                            sameInAllBranches
+                                (\lambdaResultBranch ->
+                                    AstHelpers.getSpecificUnreducedFnCall Fn.Basics.not resources.lookupTable lambdaResultBranch
+                                        |> Maybe.map
+                                            (\notFnCall ->
+                                                { withNotRange = notFnCall.nodeRange
+                                                , withoutNot = notFnCall.firstArg
+                                                }
+                                            )
+                                )
+                                lambda.expression
+
+                        _ ->
+                            Nothing
+
+                unparenthesizedExpressionNode ->
+                    case getFullComposition unparenthesizedExpressionNode of
+                        Nothing ->
+                            Nothing
+
+                        Just composition ->
+                            if AstHelpers.isSpecificValueOrFn Fn.Basics.not resources composition.composedLater then
+                                Just
+                                    [ { withNotRange = Node.range fullFunctionBranch
+                                      , withoutNot = composition.earlier
+                                      }
+                                    ]
+
+                            else
+                                Nothing
+        )
+        expressionNode
+        |> Maybe.map List.concat
 
 
 listLengthChecks : IntoFnCheck

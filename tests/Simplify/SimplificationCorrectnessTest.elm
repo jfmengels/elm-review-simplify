@@ -379,7 +379,26 @@ all =
                             Set.empty
                         )
             )
+        , Test.fuzz (Fuzz.list Fuzz.int)
+            "List.isEmpty << List.filter f is the same as Basics.not << List.any f"
+            (\list ->
+                List.isEmpty (List.filter isEven list)
+                    |> Expect.equal
+                        (Basics.not (List.any isEven list))
+            )
+        , Test.fuzz (Fuzz.list Fuzz.int)
+            "List.isEmpty << List.filter (Basics.not << f) is the same as List.all f"
+            (\list ->
+                List.isEmpty (List.filter (Basics.not << isEven) list)
+                    |> Expect.equal
+                        (List.all isEven list)
+            )
         ]
+
+
+isEven : Int -> Bool
+isEven n =
+    remainderBy 2 n == 0
 
 
 fuzzFloatWithoutNaN : Fuzz.Fuzzer Float
