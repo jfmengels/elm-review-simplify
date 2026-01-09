@@ -2,7 +2,7 @@ module Simplify.ComparisonTest exposing (all)
 
 import Review.Test
 import Test exposing (Test, describe, test)
-import TestHelpers exposing (ruleExpectingNaN, ruleWithDefaults)
+import TestHelpers exposing (ruleExpectingNaN, ruleWithDefaults, whenNotExpectingNaN)
 
 
 all : Test
@@ -34,13 +34,12 @@ a = n < n
 a = False
 """
                         ]
-        , test "should simplify n > n to False, expect NaN not enabled" <|
+        , test "should simplify n > n to False" <|
             \() ->
                 """module A exposing (..)
 a = n > n
 """
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
+                    |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "(>) with two equal operands results in False"
                             , details = [ "You can replace this call by False." ]
@@ -50,7 +49,7 @@ a = n > n
 a = False
 """
                         ]
-        , test "should simplify n >= n to True, expect NaN enabled" <|
+        , test "should simplify n >= n to True" <|
             \() ->
                 """module A exposing (..)
 a = n >= n
@@ -66,13 +65,12 @@ a = n >= n
 a = True
 """
                         ]
-        , test "should simplify n <= n to True, expect NaN not enabled" <|
+        , test "should simplify n <= n to True" <|
             \() ->
                 """module A exposing (..)
 a = n <= n
 """
-                    |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
+                    |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "(<=) with two equal operands results in True"
                             , details = [ "You can replace this call by True." ]
@@ -82,20 +80,6 @@ a = n <= n
 a = True
 """
                         ]
-        , test "should not report n > n when expect NaN is enabled" <|
-            \() ->
-                """module A exposing (..)
-a = n > n
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectNoErrors
-        , test "should not report n <= n when expect NaN is enabled" <|
-            \() ->
-                """module A exposing (..)
-a = n <= n
-"""
-                    |> Review.Test.run ruleExpectingNaN
-                    |> Review.Test.expectNoErrors
         , test "should not report > with okay operands" <|
             \() ->
                 """module A exposing (..)
