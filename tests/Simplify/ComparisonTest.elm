@@ -402,12 +402,33 @@ a = (<) 0 << List.length
 a = not << List.isEmpty
 """
                         ]
-        , test "should not replace List.length l < min 0 n when expectNaN is enabled" <|
+        , test "should not report List.length l < min 0 n when expectNaN is enabled" <|
             \() ->
                 """module A exposing (..)
 a = List.length l < min 0 n
 """
                     |> Review.Test.run ruleExpectingNaN
+                    |> Review.Test.expectNoErrors
+        , test "should not report x < List.length list" <|
+            \() ->
+                """module A exposing (..)
+a = x < List.length list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.length length < x" <|
+            \() ->
+                """module A exposing (..)
+a = List.length length < x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.length length < String.length str" <|
+            \() ->
+                """module A exposing (..)
+a = List.length length < String.length str
+"""
+                    |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
         , test "should replace List.length l < 0 by False" <|
             \() ->
@@ -585,6 +606,34 @@ a = List.length l >= -1
 a = True
 """
                         ]
+        , test "should not report x >= List.length list" <|
+            \() ->
+                """module A exposing (..)
+a = x >= List.length list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.length length >= x" <|
+            \() ->
+                """module A exposing (..)
+a = List.length length >= x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.length length >= String.length str" <|
+            \() ->
+                """module A exposing (..)
+a = List.length length >= String.length str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report x >= y" <|
+            \() ->
+                """module A exposing (..)
+a = x >= y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
@@ -697,6 +746,27 @@ a = max 0 n <= 0
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not report x <= List.length list" <|
+            \() ->
+                """module A exposing (..)
+a = x <= List.length list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.length length <= x" <|
+            \() ->
+                """module A exposing (..)
+a = List.length length <= x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.length length <= String.length str" <|
+            \() ->
+                """module A exposing (..)
+a = List.length length <= String.length str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         ]
 
 
@@ -806,6 +876,34 @@ a = False
             \() ->
                 """module A exposing (..)
 a = max 0 n > 0
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report x > List.length list" <|
+            \() ->
+                """module A exposing (..)
+a = x > List.length list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.length length > x" <|
+            \() ->
+                """module A exposing (..)
+a = List.length length > x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.length length > String.length str" <|
+            \() ->
+                """module A exposing (..)
+a = List.length length > String.length str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report x > y" <|
+            \() ->
+                """module A exposing (..)
+a = x > y
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors

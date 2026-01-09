@@ -5125,7 +5125,7 @@ equalityChecks isEqual checkInfo =
                             , boundsOrderToResult =
                                 \boundsOrder ->
                                     case boundsMaybeEqual boundsOrder of
-                                        CanBeEqual ->
+                                        CanBeEqualInOnlyOneNumber ->
                                             Nothing
 
                                         CannotBeEqual ->
@@ -5608,7 +5608,7 @@ lessThanChecks checkInfo =
                             , boundsOrderToResult =
                                 \boundsOrder ->
                                     case boundsOrder of
-                                        BoundsLess CanBeEqual ->
+                                        BoundsLess CanBeEqualInOnlyOneNumber ->
                                             Nothing
 
                                         BoundsLess CannotBeEqual ->
@@ -5701,7 +5701,7 @@ lessThanOrEqualToChecks checkInfo =
                                         BoundsGreater CannotBeEqual ->
                                             Just Fn.Basics.falseVariant
 
-                                        BoundsGreater CanBeEqual ->
+                                        BoundsGreater CanBeEqualInOnlyOneNumber ->
                                             Nothing
                             }
                             checkInfo
@@ -5772,7 +5772,7 @@ greaterThanChecks checkInfo =
                             , boundsOrderToResult =
                                 \boundsOrder ->
                                     case boundsOrder of
-                                        BoundsGreater CanBeEqual ->
+                                        BoundsGreater CanBeEqualInOnlyOneNumber ->
                                             Nothing
 
                                         BoundsGreater CannotBeEqual ->
@@ -5853,7 +5853,7 @@ greaterThanOrEqualToChecks checkInfo =
                                         BoundsGreater _ ->
                                             Just Fn.Basics.trueVariant
 
-                                        BoundsLess CanBeEqual ->
+                                        BoundsLess CanBeEqualInOnlyOneNumber ->
                                             Nothing
 
                                         BoundsLess CannotBeEqual ->
@@ -20232,7 +20232,7 @@ type BoundsOrder
 
 type MaybeEqual
     = CannotBeEqual
-    | CanBeEqual
+    | CanBeEqualInOnlyOneNumber
 
 
 boundsMaybeEqual : BoundsOrder -> MaybeEqual
@@ -20251,13 +20251,13 @@ boundsOrderToDescription boundsOrder =
         BoundsLess CannotBeEqual ->
             "less than"
 
-        BoundsLess CanBeEqual ->
+        BoundsLess CanBeEqualInOnlyOneNumber ->
             "less than or equal to"
 
         BoundsGreater CannotBeEqual ->
             "greater than"
 
-        BoundsGreater CanBeEqual ->
+        BoundsGreater CanBeEqualInOnlyOneNumber ->
             "greater than or equal to"
 
 
@@ -20275,34 +20275,16 @@ numberBoundsCompare leftBounds rightBounds =
     else
     -- some overlap
     if
-        leftBounds.max <= rightBounds.max
+        leftBounds.max == rightBounds.min
     then
-        if
-            (leftBounds.min < rightBounds.min)
-                || (leftBounds |> numberBoundsAreExactly rightBounds.min)
-        then
-            Just (BoundsLess CanBeEqual)
+        Just (BoundsLess CanBeEqualInOnlyOneNumber)
 
-        else
-            -- rightBounds includes leftBounds
-            Nothing
+    else if rightBounds.max == leftBounds.min then
+        Just (BoundsGreater CanBeEqualInOnlyOneNumber)
 
     else
-    -- rightBounds.max < leftBounds.max
-    if
-        (rightBounds.min < leftBounds.min)
-            || (rightBounds |> numberBoundsAreExactly leftBounds.min)
-    then
-        Just (BoundsGreater CanBeEqual)
-
-    else
-        -- leftBounds includes rightBounds
+        -- overlap covers more than 1 number
         Nothing
-
-
-numberBoundsAreExactly : Float -> { min : Float, max : Float } -> Bool
-numberBoundsAreExactly exactNumber numberBounds =
-    numberBounds.min == exactNumber && numberBounds.max == exactNumber
 
 
 normalGetNumberBounds : Expression -> { min : Float, max : Float }
