@@ -479,6 +479,21 @@ Destructuring using case expressions
     String.lines ""
     --> [ "" ]
 
+    String.toLower ""
+    --> ""
+
+    String.toLower (String.toLower str)
+    --> String.toLower str
+
+    String.toUpper ""
+    --> ""
+
+    String.toUpper (String.toUpper str)
+    --> String.toUpper str
+
+    String.toUpper (String.toLower str)
+    --> String.toUpper str
+
     String.reverse ""
     --> ""
 
@@ -4124,6 +4139,8 @@ intoFnChecks =
     , ( Fn.String.replace, ( 3, stringReplaceChecks ) )
     , ( Fn.String.words, ( 1, stringWordsChecks ) )
     , ( Fn.String.lines, ( 1, stringLinesChecks ) )
+    , ( Fn.String.toLower, ( 1, stringToLowerChecks ) )
+    , ( Fn.String.toUpper, ( 1, stringToUpperChecks ) )
     , ( Fn.String.reverse, ( 1, stringReverseChecks ) )
     , ( Fn.String.slice, ( 3, stringSliceChecks ) )
     , ( Fn.String.left, ( 2, stringLeftChecks ) )
@@ -7350,6 +7367,30 @@ stringReverseChecks =
     intoFnChecksFirstThatConstructsError
         [ emptiableReverseChecks stringCollection
         , unnecessaryOnWrappedCheck stringCollection
+        ]
+
+
+stringToLowerChecks : IntoFnCheck
+stringToLowerChecks =
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryOnEmptyCheck stringCollection
+        , operationDoesNotChangeResultOfOperationCheck
+        ]
+
+
+stringToUpperChecks : IntoFnCheck
+stringToUpperChecks =
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryOnEmptyCheck stringCollection
+        , operationDoesNotChangeResultOfOperationCheck
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.String.toLower
+            , fnArgCount = 1
+            , fnLastArgRepresents = "string"
+            , whyUnnecessary =
+                "Lowercasing uppercase characters will be overwritten by the final "
+                    ++ qualifiedToString Fn.String.toUpper
+            }
         ]
 
 

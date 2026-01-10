@@ -21,6 +21,8 @@ all =
         , stringWordsTests
         , stringLinesTests
         , stringAppendTests
+        , stringToLowerTests
+        , stringToUpperTests
         , stringReverseTests
         , stringSliceTests
         , stringRightTests
@@ -1469,6 +1471,144 @@ a = [ d, e ] |> String.fromList |> String.append (String.fromList <| [ b, c ])
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = [ b, c , d, e ] |> String.fromList
+"""
+                        ]
+        ]
+
+
+stringToLowerTests : Test
+stringToLowerTests =
+    describe "String.toLower"
+        [ test "should not report String.toLower with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a0 = String.toLower
+a1 = String.toLower str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report String.toLower on String.toUpper because for example ß splits into SS on toUpper" <|
+            \() ->
+                """module A exposing (..)
+a0 = String.toLower (String.toUpper str)
+a1 = String.toLower << String.toUpper
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.toLower (String.toLower str) to String.toLower str" <|
+            \() ->
+                """module A exposing (..)
+a = String.toLower (String.toLower str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.toLower after String.toLower"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "String.toLower"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 19 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.toLower str
+"""
+                        ]
+        , test "should replace String.toLower << String.toLower to String.toLower" <|
+            \() ->
+                """module A exposing (..)
+a = String.toLower << String.toLower
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.toLower after String.toLower"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "String.toLower"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 19 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.toLower
+"""
+                        ]
+        ]
+
+
+stringToUpperTests : Test
+stringToUpperTests =
+    describe "String.toUpper"
+        [ test "should not report String.toUpper with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a0 = String.toUpper
+a1 = String.toUpper str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.toUpper (String.toUpper str) to String.toUpper str" <|
+            \() ->
+                """module A exposing (..)
+a = String.toUpper (String.toUpper str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.toUpper after String.toUpper"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "String.toUpper"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 19 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.toUpper str
+"""
+                        ]
+        , test "should replace String.toUpper << String.toUpper to String.toUpper" <|
+            \() ->
+                """module A exposing (..)
+a = String.toUpper << String.toUpper
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.toUpper after String.toUpper"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "String.toUpper"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 19 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.toUpper
+"""
+                        ]
+        , test "should replace String.toUpper (String.toLower str) to String.toUpper str" <|
+            \() ->
+                """module A exposing (..)
+a = String.toUpper (String.toLower str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.toLower before String.toUpper"
+                            , details = [ "Lowercasing uppercase characters will be overwritten by the final String.toUpper. You can replace the String.toLower call by the unchanged string." ]
+                            , under = "String.toUpper"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 19 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.toUpper str
+"""
+                        ]
+        , test "should replace String.toUpper << String.toLower to String.toUpper" <|
+            \() ->
+                """module A exposing (..)
+a = String.toUpper << String.toLower
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.toLower before String.toUpper"
+                            , details = [ "Lowercasing uppercase characters will be overwritten by the final String.toUpper. You can remove the String.toLower call." ]
+                            , under = "String.toUpper"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 19 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.toUpper
 """
                         ]
         ]
