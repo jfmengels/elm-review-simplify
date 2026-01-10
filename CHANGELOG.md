@@ -39,6 +39,11 @@ The rule now simplifies:
 - `String.any (always False) str` to `False`
 - `String.all f ""` to `True`
 - `String.all (always True) str` to `True`
+- `String.toLower ""` to `""`
+- `String.toLower (String.toLower str)` to `String.toLower str`
+- `String.toUpper ""` to `""`
+- `String.toUpper (String.toUpper str)` to `String.toUpper str`
+- `String.toUpper (String.toLower str)` to `String.toUpper str`
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 
 Bug fixes:

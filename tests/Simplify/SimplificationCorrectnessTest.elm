@@ -393,6 +393,27 @@ all =
                     |> Expect.equal
                         (List.all isEven list)
             )
+        , Test.fuzz Fuzz.string
+            "String.toUpper << String.toUpper is the same as String.toUpper"
+            (\string ->
+                String.toUpper (String.toUpper string)
+                    |> Expect.equal
+                        (String.toUpper string)
+            )
+        , Test.fuzz Fuzz.string
+            "String.toUpper << String.toLower is the same as String.toUpper"
+            (\string ->
+                String.toUpper (String.toLower string)
+                    |> Expect.equal
+                        (String.toUpper string)
+            )
+        , Test.fuzz Fuzz.string
+            "String.toLower << String.toLower is the same as String.toLower"
+            (\string ->
+                String.toLower (String.toLower string)
+                    |> Expect.equal
+                        (String.toLower string)
+            )
         ]
 
 
