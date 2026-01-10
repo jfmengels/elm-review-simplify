@@ -2097,7 +2097,80 @@ a = ""
 stringDropLeftTests : Test
 stringDropLeftTests =
     describe "String.dropLeft"
-        [ test "should not report String.dropLeft on String.map because the given function could change the UTF-16 length (String.dropLeft is not unicode-aware)" <|
+        [ test "should not report String.dropLeft with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a0 = String.dropLeft
+a1 = String.dropLeft n
+a2 = String.dropLeft n str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.dropLeft n \"\" by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.dropLeft n ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.dropLeft on \"\" will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
+                            , under = "String.dropLeft"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should replace String.dropLeft 0 str by str" <|
+            \() ->
+                """module A exposing (..)
+a = String.dropLeft 0 str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.dropLeft with count 0 will always return the same given string"
+                            , details = [ "You can replace this call by the string itself." ]
+                            , under = "String.dropLeft"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = str
+"""
+                        ]
+        , test "should replace String.dropLeft -1 str by str" <|
+            \() ->
+                """module A exposing (..)
+a = String.dropLeft -1 str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.dropLeft with negative count will always return the same given string"
+                            , details = [ "You can replace this call by the string itself." ]
+                            , under = "String.dropLeft"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = str
+"""
+                        ]
+        , test "should replace String.dropLeft 10 \"Hello\" by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.dropLeft 10 "Hello"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.dropLeft with a count greater than or equal to the given string's length will always result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
+                            , under = "String.dropLeft"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should not report String.dropLeft on String.map because the given function could change the UTF-16 length (String.dropLeft is not unicode-aware)" <|
             \() ->
                 """module A exposing (..)
 a = String.dropLeft n (String.map f string)
@@ -2110,7 +2183,80 @@ a = String.dropLeft n (String.map f string)
 stringDropRightTests : Test
 stringDropRightTests =
     describe "String.dropRight"
-        [ test "should not report String.dropRight on String.map because the given function could change the UTF-16 length (String.dropRight is not unicode-aware)" <|
+        [ test "should not report String.dropRight with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a0 = String.dropRight
+a1 = String.dropRight n
+a2 = String.dropRight n str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.dropRight n \"\" by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.dropRight n ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.dropRight on \"\" will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
+                            , under = "String.dropRight"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should replace String.dropRight 0 str by str" <|
+            \() ->
+                """module A exposing (..)
+a = String.dropRight 0 str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.dropRight with count 0 will always return the same given string"
+                            , details = [ "You can replace this call by the string itself." ]
+                            , under = "String.dropRight"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = str
+"""
+                        ]
+        , test "should replace String.dropRight -1 str by str" <|
+            \() ->
+                """module A exposing (..)
+a = String.dropRight -1 str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.dropRight with negative count will always return the same given string"
+                            , details = [ "You can replace this call by the string itself." ]
+                            , under = "String.dropRight"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = str
+"""
+                        ]
+        , test "should replace String.dropRight 10 \"Hello\" by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.dropRight 10 "Hello"
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.dropRight with a count greater than or equal to the given string's length will always result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
+                            , under = "String.dropRight"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should not report String.dropRight on String.map because the given function could change the UTF-16 length (String.dropRight is not unicode-aware)" <|
             \() ->
                 """module A exposing (..)
 a = String.dropRight n (String.map f string)
