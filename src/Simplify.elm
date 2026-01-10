@@ -543,6 +543,15 @@ Destructuring using case expressions
     String.slice -1 -2 str
     --> ""
 
+    String.filter f (String.filter f str)
+    --> String.filter f str
+
+    String.filter (always True) str
+    --> str
+
+    String.filter (always False) str
+    --> ""
+
     String.map f ""
     --> ""
 
@@ -4109,6 +4118,7 @@ intoFnChecks =
     , ( Fn.String.right, ( 2, stringRightChecks ) )
     , ( Fn.String.dropLeft, ( 2, stringDropLeftChecks ) )
     , ( Fn.String.dropRight, ( 2, stringDropRightChecks ) )
+    , ( Fn.String.filter, ( 2, stringFilterChecks ) )
     , ( Fn.String.map, ( 2, stringMapChecks ) )
     , ( Fn.String.append, ( 2, stringAppendChecks ) )
     , ( Fn.String.uncons, ( 1, stringUnconsChecks ) )
@@ -7347,6 +7357,11 @@ stringDropLeftChecks =
 stringDropRightChecks : IntoFnCheck
 stringDropRightChecks =
     collectionDropChecks stringCollection
+
+
+stringFilterChecks : IntoFnCheck
+stringFilterChecks =
+    emptiableKeepWhenChecks stringCollection
 
 
 stringMapChecks : IntoFnCheck

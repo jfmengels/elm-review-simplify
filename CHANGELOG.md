@@ -32,6 +32,9 @@ The rule now simplifies:
 - `String.dropLeft 0 str` or `String.dropLeft -1 str` to `""` (same for `String.dropRight`)
 - `String.dropLeft 10 "Hello"` to `""` (same for `String.dropRight`)
 - `String.uncons ""` to `Nothing`
+- `String.filter f (String.filter f str)` to `String.filter f str`
+- `String.filter (always True) str` to `str`
+- `String.filter (always False) str` to `""`
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 
 Bug fixes:
