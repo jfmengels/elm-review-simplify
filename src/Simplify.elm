@@ -416,6 +416,9 @@ Destructuring using case expressions
     String.isEmpty "a"
     --> False
 
+    String.uncons ""
+    --> Nothing
+
     String.concat []
     --> ""
 
@@ -4108,6 +4111,7 @@ intoFnChecks =
     , ( Fn.String.dropRight, ( 2, stringDropRightChecks ) )
     , ( Fn.String.map, ( 2, stringMapChecks ) )
     , ( Fn.String.append, ( 2, stringAppendChecks ) )
+    , ( Fn.String.uncons, ( 1, stringUnconsChecks ) )
     , ( Fn.String.foldl, ( 3, stringFoldlChecks ) )
     , ( Fn.String.foldr, ( 3, stringFoldrChecks ) )
     , ( Fn.Platform.Cmd.batch, ( 1, platformCmdBatchChecks ) )
@@ -7512,6 +7516,17 @@ stringLinesChecks =
 stringToListChecks : IntoFnCheck
 stringToListChecks =
     onSpecificFnCallReturnsItsLastArgCheck Fn.String.fromList
+
+
+stringUnconsChecks : IntoFnCheck
+stringUnconsChecks =
+    intoFnCheckOnlyCall
+        (\checkInfo ->
+            callOnEmptyReturnsCheck
+                { resultAsString = \res -> qualifiedToString (qualify Fn.Maybe.nothingVariant res) }
+                stringCollection
+                checkInfo
+        )
 
 
 stringFoldlChecks : IntoFnCheck
