@@ -28,6 +28,9 @@ The rule now simplifies:
 - `List.isEmpty (List.filter (not << f) list)` to `List.all f list`
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 
+Bug fixes:
+- `String.length` simplifications incorrectly assumed that a `Char` always has length 1 (2-part UTF-16 characters don't follow that rule, try in `elm repl`: `String.length (String.fromChar '👀')`). As a result, code like `String.length (String.fromList [ a, b ])` now does not get reported and simplified to `2`
+
 ## [2.1.13] - 2026-01-07
 
 The rule now simplifies:
