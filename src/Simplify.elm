@@ -518,6 +518,9 @@ Destructuring using case expressions
     String.right n (String.right n str)
     --> String.right n str
 
+    String.slice start end ""
+    --> ""
+
     String.slice 2 1 str
     --> ""
 

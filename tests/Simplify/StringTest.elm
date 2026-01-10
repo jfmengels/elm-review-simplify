@@ -1643,6 +1643,22 @@ a = String.slice start end (String.map f string)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should replace String.slice start end \"\" by always \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.slice start end ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.slice on \"\" will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
+                            , under = "String.slice"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
         , test "should replace String.slice b 0 by always \"\"" <|
             \() ->
                 """module A exposing (..)
