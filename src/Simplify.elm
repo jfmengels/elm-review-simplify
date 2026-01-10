@@ -561,6 +561,18 @@ Destructuring using case expressions
     String.map f (String.repeat n (String.fromChar c))
     --> String.repeat n (String.fromChar (f c))
 
+    String.any f ""
+    --> False
+
+    String.any (always False) str
+    -> False
+
+    String.all f ""
+    --> True
+
+    String.all (always True) str
+    --> True
+
     -- The following simplifications for String.foldl also work for String.foldr
     String.foldl f initial ""
     --> initial
@@ -4122,6 +4134,8 @@ intoFnChecks =
     , ( Fn.String.map, ( 2, stringMapChecks ) )
     , ( Fn.String.append, ( 2, stringAppendChecks ) )
     , ( Fn.String.uncons, ( 1, stringUnconsChecks ) )
+    , ( Fn.String.any, ( 2, stringAnyChecks ) )
+    , ( Fn.String.all, ( 2, stringAllChecks ) )
     , ( Fn.String.foldl, ( 3, stringFoldlChecks ) )
     , ( Fn.String.foldr, ( 3, stringFoldrChecks ) )
     , ( Fn.Platform.Cmd.batch, ( 1, platformCmdBatchChecks ) )
@@ -7542,6 +7556,18 @@ stringUnconsChecks =
                 stringCollection
                 checkInfo
         )
+
+
+stringAnyChecks : IntoFnCheck
+stringAnyChecks =
+    intoFnCheckOnlyCall
+        (\checkInfo -> emptiableAnyChecks stringCollection checkInfo)
+
+
+stringAllChecks : IntoFnCheck
+stringAllChecks =
+    intoFnCheckOnlyCall
+        (\checkInfo -> emptiableAllChecks stringCollection checkInfo)
 
 
 stringFoldlChecks : IntoFnCheck
@@ -14901,6 +14927,13 @@ callOnCollectionWithAbsorbingElementChecks situation ( collection, elementAbsorb
             Nothing
 
 
+{-| The all elements pass a given test checks
+
+    all f empty --> True
+    all (always True) --> always True
+    all (always True) emptiable -> True
+
+-}
 emptiableAllChecks : EmptiableProperties empty otherProperties -> CallCheckInfo -> Maybe (Error {})
 emptiableAllChecks emptiable checkInfo =
     callOnEmptyReturnsCheck
@@ -14975,6 +15008,13 @@ collectionAllChecks collection checkInfo =
             )
 
 
+{-| The any element passes a given test checks
+
+    any f empty --> False
+    any (always False) --> always False
+    any (always False) emptiable -> False
+
+-}
 emptiableAnyChecks : EmptiableProperties empty otherProperties -> CallCheckInfo -> Maybe (Error {})
 emptiableAnyChecks emptiable checkInfo =
     callOnEmptyReturnsCheck

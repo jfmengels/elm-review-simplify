@@ -30,6 +30,8 @@ all =
         , stringFilterTests
         , stringUnconsTests
         , stringMapTests
+        , stringAnyTests
+        , stringAllTests
         , stringFoldlTests
         , stringFoldrTests
         ]
@@ -2524,6 +2526,134 @@ a = (String.repeat n<|String.fromChar ((f
                 x)
                                                      (g
                                                         y)))
+"""
+                        ]
+        ]
+
+
+stringAnyTests : Test
+stringAnyTests =
+    describe "String.any"
+        [ test "should not report String.any with okay arguments"
+            (\() ->
+                """module A exposing (..)
+a0 = String.any
+a1 = String.any f
+a2 = String.any f str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace String.any f \"\" by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.any f ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.any on \"\" will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "String.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace String.any (always False) str by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.any (always False) str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.any with a function that will always return False will always result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "String.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace String.any (always False) by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.any (always False)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.any with a function that will always return False will always result in False"
+                            , details = [ "You can replace this call by always False." ]
+                            , under = "String.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always False
+"""
+                        ]
+        ]
+
+
+stringAllTests : Test
+stringAllTests =
+    describe "String.all"
+        [ test "should not report String.all with okay arguments"
+            (\() ->
+                """module A exposing (..)
+a0 = String.all
+a1 = String.all f
+a2 = String.all f str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should replace String.all f \"\" by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.all f ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.all on \"\" will result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "String.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace String.all (always True) str by True" <|
+            \() ->
+                """module A exposing (..)
+a = String.all (always True) str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.all with a function that will always return True will always result in True"
+                            , details = [ "You can replace this call by True." ]
+                            , under = "String.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace String.all (always True) by True" <|
+            \() ->
+                """module A exposing (..)
+a = String.all (always True)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.all with a function that will always return True will always result in True"
+                            , details = [ "You can replace this call by always True." ]
+                            , under = "String.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always True
 """
                         ]
         ]
