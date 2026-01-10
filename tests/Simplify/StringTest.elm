@@ -27,6 +27,7 @@ all =
         , stringLeftTests
         , stringDropRightTests
         , stringDropLeftTests
+        , stringUnconsTests
         , stringMapTests
         , stringFoldlTests
         , stringFoldrTests
@@ -2177,6 +2178,36 @@ a = String.dropLeft n (String.map f string)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        ]
+
+
+stringUnconsTests : Test
+stringUnconsTests =
+    describe "String.uncons"
+        [ test "should not report String.uncons with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a0 = String.uncons
+a1 = String.uncons str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.uncons \"\" by Nothing" <|
+            \() ->
+                """module A exposing (..)
+a = String.uncons ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.uncons on \"\" will result in Nothing"
+                            , details = [ "You can replace this call by Nothing." ]
+                            , under = "String.uncons"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Nothing
+"""
+                        ]
         ]
 
 
