@@ -518,6 +518,19 @@ Destructuring using case expressions
     String.right n (String.right n str)
     --> String.right n str
 
+    -- The following simplifications for String.dropLeft also work for String.dropRight
+    String.dropLeft n ""
+    --> ""
+
+    String.dropLeft 0 str
+    --> str
+
+    String.dropLeft -1 str
+    --> str
+
+    String.dropLeft 10 "Hello"
+    --> ""
+
     String.slice start end ""
     --> ""
 
@@ -4091,6 +4104,8 @@ intoFnChecks =
     , ( Fn.String.slice, ( 3, stringSliceChecks ) )
     , ( Fn.String.left, ( 2, stringLeftChecks ) )
     , ( Fn.String.right, ( 2, stringRightChecks ) )
+    , ( Fn.String.dropLeft, ( 2, stringDropLeftChecks ) )
+    , ( Fn.String.dropRight, ( 2, stringDropRightChecks ) )
     , ( Fn.String.map, ( 2, stringMapChecks ) )
     , ( Fn.String.append, ( 2, stringAppendChecks ) )
     , ( Fn.String.foldl, ( 3, stringFoldlChecks ) )
@@ -7320,6 +7335,16 @@ stringRightChecks =
     collectionTakeChecks stringCollection
 
 
+stringDropLeftChecks : IntoFnCheck
+stringDropLeftChecks =
+    collectionDropChecks stringCollection
+
+
+stringDropRightChecks : IntoFnCheck
+stringDropRightChecks =
+    collectionDropChecks stringCollection
+
+
 stringMapChecks : IntoFnCheck
 stringMapChecks =
     intoFnChecksFirstThatConstructsError
@@ -9941,7 +9966,43 @@ listTakeChecks =
 listDropChecks : IntoFnCheck
 listDropChecks =
     intoFnChecksFirstThatConstructsError
-        [ unnecessaryOnEmptyCheck listCollection
+        [ collectionDropChecks listCollection
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { laterOperationArgsDescription = Just "count"
+            , earlierFn = Fn.List.map
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = "function"
+            , asLaterFn = Fn.List.map
+            }
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case Normalize.getInt checkInfo checkInfo.firstArg of
+                    Nothing ->
+                        Nothing
+
+                    Just count ->
+                        dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck { dropCount = count }
+                            listCollection
+                            checkInfo
+            )
+        ]
+
+
+{-| The remove n elements from a side checks
+
+    drop n empty --> empty
+
+    drop 0 collection --> collection
+
+    drop -1 collection --> collection
+
+    drop 10 collectionWith2Elements --> collection
+
+-}
+collectionDropChecks : TypeProperties (EmptiableProperties ConstantProperties (CollectionProperties properties)) -> IntoFnCheck
+collectionDropChecks collection =
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryOnEmptyCheck collection
         , intoFnCheckOnlyCall
             (\checkInfo ->
                 Normalize.getInt checkInfo checkInfo.firstArg
@@ -9950,24 +10011,11 @@ listDropChecks =
                             callWithNonPositiveIntCheckErrorSituation
                                 { int = count, intDescription = "count", fn = checkInfo.fn }
                                 |> Maybe.map
-                                    (\situation -> alwaysReturnsLastArgError situation listCollection checkInfo)
+                                    (\situation -> alwaysReturnsLastArgError situation collection checkInfo)
                                 |> onNothing
-                                    (\() -> dropOnSmallerCollectionCheck { dropCount = count } listCollection checkInfo)
-                                |> onNothing
-                                    (\() ->
-                                        dropOnLargerConstructionFromListLiteralWillRemoveTheseElementsCheck { dropCount = count }
-                                            listCollection
-                                            checkInfo
-                                    )
+                                    (\() -> dropOnSmallerCollectionCheck { dropCount = count } collection checkInfo)
                         )
             )
-        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
-            { laterOperationArgsDescription = Just "count"
-            , earlierFn = Fn.List.map
-            , earlierFnArgCount = 2
-            , earlierFnOperationArgsDescription = "function"
-            , asLaterFn = Fn.List.map
-            }
         ]
 
 

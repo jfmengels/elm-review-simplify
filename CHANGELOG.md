@@ -28,6 +28,9 @@ The rule now simplifies:
 - `List.isEmpty (List.filter (not << f) list)` to `List.all f list`
 - `String.map f ""` to `""`
 - `String.map identity str` to `str`
+- `String.dropLeft n ""` to `""` (same for `String.dropRight`)
+- `String.dropLeft 0 str` or `String.dropLeft -1 str` to `""` (same for `String.dropRight`)
+- `String.dropLeft 10 "Hello"` to `""` (same for `String.dropRight`)
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 
 Bug fixes:
