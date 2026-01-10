@@ -35,6 +35,10 @@ The rule now simplifies:
 - `String.filter f (String.filter f str)` to `String.filter f str`
 - `String.filter (always True) str` to `str`
 - `String.filter (always False) str` to `""`
+- `String.any f ""` to `False`
+- `String.any (always False) str` to `False`
+- `String.all f ""` to `True`
+- `String.all (always True) str` to `True`
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 
 Bug fixes:
