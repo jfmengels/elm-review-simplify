@@ -44,6 +44,18 @@ The rule now simplifies:
 - `String.toUpper ""` to `""`
 - `String.toUpper (String.toUpper str)` to `String.toUpper str`
 - `String.toUpper (String.toLower str)` to `String.toUpper str`
+- `String.trimLeft ""` to `""`
+- `String.trimLeft (String.trimLeft str)` to `String.trimLeft str`
+- `String.trimLeft (String.trimRight str)` to `String.trim str`
+- `String.trimLeft (String.trim str)` to `String.trim str`
+- `String.trimRight ""` to `""`
+- `String.trimRight (String.trimLeft str)` to `String.trim str`
+- `String.trimRight (String.trimRight str)` to `String.trimRight str`
+- `String.trimRight (String.trim str)` to `String.trim str`
+- `String.trim ""` to `""`
+- `String.trim (String.trimLeft str)` to `String.trim str`
+- `String.trim (String.trimRight str)` to `String.trim str`
+- `String.trim (String.trim str)` to `String.trim str`
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 
 Bug fixes:

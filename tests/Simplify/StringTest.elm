@@ -24,6 +24,9 @@ all =
         , stringToLowerTests
         , stringToUpperTests
         , stringReverseTests
+        , stringTrimLeftTests
+        , stringTrimRightTests
+        , stringTrimTests
         , stringSliceTests
         , stringRightTests
         , stringLeftTests
@@ -1773,6 +1776,201 @@ a = String.reverse << (String.reverse << f)
                             |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 19 } }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (f)
+"""
+                        ]
+        ]
+
+
+stringTrimLeftTests : Test
+stringTrimLeftTests =
+    describe "String.trimLeft"
+        [ test "should not report String.trimLeft with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a0 = String.trimLeft
+a1 = String.trimLeft str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.trimLeft (String.trimLeft str) by String.trimLeft str" <|
+            \() ->
+                """module A exposing (..)
+a = String.trimLeft (String.trimLeft str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.trimLeft after String.trimLeft"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "String.trimLeft"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 20 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.trimLeft str
+"""
+                        ]
+        , test "should replace String.trimLeft (String.trimRight str) by String.trim str" <|
+            \() ->
+                """module A exposing (..)
+a = String.trimLeft (String.trimRight str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.trimRight, then String.trimLeft can be combined into String.trim"
+                            , details = [ "You can replace this call by String.trim with the same arguments given to String.trimRight which is meant for this exact purpose." ]
+                            , under = "String.trimLeft"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 20 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (String.trim str)
+"""
+                        ]
+        , test "should replace String.trimLeft (String.trim str) by String.trim str" <|
+            \() ->
+                """module A exposing (..)
+a = String.trimLeft (String.trim str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.trimLeft on a String.trim call"
+                            , details = [ "You can replace this call by the given String.trim call." ]
+                            , under = "String.trimLeft"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 20 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.trim str
+"""
+                        ]
+        ]
+
+
+stringTrimRightTests : Test
+stringTrimRightTests =
+    describe "String.trimRight"
+        [ test "should not report String.trimRight with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a0 = String.trimRight
+a1 = String.trimRight str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.trimRight (String.trimRight str) by String.trimRight str" <|
+            \() ->
+                """module A exposing (..)
+a = String.trimRight (String.trimRight str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.trimRight after String.trimRight"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "String.trimRight"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 21 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.trimRight str
+"""
+                        ]
+        , test "should replace String.trimRight (String.trimLeft str) by String.trim str" <|
+            \() ->
+                """module A exposing (..)
+a = String.trimRight (String.trimLeft str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.trimLeft, then String.trimRight can be combined into String.trim"
+                            , details = [ "You can replace this call by String.trim with the same arguments given to String.trimLeft which is meant for this exact purpose." ]
+                            , under = "String.trimRight"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 21 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (String.trim str)
+"""
+                        ]
+        , test "should replace String.trimRight (String.trim str) by String.trim str" <|
+            \() ->
+                """module A exposing (..)
+a = String.trimRight (String.trim str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.trimRight on a String.trim call"
+                            , details = [ "You can replace this call by the given String.trim call." ]
+                            , under = "String.trimRight"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 21 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.trim str
+"""
+                        ]
+        ]
+
+
+stringTrimTests : Test
+stringTrimTests =
+    describe "String.trim"
+        [ test "should not report String.trim with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a0 = String.trim
+a1 = String.trim str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.trim (String.trim str) by String.trim str" <|
+            \() ->
+                """module A exposing (..)
+a = String.trim (String.trim str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.trim after String.trim"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "String.trim"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.trim str
+"""
+                        ]
+        , test "should replace String.trim (String.trimLeft str) by String.trim str" <|
+            \() ->
+                """module A exposing (..)
+a = String.trim (String.trimLeft str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.trimLeft before String.trim"
+                            , details = [ "Trimming from the start is already covered by the final String.trim. You can replace the String.trimLeft call by the unchanged string." ]
+                            , under = "String.trim"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.trim str
+"""
+                        ]
+        , test "should replace String.trim (String.trimRight str) by String.trim str" <|
+            \() ->
+                """module A exposing (..)
+a = String.trim (String.trimRight str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.trimRight before String.trim"
+                            , details = [ "Trimming from the end is already covered by the final String.trim. You can replace the String.trimRight call by the unchanged string." ]
+                            , under = "String.trim"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 16 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.trim str
 """
                         ]
         ]

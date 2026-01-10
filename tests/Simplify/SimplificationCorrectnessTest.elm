@@ -414,6 +414,69 @@ all =
                     |> Expect.equal
                         (String.toLower string)
             )
+        , Test.fuzz Fuzz.string
+            "String.trimLeft << String.trimRight is the same as String.trim"
+            (\string ->
+                String.trimLeft (String.trimRight string)
+                    |> Expect.equal
+                        (String.trim string)
+            )
+        , Test.fuzz Fuzz.string
+            "String.trimRight << String.trimLeft is the same as String.trim"
+            (\string ->
+                String.trimRight (String.trimLeft string)
+                    |> Expect.equal
+                        (String.trim string)
+            )
+        , Test.fuzz Fuzz.string
+            "String.trimLeft << String.trim is the same as String.trim"
+            (\string ->
+                String.trimLeft (String.trim string)
+                    |> Expect.equal
+                        (String.trim string)
+            )
+        , Test.fuzz Fuzz.string
+            "String.trimRight << String.trim is the same as String.trim"
+            (\string ->
+                String.trimRight (String.trim string)
+                    |> Expect.equal
+                        (String.trim string)
+            )
+        , Test.fuzz Fuzz.string
+            "String.trim << String.trim is the same as String.trim"
+            (\string ->
+                String.trim (String.trim string)
+                    |> Expect.equal
+                        (String.trim string)
+            )
+        , Test.fuzz Fuzz.string
+            "String.trimRight << String.trimRight is the same as String.trimRight"
+            (\string ->
+                String.trimRight (String.trimRight string)
+                    |> Expect.equal
+                        (String.trimRight string)
+            )
+        , Test.fuzz Fuzz.string
+            "String.trimLeft << String.trimLeft is the same as String.trimLeft"
+            (\string ->
+                String.trimLeft (String.trimLeft string)
+                    |> Expect.equal
+                        (String.trimLeft string)
+            )
+        , Test.fuzz Fuzz.string
+            "String.trim << String.trimLeft is the same as String.trim"
+            (\string ->
+                String.trim (String.trimLeft string)
+                    |> Expect.equal
+                        (String.trim string)
+            )
+        , Test.fuzz Fuzz.string
+            "String.trim << String.trimRight is the same as String.trim"
+            (\string ->
+                String.trim (String.trimRight string)
+                    |> Expect.equal
+                        (String.trim string)
+            )
         ]
 
 
