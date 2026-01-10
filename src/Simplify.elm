@@ -527,6 +527,12 @@ Destructuring using case expressions
     String.slice -1 -2 str
     --> ""
 
+    String.map f ""
+    --> ""
+
+    String.map identity str
+    --> str
+
     String.map f (String.repeat n (String.fromChar c))
     --> String.repeat n (String.fromChar (f c))
 
@@ -7316,7 +7322,11 @@ stringRightChecks =
 
 stringMapChecks : IntoFnCheck
 stringMapChecks =
-    intoFnCheckOnlyCall stringMapOnRepeatFromCharCallCheck
+    intoFnChecksFirstThatConstructsError
+        [ emptiableMapChecks stringCollection
+        , mapOnWrappedChecks stringCollection
+        , intoFnCheckOnlyCall stringMapOnRepeatFromCharCallCheck
+        ]
 
 
 stringMapOnRepeatFromCharCallCheck : CallCheckInfo -> Maybe (Error {})

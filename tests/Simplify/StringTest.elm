@@ -2119,6 +2119,54 @@ a4 = String.repeat n (String.map f str)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
             )
+        , test "should replace String.map f \"\" by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.map f ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.map on \"\" will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
+                            , under = "String.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should replace String.map identity str by str" <|
+            \() ->
+                """module A exposing (..)
+a = String.map identity str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.map with an identity function will always return the same given string"
+                            , details = [ "You can replace this call by the string itself." ]
+                            , under = "String.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = str
+"""
+                        ]
+        , test "should replace String.map identity by identity" <|
+            \() ->
+                """module A exposing (..)
+a = String.map identity
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.map with an identity function will always return the same given string"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "String.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
         , test "should replace String.map f (String.repeat n (String.fromChar c)) by String.repeat n (String.fromChar (f c))" <|
             \() ->
                 """module A exposing (..)
