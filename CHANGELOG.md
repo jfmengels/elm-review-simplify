@@ -26,6 +26,8 @@ The rule now simplifies:
 - `List.all f (List.repeat n a)` to `n <= 0 || f a`
 - `List.isEmpty (List.filter f list)` to `not (List.any f list)`
 - `List.isEmpty (List.filter (not << f) list)` to `List.all f list`
+- `String.map f ""` to `""`
+- `String.map identity str` to `str`
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 
 Bug fixes:
