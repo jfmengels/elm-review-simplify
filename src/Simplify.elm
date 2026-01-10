@@ -503,6 +503,42 @@ Destructuring using case expressions
     String.reverse (String.reverse str)
     --> str
 
+    String.trimLeft ""
+    --> ""
+
+    String.trimLeft (String.trimLeft str)
+    --> String.trimLeft str
+
+    String.trimLeft (String.trimRight str)
+    --> String.trim str
+
+    String.trimLeft (String.trim str)
+    --> String.trim str
+
+    String.trimRight ""
+    --> ""
+
+    String.trimRight (String.trimLeft str)
+    --> String.trim str
+
+    String.trimRight (String.trimRight str)
+    --> String.trimRight str
+
+    String.trimRight (String.trim str)
+    --> String.trim str
+
+    String.trim ""
+    --> ""
+
+    String.trim (String.trimLeft str)
+    --> String.trim str
+
+    String.trim (String.trimRight str)
+    --> String.trim str
+
+    String.trim (String.trim str)
+    --> String.trim str
+
     String.slice n n str
     --> ""
 
@@ -4142,6 +4178,9 @@ intoFnChecks =
     , ( Fn.String.toLower, ( 1, stringToLowerChecks ) )
     , ( Fn.String.toUpper, ( 1, stringToUpperChecks ) )
     , ( Fn.String.reverse, ( 1, stringReverseChecks ) )
+    , ( Fn.String.trimLeft, ( 1, stringTrimLeftChecks ) )
+    , ( Fn.String.trimRight, ( 1, stringTrimRightChecks ) )
+    , ( Fn.String.trim, ( 1, stringTrimChecks ) )
     , ( Fn.String.slice, ( 3, stringSliceChecks ) )
     , ( Fn.String.left, ( 2, stringLeftChecks ) )
     , ( Fn.String.right, ( 2, stringRightChecks ) )
@@ -7367,6 +7406,58 @@ stringReverseChecks =
     intoFnChecksFirstThatConstructsError
         [ emptiableReverseChecks stringCollection
         , unnecessaryOnWrappedCheck stringCollection
+        ]
+
+
+stringTrimLeftChecks : IntoFnCheck
+stringTrimLeftChecks =
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryOnEmptyCheck stringCollection
+        , operationDoesNotChangeResultOfOperationCheck
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.String.trimRight
+            , combinedFn = Fn.String.trim
+            }
+        , unnecessaryOnSpecificFnCallCheck Fn.String.trim
+        ]
+
+
+stringTrimRightChecks : IntoFnCheck
+stringTrimRightChecks =
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryOnEmptyCheck stringCollection
+        , operationDoesNotChangeResultOfOperationCheck
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.String.trimLeft
+            , combinedFn = Fn.String.trim
+            }
+        , unnecessaryOnSpecificFnCallCheck Fn.String.trim
+        ]
+
+
+stringTrimChecks : IntoFnCheck
+stringTrimChecks =
+    intoFnChecksFirstThatConstructsError
+        [ unnecessaryOnEmptyCheck stringCollection
+        , operationDoesNotChangeResultOfOperationCheck
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.String.trimLeft
+            , fnArgCount = 1
+            , fnLastArgRepresents = "string"
+            , whyUnnecessary =
+                "Trimming from the start is already covered by the final "
+                    ++ qualifiedToString Fn.String.trim
+            }
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.String.trimRight
+            , fnArgCount = 1
+            , fnLastArgRepresents = "string"
+            , whyUnnecessary =
+                "Trimming from the end is already covered by the final "
+                    ++ qualifiedToString Fn.String.trim
+            }
         ]
 
 
