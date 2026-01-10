@@ -7313,67 +7313,69 @@ stringRightChecks =
 
 stringMapChecks : IntoFnCheck
 stringMapChecks =
-    intoFnCheckOnlyCall
-        (\checkInfo ->
-            case checkInfo.argsAfterFirst of
-                [ mappedArg ] ->
-                    case AstHelpers.getSpecificUnreducedFnCall Fn.String.repeat checkInfo.lookupTable mappedArg of
-                        Nothing ->
-                            Nothing
+    intoFnCheckOnlyCall stringMapOnRepeatFromCharCallCheck
 
-                        Just repeatFnCall ->
-                            case repeatFnCall.argsAfterFirst of
-                                [ stringToRepeatArg ] ->
-                                    case AstHelpers.getSpecificUnreducedFnCall Fn.String.fromChar checkInfo.lookupTable stringToRepeatArg of
-                                        Nothing ->
-                                            Nothing
 
-                                        Just toRepeatStringFromCharCall ->
-                                            Just
-                                                (Rule.errorWithFix
-                                                    { message =
-                                                        qualifiedToString checkInfo.fn
-                                                            ++ " on "
-                                                            ++ qualifiedToString Fn.String.repeat
-                                                            ++ " on "
-                                                            ++ qualifiedToString Fn.String.fromChar
-                                                            ++ " is the same as "
-                                                            ++ qualifiedToString Fn.String.repeat
-                                                            ++ " on "
-                                                            ++ qualifiedToString Fn.String.fromChar
-                                                            ++ " with the mapped char"
-                                                    , details =
-                                                        [ "You can replace this call by the "
-                                                            ++ qualifiedToString Fn.String.repeat
-                                                            ++ " on "
-                                                            ++ qualifiedToString Fn.String.fromChar
-                                                            ++ " operation but with the function given to the "
-                                                            ++ qualifiedToString checkInfo.fn
-                                                            ++ " operation applied to the original char."
-                                                        ]
-                                                    }
-                                                    checkInfo.fnRange
-                                                    (wrapInApplicationFix
-                                                        { arg = toRepeatStringFromCharCall.firstArg
-                                                        , function =
-                                                            parenthesizeIf
-                                                                (needsParens (Node.value checkInfo.firstArg))
-                                                                (checkInfo.extractSourceCode
-                                                                    (Node.range checkInfo.firstArg)
-                                                                )
-                                                        }
-                                                        ++ replaceCallBySubExpressionFix checkInfo.parentRange
-                                                            checkInfo.callStyle
-                                                            mappedArg
-                                                    )
-                                                )
+stringMapOnRepeatFromCharCallCheck : CallCheckInfo -> Maybe (Error {})
+stringMapOnRepeatFromCharCallCheck checkInfo =
+    case checkInfo.argsAfterFirst of
+        [ mappedArg ] ->
+            case AstHelpers.getSpecificUnreducedFnCall Fn.String.repeat checkInfo.lookupTable mappedArg of
+                Nothing ->
+                    Nothing
 
-                                _ ->
+                Just repeatFnCall ->
+                    case repeatFnCall.argsAfterFirst of
+                        [ stringToRepeatArg ] ->
+                            case AstHelpers.getSpecificUnreducedFnCall Fn.String.fromChar checkInfo.lookupTable stringToRepeatArg of
+                                Nothing ->
                                     Nothing
 
-                _ ->
-                    Nothing
-        )
+                                Just toRepeatStringFromCharCall ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                qualifiedToString checkInfo.fn
+                                                    ++ " on "
+                                                    ++ qualifiedToString Fn.String.repeat
+                                                    ++ " on "
+                                                    ++ qualifiedToString Fn.String.fromChar
+                                                    ++ " is the same as "
+                                                    ++ qualifiedToString Fn.String.repeat
+                                                    ++ " on "
+                                                    ++ qualifiedToString Fn.String.fromChar
+                                                    ++ " with the mapped char"
+                                            , details =
+                                                [ "You can replace this call by the "
+                                                    ++ qualifiedToString Fn.String.repeat
+                                                    ++ " on "
+                                                    ++ qualifiedToString Fn.String.fromChar
+                                                    ++ " operation but with the function given to the "
+                                                    ++ qualifiedToString checkInfo.fn
+                                                    ++ " operation applied to the original char."
+                                                ]
+                                            }
+                                            checkInfo.fnRange
+                                            (wrapInApplicationFix
+                                                { arg = toRepeatStringFromCharCall.firstArg
+                                                , function =
+                                                    parenthesizeIf
+                                                        (needsParens (Node.value checkInfo.firstArg))
+                                                        (checkInfo.extractSourceCode
+                                                            (Node.range checkInfo.firstArg)
+                                                        )
+                                                }
+                                                ++ replaceCallBySubExpressionFix checkInfo.parentRange
+                                                    checkInfo.callStyle
+                                                    mappedArg
+                                            )
+                                        )
+
+                        _ ->
+                            Nothing
+
+        _ ->
+            Nothing
 
 
 stringReplaceChecks : IntoFnCheck
