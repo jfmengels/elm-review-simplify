@@ -16015,7 +16015,7 @@ dropOnSmallerCollectionCheck : { dropCount : Int } -> TypeProperties (Collection
 dropOnSmallerCollectionCheck config collection checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just listArg ->
-            case listDetermineLength checkInfo listArg of
+            case collection.elements.determineCount (extractNormalizeResources checkInfo) listArg of
                 Just (Exactly length) ->
                     if config.dropCount >= length then
                         Just
