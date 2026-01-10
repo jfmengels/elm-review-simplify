@@ -27,6 +27,7 @@ all =
         , stringLeftTests
         , stringDropRightTests
         , stringDropLeftTests
+        , stringFilterTests
         , stringUnconsTests
         , stringMapTests
         , stringFoldlTests
@@ -2294,6 +2295,134 @@ a = String.dropRight n (String.map f string)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        ]
+
+
+stringFilterTests : Test
+stringFilterTests =
+    describe "String.filter"
+        [ test "should not report String.filter used with okay arguments" <|
+            \() ->
+                """module A exposing (..)
+a0 = String.filter f x
+a1 = String.filter f (String.filter g x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should replace String.filter f \"\" by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.filter f ""
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.filter on \"\" will result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
+                            , under = "String.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should replace String.filter f (String.filter f string) by String.filter f string" <|
+            \() ->
+                """module A exposing (..)
+a = String.filter f (String.filter f string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.filter after equivalent String.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "String.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 18 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.filter f string
+"""
+                        ]
+        , test "should replace String.filter f << String.filter f by String.filter f" <|
+            \() ->
+                """module A exposing (..)
+a = String.filter f << String.filter f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.filter after equivalent String.filter"
+                            , details = [ "You can remove this additional operation." ]
+                            , under = "String.filter"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 18 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.filter f
+"""
+                        ]
+        , test "should replace String.filter (always True) x by x" <|
+            \() ->
+                """module A exposing (..)
+a = String.filter (always True) x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.filter with a function that will always return True will always return the same given string"
+                            , details = [ "You can replace this call by the string itself." ]
+                            , under = "String.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x
+"""
+                        ]
+        , test "should replace String.filter (always True) by identity" <|
+            \() ->
+                """module A exposing (..)
+a = String.filter (always True)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.filter with a function that will always return True will always return the same given string"
+                            , details = [ "You can replace this call by identity." ]
+                            , under = "String.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = identity
+"""
+                        ]
+        , test "should replace String.filter (always False) x by \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.filter (always False) x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.filter with a function that will always return False will always result in \"\""
+                            , details = [ "You can replace this call by \"\"." ]
+                            , under = "String.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ""
+"""
+                        ]
+        , test "should replace String.filter (always False) by always \"\"" <|
+            \() ->
+                """module A exposing (..)
+a = String.filter (always False)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.filter with a function that will always return False will always result in \"\""
+                            , details = [ "You can replace this call by always \"\"." ]
+                            , under = "String.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = always ""
+"""
+                        ]
         ]
 
 
