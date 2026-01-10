@@ -90,6 +90,22 @@ b = String.length str
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should not report String.length (String.fromChar c) because c could have 2 UTF-16 parts and therefore length 2"
+            (\() ->
+                """module A exposing (..)
+a = String.length (String.fromChar c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+            )
+        , test "should not report String.length (String.fromList [ c0, c1 ]) because any Char could have 2 UTF-16 parts and therefore length 2"
+            (\() ->
+                """module A exposing (..)
+a = String.length (String.fromList [ c0, c1 ])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+            )
         , test "should replace String.length \"\" by 0" <|
             \() ->
                 """module A exposing (..)

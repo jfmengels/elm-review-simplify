@@ -12591,7 +12591,7 @@ stringDetermineLength resources expressionNode =
                     expressionNode
                         |> AstHelpers.isSpecificUnreducedFnCall Fn.String.fromChar resources.lookupTable
                 then
-                    Just (Exactly 1)
+                    Just NotEmpty
 
                 else
                     Nothing
@@ -12600,7 +12600,20 @@ stringDetermineLength resources expressionNode =
             (\() ->
                 expressionNode
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.String.fromList resources.lookupTable
-                    |> Maybe.andThen (\fromListCall -> listDetermineLength resources fromListCall.firstArg)
+                    |> Maybe.andThen
+                        (\fromListCall -> listDetermineLength resources fromListCall.firstArg)
+                    |> Maybe.map
+                        (\charCount ->
+                            case charCount of
+                                NotEmpty ->
+                                    NotEmpty
+
+                                Exactly 0 ->
+                                    Exactly 0
+
+                                Exactly _ ->
+                                    NotEmpty
+                        )
             )
         |> onNothing
             (\() ->
