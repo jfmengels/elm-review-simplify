@@ -85,6 +85,150 @@ a = String.isEmpty "a"
 a = False
 """
                         ]
+        , test "should replace String.isEmpty (String.fromChar c) by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty (String.fromChar c)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.isEmpty on this string will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace String.isEmpty (String.fromInt n) by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty (String.fromInt n)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.isEmpty on this string will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace String.isEmpty (String.fromFloat n) by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty (String.fromFloat n)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.isEmpty on this string will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace String.isEmpty (String.cons h t) by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty (String.cons h t)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.isEmpty on this string will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace String.isEmpty (String.fromList (h :: t)) by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty (String.fromList (h :: t))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.isEmpty on this string will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace String.isEmpty (String.repeat 2 (String.fromChar 'x')) by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty (String.repeat 2 (String.fromChar 'x'))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.isEmpty on this string will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace String.isEmpty (str ++ String.fromChar 'x') by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty (str ++ String.fromChar 'x')
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.isEmpty on this string will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace String.isEmpty (String.fromChar 'x' ++ str) by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty (String.fromChar 'x' ++ str)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.isEmpty on this string will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace String.isEmpty (String.append str <| String.fromChar 'x') by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty (String.append str <| String.fromChar 'x')
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.isEmpty on this string will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
         ]
 
 
