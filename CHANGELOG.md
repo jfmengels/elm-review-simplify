@@ -56,6 +56,7 @@ The rule now simplifies:
 - `String.trim (String.trimLeft str)` to `String.trim str`
 - `String.trim (String.trimRight str)` to `String.trim str`
 - `String.trim (String.trim str)` to `String.trim str`
+- more string sizes can be determined, to simplify for example `String.isEmpty (String.fromInt str)` to `False`
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 
 Bug fixes:

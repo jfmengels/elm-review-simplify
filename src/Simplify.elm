@@ -12824,8 +12824,15 @@ stringDetermineLength resources expressionNode =
         |> onNothing
             (\() ->
                 if
-                    expressionNode
+                    (expressionNode
                         |> AstHelpers.isSpecificUnreducedFnCall Fn.String.fromChar resources.lookupTable
+                    )
+                        || (expressionNode
+                                |> AstHelpers.isSpecificUnreducedFnCall Fn.String.fromInt resources.lookupTable
+                           )
+                        || (expressionNode
+                                |> AstHelpers.isSpecificUnreducedFnCall Fn.String.fromFloat resources.lookupTable
+                           )
                 then
                     Just NotEmpty
 
@@ -12863,6 +12870,111 @@ stringDetermineLength resources expressionNode =
                                 )
                         )
             )
+        |> onNothing
+            (\() ->
+                expressionNode
+                    |> AstHelpers.getSpecificUnreducedFnCall Fn.String.repeat resources.lookupTable
+                    |> Maybe.andThen
+                        (\repeatCall ->
+                            let
+                                repeatedCharCountNormal : Expression
+                                repeatedCharCountNormal =
+                                    Normalize.normalizeExpression resources repeatCall.firstArg
+                            in
+                            if (normalGetNumberBounds repeatedCharCountNormal).min <= 0 then
+                                Nothing
+
+                            else
+                                case repeatCall.argsAfterFirst of
+                                    [ toRepeatArg ] ->
+                                        case stringDetermineLength resources toRepeatArg of
+                                            Nothing ->
+                                                Nothing
+
+                                            Just NotEmpty ->
+                                                Just NotEmpty
+
+                                            Just (Exactly repeatCount) ->
+                                                case repeatedCharCountNormal of
+                                                    Expression.Floatable repeatedCharCount ->
+                                                        Just (Exactly (repeatCount * Basics.round repeatedCharCount))
+
+                                                    _ ->
+                                                        Just NotEmpty
+
+                                    _ ->
+                                        Nothing
+                        )
+            )
+        |> onNothing
+            (\() ->
+                expressionNode
+                    |> AstHelpers.getSpecificUnreducedFnCall Fn.String.append resources.lookupTable
+                    |> Maybe.andThen
+                        (\appendCall ->
+                            case appendCall.argsAfterFirst of
+                                [ appendRightArg ] ->
+                                    maybeCollectionSizeAdd
+                                        (stringDetermineLength resources appendCall.firstArg)
+                                        (stringDetermineLength resources appendRightArg)
+
+                                _ ->
+                                    Nothing
+                        )
+            )
+        |> onNothing
+            (\() ->
+                case AstHelpers.removeParens expressionNode of
+                    Node _ (Expression.OperatorApplication "++" _ left right) ->
+                        maybeCollectionSizeAdd
+                            (stringDetermineLength resources left)
+                            (stringDetermineLength resources right)
+
+                    _ ->
+                        Nothing
+            )
+
+
+maybeCollectionSizeAdd : Maybe CollectionSize -> Maybe CollectionSize -> Maybe CollectionSize
+maybeCollectionSizeAdd aMaybeCollectionSize bMaybeCollectionSize =
+    case aMaybeCollectionSize of
+        Nothing ->
+            if maybeCollectionSizeIsAtLeast1 bMaybeCollectionSize then
+                Just NotEmpty
+
+            else
+                Nothing
+
+        Just NotEmpty ->
+            Just NotEmpty
+
+        Just (Exactly aLength) ->
+            case bMaybeCollectionSize of
+                Nothing ->
+                    if aLength >= 0 then
+                        Just NotEmpty
+
+                    else
+                        Nothing
+
+                Just NotEmpty ->
+                    Just NotEmpty
+
+                Just (Exactly bLength) ->
+                    Just (Exactly (aLength + bLength))
+
+
+maybeCollectionSizeIsAtLeast1 : Maybe CollectionSize -> Bool
+maybeCollectionSizeIsAtLeast1 maybeCollectionSize =
+    case maybeCollectionSize of
+        Nothing ->
+            False
+
+        Just NotEmpty ->
+            True
+
+        Just (Exactly length) ->
+            length >= 1
 
 
 maybeCollectionSizeAdd1 : Maybe CollectionSize -> Maybe CollectionSize
