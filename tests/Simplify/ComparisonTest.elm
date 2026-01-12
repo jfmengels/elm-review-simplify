@@ -872,6 +872,63 @@ a = min 0 n > 0
 a = False
 """
                         ]
+        , test "should replace String.length (String.fromChar c) >= 3 by False" <|
+            \() ->
+                """module A exposing (..)
+a = String.length (String.fromChar c) >= 3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>=) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be between 1 and 2 inclusive and the right number was determined to be exactly 3."
+                                ]
+                            , under = ">="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace Set.size (Set.fromList [ first, second ]) >= 3 by False" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size (Set.fromList [ first, second ]) >= 3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>=) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be between 1 and 2 inclusive and the right number was determined to be exactly 3."
+                                ]
+                            , under = ">="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace Dict.size (Dict.fromList ((0,()) :: (1,()) :: tail)) < 2 by False" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.size (Dict.fromList ((0,()) :: (1,()) :: tail)) < 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<) comparison will result in False"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than or equal to the interval of the right number. As a result, this operation can be replaced by False."
+                                , "The left number was determined to be at least 2 and the right number was determined to be exactly 2."
+                                ]
+                            , under = "<"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
         , test "should not report max 0 n > 0 because the two intervals overlap at 0" <|
             \() ->
                 """module A exposing (..)
