@@ -325,6 +325,24 @@ a = String.length \"\"\"a\\t🚀b\\\\c🇲🇻\\u{000D}\\r\"\"\"
 a = 13
 """
                         ]
+        , test "should replace if l == \"\" then String.length l else 1 by if l == \"\" then 0 else 1" <|
+            \() ->
+                """module A exposing (..)
+a = if l == "" then String.length l else 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of the string is 0"
+                            , details =
+                                [ "The length of the string can be determined by looking at the code."
+                                ]
+                            , under = "String.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = if l == "" then 0 else 1
+"""
+                        ]
         ]
 
 

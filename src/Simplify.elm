@@ -12855,111 +12855,81 @@ singleCharConstruct =
 
 stringDetermineLength : Normalize.Resources res -> Node Expression -> CollectionSize
 stringDetermineLength resources expressionNode =
-    (case AstHelpers.removeParens expressionNode of
-        Node _ (Expression.Literal string) ->
-            Just (collectionSizeExact (String.length string))
+    normalStringDetermineLength resources
+        (Normalize.normalizeExpression resources expressionNode)
 
-        _ ->
-            Nothing
-    )
-        |> onNothing
-            (\() ->
-                if AstHelpers.isSpecificUnreducedFnCall Fn.String.fromChar resources.lookupTable expressionNode then
-                    Just { min = 1, max = Just 2 }
 
-                else if
-                    AstHelpers.isSpecificUnreducedFnCall Fn.String.fromInt resources.lookupTable expressionNode
-                        || AstHelpers.isSpecificUnreducedFnCall Fn.String.fromFloat resources.lookupTable expressionNode
-                then
-                    Just { min = 1, max = Nothing }
+normalStringDetermineLength : Normalize.Resources res -> Expression -> CollectionSize
+normalStringDetermineLength resources expression =
+    case expression of
+        Expression.Literal string ->
+            collectionSizeExact (String.length string)
 
-                else
-                    Nothing
-            )
-        |> onNothing
-            (\() ->
-                expressionNode
-                    |> AstHelpers.getSpecificUnreducedFnCall Fn.String.fromList resources.lookupTable
-                    |> Maybe.map
-                        (\fromListCall ->
-                            let
-                                charCount : CollectionSize
-                                charCount =
-                                    listDetermineLength resources fromListCall.firstArg
-                            in
-                            { min = charCount.min
-                            , max = Maybe.map (\max -> max * 2) charCount.max
-                            }
-                        )
-            )
-        |> onNothing
-            (\() ->
-                expressionNode
-                    |> AstHelpers.getSpecificUnreducedFnCall Fn.String.cons resources.lookupTable
-                    |> Maybe.andThen
-                        (\consCall ->
-                            case consCall.argsAfterFirst of
-                                [ tailArg ] ->
-                                    Just (collectionSizeAdd1 (stringDetermineLength resources tailArg))
+        Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: arg0 :: argsAfterFirst) ->
+            let
+                fn : ( ModuleName, String )
+                fn =
+                    ( qualification, name )
+            in
+            case argsAfterFirst of
+                [] ->
+                    if fn == Fn.String.fromChar then
+                        { min = 1, max = Just 2 }
 
-                                _ ->
-                                    Nothing
-                        )
-            )
-        |> onNothing
-            (\() ->
-                expressionNode
-                    |> AstHelpers.getSpecificUnreducedFnCall Fn.String.repeat resources.lookupTable
-                    |> Maybe.andThen
-                        (\repeatCall ->
-                            case repeatCall.argsAfterFirst of
-                                [ toRepeatArg ] ->
-                                    Just
-                                        (collectionSizeCombineEachBoundWith (*)
-                                            (stringDetermineLength resources toRepeatArg)
-                                            (numberBoundsToCollectionSize
-                                                (normalGetNumberBounds
-                                                    (Normalize.normalizeExpression resources repeatCall.firstArg)
-                                                )
-                                            )
-                                        )
+                    else if fn == Fn.String.fromInt || fn == Fn.String.fromFloat then
+                        { min = 1, max = Nothing }
 
-                                _ ->
-                                    Nothing
-                        )
-            )
-        |> onNothing
-            (\() ->
-                expressionNode
-                    |> AstHelpers.getSpecificUnreducedFnCall Fn.String.append resources.lookupTable
-                    |> Maybe.andThen
-                        (\appendCall ->
-                            case appendCall.argsAfterFirst of
-                                [ appendRightArg ] ->
-                                    Just
-                                        (collectionSizeCombineEachBoundWith (+)
-                                            (stringDetermineLength resources appendCall.firstArg)
-                                            (stringDetermineLength resources appendRightArg)
-                                        )
+                    else if fn == Fn.String.fromList then
+                        let
+                            charCount : CollectionSize
+                            charCount =
+                                listDetermineLength resources arg0
+                        in
+                        { min = charCount.min
+                        , max = Maybe.map (\max -> max * 2) charCount.max
+                        }
 
-                                _ ->
-                                    Nothing
-                        )
-            )
-        |> onNothing
-            (\() ->
-                case AstHelpers.removeParens expressionNode of
-                    Node _ (Expression.OperatorApplication "++" _ left right) ->
-                        Just
-                            (collectionSizeCombineEachBoundWith (+)
-                                (stringDetermineLength resources left)
-                                (stringDetermineLength resources right)
+                    else
+                        collectionSizeUnknown
+
+                [ arg1 ] ->
+                    if fn == Fn.String.cons then
+                        let
+                            tailCollectionSize : CollectionSize
+                            tailCollectionSize =
+                                normalStringDetermineLength resources (Node.value arg1)
+                        in
+                        { min = tailCollectionSize.min + 1
+                        , max = Maybe.map (\max -> max + 2) tailCollectionSize.max
+                        }
+
+                    else if fn == Fn.String.repeat then
+                        collectionSizeCombineEachBoundWith (*)
+                            (normalStringDetermineLength resources (Node.value arg1))
+                            (numberBoundsToCollectionSize
+                                (normalGetNumberBounds
+                                    (Normalize.normalizeExpression resources arg0)
+                                )
                             )
 
-                    _ ->
-                        Nothing
-            )
-        |> Maybe.withDefault collectionSizeUnknown
+                    else if fn == Fn.String.append then
+                        collectionSizeCombineEachBoundWith (+)
+                            (normalStringDetermineLength resources (Node.value arg0))
+                            (normalStringDetermineLength resources (Node.value arg1))
+
+                    else
+                        collectionSizeUnknown
+
+                _ ->
+                    collectionSizeUnknown
+
+        Expression.OperatorApplication "++" _ left right ->
+            collectionSizeCombineEachBoundWith (+)
+                (normalStringDetermineLength resources (Node.value left))
+                (normalStringDetermineLength resources (Node.value right))
+
+        _ ->
+            collectionSizeUnknown
 
 
 stringGetElements : Infer.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
@@ -20971,7 +20941,7 @@ normalGetNumberBounds expressionNormal =
 
                     else if fn == Fn.String.length then
                         collectionSizeToNumberBounds
-                            (stringDetermineLength normalizeResourcesNone arg0)
+                            (normalStringDetermineLength normalizeResourcesNone (Node.value arg0))
 
                     else if fn == Fn.Set.size then
                         collectionSizeToNumberBounds
