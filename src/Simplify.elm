@@ -12716,14 +12716,14 @@ listDetermineLength : Normalize.Resources a -> Node Expression -> CollectionSize
 listDetermineLength resources expressionNode =
     expressionNode
         |> AstHelpers.getListLiteral
-        |> Maybe.map (\list -> Exactly (List.length list))
+        |> Maybe.map (\list -> collectionSizeExact (List.length list))
         |> onNothing
             (\() ->
                 if
                     expressionNode
                         |> AstHelpers.isSpecificUnreducedFnCall Fn.List.singleton resources.lookupTable
                 then
-                    Just (Exactly 1)
+                    Just (collectionSizeExact 1)
 
                 else
                     Nothing
@@ -12732,12 +12732,10 @@ listDetermineLength resources expressionNode =
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.List.repeat resources.lookupTable expressionNode of
                     Just repeatCall ->
-                        case Normalize.getInt resources repeatCall.firstArg of
-                            Nothing ->
-                                Just collectionSizeUnknown
-
-                            Just repeatCount ->
-                                Just (Exactly (max 0 repeatCount))
+                        Just
+                            (numberBoundsToCollectionSize
+                                (normalGetNumberBounds (Normalize.normalizeExpression resources repeatCall.firstArg))
+                            )
 
                     Nothing ->
                         Nothing
@@ -12746,14 +12744,24 @@ listDetermineLength resources expressionNode =
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.List.range resources.lookupTable expressionNode of
                     Just rangeCall ->
-                        (case Normalize.getInt resources rangeCall.firstArg of
-                            Just start ->
-                                case Maybe.andThen (\endArg -> Normalize.getInt resources endArg) (List.head rangeCall.argsAfterFirst) of
-                                    Just end ->
-                                        Exactly (max 0 (end - start))
+                        (case rangeCall.argsAfterFirst of
+                            [ rangeEndArg ] ->
+                                let
+                                    rangeStartBounds : { min : Float, max : Float }
+                                    rangeStartBounds =
+                                        normalGetNumberBounds (Normalize.normalizeExpression resources rangeCall.firstArg)
 
-                                    Nothing ->
-                                        collectionSizeUnknown
+                                    rangeEndExclusiveBounds : { min : Float, max : Float }
+                                    rangeEndExclusiveBounds =
+                                        normalGetNumberBounds (Normalize.normalizeExpression resources rangeEndArg)
+                                            |> -- because e.g List.range (List.range 1 1) is 1, not 0
+                                               numberBoundsAlterEach (\n -> n + 1)
+                                in
+                                numberBoundsToCollectionSize
+                                    (numberBoundsCombineEachBoundWith (+)
+                                        rangeEndExclusiveBounds
+                                        (numberBoundsNegate rangeStartBounds)
+                                    )
 
                             _ ->
                                 collectionSizeUnknown
@@ -12771,7 +12779,7 @@ listDetermineLength resources expressionNode =
 
                     Expression.OperatorApplication "++" _ left right ->
                         Just
-                            (collectionSizeAdd
+                            (collectionSizeCombineEachBoundWith (+)
                                 (listDetermineLength resources left)
                                 (listDetermineLength resources right)
                             )
@@ -12788,7 +12796,7 @@ listDetermineLength resources expressionNode =
                             case appendCall.argsAfterFirst of
                                 [ appendRightArg ] ->
                                     Just
-                                        (collectionSizeAdd
+                                        (collectionSizeCombineEachBoundWith (+)
                                             (listDetermineLength resources appendCall.firstArg)
                                             (listDetermineLength resources appendRightArg)
                                         )
@@ -12848,25 +12856,21 @@ stringDetermineLength : Normalize.Resources res -> Node Expression -> Collection
 stringDetermineLength resources expressionNode =
     (case AstHelpers.removeParens expressionNode of
         Node _ (Expression.Literal string) ->
-            Just (Exactly (String.length string))
+            Just (collectionSizeExact (String.length string))
 
         _ ->
             Nothing
     )
         |> onNothing
             (\() ->
-                if
-                    (expressionNode
-                        |> AstHelpers.isSpecificUnreducedFnCall Fn.String.fromChar resources.lookupTable
-                    )
-                        || (expressionNode
-                                |> AstHelpers.isSpecificUnreducedFnCall Fn.String.fromInt resources.lookupTable
-                           )
-                        || (expressionNode
-                                |> AstHelpers.isSpecificUnreducedFnCall Fn.String.fromFloat resources.lookupTable
-                           )
+                if AstHelpers.isSpecificUnreducedFnCall Fn.String.fromChar resources.lookupTable expressionNode then
+                    Just { min = 1, max = Just 2 }
+
+                else if
+                    AstHelpers.isSpecificUnreducedFnCall Fn.String.fromInt resources.lookupTable expressionNode
+                        || AstHelpers.isSpecificUnreducedFnCall Fn.String.fromFloat resources.lookupTable expressionNode
                 then
-                    Just (AtLeast 1)
+                    Just { min = 1, max = Nothing }
 
                 else
                     Nothing
@@ -12877,15 +12881,14 @@ stringDetermineLength resources expressionNode =
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.String.fromList resources.lookupTable
                     |> Maybe.map
                         (\fromListCall ->
-                            case listDetermineLength resources fromListCall.firstArg of
-                                AtLeast minLength ->
-                                    AtLeast minLength
-
-                                Exactly 0 ->
-                                    Exactly 0
-
-                                Exactly charCount ->
-                                    AtLeast charCount
+                            let
+                                charCount : CollectionSize
+                                charCount =
+                                    listDetermineLength resources fromListCall.firstArg
+                            in
+                            { min = charCount.min
+                            , max = Maybe.map (\max -> max * 2) charCount.max
+                            }
                         )
             )
         |> onNothing
@@ -12908,35 +12911,20 @@ stringDetermineLength resources expressionNode =
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.String.repeat resources.lookupTable
                     |> Maybe.andThen
                         (\repeatCall ->
-                            let
-                                repeatedCharCountNormal : Expression
-                                repeatedCharCountNormal =
-                                    Normalize.normalizeExpression resources repeatCall.firstArg
+                            case repeatCall.argsAfterFirst of
+                                [ toRepeatArg ] ->
+                                    Just
+                                        (collectionSizeCombineEachBoundWith (*)
+                                            (stringDetermineLength resources toRepeatArg)
+                                            (numberBoundsToCollectionSize
+                                                (normalGetNumberBounds
+                                                    (Normalize.normalizeExpression resources repeatCall.firstArg)
+                                                )
+                                            )
+                                        )
 
-                                repeatedCharCountMin : Float
-                                repeatedCharCountMin =
-                                    (normalGetNumberBounds repeatedCharCountNormal).min
-                            in
-                            if repeatedCharCountMin <= 0 then
-                                Nothing
-
-                            else
-                                case repeatCall.argsAfterFirst of
-                                    [ toRepeatArg ] ->
-                                        case stringDetermineLength resources toRepeatArg of
-                                            AtLeast segmentToRepeatLengthMin ->
-                                                Just (AtLeast (segmentToRepeatLengthMin * Basics.floor repeatedCharCountMin))
-
-                                            Exactly segmentToRepeatLength ->
-                                                case repeatedCharCountNormal of
-                                                    Expression.Floatable repeatedCharCount ->
-                                                        Just (Exactly (segmentToRepeatLength * Basics.floor repeatedCharCount))
-
-                                                    _ ->
-                                                        Just (AtLeast (segmentToRepeatLength * Basics.floor repeatedCharCountMin))
-
-                                    _ ->
-                                        Nothing
+                                _ ->
+                                    Nothing
                         )
             )
         |> onNothing
@@ -12948,7 +12936,7 @@ stringDetermineLength resources expressionNode =
                             case appendCall.argsAfterFirst of
                                 [ appendRightArg ] ->
                                     Just
-                                        (collectionSizeAdd
+                                        (collectionSizeCombineEachBoundWith (+)
                                             (stringDetermineLength resources appendCall.firstArg)
                                             (stringDetermineLength resources appendRightArg)
                                         )
@@ -12962,7 +12950,7 @@ stringDetermineLength resources expressionNode =
                 case AstHelpers.removeParens expressionNode of
                     Node _ (Expression.OperatorApplication "++" _ left right) ->
                         Just
-                            (collectionSizeAdd
+                            (collectionSizeCombineEachBoundWith (+)
                                 (stringDetermineLength resources left)
                                 (stringDetermineLength resources right)
                             )
@@ -12971,41 +12959,6 @@ stringDetermineLength resources expressionNode =
                         Nothing
             )
         |> Maybe.withDefault collectionSizeUnknown
-
-
-collectionSizeAdd : CollectionSize -> CollectionSize -> CollectionSize
-collectionSizeAdd aCollectionSize bCollectionSize =
-    case aCollectionSize of
-        AtLeast aCollectionSizeMin ->
-            AtLeast (aCollectionSizeMin + collectionSizeMin bCollectionSize)
-
-        Exactly aCollectionSizeExact ->
-            case bCollectionSize of
-                AtLeast bCollectionSizeMin ->
-                    AtLeast (aCollectionSizeExact + bCollectionSizeMin)
-
-                Exactly bCollectionSizeExact ->
-                    Exactly (aCollectionSizeExact + bCollectionSizeExact)
-
-
-collectionSizeMin : CollectionSize -> Int
-collectionSizeMin maybeCollectionSize =
-    case maybeCollectionSize of
-        AtLeast min ->
-            min
-
-        Exactly collectionSize ->
-            collectionSize
-
-
-collectionSizeAdd1 : CollectionSize -> CollectionSize
-collectionSizeAdd1 maybeCollectionSize =
-    case maybeCollectionSize of
-        AtLeast min ->
-            AtLeast (min + 1)
-
-        Exactly collectionSize ->
-            Exactly (collectionSize + 1)
 
 
 stringGetElements : Infer.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
@@ -13056,7 +13009,7 @@ arrayGetElements resources expressionNode =
 arrayDetermineLength : Normalize.Resources a -> Node Expression -> CollectionSize
 arrayDetermineLength resources expressionNode =
     (if AstHelpers.isSpecificValueReference resources.lookupTable Fn.Array.empty expressionNode then
-        Just (Exactly 0)
+        Just (collectionSizeExact 0)
 
      else
         Nothing
@@ -13074,8 +13027,10 @@ arrayDetermineLength resources expressionNode =
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Array.repeat resources.lookupTable expressionNode of
                     Just repeatCall ->
-                        Normalize.getInt resources repeatCall.firstArg
-                            |> Maybe.map (\n -> Exactly (max 0 n))
+                        Just
+                            (numberBoundsToCollectionSize
+                                (normalGetNumberBounds (Normalize.normalizeExpression resources repeatCall.firstArg))
+                            )
 
                     Nothing ->
                         Nothing
@@ -13083,9 +13038,11 @@ arrayDetermineLength resources expressionNode =
         |> onNothing
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Array.initialize resources.lookupTable expressionNode of
-                    Just repeatCall ->
-                        Normalize.getInt resources repeatCall.firstArg
-                            |> Maybe.map (\n -> Exactly (max 0 n))
+                    Just initializeCall ->
+                        Just
+                            (numberBoundsToCollectionSize
+                                (normalGetNumberBounds (Normalize.normalizeExpression resources initializeCall.firstArg))
+                            )
 
                     Nothing ->
                         Nothing
@@ -13184,7 +13141,7 @@ getComparableWithExpressionNode resources expressionNode =
 setDetermineSize : Normalize.Resources res -> Node Expression -> CollectionSize
 setDetermineSize resources expressionNode =
     (if AstHelpers.isSpecificValueReference resources.lookupTable Fn.Set.empty expressionNode then
-        Just (Exactly 0)
+        Just (collectionSizeExact 0)
 
      else
         Nothing
@@ -13195,7 +13152,7 @@ setDetermineSize resources expressionNode =
                     expressionNode
                         |> AstHelpers.isSpecificUnreducedFnCall Fn.Set.singleton resources.lookupTable
                 then
-                    Just (Exactly 1)
+                    Just (collectionSizeExact 1)
 
                 else
                     Nothing
@@ -13214,10 +13171,10 @@ setDetermineSize resources expressionNode =
                                                 comparableListElements |> countUnique
                                         in
                                         if listElements.allKnown then
-                                            Just (Exactly uniqueElementCount)
+                                            Just (collectionSizeExact uniqueElementCount)
 
                                         else
-                                            Just (AtLeast uniqueElementCount)
+                                            Just { min = uniqueElementCount, max = Nothing }
 
                                     Nothing ->
                                         Nothing
@@ -13227,18 +13184,12 @@ setDetermineSize resources expressionNode =
                         )
                             |> maybeWithDefaultLazy
                                 (\() ->
-                                    case listDetermineLength resources fromListCall.firstArg of
-                                        Exactly 0 ->
-                                            Exactly 0
-
-                                        Exactly 1 ->
-                                            Exactly 1
-
-                                        AtLeast 0 ->
-                                            AtLeast 0
-
-                                        _ ->
-                                            AtLeast 1
+                                    let
+                                        listLength : CollectionSize
+                                        listLength =
+                                            listDetermineLength resources fromListCall.firstArg
+                                    in
+                                    { min = min 1 listLength.min, max = listLength.max }
                                 )
                             |> Just
 
@@ -13271,24 +13222,18 @@ dictDetermineSize :
     -> CollectionSize
 dictDetermineSize resources expressionNode =
     (if AstHelpers.isSpecificValueReference resources.lookupTable Fn.Dict.empty expressionNode then
-        Just (Exactly 0)
+        Just (collectionSizeExact 0)
 
      else
         Nothing
     )
         |> onNothing
             (\() ->
-                expressionNode
-                    |> AstHelpers.getSpecificUnreducedFnCall Fn.Dict.singleton resources.lookupTable
-                    |> Maybe.andThen
-                        (\singletonCall ->
-                            case singletonCall.argsAfterFirst of
-                                _ :: [] ->
-                                    Just (Exactly 1)
+                if AstHelpers.isSpecificUnreducedFnCall Fn.Dict.singleton resources.lookupTable expressionNode then
+                    Just (collectionSizeExact 1)
 
-                                _ ->
-                                    Nothing
-                        )
+                else
+                    Nothing
             )
         |> onNothing
             (\() ->
@@ -13299,15 +13244,15 @@ dictDetermineSize resources expressionNode =
                                 case traverse (\element -> getTupleWithComparableFirst resources element) listElements.known of
                                     Just comparableKeyExpressions ->
                                         let
-                                            uniqueElementCount : Int
-                                            uniqueElementCount =
+                                            uniqueKeyCount : Int
+                                            uniqueKeyCount =
                                                 comparableKeyExpressions |> countUniqueBy .comparableFirst
                                         in
                                         if listElements.allKnown then
-                                            Just (Exactly uniqueElementCount)
+                                            Just (collectionSizeExact uniqueKeyCount)
 
                                         else
-                                            Just (AtLeast uniqueElementCount)
+                                            Just { min = uniqueKeyCount, max = Nothing }
 
                                     Nothing ->
                                         Nothing
@@ -13317,18 +13262,12 @@ dictDetermineSize resources expressionNode =
                         )
                             |> maybeWithDefaultLazy
                                 (\() ->
-                                    case listDetermineLength resources fromListCall.firstArg of
-                                        Exactly 0 ->
-                                            Exactly 0
-
-                                        Exactly 1 ->
-                                            Exactly 1
-
-                                        AtLeast 0 ->
-                                            AtLeast 0
-
-                                        _ ->
-                                            AtLeast 1
+                                    let
+                                        listLength : CollectionSize
+                                        listLength =
+                                            listDetermineLength resources fromListCall.firstArg
+                                    in
+                                    { min = min 1 listLength.min, max = listLength.max }
                                 )
                             |> Just
 
@@ -16431,9 +16370,12 @@ dropOnSmallerCollectionCheck : { dropCount : Int } -> TypeProperties (Collection
 dropOnSmallerCollectionCheck config collection checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just listArg ->
-            case collection.elements.determineCount (extractNormalizeResources checkInfo) listArg of
-                Exactly length ->
-                    if config.dropCount >= length then
+            case (collection.elements.determineCount (extractNormalizeResources checkInfo) listArg).max of
+                Nothing ->
+                    Nothing
+
+                Just elementCountMax ->
+                    if config.dropCount >= elementCountMax then
                         Just
                             (alwaysResultsInUnparenthesizedConstantError
                                 (qualifiedToString checkInfo.fn ++ " with a count greater than or equal to the given " ++ collection.represents ++ "'s length")
@@ -16443,9 +16385,6 @@ dropOnSmallerCollectionCheck config collection checkInfo =
 
                     else
                         Nothing
-
-                AtLeast _ ->
-                    Nothing
 
         Nothing ->
             Nothing
@@ -18707,42 +18646,59 @@ collectionInsertChecks collection =
 
 collectionIsEmptyChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> CallCheckInfo -> Maybe (Error {})
 collectionIsEmptyChecks collection checkInfo =
-    case collection.elements.determineCount (extractNormalizeResources checkInfo) checkInfo.firstArg of
-        Exactly 0 ->
-            Just
-                (resultsInConstantError
-                    (qualifiedToString checkInfo.fn ++ " on " ++ typeSubsetDescriptionIndefinite collection.empty)
-                    (\res -> qualifiedToString (qualify Fn.Basics.trueVariant res))
-                    checkInfo
-                )
+    let
+        collectionSize : CollectionSize
+        collectionSize =
+            collection.elements.determineCount (extractNormalizeResources checkInfo) checkInfo.firstArg
+    in
+    if collectionSize.min >= 1 then
+        Just
+            (resultsInConstantError
+                (qualifiedToString checkInfo.fn ++ " on this " ++ collection.represents)
+                (\res -> qualifiedToString (qualify Fn.Basics.falseVariant res))
+                checkInfo
+            )
 
-        AtLeast 0 ->
-            Nothing
+    else
+        case collectionSize.max of
+            Just 0 ->
+                Just
+                    (resultsInConstantError
+                        (qualifiedToString checkInfo.fn ++ " on " ++ typeSubsetDescriptionIndefinite collection.empty)
+                        (\res -> qualifiedToString (qualify Fn.Basics.trueVariant res))
+                        checkInfo
+                    )
 
-        _ ->
-            Just
-                (resultsInConstantError
-                    (qualifiedToString checkInfo.fn ++ " on this " ++ collection.represents)
-                    (\res -> qualifiedToString (qualify Fn.Basics.falseVariant res))
-                    checkInfo
-                )
+            _ ->
+                Nothing
 
 
 collectionSizeChecks : TypeProperties (CollectionProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 collectionSizeChecks collection checkInfo =
-    case collection.elements.determineCount (extractNormalizeResources checkInfo) checkInfo.firstArg of
-        Exactly size ->
-            Just
-                (Rule.errorWithFix
-                    { message = "The " ++ collection.elements.countDescription ++ " of the " ++ collection.represents ++ " is " ++ String.fromInt size
-                    , details = [ "The " ++ collection.elements.countDescription ++ " of the " ++ collection.represents ++ " can be determined by looking at the code." ]
-                    }
-                    checkInfo.fnRange
-                    [ Fix.replaceRangeBy checkInfo.parentRange (String.fromInt size) ]
-                )
-
-        AtLeast _ ->
+    let
+        collectionSize : CollectionSize
+        collectionSize =
+            collection.elements.determineCount (extractNormalizeResources checkInfo) checkInfo.firstArg
+    in
+    case collectionSize.max of
+        Nothing ->
             Nothing
+
+        Just collectionSizeMax ->
+            if collectionSize.min == collectionSizeMax then
+                Just
+                    (Rule.errorWithFix
+                        { message = "The " ++ collection.elements.countDescription ++ " of the " ++ collection.represents ++ " is " ++ String.fromInt collectionSize.min
+                        , details = [ "The " ++ collection.elements.countDescription ++ " of the " ++ collection.represents ++ " can be determined by looking at the code." ]
+                        }
+                        checkInfo.fnRange
+                        [ Fix.replaceRangeBy checkInfo.parentRange
+                            (String.fromInt collectionSize.min)
+                        ]
+                    )
+
+            else
+                Nothing
 
 
 {-| On a "take" operation that returns a given number of elements _from the either side_
@@ -18940,14 +18896,53 @@ emptiablePartitionWithExtraArgChecks emptiable checkInfo =
             )
 
 
-type CollectionSize
-    = Exactly Int
-    | AtLeast Int
+type alias CollectionSize =
+    { min : Int, max : Maybe Int }
 
 
 collectionSizeUnknown : CollectionSize
 collectionSizeUnknown =
-    AtLeast 0
+    { min = 0, max = Nothing }
+
+
+collectionSizeExact : Int -> CollectionSize
+collectionSizeExact n =
+    { min = n, max = Just n }
+
+
+collectionSizeAdd1 : CollectionSize -> CollectionSize
+collectionSizeAdd1 collectionSize =
+    { min = collectionSize.min + 1
+    , max = Maybe.map (\max -> max + 1) collectionSize.max
+    }
+
+
+collectionSizeCombineEachBoundWith : (Int -> Int -> Int) -> CollectionSize -> CollectionSize -> CollectionSize
+collectionSizeCombineEachBoundWith combineABBounds aCollectionSize bCollectionSize =
+    { min = combineABBounds aCollectionSize.min bCollectionSize.min
+    , max = Maybe.map2 combineABBounds aCollectionSize.max bCollectionSize.max
+    }
+
+
+numberBoundsToCollectionSize : { min : Float, max : Float } -> CollectionSize
+numberBoundsToCollectionSize numberBounds =
+    { min = numberBoundToCollectionSizeMin numberBounds.min
+    , max = numberBoundToCollectionSizeMax numberBounds.max
+    }
+
+
+numberBoundToCollectionSizeMin : Float -> Int
+numberBoundToCollectionSizeMin numberBound =
+    floor (max 0 numberBound)
+
+
+numberBoundToCollectionSizeMax : Float -> Maybe Int
+numberBoundToCollectionSizeMax numberBound =
+    if numberBound == positiveInfinity then
+        Nothing
+
+    else
+        Just (floor (max 0 numberBound))
 
 
 replaceSingleElementListBySingleValue : ModuleNameLookupTable -> Node Expression -> Maybe (List Fix)
@@ -21026,42 +21021,9 @@ normalGetNumberBounds expressionNormal =
                         (numberBoundsNegate (normalGetNumberBounds right))
 
                 "*" ->
-                    let
-                        leftBounds : { min : Float, max : Float }
-                        leftBounds =
-                            normalGetNumberBounds left
-
-                        rightBounds : { min : Float, max : Float }
-                        rightBounds =
-                            normalGetNumberBounds right
-
-                        leftMinTimesRightMin : Float
-                        leftMinTimesRightMin =
-                            leftBounds.min * rightBounds.min
-
-                        leftMinTimesRightMax : Float
-                        leftMinTimesRightMax =
-                            leftBounds.min * rightBounds.max
-
-                        leftMaxTimesRightMin : Float
-                        leftMaxTimesRightMin =
-                            leftBounds.max * rightBounds.min
-
-                        leftMaxTimesRightMax : Float
-                        leftMaxTimesRightMax =
-                            leftBounds.max * rightBounds.max
-                    in
-                    { min =
-                        leftMinTimesRightMin
-                            |> min leftMinTimesRightMax
-                            |> min leftMaxTimesRightMin
-                            |> min leftMaxTimesRightMax
-                    , max =
-                        leftMinTimesRightMin
-                            |> max leftMinTimesRightMax
-                            |> max leftMaxTimesRightMin
-                            |> max leftMaxTimesRightMax
-                    }
+                    numberBoundsMultiply
+                        (normalGetNumberBounds left)
+                        (normalGetNumberBounds right)
 
                 _ ->
                     numberBoundsUnknown
@@ -21070,10 +21032,49 @@ normalGetNumberBounds expressionNormal =
             numberBoundsUnknown
 
 
+numberBoundsMultiply : { max : Float, min : Float } -> { min : Float, max : Float } -> { max : Float, min : Float }
+numberBoundsMultiply leftBounds rightBounds =
+    let
+        leftMinTimesRightMin : Float
+        leftMinTimesRightMin =
+            leftBounds.min * rightBounds.min
+
+        leftMinTimesRightMax : Float
+        leftMinTimesRightMax =
+            leftBounds.min * rightBounds.max
+
+        leftMaxTimesRightMin : Float
+        leftMaxTimesRightMin =
+            leftBounds.max * rightBounds.min
+
+        leftMaxTimesRightMax : Float
+        leftMaxTimesRightMax =
+            leftBounds.max * rightBounds.max
+    in
+    { min =
+        leftMinTimesRightMin
+            |> min leftMinTimesRightMax
+            |> min leftMaxTimesRightMin
+            |> min leftMaxTimesRightMax
+    , max =
+        leftMinTimesRightMin
+            |> max leftMinTimesRightMax
+            |> max leftMaxTimesRightMin
+            |> max leftMaxTimesRightMax
+    }
+
+
 numberBoundsNegate : { max : Float, min : Float } -> { min : Float, max : Float }
 numberBoundsNegate numberBounds =
     { min = -numberBounds.max
     , max = -numberBounds.min
+    }
+
+
+numberBoundsAlterEach : (Float -> Float) -> { max : Float, min : Float } -> { min : Float, max : Float }
+numberBoundsAlterEach boundChange numberBounds =
+    { min = boundChange numberBounds.min
+    , max = boundChange numberBounds.max
     }
 
 

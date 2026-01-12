@@ -10,7 +10,13 @@ import Test exposing (Test)
 all : Test
 all =
     Test.describe "simplification correctness"
-        [ Test.fuzz
+        [ Test.fuzz Fuzz.char
+            "char as string length is at most 2"
+            (\char ->
+                String.length (String.fromChar char)
+                    |> Expect.lessThan 3
+            )
+        , Test.fuzz
             (Fuzz.pair
                 (Fuzz.pair fuzzFloatWithoutNaN fuzzFloatWithoutNaN
                     |> Fuzz.map
