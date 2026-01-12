@@ -12686,27 +12686,20 @@ listGetElements resources expressionNode =
             (\() ->
                 case AstHelpers.removeParens expressionNode of
                     Node _ (Expression.OperatorApplication "++" _ leftList rightList) ->
-                        case
-                            listGetElements resources leftList
-                                |> Maybe.map
-                                    (\lefts ->
-                                        ( lefts
-                                        , if lefts.allKnown then
-                                            listGetElements resources rightList
-
-                                          else
-                                            Nothing
-                                        )
-                                    )
-                        of
-                            Just ( leftElements, Just rightElements ) ->
-                                Just { allKnown = rightElements.allKnown, known = leftElements.known ++ rightElements.known }
-
-                            Just ( leftElements, Nothing ) ->
-                                Just { known = leftElements.known, allKnown = False }
-
+                        case listGetElements resources leftList of
                             Nothing ->
                                 Nothing
+
+                            Just leftElements ->
+                                case listGetElements resources rightList of
+                                    Just rightElements ->
+                                        Just
+                                            { allKnown = leftElements.allKnown && rightElements.allKnown
+                                            , known = leftElements.known ++ rightElements.known
+                                            }
+
+                                    Nothing ->
+                                        Just { known = leftElements.known, allKnown = False }
 
                     _ ->
                         Nothing
