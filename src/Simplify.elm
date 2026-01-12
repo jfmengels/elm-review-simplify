@@ -1898,6 +1898,7 @@ All of these also apply for `Sub`.
 
 -}
 
+import AssocList
 import Dict exposing (Dict)
 import Elm.Docs
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
@@ -18945,6 +18946,19 @@ numberBoundToCollectionSizeMax numberBound =
         Just (floor (max 0 numberBound))
 
 
+collectionSizeToNumberBounds : CollectionSize -> { min : Float, max : Float }
+collectionSizeToNumberBounds collectionSize =
+    { min = Basics.toFloat collectionSize.min
+    , max =
+        case collectionSize.max of
+            Nothing ->
+                positiveInfinity
+
+            Just max ->
+                Basics.toFloat max
+    }
+
+
 replaceSingleElementListBySingleValue : ModuleNameLookupTable -> Node Expression -> Maybe (List Fix)
 replaceSingleElementListBySingleValue lookupTable expressionNode =
     case Node.value (AstHelpers.removeParens expressionNode) of
@@ -20918,6 +20932,18 @@ numberBoundsCompare leftBounds rightBounds =
         Nothing
 
 
+{-| Use when a helper function expects `Normalize.Resources` to be passed
+but the piece of syntax is already normalized
+-}
+normalizeResourcesNone : Normalize.Resources {}
+normalizeResourcesNone =
+    { lookupTable = ModuleNameLookupTable.createForTests [] []
+    , inferredConstants = ( Infer.Inferred { facts = [], deduced = AssocList.empty }, [] )
+    , importCustomTypes = Dict.empty
+    , moduleCustomTypes = Dict.empty
+    }
+
+
 normalGetNumberBounds : Expression -> { min : Float, max : Float }
 normalGetNumberBounds expressionNormal =
     case expressionNormal of
@@ -20934,21 +20960,32 @@ normalGetNumberBounds expressionNormal =
                     ( moduleOrigin, name )
             in
             case args of
-                [ Node _ arg0 ] ->
-                    if
-                        (fn == Fn.Array.length)
-                            || (fn == Fn.List.length)
-                            || (fn == Fn.String.length)
-                            || (fn == Fn.Set.size)
-                            || (fn == Fn.Dict.size)
-                    then
-                        { min = 0, max = positiveInfinity }
+                [ arg0 ] ->
+                    if fn == Fn.Array.length then
+                        collectionSizeToNumberBounds
+                            (arrayDetermineLength normalizeResourcesNone arg0)
+
+                    else if fn == Fn.List.length then
+                        collectionSizeToNumberBounds
+                            (listDetermineLength normalizeResourcesNone arg0)
+
+                    else if fn == Fn.String.length then
+                        collectionSizeToNumberBounds
+                            (stringDetermineLength normalizeResourcesNone arg0)
+
+                    else if fn == Fn.Set.size then
+                        collectionSizeToNumberBounds
+                            (setDetermineSize normalizeResourcesNone arg0)
+
+                    else if fn == Fn.Dict.size then
+                        collectionSizeToNumberBounds
+                            (dictDetermineSize normalizeResourcesNone arg0)
 
                     else if fn == Fn.Basics.abs then
                         let
                             arg0NumberBounds : { min : Float, max : Float }
                             arg0NumberBounds =
-                                normalGetNumberBounds arg0
+                                normalGetNumberBounds (Node.value arg0)
                         in
                         if arg0NumberBounds.min >= 0 then
                             arg0NumberBounds
