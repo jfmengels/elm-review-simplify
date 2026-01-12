@@ -12042,7 +12042,7 @@ type alias CollectionProperties otherProperties =
         | elements :
             { countDescription : String
             , elementDescription : String
-            , determineCount : Normalize.Resources {} -> Node Expression -> Maybe CollectionSize
+            , determineCount : Normalize.Resources {} -> Node Expression -> CollectionSize
             , get :
                 Normalize.Resources {}
                 -> Node Expression
@@ -12712,7 +12712,7 @@ listGetElements resources expressionNode =
             )
 
 
-listDetermineLength : Normalize.Resources a -> Node Expression -> Maybe CollectionSize
+listDetermineLength : Normalize.Resources a -> Node Expression -> CollectionSize
 listDetermineLength resources expressionNode =
     expressionNode
         |> AstHelpers.getListLiteral
@@ -12732,8 +12732,12 @@ listDetermineLength resources expressionNode =
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.List.repeat resources.lookupTable expressionNode of
                     Just repeatCall ->
-                        Normalize.getInt resources repeatCall.firstArg
-                            |> Maybe.map (\n -> Exactly (max 0 n))
+                        case Normalize.getInt resources repeatCall.firstArg of
+                            Nothing ->
+                                Just collectionSizeUnknown
+
+                            Just repeatCount ->
+                                Just (Exactly (max 0 repeatCount))
 
                     Nothing ->
                         Nothing
@@ -12742,30 +12746,58 @@ listDetermineLength resources expressionNode =
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.List.range resources.lookupTable expressionNode of
                     Just rangeCall ->
-                        case Normalize.getInt resources rangeCall.firstArg of
+                        (case Normalize.getInt resources rangeCall.firstArg of
                             Just start ->
                                 case Maybe.andThen (\endArg -> Normalize.getInt resources endArg) (List.head rangeCall.argsAfterFirst) of
                                     Just end ->
-                                        Just (Exactly (max 0 (end - start)))
+                                        Exactly (max 0 (end - start))
 
                                     Nothing ->
-                                        Nothing
+                                        collectionSizeUnknown
 
                             _ ->
-                                Nothing
+                                collectionSizeUnknown
+                        )
+                            |> Just
 
                     Nothing ->
                         Nothing
             )
         |> onNothing
             (\() ->
-                case AstHelpers.removeParens expressionNode of
-                    Node _ (Expression.OperatorApplication "::" _ _ right) ->
-                        maybeCollectionSizeAdd1 (listDetermineLength resources right)
+                case Node.value (AstHelpers.removeParens expressionNode) of
+                    Expression.OperatorApplication "::" _ _ right ->
+                        Just (collectionSizeAdd1 (listDetermineLength resources right))
+
+                    Expression.OperatorApplication "++" _ left right ->
+                        Just
+                            (collectionSizeAdd
+                                (listDetermineLength resources left)
+                                (listDetermineLength resources right)
+                            )
 
                     _ ->
                         Nothing
             )
+        |> onNothing
+            (\() ->
+                expressionNode
+                    |> AstHelpers.getSpecificUnreducedFnCall Fn.List.append resources.lookupTable
+                    |> Maybe.andThen
+                        (\appendCall ->
+                            case appendCall.argsAfterFirst of
+                                [ appendRightArg ] ->
+                                    Just
+                                        (collectionSizeAdd
+                                            (listDetermineLength resources appendCall.firstArg)
+                                            (listDetermineLength resources appendRightArg)
+                                        )
+
+                                _ ->
+                                    Nothing
+                        )
+            )
+        |> Maybe.withDefault collectionSizeUnknown
 
 
 stringCollection : TypeProperties (CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) })))))
@@ -12812,7 +12844,7 @@ singleCharConstruct =
     fnCallConstructWithOneValueProperties (A "single-char string") Fn.String.fromChar
 
 
-stringDetermineLength : Normalize.Resources res -> Node Expression -> Maybe CollectionSize
+stringDetermineLength : Normalize.Resources res -> Node Expression -> CollectionSize
 stringDetermineLength resources expressionNode =
     (case AstHelpers.removeParens expressionNode of
         Node _ (Expression.Literal string) ->
@@ -12834,7 +12866,7 @@ stringDetermineLength resources expressionNode =
                                 |> AstHelpers.isSpecificUnreducedFnCall Fn.String.fromFloat resources.lookupTable
                            )
                 then
-                    Just NotEmpty
+                    Just (AtLeast 1)
 
                 else
                     Nothing
@@ -12843,19 +12875,17 @@ stringDetermineLength resources expressionNode =
             (\() ->
                 expressionNode
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.String.fromList resources.lookupTable
-                    |> Maybe.andThen
-                        (\fromListCall -> listDetermineLength resources fromListCall.firstArg)
                     |> Maybe.map
-                        (\charCount ->
-                            case charCount of
-                                NotEmpty ->
-                                    NotEmpty
+                        (\fromListCall ->
+                            case listDetermineLength resources fromListCall.firstArg of
+                                AtLeast minLength ->
+                                    AtLeast minLength
 
                                 Exactly 0 ->
                                     Exactly 0
 
-                                Exactly _ ->
-                                    NotEmpty
+                                Exactly charCount ->
+                                    AtLeast charCount
                         )
             )
         |> onNothing
@@ -12864,10 +12894,12 @@ stringDetermineLength resources expressionNode =
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.String.cons resources.lookupTable
                     |> Maybe.andThen
                         (\consCall ->
-                            maybeCollectionSizeAdd1
-                                (Maybe.andThen (\tailArg -> stringDetermineLength resources tailArg)
-                                    (List.head consCall.argsAfterFirst)
-                                )
+                            case consCall.argsAfterFirst of
+                                [ tailArg ] ->
+                                    Just (collectionSizeAdd1 (stringDetermineLength resources tailArg))
+
+                                _ ->
+                                    Nothing
                         )
             )
         |> onNothing
@@ -12880,27 +12912,28 @@ stringDetermineLength resources expressionNode =
                                 repeatedCharCountNormal : Expression
                                 repeatedCharCountNormal =
                                     Normalize.normalizeExpression resources repeatCall.firstArg
+
+                                repeatedCharCountMin : Float
+                                repeatedCharCountMin =
+                                    (normalGetNumberBounds repeatedCharCountNormal).min
                             in
-                            if (normalGetNumberBounds repeatedCharCountNormal).min <= 0 then
+                            if repeatedCharCountMin <= 0 then
                                 Nothing
 
                             else
                                 case repeatCall.argsAfterFirst of
                                     [ toRepeatArg ] ->
                                         case stringDetermineLength resources toRepeatArg of
-                                            Nothing ->
-                                                Nothing
+                                            AtLeast segmentToRepeatLengthMin ->
+                                                Just (AtLeast (segmentToRepeatLengthMin * Basics.floor repeatedCharCountMin))
 
-                                            Just NotEmpty ->
-                                                Just NotEmpty
-
-                                            Just (Exactly repeatCount) ->
+                                            Exactly segmentToRepeatLength ->
                                                 case repeatedCharCountNormal of
                                                     Expression.Floatable repeatedCharCount ->
-                                                        Just (Exactly (repeatCount * Basics.round repeatedCharCount))
+                                                        Just (Exactly (segmentToRepeatLength * Basics.floor repeatedCharCount))
 
                                                     _ ->
-                                                        Just NotEmpty
+                                                        Just (AtLeast (segmentToRepeatLength * Basics.floor repeatedCharCountMin))
 
                                     _ ->
                                         Nothing
@@ -12914,9 +12947,11 @@ stringDetermineLength resources expressionNode =
                         (\appendCall ->
                             case appendCall.argsAfterFirst of
                                 [ appendRightArg ] ->
-                                    maybeCollectionSizeAdd
-                                        (stringDetermineLength resources appendCall.firstArg)
-                                        (stringDetermineLength resources appendRightArg)
+                                    Just
+                                        (collectionSizeAdd
+                                            (stringDetermineLength resources appendCall.firstArg)
+                                            (stringDetermineLength resources appendRightArg)
+                                        )
 
                                 _ ->
                                     Nothing
@@ -12926,68 +12961,51 @@ stringDetermineLength resources expressionNode =
             (\() ->
                 case AstHelpers.removeParens expressionNode of
                     Node _ (Expression.OperatorApplication "++" _ left right) ->
-                        maybeCollectionSizeAdd
-                            (stringDetermineLength resources left)
-                            (stringDetermineLength resources right)
+                        Just
+                            (collectionSizeAdd
+                                (stringDetermineLength resources left)
+                                (stringDetermineLength resources right)
+                            )
 
                     _ ->
                         Nothing
             )
+        |> Maybe.withDefault collectionSizeUnknown
 
 
-maybeCollectionSizeAdd : Maybe CollectionSize -> Maybe CollectionSize -> Maybe CollectionSize
-maybeCollectionSizeAdd aMaybeCollectionSize bMaybeCollectionSize =
-    case aMaybeCollectionSize of
-        Nothing ->
-            if maybeCollectionSizeIsAtLeast1 bMaybeCollectionSize then
-                Just NotEmpty
+collectionSizeAdd : CollectionSize -> CollectionSize -> CollectionSize
+collectionSizeAdd aCollectionSize bCollectionSize =
+    case aCollectionSize of
+        AtLeast aCollectionSizeMin ->
+            AtLeast (aCollectionSizeMin + collectionSizeMin bCollectionSize)
 
-            else
-                Nothing
+        Exactly aCollectionSizeExact ->
+            case bCollectionSize of
+                AtLeast bCollectionSizeMin ->
+                    AtLeast (aCollectionSizeExact + bCollectionSizeMin)
 
-        Just NotEmpty ->
-            Just NotEmpty
-
-        Just (Exactly aLength) ->
-            case bMaybeCollectionSize of
-                Nothing ->
-                    if aLength >= 0 then
-                        Just NotEmpty
-
-                    else
-                        Nothing
-
-                Just NotEmpty ->
-                    Just NotEmpty
-
-                Just (Exactly bLength) ->
-                    Just (Exactly (aLength + bLength))
+                Exactly bCollectionSizeExact ->
+                    Exactly (aCollectionSizeExact + bCollectionSizeExact)
 
 
-maybeCollectionSizeIsAtLeast1 : Maybe CollectionSize -> Bool
-maybeCollectionSizeIsAtLeast1 maybeCollectionSize =
+collectionSizeMin : CollectionSize -> Int
+collectionSizeMin maybeCollectionSize =
     case maybeCollectionSize of
-        Nothing ->
-            False
+        AtLeast min ->
+            min
 
-        Just NotEmpty ->
-            True
-
-        Just (Exactly length) ->
-            length >= 1
+        Exactly collectionSize ->
+            collectionSize
 
 
-maybeCollectionSizeAdd1 : Maybe CollectionSize -> Maybe CollectionSize
-maybeCollectionSizeAdd1 collectionSize =
-    case collectionSize of
-        Nothing ->
-            Just NotEmpty
+collectionSizeAdd1 : CollectionSize -> CollectionSize
+collectionSizeAdd1 maybeCollectionSize =
+    case maybeCollectionSize of
+        AtLeast min ->
+            AtLeast (min + 1)
 
-        Just NotEmpty ->
-            Just NotEmpty
-
-        Just (Exactly tailLength) ->
-            Just (Exactly (1 + tailLength))
+        Exactly collectionSize ->
+            Exactly (collectionSize + 1)
 
 
 stringGetElements : Infer.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
@@ -13035,7 +13053,7 @@ arrayGetElements resources expressionNode =
                 Nothing
 
 
-arrayDetermineLength : Normalize.Resources a -> Node Expression -> Maybe CollectionSize
+arrayDetermineLength : Normalize.Resources a -> Node Expression -> CollectionSize
 arrayDetermineLength resources expressionNode =
     (if AstHelpers.isSpecificValueReference resources.lookupTable Fn.Array.empty expressionNode then
         Just (Exactly 0)
@@ -13047,7 +13065,7 @@ arrayDetermineLength resources expressionNode =
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Array.fromList resources.lookupTable expressionNode of
                     Just fromListCall ->
-                        listDetermineLength resources fromListCall.firstArg
+                        Just (listDetermineLength resources fromListCall.firstArg)
 
                     Nothing ->
                         Nothing
@@ -13078,12 +13096,15 @@ arrayDetermineLength resources expressionNode =
                     |> AstHelpers.getSpecificUnreducedFnCall Fn.Array.push resources.lookupTable
                     |> Maybe.andThen
                         (\pushCall ->
-                            maybeCollectionSizeAdd1
-                                (Maybe.andThen (\arrayArg -> arrayDetermineLength resources arrayArg)
-                                    (List.head pushCall.argsAfterFirst)
-                                )
+                            case pushCall.argsAfterFirst of
+                                [ arrayArg ] ->
+                                    Just (collectionSizeAdd1 (arrayDetermineLength resources arrayArg))
+
+                                _ ->
+                                    Nothing
                         )
             )
+        |> Maybe.withDefault collectionSizeUnknown
 
 
 setCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties (MappableProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) }))))))
@@ -13160,7 +13181,7 @@ getComparableWithExpressionNode resources expressionNode =
         |> Maybe.map (\comparable -> { comparable = comparable, expressionNode = expressionNode })
 
 
-setDetermineSize : Normalize.Resources res -> Node Expression -> Maybe CollectionSize
+setDetermineSize : Normalize.Resources res -> Node Expression -> CollectionSize
 setDetermineSize resources expressionNode =
     (if AstHelpers.isSpecificValueReference resources.lookupTable Fn.Set.empty expressionNode then
         Just (Exactly 0)
@@ -13183,38 +13204,48 @@ setDetermineSize resources expressionNode =
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Set.fromList resources.lookupTable expressionNode of
                     Just fromListCall ->
-                        case listGetElements resources fromListCall.firstArg of
+                        (case listGetElements resources fromListCall.firstArg of
                             Just listElements ->
-                                if listElements.allKnown then
-                                    case traverse (\element -> expressionToComparable resources element) listElements.known of
-                                        Just comparableListElements ->
-                                            comparableListElements |> countUnique |> Exactly |> Just
+                                case traverse (\element -> expressionToComparable resources element) listElements.known of
+                                    Just comparableListElements ->
+                                        let
+                                            uniqueElementCount : Int
+                                            uniqueElementCount =
+                                                comparableListElements |> countUnique
+                                        in
+                                        if listElements.allKnown then
+                                            Just (Exactly uniqueElementCount)
 
-                                        Nothing ->
-                                            case listElements.known of
-                                                [] ->
-                                                    Nothing
+                                        else
+                                            Just (AtLeast uniqueElementCount)
 
-                                                _ :: [] ->
-                                                    Just (Exactly 1)
-
-                                                _ :: _ :: _ ->
-                                                    Just NotEmpty
-
-                                else
-                                    case listElements.known of
-                                        [] ->
-                                            Nothing
-
-                                        _ :: _ ->
-                                            Just NotEmpty
+                                    Nothing ->
+                                        Nothing
 
                             Nothing ->
                                 Nothing
+                        )
+                            |> maybeWithDefaultLazy
+                                (\() ->
+                                    case listDetermineLength resources fromListCall.firstArg of
+                                        Exactly 0 ->
+                                            Exactly 0
+
+                                        Exactly 1 ->
+                                            Exactly 1
+
+                                        AtLeast 0 ->
+                                            AtLeast 0
+
+                                        _ ->
+                                            AtLeast 1
+                                )
+                            |> Just
 
                     Nothing ->
                         Nothing
             )
+        |> Maybe.withDefault collectionSizeUnknown
 
 
 dictCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) }))))
@@ -13237,7 +13268,7 @@ dictCollection =
 dictDetermineSize :
     Normalize.Resources a
     -> Node Expression
-    -> Maybe CollectionSize
+    -> CollectionSize
 dictDetermineSize resources expressionNode =
     (if AstHelpers.isSpecificValueReference resources.lookupTable Fn.Dict.empty expressionNode then
         Just (Exactly 0)
@@ -13263,38 +13294,48 @@ dictDetermineSize resources expressionNode =
             (\() ->
                 case AstHelpers.getSpecificUnreducedFnCall Fn.Dict.fromList resources.lookupTable expressionNode of
                     Just fromListCall ->
-                        case listGetElements resources fromListCall.firstArg of
+                        (case listGetElements resources fromListCall.firstArg of
                             Just listElements ->
-                                if listElements.allKnown then
-                                    case traverse (\element -> getTupleWithComparableFirst resources element) listElements.known of
-                                        Just comparableKeyExpressions ->
-                                            comparableKeyExpressions |> countUniqueBy .comparableFirst |> Exactly |> Just
+                                case traverse (\element -> getTupleWithComparableFirst resources element) listElements.known of
+                                    Just comparableKeyExpressions ->
+                                        let
+                                            uniqueElementCount : Int
+                                            uniqueElementCount =
+                                                comparableKeyExpressions |> countUniqueBy .comparableFirst
+                                        in
+                                        if listElements.allKnown then
+                                            Just (Exactly uniqueElementCount)
 
-                                        Nothing ->
-                                            case listElements.known of
-                                                [] ->
-                                                    Nothing
+                                        else
+                                            Just (AtLeast uniqueElementCount)
 
-                                                [ _ ] ->
-                                                    Just (Exactly 1)
-
-                                                _ :: _ :: _ ->
-                                                    Just NotEmpty
-
-                                else
-                                    case listElements.known of
-                                        [] ->
-                                            Nothing
-
-                                        _ :: _ ->
-                                            Just NotEmpty
+                                    Nothing ->
+                                        Nothing
 
                             Nothing ->
                                 Nothing
+                        )
+                            |> maybeWithDefaultLazy
+                                (\() ->
+                                    case listDetermineLength resources fromListCall.firstArg of
+                                        Exactly 0 ->
+                                            Exactly 0
+
+                                        Exactly 1 ->
+                                            Exactly 1
+
+                                        AtLeast 0 ->
+                                            AtLeast 0
+
+                                        _ ->
+                                            AtLeast 1
+                                )
+                            |> Just
 
                     Nothing ->
                         Nothing
             )
+        |> Maybe.withDefault collectionSizeUnknown
 
 
 dictGetValues : Normalize.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
@@ -16391,7 +16432,7 @@ dropOnSmallerCollectionCheck config collection checkInfo =
     case fullyAppliedLastArg checkInfo of
         Just listArg ->
             case collection.elements.determineCount (extractNormalizeResources checkInfo) listArg of
-                Just (Exactly length) ->
+                Exactly length ->
                     if config.dropCount >= length then
                         Just
                             (alwaysResultsInUnparenthesizedConstantError
@@ -16403,7 +16444,7 @@ dropOnSmallerCollectionCheck config collection checkInfo =
                     else
                         Nothing
 
-                _ ->
+                AtLeast _ ->
                     Nothing
 
         Nothing ->
@@ -18667,7 +18708,7 @@ collectionInsertChecks collection =
 collectionIsEmptyChecks : TypeProperties (CollectionProperties (EmptiableProperties empty otherProperties)) -> CallCheckInfo -> Maybe (Error {})
 collectionIsEmptyChecks collection checkInfo =
     case collection.elements.determineCount (extractNormalizeResources checkInfo) checkInfo.firstArg of
-        Just (Exactly 0) ->
+        Exactly 0 ->
             Just
                 (resultsInConstantError
                     (qualifiedToString checkInfo.fn ++ " on " ++ typeSubsetDescriptionIndefinite collection.empty)
@@ -18675,7 +18716,10 @@ collectionIsEmptyChecks collection checkInfo =
                     checkInfo
                 )
 
-        Just _ ->
+        AtLeast 0 ->
+            Nothing
+
+        _ ->
             Just
                 (resultsInConstantError
                     (qualifiedToString checkInfo.fn ++ " on this " ++ collection.represents)
@@ -18683,14 +18727,11 @@ collectionIsEmptyChecks collection checkInfo =
                     checkInfo
                 )
 
-        Nothing ->
-            Nothing
-
 
 collectionSizeChecks : TypeProperties (CollectionProperties otherProperties) -> CallCheckInfo -> Maybe (Error {})
 collectionSizeChecks collection checkInfo =
     case collection.elements.determineCount (extractNormalizeResources checkInfo) checkInfo.firstArg of
-        Just (Exactly size) ->
+        Exactly size ->
             Just
                 (Rule.errorWithFix
                     { message = "The " ++ collection.elements.countDescription ++ " of the " ++ collection.represents ++ " is " ++ String.fromInt size
@@ -18700,7 +18741,7 @@ collectionSizeChecks collection checkInfo =
                     [ Fix.replaceRangeBy checkInfo.parentRange (String.fromInt size) ]
                 )
 
-        _ ->
+        AtLeast _ ->
             Nothing
 
 
@@ -18901,7 +18942,12 @@ emptiablePartitionWithExtraArgChecks emptiable checkInfo =
 
 type CollectionSize
     = Exactly Int
-    | NotEmpty
+    | AtLeast Int
+
+
+collectionSizeUnknown : CollectionSize
+collectionSizeUnknown =
+    AtLeast 0
 
 
 replaceSingleElementListBySingleValue : ModuleNameLookupTable -> Node Expression -> Maybe (List Fix)
