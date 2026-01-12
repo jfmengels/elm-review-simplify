@@ -1938,7 +1938,7 @@ import Review.Rule as Rule exposing (Error, Rule)
 import Set exposing (Set)
 import Simplify.AstHelpers as AstHelpers exposing (emptyStringAsString, qualifiedToString)
 import Simplify.CallStyle as CallStyle exposing (FunctionCallStyle)
-import Simplify.CoreHelpers exposing (consIf, countUnique, countUniqueBy, findMap, findMapAndAllBefore, findMapNeighboring, indexedFindMap, isJust, isNothing, listAll2, listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList, listFind, listIndexedFilterMap, listLast, maybeWithDefaultLazy, onNothing, traverse, traverseConcat, uniqueByThenMap)
+import Simplify.CoreHelpers exposing (consIf, countUnique, findMap, findMapAndAllBefore, findMapNeighboring, indexedFindMap, isJust, isNothing, listAll2, listFilledFromList, listFilledHead, listFilledInit, listFilledLast, listFilledLength, listFilledMap, listFilledTail, listFilledToList, listFind, listIndexedFilterMap, listLast, maybeWithDefaultLazy, onNothing, traverse, traverseConcat, uniqueByThenMap)
 import Simplify.HashExpression as HashExpression
 import Simplify.Infer as Infer
 import Simplify.Match exposing (Match(..))
@@ -13079,63 +13079,66 @@ getComparableWithExpressionNode resources expressionNode =
 
 setDetermineSize : Normalize.Resources res -> Node Expression -> CollectionSize
 setDetermineSize resources expressionNode =
-    (if AstHelpers.isSpecificValueReference resources.lookupTable Fn.Set.empty expressionNode then
-        Just (collectionSizeExact 0)
+    normalSetDetermineSize
+        (Normalize.normalizeExpression resources expressionNode)
 
-     else
-        Nothing
-    )
-        |> onNothing
-            (\() ->
-                if
-                    expressionNode
-                        |> AstHelpers.isSpecificUnreducedFnCall Fn.Set.singleton resources.lookupTable
-                then
-                    Just (collectionSizeExact 1)
 
-                else
-                    Nothing
-            )
-        |> onNothing
-            (\() ->
-                case AstHelpers.getSpecificUnreducedFnCall Fn.Set.fromList resources.lookupTable expressionNode of
-                    Just fromListCall ->
-                        (case listGetElements resources fromListCall.firstArg of
-                            Just listElements ->
-                                case traverse (\element -> expressionToComparable resources element) listElements.known of
-                                    Just comparableListElements ->
-                                        let
-                                            uniqueElementCount : Int
-                                            uniqueElementCount =
-                                                comparableListElements |> countUnique
-                                        in
-                                        if listElements.allKnown then
-                                            Just (collectionSizeExact uniqueElementCount)
+normalSetDetermineSize : Expression -> CollectionSize
+normalSetDetermineSize expression =
+    case expression of
+        Expression.FunctionOrValue qualification name ->
+            if ( qualification, name ) == Fn.Set.empty then
+                collectionSizeExact 0
 
-                                        else
-                                            Just { min = uniqueElementCount, max = Nothing }
+            else
+                collectionSizeUnknown
 
-                                    Nothing ->
-                                        Nothing
+        Expression.Application [ Node _ (Expression.FunctionOrValue qualification name), arg0 ] ->
+            let
+                fn : ( ModuleName, String )
+                fn =
+                    ( qualification, name )
+            in
+            if fn == Fn.Set.singleton then
+                collectionSizeExact 1
+
+            else if fn == Fn.Set.fromList then
+                (case listGetElements normalizeResourcesNone arg0 of
+                    Just listElements ->
+                        case traverse (\(Node _ element) -> expressionNormalToComparable element) listElements.known of
+                            Just comparableListElements ->
+                                let
+                                    uniqueKnownElementCount : Int
+                                    uniqueKnownElementCount =
+                                        comparableListElements |> countUnique
+                                in
+                                if listElements.allKnown then
+                                    Just (collectionSizeExact uniqueKnownElementCount)
+
+                                else
+                                    Just { min = uniqueKnownElementCount, max = Nothing }
 
                             Nothing ->
                                 Nothing
-                        )
-                            |> maybeWithDefaultLazy
-                                (\() ->
-                                    let
-                                        listLength : CollectionSize
-                                        listLength =
-                                            listDetermineLength resources fromListCall.firstArg
-                                    in
-                                    { min = min 1 listLength.min, max = listLength.max }
-                                )
-                            |> Just
 
                     Nothing ->
                         Nothing
-            )
-        |> Maybe.withDefault collectionSizeUnknown
+                )
+                    |> maybeWithDefaultLazy
+                        (\() ->
+                            let
+                                listLength : CollectionSize
+                                listLength =
+                                    normalListDetermineLength (Node.value arg0)
+                            in
+                            { min = min 1 listLength.min, max = listLength.max }
+                        )
+
+            else
+                collectionSizeUnknown
+
+        _ ->
+            collectionSizeUnknown
 
 
 dictCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) }))))
@@ -13160,32 +13163,37 @@ dictDetermineSize :
     -> Node Expression
     -> CollectionSize
 dictDetermineSize resources expressionNode =
-    (if AstHelpers.isSpecificValueReference resources.lookupTable Fn.Dict.empty expressionNode then
-        Just (collectionSizeExact 0)
+    normalDictDetermineSize
+        (Normalize.normalizeExpression resources expressionNode)
 
-     else
-        Nothing
-    )
-        |> onNothing
-            (\() ->
-                if AstHelpers.isSpecificUnreducedFnCall Fn.Dict.singleton resources.lookupTable expressionNode then
-                    Just (collectionSizeExact 1)
 
-                else
-                    Nothing
-            )
-        |> onNothing
-            (\() ->
-                case AstHelpers.getSpecificUnreducedFnCall Fn.Dict.fromList resources.lookupTable expressionNode of
-                    Just fromListCall ->
-                        (case listGetElements resources fromListCall.firstArg of
+normalDictDetermineSize : Expression -> CollectionSize
+normalDictDetermineSize expression =
+    case expression of
+        Expression.FunctionOrValue qualification name ->
+            if ( qualification, name ) == Fn.Dict.empty then
+                collectionSizeExact 0
+
+            else
+                collectionSizeUnknown
+
+        Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: arg0 :: arg1Up) ->
+            let
+                fn : ( ModuleName, String )
+                fn =
+                    ( qualification, name )
+            in
+            case arg1Up of
+                [] ->
+                    if fn == Fn.Dict.fromList then
+                        (case listGetElements normalizeResourcesNone arg0 of
                             Just listElements ->
-                                case traverse (\element -> getTupleWithComparableFirst resources element) listElements.known of
+                                case traverse (\(Node _ element) -> normalGetTupleComparableFirst element) listElements.known of
                                     Just comparableKeyExpressions ->
                                         let
                                             uniqueKeyCount : Int
                                             uniqueKeyCount =
-                                                comparableKeyExpressions |> countUniqueBy .comparableFirst
+                                                comparableKeyExpressions |> countUnique
                                         in
                                         if listElements.allKnown then
                                             Just (collectionSizeExact uniqueKeyCount)
@@ -13204,16 +13212,26 @@ dictDetermineSize resources expressionNode =
                                     let
                                         listLength : CollectionSize
                                         listLength =
-                                            listDetermineLength resources fromListCall.firstArg
+                                            normalListDetermineLength (Node.value arg0)
                                     in
                                     { min = min 1 listLength.min, max = listLength.max }
                                 )
-                            |> Just
 
-                    Nothing ->
-                        Nothing
-            )
-        |> Maybe.withDefault collectionSizeUnknown
+                    else
+                        collectionSizeUnknown
+
+                [ _ ] ->
+                    if fn == Fn.Dict.singleton then
+                        collectionSizeExact 1
+
+                    else
+                        collectionSizeUnknown
+
+                _ ->
+                    collectionSizeUnknown
+
+        _ ->
+            collectionSizeUnknown
 
 
 dictGetValues : Normalize.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
@@ -13290,6 +13308,18 @@ getTupleWithComparableFirst resources expressionNode =
                     Nothing
 
         Nothing ->
+            Nothing
+
+
+{-| Returns the `ComparableExpression` for the first part
+-}
+normalGetTupleComparableFirst : Expression -> Maybe ComparableExpression
+normalGetTupleComparableFirst expression =
+    case expression of
+        Expression.TupledExpression [ first, _ ] ->
+            expressionNormalToComparable (Node.value first)
+
+        _ ->
             Nothing
 
 
@@ -20898,32 +20928,32 @@ normalGetNumberBounds expressionNormal =
                     ( moduleOrigin, name )
             in
             case args of
-                [ arg0 ] ->
+                [ Node _ arg0 ] ->
                     if fn == Fn.Array.length then
                         collectionSizeToNumberBounds
-                            (normalArrayDetermineLength (Node.value arg0))
+                            (normalArrayDetermineLength arg0)
 
                     else if fn == Fn.List.length then
                         collectionSizeToNumberBounds
-                            (normalListDetermineLength (Node.value arg0))
+                            (normalListDetermineLength arg0)
 
                     else if fn == Fn.String.length then
                         collectionSizeToNumberBounds
-                            (normalStringDetermineLength (Node.value arg0))
+                            (normalStringDetermineLength arg0)
 
                     else if fn == Fn.Set.size then
                         collectionSizeToNumberBounds
-                            (setDetermineSize normalizeResourcesNone arg0)
+                            (normalSetDetermineSize arg0)
 
                     else if fn == Fn.Dict.size then
                         collectionSizeToNumberBounds
-                            (dictDetermineSize normalizeResourcesNone arg0)
+                            (normalDictDetermineSize arg0)
 
                     else if fn == Fn.Basics.abs then
                         let
                             arg0NumberBounds : { min : Float, max : Float }
                             arg0NumberBounds =
-                                normalGetNumberBounds (Node.value arg0)
+                                normalGetNumberBounds arg0
                         in
                         if arg0NumberBounds.min >= 0 then
                             arg0NumberBounds
@@ -22226,7 +22256,13 @@ trueInAllBranches isSpecific baseExpressionNode =
 
 expressionToComparable : Normalize.Resources a -> Node Expression -> Maybe ComparableExpression
 expressionToComparable resources expressionNode =
-    normalizedExpressionToComparableWithSign 1 (Normalize.normalizeExpression resources expressionNode)
+    expressionNormalToComparable
+        (Normalize.normalizeExpression resources expressionNode)
+
+
+expressionNormalToComparable : Expression -> Maybe ComparableExpression
+expressionNormalToComparable expressionNormal =
+    normalizedExpressionToComparableWithSign 1 expressionNormal
 
 
 type ComparableExpression
