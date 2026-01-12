@@ -12715,98 +12715,74 @@ listGetElements resources expressionNode =
 
 listDetermineLength : Normalize.Resources a -> Node Expression -> CollectionSize
 listDetermineLength resources expressionNode =
-    expressionNode
-        |> AstHelpers.getListLiteral
-        |> Maybe.map (\list -> collectionSizeExact (List.length list))
-        |> onNothing
-            (\() ->
-                if
-                    expressionNode
-                        |> AstHelpers.isSpecificUnreducedFnCall Fn.List.singleton resources.lookupTable
-                then
-                    Just (collectionSizeExact 1)
+    normalListDetermineLength
+        (Normalize.normalizeExpression resources expressionNode)
 
-                else
-                    Nothing
-            )
-        |> onNothing
-            (\() ->
-                case AstHelpers.getSpecificUnreducedFnCall Fn.List.repeat resources.lookupTable expressionNode of
-                    Just repeatCall ->
-                        Just
-                            (numberBoundsToCollectionSize
-                                (normalGetNumberBounds (Normalize.normalizeExpression resources repeatCall.firstArg))
+
+normalListDetermineLength : Expression -> CollectionSize
+normalListDetermineLength expression =
+    case expression of
+        Expression.ListExpr elements ->
+            collectionSizeExact (List.length elements)
+
+        Expression.OperatorApplication "::" _ _ (Node _ right) ->
+            collectionSizeAdd1 (normalListDetermineLength right)
+
+        Expression.OperatorApplication "++" _ (Node _ left) (Node _ right) ->
+            collectionSizeCombineEachBoundWith (+)
+                (normalListDetermineLength left)
+                (normalListDetermineLength right)
+
+        Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: (Node _ arg0) :: argsAfterFirst) ->
+            let
+                fn : ( ModuleName, String )
+                fn =
+                    ( qualification, name )
+            in
+            case argsAfterFirst of
+                [] ->
+                    if fn == Fn.List.singleton then
+                        collectionSizeExact 1
+
+                    else
+                        collectionSizeUnknown
+
+                [ Node _ arg1 ] ->
+                    if fn == Fn.List.repeat then
+                        numberBoundsToCollectionSize
+                            (normalGetNumberBounds arg0)
+
+                    else if fn == Fn.List.range then
+                        let
+                            rangeStartBounds : { min : Float, max : Float }
+                            rangeStartBounds =
+                                normalGetNumberBounds arg0
+
+                            rangeEndExclusiveBounds : { min : Float, max : Float }
+                            rangeEndExclusiveBounds =
+                                normalGetNumberBounds arg1
+                                    |> -- because e.g List.range (List.range 1 1) is 1, not 0
+                                       numberBoundsAlterEach (\n -> n + 1)
+                        in
+                        numberBoundsToCollectionSize
+                            (numberBoundsCombineEachBoundWith (+)
+                                rangeEndExclusiveBounds
+                                (numberBoundsNegate rangeStartBounds)
                             )
 
-                    Nothing ->
-                        Nothing
-            )
-        |> onNothing
-            (\() ->
-                case AstHelpers.getSpecificUnreducedFnCall Fn.List.range resources.lookupTable expressionNode of
-                    Just rangeCall ->
-                        (case rangeCall.argsAfterFirst of
-                            [ rangeEndArg ] ->
-                                let
-                                    rangeStartBounds : { min : Float, max : Float }
-                                    rangeStartBounds =
-                                        normalGetNumberBounds (Normalize.normalizeExpression resources rangeCall.firstArg)
+                    else if fn == Fn.List.append then
+                        collectionSizeCombineEachBoundWith (+)
+                            (normalListDetermineLength arg0)
+                            (normalListDetermineLength arg1)
 
-                                    rangeEndExclusiveBounds : { min : Float, max : Float }
-                                    rangeEndExclusiveBounds =
-                                        normalGetNumberBounds (Normalize.normalizeExpression resources rangeEndArg)
-                                            |> -- because e.g List.range (List.range 1 1) is 1, not 0
-                                               numberBoundsAlterEach (\n -> n + 1)
-                                in
-                                numberBoundsToCollectionSize
-                                    (numberBoundsCombineEachBoundWith (+)
-                                        rangeEndExclusiveBounds
-                                        (numberBoundsNegate rangeStartBounds)
-                                    )
+                    else
+                        collectionSizeUnknown
 
-                            _ ->
-                                collectionSizeUnknown
-                        )
-                            |> Just
+                _ ->
+                    collectionSizeUnknown
 
-                    Nothing ->
-                        Nothing
-            )
-        |> onNothing
-            (\() ->
-                case Node.value (AstHelpers.removeParens expressionNode) of
-                    Expression.OperatorApplication "::" _ _ right ->
-                        Just (collectionSizeAdd1 (listDetermineLength resources right))
-
-                    Expression.OperatorApplication "++" _ left right ->
-                        Just
-                            (collectionSizeCombineEachBoundWith (+)
-                                (listDetermineLength resources left)
-                                (listDetermineLength resources right)
-                            )
-
-                    _ ->
-                        Nothing
-            )
-        |> onNothing
-            (\() ->
-                expressionNode
-                    |> AstHelpers.getSpecificUnreducedFnCall Fn.List.append resources.lookupTable
-                    |> Maybe.andThen
-                        (\appendCall ->
-                            case appendCall.argsAfterFirst of
-                                [ appendRightArg ] ->
-                                    Just
-                                        (collectionSizeCombineEachBoundWith (+)
-                                            (listDetermineLength resources appendCall.firstArg)
-                                            (listDetermineLength resources appendRightArg)
-                                        )
-
-                                _ ->
-                                    Nothing
-                        )
-            )
-        |> Maybe.withDefault collectionSizeUnknown
+        _ ->
+            collectionSizeUnknown
 
 
 stringCollection : TypeProperties (CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) })))))
@@ -12855,17 +12831,17 @@ singleCharConstruct =
 
 stringDetermineLength : Normalize.Resources res -> Node Expression -> CollectionSize
 stringDetermineLength resources expressionNode =
-    normalStringDetermineLength resources
+    normalStringDetermineLength
         (Normalize.normalizeExpression resources expressionNode)
 
 
-normalStringDetermineLength : Normalize.Resources res -> Expression -> CollectionSize
-normalStringDetermineLength resources expression =
+normalStringDetermineLength : Expression -> CollectionSize
+normalStringDetermineLength expression =
     case expression of
         Expression.Literal string ->
             collectionSizeExact (String.length string)
 
-        Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: arg0 :: argsAfterFirst) ->
+        Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: (Node _ arg0) :: argsAfterFirst) ->
             let
                 fn : ( ModuleName, String )
                 fn =
@@ -12883,7 +12859,7 @@ normalStringDetermineLength resources expression =
                         let
                             charCount : CollectionSize
                             charCount =
-                                listDetermineLength resources arg0
+                                normalListDetermineLength arg0
                         in
                         { min = charCount.min
                         , max = Maybe.map (\max -> max * 2) charCount.max
@@ -12892,12 +12868,12 @@ normalStringDetermineLength resources expression =
                     else
                         collectionSizeUnknown
 
-                [ arg1 ] ->
+                [ Node _ arg1 ] ->
                     if fn == Fn.String.cons then
                         let
                             tailCollectionSize : CollectionSize
                             tailCollectionSize =
-                                normalStringDetermineLength resources (Node.value arg1)
+                                normalStringDetermineLength arg1
                         in
                         { min = tailCollectionSize.min + 1
                         , max = Maybe.map (\max -> max + 2) tailCollectionSize.max
@@ -12905,17 +12881,15 @@ normalStringDetermineLength resources expression =
 
                     else if fn == Fn.String.repeat then
                         collectionSizeCombineEachBoundWith (*)
-                            (normalStringDetermineLength resources (Node.value arg1))
+                            (normalStringDetermineLength arg1)
                             (numberBoundsToCollectionSize
-                                (normalGetNumberBounds
-                                    (Normalize.normalizeExpression resources arg0)
-                                )
+                                (normalGetNumberBounds arg0)
                             )
 
                     else if fn == Fn.String.append then
                         collectionSizeCombineEachBoundWith (+)
-                            (normalStringDetermineLength resources (Node.value arg0))
-                            (normalStringDetermineLength resources (Node.value arg1))
+                            (normalStringDetermineLength arg0)
+                            (normalStringDetermineLength arg1)
 
                     else
                         collectionSizeUnknown
@@ -12923,10 +12897,10 @@ normalStringDetermineLength resources expression =
                 _ ->
                     collectionSizeUnknown
 
-        Expression.OperatorApplication "++" _ left right ->
+        Expression.OperatorApplication "++" _ (Node _ left) (Node _ right) ->
             collectionSizeCombineEachBoundWith (+)
-                (normalStringDetermineLength resources (Node.value left))
-                (normalStringDetermineLength resources (Node.value right))
+                (normalStringDetermineLength left)
+                (normalStringDetermineLength right)
 
         _ ->
             collectionSizeUnknown
@@ -20937,11 +20911,11 @@ normalGetNumberBounds expressionNormal =
 
                     else if fn == Fn.List.length then
                         collectionSizeToNumberBounds
-                            (listDetermineLength normalizeResourcesNone arg0)
+                            (normalListDetermineLength (Node.value arg0))
 
                     else if fn == Fn.String.length then
                         collectionSizeToNumberBounds
-                            (normalStringDetermineLength normalizeResourcesNone (Node.value arg0))
+                            (normalStringDetermineLength (Node.value arg0))
 
                     else if fn == Fn.Set.size then
                         collectionSizeToNumberBounds
