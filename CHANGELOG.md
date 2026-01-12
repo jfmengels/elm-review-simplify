@@ -61,6 +61,7 @@ The rule now simplifies:
 
 Bug fixes:
 - `String.length` simplifications incorrectly assumed that a `Char` always has length 1 (2-part UTF-16 characters don't follow that rule, try in `elm repl`: `String.length (String.fromChar '👀')`). As a result, code like `String.length (String.fromList [ a, b ])` now does not get reported and simplified to `2`
+- `List.length` was fixed to an off-by-one number on `List.range`. For example, previously `List.length (List.range 3 7)` was incorrectly fixed to `4` and is now correctly fixed to `5`
 
 ## [2.1.13] - 2026-01-07
 
