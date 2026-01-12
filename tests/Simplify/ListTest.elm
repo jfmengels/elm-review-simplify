@@ -3904,6 +3904,38 @@ a = List.isEmpty (b |> List.singleton)
 a = False
 """
                         ]
+        , test "should replace List.isEmpty (init++[last]) by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (init++[last])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.isEmpty on this list will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
+        , test "should replace List.isEmpty (List.append init [last]) by False" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (List.append init [last])
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.isEmpty on this list will result in False"
+                            , details = [ "You can replace this call by False." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = False
+"""
+                        ]
         , test "should replace Set.toList set |> List.isEmpty by Set.isEmpty" <|
             \() ->
                 """module A exposing (..)
