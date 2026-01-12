@@ -12953,60 +12953,54 @@ arrayGetElements resources expressionNode =
 
 arrayDetermineLength : Normalize.Resources a -> Node Expression -> CollectionSize
 arrayDetermineLength resources expressionNode =
-    (if AstHelpers.isSpecificValueReference resources.lookupTable Fn.Array.empty expressionNode then
-        Just (collectionSizeExact 0)
+    normalArrayDetermineLength
+        (Normalize.normalizeExpression resources expressionNode)
 
-     else
-        Nothing
-    )
-        |> onNothing
-            (\() ->
-                case AstHelpers.getSpecificUnreducedFnCall Fn.Array.fromList resources.lookupTable expressionNode of
-                    Just fromListCall ->
-                        Just (listDetermineLength resources fromListCall.firstArg)
 
-                    Nothing ->
-                        Nothing
-            )
-        |> onNothing
-            (\() ->
-                case AstHelpers.getSpecificUnreducedFnCall Fn.Array.repeat resources.lookupTable expressionNode of
-                    Just repeatCall ->
-                        Just
-                            (numberBoundsToCollectionSize
-                                (normalGetNumberBounds (Normalize.normalizeExpression resources repeatCall.firstArg))
-                            )
+normalArrayDetermineLength : Expression -> CollectionSize
+normalArrayDetermineLength expression =
+    case expression of
+        Expression.FunctionOrValue qualification name ->
+            if ( qualification, name ) == Fn.Array.empty then
+                collectionSizeExact 0
 
-                    Nothing ->
-                        Nothing
-            )
-        |> onNothing
-            (\() ->
-                case AstHelpers.getSpecificUnreducedFnCall Fn.Array.initialize resources.lookupTable expressionNode of
-                    Just initializeCall ->
-                        Just
-                            (numberBoundsToCollectionSize
-                                (normalGetNumberBounds (Normalize.normalizeExpression resources initializeCall.firstArg))
-                            )
+            else
+                collectionSizeUnknown
 
-                    Nothing ->
-                        Nothing
-            )
-        |> onNothing
-            (\() ->
-                expressionNode
-                    |> AstHelpers.getSpecificUnreducedFnCall Fn.Array.push resources.lookupTable
-                    |> Maybe.andThen
-                        (\pushCall ->
-                            case pushCall.argsAfterFirst of
-                                [ arrayArg ] ->
-                                    Just (collectionSizeAdd1 (arrayDetermineLength resources arrayArg))
+        Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: (Node _ arg0) :: argsAfterFirst) ->
+            let
+                fn : ( ModuleName, String )
+                fn =
+                    ( qualification, name )
+            in
+            case argsAfterFirst of
+                [] ->
+                    if fn == Fn.Array.fromList then
+                        normalListDetermineLength arg0
 
-                                _ ->
-                                    Nothing
-                        )
-            )
-        |> Maybe.withDefault collectionSizeUnknown
+                    else
+                        collectionSizeUnknown
+
+                [ Node _ arg1 ] ->
+                    if fn == Fn.Array.repeat then
+                        numberBoundsToCollectionSize
+                            (normalGetNumberBounds arg0)
+
+                    else if fn == Fn.Array.initialize then
+                        numberBoundsToCollectionSize
+                            (normalGetNumberBounds arg0)
+
+                    else if fn == Fn.Array.push then
+                        collectionSizeAdd1 (normalArrayDetermineLength arg1)
+
+                    else
+                        collectionSizeUnknown
+
+                _ ->
+                    collectionSizeUnknown
+
+        _ ->
+            collectionSizeUnknown
 
 
 setCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties (MappableProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) }))))))
@@ -20907,7 +20901,7 @@ normalGetNumberBounds expressionNormal =
                 [ arg0 ] ->
                     if fn == Fn.Array.length then
                         collectionSizeToNumberBounds
-                            (arrayDetermineLength normalizeResourcesNone arg0)
+                            (normalArrayDetermineLength (Node.value arg0))
 
                     else if fn == Fn.List.length then
                         collectionSizeToNumberBounds
