@@ -12722,13 +12722,6 @@ normalListGetElements expression =
                         Nothing ->
                             Just { known = leftElements.known, allKnown = False }
 
-        Expression.Application [ Node _ (Expression.FunctionOrValue qualification name), onlyElement ] ->
-            if ( qualification, name ) == Fn.List.singleton then
-                Just { known = [ onlyElement ], allKnown = True }
-
-            else
-                Nothing
-
         _ ->
             Nothing
 
@@ -12754,20 +12747,13 @@ normalListDetermineLength expression =
                 (normalListDetermineLength right)
 
         Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: (Node _ arg0) :: argsAfterFirst) ->
-            let
-                fn : ( ModuleName, String )
-                fn =
-                    ( qualification, name )
-            in
             case argsAfterFirst of
-                [] ->
-                    if fn == Fn.List.singleton then
-                        collectionSizeExact 1
-
-                    else
-                        collectionSizeUnknown
-
                 [ Node _ arg1 ] ->
+                    let
+                        fn : ( ModuleName, String )
+                        fn =
+                            ( qualification, name )
+                    in
                     if fn == Fn.List.repeat then
                         numberBoundsToCollectionSize
                             (normalGetNumberBounds arg0)

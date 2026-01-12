@@ -446,6 +446,9 @@ addToFunctionCall resources functionCall extraArgument =
         Expression.FunctionOrValue [ "Basics" ] "negate" ->
             createNegation (Node.value extraArgument)
 
+        Expression.FunctionOrValue [ "List" ] "singleton" ->
+            Expression.ListExpr [ extraArgument ]
+
         _ ->
             Expression.Application [ functionCall, extraArgument ]
 

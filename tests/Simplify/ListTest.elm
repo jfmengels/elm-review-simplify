@@ -8454,6 +8454,22 @@ a = List.length (List.range 3 7)
 a = 5
 """
                         ]
+        , test "should replace List.length ([ 0, 1 ] ++ List.singleton 2) by 3" <|
+            \() ->
+                """module A exposing (..)
+a = List.length ([ 0, 1 ] ++ List.singleton 2)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of the list is 3"
+                            , details = [ "The length of the list can be determined by looking at the code." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 3
+"""
+                        ]
         , test "should replace Set.toList set |> List.length with Set.size" <|
             \() ->
                 """module A exposing (..)
