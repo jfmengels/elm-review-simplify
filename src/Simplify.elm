@@ -12659,51 +12659,38 @@ listGetElements :
     -> Node Expression
     -> Maybe { known : List (Node Expression), allKnown : Bool }
 listGetElements resources expressionNode =
-    expressionNode
-        |> AstHelpers.getListLiteral
-        |> Maybe.map (\list -> { known = list, allKnown = True })
-        |> onNothing
-            (\() ->
-                expressionNode
-                    |> AstHelpers.getSpecificUnreducedFnCall Fn.List.singleton resources.lookupTable
-                    |> Maybe.map (\singletonCall -> { known = [ singletonCall.firstArg ], allKnown = True })
-            )
-        |> onNothing
-            (\() ->
-                case AstHelpers.removeParens expressionNode of
-                    Node _ (Expression.OperatorApplication "::" _ head tail) ->
-                        case listGetElements resources tail of
-                            Just tailElements ->
-                                Just { known = head :: tailElements.known, allKnown = tailElements.allKnown }
+    case Node.value (AstHelpers.removeParens expressionNode) of
+        Expression.ListExpr elements ->
+            Just { known = elements, allKnown = True }
 
-                            Nothing ->
-                                Just { known = [ head ], allKnown = False }
+        Expression.OperatorApplication "::" _ head tail ->
+            case listGetElements resources tail of
+                Just tailElements ->
+                    Just { known = head :: tailElements.known, allKnown = tailElements.allKnown }
 
-                    _ ->
-                        Nothing
-            )
-        |> onNothing
-            (\() ->
-                case AstHelpers.removeParens expressionNode of
-                    Node _ (Expression.OperatorApplication "++" _ leftList rightList) ->
-                        case listGetElements resources leftList of
-                            Nothing ->
-                                Nothing
+                Nothing ->
+                    Just { known = [ head ], allKnown = False }
 
-                            Just leftElements ->
-                                case listGetElements resources rightList of
-                                    Just rightElements ->
-                                        Just
-                                            { allKnown = leftElements.allKnown && rightElements.allKnown
-                                            , known = leftElements.known ++ rightElements.known
-                                            }
+        Expression.OperatorApplication "++" _ leftList rightList ->
+            case listGetElements resources leftList of
+                Nothing ->
+                    Nothing
 
-                                    Nothing ->
-                                        Just { known = leftElements.known, allKnown = False }
+                Just leftElements ->
+                    case listGetElements resources rightList of
+                        Just rightElements ->
+                            Just
+                                { allKnown = leftElements.allKnown && rightElements.allKnown
+                                , known = leftElements.known ++ rightElements.known
+                                }
 
-                    _ ->
-                        Nothing
-            )
+                        Nothing ->
+                            Just { known = leftElements.known, allKnown = False }
+
+        _ ->
+            expressionNode
+                |> AstHelpers.getSpecificUnreducedFnCall Fn.List.singleton resources.lookupTable
+                |> Maybe.map (\singletonCall -> { known = [ singletonCall.firstArg ], allKnown = True })
 
 
 listDetermineLength : Normalize.Resources a -> Node Expression -> CollectionSize
