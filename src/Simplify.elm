@@ -1898,7 +1898,6 @@ All of these also apply for `Sub`.
 
 -}
 
-import AssocList
 import Dict exposing (Dict)
 import Elm.Docs
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
@@ -12693,6 +12692,47 @@ listGetElements resources expressionNode =
                 |> Maybe.map (\singletonCall -> { known = [ singletonCall.firstArg ], allKnown = True })
 
 
+normalListGetElements : Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
+normalListGetElements expression =
+    case expression of
+        Expression.ListExpr elements ->
+            Just { known = elements, allKnown = True }
+
+        Expression.OperatorApplication "::" _ head (Node _ tail) ->
+            case normalListGetElements tail of
+                Just tailElements ->
+                    Just { known = head :: tailElements.known, allKnown = tailElements.allKnown }
+
+                Nothing ->
+                    Just { known = [ head ], allKnown = False }
+
+        Expression.OperatorApplication "++" _ (Node _ leftList) (Node _ rightList) ->
+            case normalListGetElements leftList of
+                Nothing ->
+                    Nothing
+
+                Just leftElements ->
+                    case normalListGetElements rightList of
+                        Just rightElements ->
+                            Just
+                                { allKnown = leftElements.allKnown && rightElements.allKnown
+                                , known = leftElements.known ++ rightElements.known
+                                }
+
+                        Nothing ->
+                            Just { known = leftElements.known, allKnown = False }
+
+        Expression.Application [ Node _ (Expression.FunctionOrValue qualification name), onlyElement ] ->
+            if ( qualification, name ) == Fn.List.singleton then
+                Just { known = [ onlyElement ], allKnown = True }
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
+
+
 listDetermineLength : Normalize.Resources a -> Node Expression -> CollectionSize
 listDetermineLength resources expressionNode =
     normalListDetermineLength
@@ -13073,7 +13113,7 @@ normalSetDetermineSize expression =
             else
                 collectionSizeUnknown
 
-        Expression.Application [ Node _ (Expression.FunctionOrValue qualification name), arg0 ] ->
+        Expression.Application [ Node _ (Expression.FunctionOrValue qualification name), Node _ arg0 ] ->
             let
                 fn : ( ModuleName, String )
                 fn =
@@ -13083,7 +13123,7 @@ normalSetDetermineSize expression =
                 collectionSizeExact 1
 
             else if fn == Fn.Set.fromList then
-                (case listGetElements normalizeResourcesNone arg0 of
+                (case normalListGetElements arg0 of
                     Just listElements ->
                         case traverse (\(Node _ element) -> expressionNormalToComparable element) listElements.known of
                             Just comparableListElements ->
@@ -13109,7 +13149,7 @@ normalSetDetermineSize expression =
                             let
                                 listLength : CollectionSize
                                 listLength =
-                                    normalListDetermineLength (Node.value arg0)
+                                    normalListDetermineLength arg0
                             in
                             { min = min 1 listLength.min, max = listLength.max }
                         )
@@ -13157,7 +13197,7 @@ normalDictDetermineSize expression =
             else
                 collectionSizeUnknown
 
-        Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: arg0 :: arg1Up) ->
+        Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: (Node _ arg0) :: arg1Up) ->
             let
                 fn : ( ModuleName, String )
                 fn =
@@ -13166,7 +13206,7 @@ normalDictDetermineSize expression =
             case arg1Up of
                 [] ->
                     if fn == Fn.Dict.fromList then
-                        (case listGetElements normalizeResourcesNone arg0 of
+                        (case normalListGetElements arg0 of
                             Just listElements ->
                                 case traverse (\(Node _ element) -> normalGetTupleComparableFirst element) listElements.known of
                                     Just comparableKeyExpressions ->
@@ -13192,7 +13232,7 @@ normalDictDetermineSize expression =
                                     let
                                         listLength : CollectionSize
                                         listLength =
-                                            normalListDetermineLength (Node.value arg0)
+                                            normalListDetermineLength arg0
                                     in
                                     { min = min 1 listLength.min, max = listLength.max }
                                 )
@@ -20878,18 +20918,6 @@ numberBoundsCompare leftBounds rightBounds =
     else
         -- overlap covers more than 1 number
         Nothing
-
-
-{-| Use when a helper function expects `Normalize.Resources` to be passed
-but the piece of syntax is already normalized
--}
-normalizeResourcesNone : Normalize.Resources {}
-normalizeResourcesNone =
-    { lookupTable = ModuleNameLookupTable.createForTests [] []
-    , inferredConstants = ( Infer.Inferred { facts = [], deduced = AssocList.empty }, [] )
-    , importCustomTypes = Dict.empty
-    , moduleCustomTypes = Dict.empty
-    }
 
 
 normalGetNumberBounds : Expression -> { min : Float, max : Float }
