@@ -12758,6 +12758,18 @@ normalListDetermineLength expression =
                         numberBoundsToCollectionSize
                             (normalGetNumberBounds arg0)
 
+                    else if fn == Fn.List.take then
+                        collectionSizesMin
+                            (numberBoundsToCollectionSize (normalGetNumberBounds arg0))
+                            (normalListDetermineLength arg1)
+
+                    else if fn == Fn.List.drop then
+                        numberBoundsToCollectionSize
+                            (numberBoundsCombineEachBoundWith (+)
+                                (collectionSizeToNumberBounds (normalListDetermineLength arg1))
+                                (numberBoundsNegate (normalGetNumberBounds arg0))
+                            )
+
                     else if fn == Fn.List.range then
                         let
                             rangeStartBounds : { min : Float, max : Float }
@@ -12890,6 +12902,18 @@ normalStringDetermineLength expression =
                             (normalStringDetermineLength arg1)
                             (numberBoundsToCollectionSize
                                 (normalGetNumberBounds arg0)
+                            )
+
+                    else if fn == Fn.String.left || fn == Fn.String.right then
+                        collectionSizesMin
+                            (numberBoundsToCollectionSize (normalGetNumberBounds arg0))
+                            (normalStringDetermineLength arg1)
+
+                    else if fn == Fn.String.dropLeft || fn == Fn.String.dropRight then
+                        numberBoundsToCollectionSize
+                            (numberBoundsCombineEachBoundWith (+)
+                                (collectionSizeToNumberBounds (normalStringDetermineLength arg1))
+                                (numberBoundsNegate (normalGetNumberBounds arg0))
                             )
 
                     else if fn == Fn.String.append then
@@ -18896,6 +18920,24 @@ collectionSizeCombineEachBoundWith : (Int -> Int -> Int) -> CollectionSize -> Co
 collectionSizeCombineEachBoundWith combineABBounds aCollectionSize bCollectionSize =
     { min = combineABBounds aCollectionSize.min bCollectionSize.min
     , max = Maybe.map2 combineABBounds aCollectionSize.max bCollectionSize.max
+    }
+
+
+collectionSizesMin : CollectionSize -> CollectionSize -> CollectionSize
+collectionSizesMin aCollectionSize bCollectionSize =
+    { min = Basics.min aCollectionSize.min bCollectionSize.min
+    , max =
+        case aCollectionSize.max of
+            Nothing ->
+                bCollectionSize.max
+
+            Just aCollectionSizeMax ->
+                case bCollectionSize.max of
+                    Nothing ->
+                        aCollectionSize.max
+
+                    Just bCollectionSizeMax ->
+                        Just (Basics.min aCollectionSizeMax bCollectionSizeMax)
     }
 
 

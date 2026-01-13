@@ -8470,6 +8470,29 @@ a = List.length ([ 0, 1 ] ++ List.singleton 2)
 a = 3
 """
                         ]
+        , test "should replace List.length (List.take 2 (e0 :: e1 :: e2 :: e3 :: e4Up)) by 2" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.take 2 (e0 :: e1 :: e2 :: e3 :: e4Up))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The length of the list is 2"
+                            , details = [ "The length of the list can be determined by looking at the code." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = 2
+"""
+                        ]
+        , test "should not replace List.length (List.take 2 (e0 :: e1Up)) by 2" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.take 2 (e0 :: e1Up))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
         , test "should replace Set.toList set |> List.length with Set.size" <|
             \() ->
                 """module A exposing (..)
