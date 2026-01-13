@@ -3136,6 +3136,38 @@ a = String.all (always True)
 a = always True
 """
                         ]
+        , test "should replace String.all (always False) string by String.isEmpty string" <|
+            \() ->
+                """module A exposing (..)
+a = String.all (always False) string
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.all with a function that will always return False is the same as String.isEmpty"
+                            , details = [ "You can replace this call by String.isEmpty on the string given to the String.all call." ]
+                            , under = "String.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.isEmpty string
+"""
+                        ]
+        , test "should replace String.all (always False) by String.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = String.all (always False)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.all with a function that will always return False is the same as String.isEmpty"
+                            , details = [ "You can replace this call by String.isEmpty." ]
+                            , under = "String.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.isEmpty
+"""
+                        ]
         ]
 
 
