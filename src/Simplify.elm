@@ -12767,7 +12767,7 @@ normalListDetermineLength expression =
                             rangeEndExclusiveBounds : { min : Float, max : Float }
                             rangeEndExclusiveBounds =
                                 normalGetNumberBounds arg1
-                                    |> -- because e.g List.range (List.range 1 1) is 1, not 0
+                                    |> -- because e.g List.length (List.range 1 1) is 1, not 0
                                        numberBoundsAlterEach (\n -> n + 1)
                         in
                         numberBoundsToCollectionSize
