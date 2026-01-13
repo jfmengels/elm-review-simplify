@@ -12746,61 +12746,8 @@ normalListDetermineLength expression =
                 (normalListDetermineLength left)
                 (normalListDetermineLength right)
 
-        Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: (Node _ arg0) :: argsAfterFirst) ->
-            case argsAfterFirst of
-                [ Node _ arg1 ] ->
-                    let
-                        fn : ( ModuleName, String )
-                        fn =
-                            ( qualification, name )
-                    in
-                    if fn == Fn.List.repeat then
-                        numberBoundsToCollectionSize
-                            (normalGetNumberBounds arg0)
-
-                    else if fn == Fn.List.take then
-                        collectionSizesMin
-                            (numberBoundsToCollectionSize (normalGetNumberBounds arg0))
-                            (normalListDetermineLength arg1)
-
-                    else if fn == Fn.List.drop then
-                        numberBoundsToCollectionSize
-                            (numberBoundsCombineEachBoundWith (+)
-                                (collectionSizeToNumberBounds (normalListDetermineLength arg1))
-                                (numberBoundsNegate (normalGetNumberBounds arg0))
-                            )
-
-                    else if fn == Fn.List.range then
-                        let
-                            rangeStartBounds : { min : Float, max : Float }
-                            rangeStartBounds =
-                                normalGetNumberBounds arg0
-
-                            rangeEndExclusiveBounds : { min : Float, max : Float }
-                            rangeEndExclusiveBounds =
-                                normalGetNumberBounds arg1
-                                    |> -- because e.g List.length (List.range 1 1) is 1, not 0
-                                       numberBoundsAlterEach (\n -> n + 1)
-                        in
-                        numberBoundsToCollectionSize
-                            (numberBoundsCombineEachBoundWith (+)
-                                rangeEndExclusiveBounds
-                                (numberBoundsNegate rangeStartBounds)
-                            )
-
-                    else if fn == Fn.List.append then
-                        collectionSizeCombineEachBoundWith (+)
-                            (normalListDetermineLength arg0)
-                            (normalListDetermineLength arg1)
-
-                    else
-                        collectionSizeUnknown
-
-                _ ->
-                    collectionSizeUnknown
-
         _ ->
-            collectionSizeUnknown
+            normalGetFnOrFnCallAndDetermineCollectionSize expression
 
 
 stringCollection : TypeProperties (CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) })))))
@@ -12859,81 +12806,13 @@ normalStringDetermineLength expression =
         Expression.Literal string ->
             collectionSizeExact (String.length string)
 
-        Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: (Node _ arg0) :: argsAfterFirst) ->
-            let
-                fn : ( ModuleName, String )
-                fn =
-                    ( qualification, name )
-            in
-            case argsAfterFirst of
-                [] ->
-                    if fn == Fn.String.fromChar then
-                        { min = 1, max = Just 2 }
-
-                    else if fn == Fn.String.fromInt || fn == Fn.String.fromFloat then
-                        { min = 1, max = Nothing }
-
-                    else if fn == Fn.String.fromList then
-                        let
-                            charCount : CollectionSize
-                            charCount =
-                                normalListDetermineLength arg0
-                        in
-                        { min = charCount.min
-                        , max = Maybe.map (\max -> max * 2) charCount.max
-                        }
-
-                    else
-                        collectionSizeUnknown
-
-                [ Node _ arg1 ] ->
-                    if fn == Fn.String.cons then
-                        let
-                            tailCollectionSize : CollectionSize
-                            tailCollectionSize =
-                                normalStringDetermineLength arg1
-                        in
-                        { min = tailCollectionSize.min + 1
-                        , max = Maybe.map (\max -> max + 2) tailCollectionSize.max
-                        }
-
-                    else if fn == Fn.String.repeat then
-                        collectionSizeCombineEachBoundWith (*)
-                            (normalStringDetermineLength arg1)
-                            (numberBoundsToCollectionSize
-                                (normalGetNumberBounds arg0)
-                            )
-
-                    else if fn == Fn.String.left || fn == Fn.String.right then
-                        collectionSizesMin
-                            (numberBoundsToCollectionSize (normalGetNumberBounds arg0))
-                            (normalStringDetermineLength arg1)
-
-                    else if fn == Fn.String.dropLeft || fn == Fn.String.dropRight then
-                        numberBoundsToCollectionSize
-                            (numberBoundsCombineEachBoundWith (+)
-                                (collectionSizeToNumberBounds (normalStringDetermineLength arg1))
-                                (numberBoundsNegate (normalGetNumberBounds arg0))
-                            )
-
-                    else if fn == Fn.String.append then
-                        collectionSizeCombineEachBoundWith (+)
-                            (normalStringDetermineLength arg0)
-                            (normalStringDetermineLength arg1)
-
-                    else
-                        collectionSizeUnknown
-
-                _ ->
-                    collectionSizeUnknown
-
         Expression.OperatorApplication "++" _ (Node _ left) (Node _ right) ->
             collectionSizeCombineEachBoundWith (+)
                 (normalStringDetermineLength left)
                 (normalStringDetermineLength right)
 
         _ ->
-            collectionSizeUnknown
+            normalGetFnOrFnCallAndDetermineCollectionSize expression
 
 
 stringGetElements : Infer.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
@@ -12989,48 +12868,7 @@ arrayDetermineLength resources expressionNode =
 
 normalArrayDetermineLength : Expression -> CollectionSize
 normalArrayDetermineLength expression =
-    case expression of
-        Expression.FunctionOrValue qualification name ->
-            if ( qualification, name ) == Fn.Array.empty then
-                collectionSizeExact 0
-
-            else
-                collectionSizeUnknown
-
-        Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: (Node _ arg0) :: argsAfterFirst) ->
-            let
-                fn : ( ModuleName, String )
-                fn =
-                    ( qualification, name )
-            in
-            case argsAfterFirst of
-                [] ->
-                    if fn == Fn.Array.fromList then
-                        normalListDetermineLength arg0
-
-                    else
-                        collectionSizeUnknown
-
-                [ Node _ arg1 ] ->
-                    if fn == Fn.Array.repeat then
-                        numberBoundsToCollectionSize
-                            (normalGetNumberBounds arg0)
-
-                    else if fn == Fn.Array.initialize then
-                        numberBoundsToCollectionSize
-                            (normalGetNumberBounds arg0)
-
-                    else if fn == Fn.Array.push then
-                        collectionSizeAdd1 (normalArrayDetermineLength arg1)
-
-                    else
-                        collectionSizeUnknown
-
-                _ ->
-                    collectionSizeUnknown
-
-        _ ->
-            collectionSizeUnknown
+    normalGetFnOrFnCallAndDetermineCollectionSize expression
 
 
 setCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties (MappableProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) }))))))
@@ -13115,60 +12953,7 @@ setDetermineSize resources expressionNode =
 
 normalSetDetermineSize : Expression -> CollectionSize
 normalSetDetermineSize expression =
-    case expression of
-        Expression.FunctionOrValue qualification name ->
-            if ( qualification, name ) == Fn.Set.empty then
-                collectionSizeExact 0
-
-            else
-                collectionSizeUnknown
-
-        Expression.Application [ Node _ (Expression.FunctionOrValue qualification name), Node _ arg0 ] ->
-            let
-                fn : ( ModuleName, String )
-                fn =
-                    ( qualification, name )
-            in
-            if fn == Fn.Set.singleton then
-                collectionSizeExact 1
-
-            else if fn == Fn.Set.fromList then
-                (case normalListGetElements arg0 of
-                    Just listElements ->
-                        case traverse (\(Node _ element) -> expressionNormalToComparable element) listElements.known of
-                            Just comparableListElements ->
-                                let
-                                    uniqueKnownElementCount : Int
-                                    uniqueKnownElementCount =
-                                        comparableListElements |> countUnique
-                                in
-                                if listElements.allKnown then
-                                    Just (collectionSizeExact uniqueKnownElementCount)
-
-                                else
-                                    Just { min = uniqueKnownElementCount, max = Nothing }
-
-                            Nothing ->
-                                Nothing
-
-                    Nothing ->
-                        Nothing
-                )
-                    |> maybeWithDefaultLazy
-                        (\() ->
-                            let
-                                listLength : CollectionSize
-                                listLength =
-                                    normalListDetermineLength arg0
-                            in
-                            { min = min 1 listLength.min, max = listLength.max }
-                        )
-
-            else
-                collectionSizeUnknown
-
-        _ ->
-            collectionSizeUnknown
+    normalGetFnOrFnCallAndDetermineCollectionSize expression
 
 
 dictCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) }))))
@@ -13199,69 +12984,7 @@ dictDetermineSize resources expressionNode =
 
 normalDictDetermineSize : Expression -> CollectionSize
 normalDictDetermineSize expression =
-    case expression of
-        Expression.FunctionOrValue qualification name ->
-            if ( qualification, name ) == Fn.Dict.empty then
-                collectionSizeExact 0
-
-            else
-                collectionSizeUnknown
-
-        Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: (Node _ arg0) :: arg1Up) ->
-            let
-                fn : ( ModuleName, String )
-                fn =
-                    ( qualification, name )
-            in
-            case arg1Up of
-                [] ->
-                    if fn == Fn.Dict.fromList then
-                        (case normalListGetElements arg0 of
-                            Just listElements ->
-                                case traverse (\(Node _ element) -> normalGetTupleComparableFirst element) listElements.known of
-                                    Just comparableKeyExpressions ->
-                                        let
-                                            uniqueKeyCount : Int
-                                            uniqueKeyCount =
-                                                comparableKeyExpressions |> countUnique
-                                        in
-                                        if listElements.allKnown then
-                                            Just (collectionSizeExact uniqueKeyCount)
-
-                                        else
-                                            Just { min = uniqueKeyCount, max = Nothing }
-
-                                    Nothing ->
-                                        Nothing
-
-                            Nothing ->
-                                Nothing
-                        )
-                            |> maybeWithDefaultLazy
-                                (\() ->
-                                    let
-                                        listLength : CollectionSize
-                                        listLength =
-                                            normalListDetermineLength arg0
-                                    in
-                                    { min = min 1 listLength.min, max = listLength.max }
-                                )
-
-                    else
-                        collectionSizeUnknown
-
-                [ _ ] ->
-                    if fn == Fn.Dict.singleton then
-                        collectionSizeExact 1
-
-                    else
-                        collectionSizeUnknown
-
-                _ ->
-                    collectionSizeUnknown
-
-        _ ->
-            collectionSizeUnknown
+    normalGetFnOrFnCallAndDetermineCollectionSize expression
 
 
 dictGetValues : Normalize.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
@@ -18973,6 +18696,350 @@ collectionSizeToNumberBounds collectionSize =
             Just max ->
                 Basics.toFloat max
     }
+
+
+normalGetFnOrFnCallAndDetermineCollectionSize : Expression -> CollectionSize
+normalGetFnOrFnCallAndDetermineCollectionSize expression =
+    case expression of
+        Expression.FunctionOrValue qualification name ->
+            normalFnOrFnCallDetermineCollectionSize ( qualification, name ) []
+
+        Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: args) ->
+            normalFnOrFnCallDetermineCollectionSize ( qualification, name ) args
+
+        _ ->
+            collectionSizeUnknown
+
+
+normalFnOrFnCallDetermineCollectionSize : ( ModuleName, String ) -> List (Node Expression) -> CollectionSize
+normalFnOrFnCallDetermineCollectionSize fn args =
+    case Dict.get fn normalFnOrFnCallDetermineCollectionSizeDict of
+        Just determineFnOrFnCallCollectionSize ->
+            determineFnOrFnCallCollectionSize args
+
+        Nothing ->
+            collectionSizeUnknown
+
+
+normalFnOrFnCallDetermineCollectionSizeDict : Dict ( ModuleName, String ) (List (Node Expression) -> CollectionSize)
+normalFnOrFnCallDetermineCollectionSizeDict =
+    Dict.fromList
+        [ -- List
+          ( Fn.List.repeat
+          , \args ->
+                case args of
+                    (Node _ repeatCountArg) :: _ ->
+                        numberBoundsToCollectionSize
+                            (normalGetNumberBounds repeatCountArg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.List.take
+          , \args ->
+                case args of
+                    [ Node _ countArg, Node _ listArg ] ->
+                        collectionSizesMin
+                            (numberBoundsToCollectionSize (normalGetNumberBounds countArg))
+                            (normalListDetermineLength listArg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.List.drop
+          , \args ->
+                case args of
+                    [ Node _ countArg, Node _ listArg ] ->
+                        numberBoundsToCollectionSize
+                            (numberBoundsCombineEachBoundWith (+)
+                                (collectionSizeToNumberBounds (normalListDetermineLength listArg))
+                                (numberBoundsNegate (normalGetNumberBounds countArg))
+                            )
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.List.range
+          , \args ->
+                case args of
+                    [ Node _ rangeStartArg, Node _ rangeEndArg ] ->
+                        let
+                            rangeStartBounds : { min : Float, max : Float }
+                            rangeStartBounds =
+                                normalGetNumberBounds rangeStartArg
+
+                            rangeEndExclusiveBounds : { min : Float, max : Float }
+                            rangeEndExclusiveBounds =
+                                normalGetNumberBounds rangeEndArg
+                                    |> -- because e.g List.length (List.range 1 1) is 1, not 0
+                                       numberBoundsAlterEach (\n -> n + 1)
+                        in
+                        numberBoundsToCollectionSize
+                            (numberBoundsCombineEachBoundWith (+)
+                                rangeEndExclusiveBounds
+                                (numberBoundsNegate rangeStartBounds)
+                            )
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.List.append
+          , \args ->
+                case args of
+                    [ Node _ leftArg, Node _ rightArg ] ->
+                        collectionSizeCombineEachBoundWith (+)
+                            (normalListDetermineLength leftArg)
+                            (normalListDetermineLength rightArg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+
+        -- Array
+        , ( Fn.Array.empty, \_ -> collectionSizeExact 0 )
+        , ( Fn.Array.fromList
+          , \args ->
+                case args of
+                    [ Node _ listArg ] ->
+                        normalListDetermineLength listArg
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.Array.repeat
+          , \args ->
+                case args of
+                    (Node _ lengthArg) :: _ ->
+                        numberBoundsToCollectionSize
+                            (normalGetNumberBounds lengthArg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.Array.initialize
+          , \args ->
+                case args of
+                    (Node _ lengthArg) :: _ ->
+                        numberBoundsToCollectionSize
+                            (normalGetNumberBounds lengthArg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.Array.push
+          , \args ->
+                case args of
+                    [ _, Node _ arrayArg ] ->
+                        collectionSizeAdd1 (normalArrayDetermineLength arrayArg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.Array.append
+          , \args ->
+                case args of
+                    [ Node _ leftArg, Node _ rightArg ] ->
+                        collectionSizeCombineEachBoundWith (+)
+                            (normalArrayDetermineLength leftArg)
+                            (normalArrayDetermineLength rightArg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+
+        -- Set
+        , ( Fn.Set.empty, \_ -> collectionSizeExact 0 )
+        , ( Fn.Set.singleton, \_ -> collectionSizeExact 1 )
+        , ( Fn.Set.fromList
+          , \args ->
+                case args of
+                    [ Node _ listArg ] ->
+                        (case normalListGetElements listArg of
+                            Just listElements ->
+                                case traverse (\(Node _ element) -> expressionNormalToComparable element) listElements.known of
+                                    Just comparableListElements ->
+                                        let
+                                            uniqueKnownElementCount : Int
+                                            uniqueKnownElementCount =
+                                                comparableListElements |> countUnique
+                                        in
+                                        if listElements.allKnown then
+                                            Just (collectionSizeExact uniqueKnownElementCount)
+
+                                        else
+                                            Just { min = uniqueKnownElementCount, max = Nothing }
+
+                                    Nothing ->
+                                        Nothing
+
+                            Nothing ->
+                                Nothing
+                        )
+                            |> maybeWithDefaultLazy
+                                (\() ->
+                                    let
+                                        listLength : CollectionSize
+                                        listLength =
+                                            normalListDetermineLength listArg
+                                    in
+                                    { min = min 1 listLength.min, max = listLength.max }
+                                )
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+
+        -- Dict
+        , ( Fn.Dict.empty, \_ -> collectionSizeExact 0 )
+        , ( Fn.Dict.singleton, \_ -> collectionSizeExact 1 )
+        , ( Fn.Dict.fromList
+          , \args ->
+                case args of
+                    [ Node _ listArg ] ->
+                        (case normalListGetElements listArg of
+                            Just listElements ->
+                                case traverse (\(Node _ element) -> normalGetTupleComparableFirst element) listElements.known of
+                                    Just comparableKeyExpressions ->
+                                        let
+                                            uniqueKeyCount : Int
+                                            uniqueKeyCount =
+                                                comparableKeyExpressions |> countUnique
+                                        in
+                                        if listElements.allKnown then
+                                            Just (collectionSizeExact uniqueKeyCount)
+
+                                        else
+                                            Just { min = uniqueKeyCount, max = Nothing }
+
+                                    Nothing ->
+                                        Nothing
+
+                            Nothing ->
+                                Nothing
+                        )
+                            |> maybeWithDefaultLazy
+                                (\() ->
+                                    let
+                                        listLength : CollectionSize
+                                        listLength =
+                                            normalListDetermineLength listArg
+                                    in
+                                    { min = min 1 listLength.min, max = listLength.max }
+                                )
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+
+        -- String
+        , ( Fn.String.fromChar, \_ -> { min = 1, max = Just 2 } )
+        , ( Fn.String.fromInt, \_ -> { min = 1, max = Nothing } )
+        , ( Fn.String.fromFloat, \_ -> { min = 1, max = Nothing } )
+        , ( Fn.String.fromList
+          , \args ->
+                case args of
+                    [ Node _ listArg ] ->
+                        let
+                            charCount : CollectionSize
+                            charCount =
+                                normalListDetermineLength listArg
+                        in
+                        { min = charCount.min
+                        , max = Maybe.map (\max -> max * 2) charCount.max
+                        }
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.String.append
+          , \args ->
+                case args of
+                    [ Node _ leftArg, Node _ rightArg ] ->
+                        collectionSizeCombineEachBoundWith (+)
+                            (normalArrayDetermineLength leftArg)
+                            (normalArrayDetermineLength rightArg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.String.cons
+          , \args ->
+                case args of
+                    [ _, Node _ stringArg ] ->
+                        let
+                            tailCollectionSize : CollectionSize
+                            tailCollectionSize =
+                                normalStringDetermineLength stringArg
+                        in
+                        { min = tailCollectionSize.min + 1
+                        , max = Maybe.map (\max -> max + 2) tailCollectionSize.max
+                        }
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.String.repeat
+          , \args ->
+                case args of
+                    [ Node _ countArg, Node _ stringArg ] ->
+                        collectionSizeCombineEachBoundWith (*)
+                            (normalStringDetermineLength stringArg)
+                            (numberBoundsToCollectionSize
+                                (normalGetNumberBounds countArg)
+                            )
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.String.left
+          , \args ->
+                case args of
+                    [ Node _ countArg, Node _ stringArg ] ->
+                        collectionSizesMin
+                            (numberBoundsToCollectionSize (normalGetNumberBounds countArg))
+                            (normalStringDetermineLength stringArg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.String.right
+          , \args ->
+                case args of
+                    [ Node _ countArg, Node _ stringArg ] ->
+                        collectionSizesMin
+                            (numberBoundsToCollectionSize (normalGetNumberBounds countArg))
+                            (normalStringDetermineLength stringArg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.String.dropLeft
+          , \args ->
+                case args of
+                    [ Node _ countArg, Node _ stringArg ] ->
+                        numberBoundsToCollectionSize
+                            (numberBoundsCombineEachBoundWith (+)
+                                (collectionSizeToNumberBounds (normalStringDetermineLength stringArg))
+                                (numberBoundsNegate (normalGetNumberBounds countArg))
+                            )
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.String.dropRight
+          , \args ->
+                case args of
+                    [ Node _ countArg, Node _ stringArg ] ->
+                        numberBoundsToCollectionSize
+                            (numberBoundsCombineEachBoundWith (+)
+                                (collectionSizeToNumberBounds (normalStringDetermineLength stringArg))
+                                (numberBoundsNegate (normalGetNumberBounds countArg))
+                            )
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        ]
 
 
 replaceSingleElementListBySingleValue : ModuleNameLookupTable -> Node Expression -> Maybe (List Fix)
