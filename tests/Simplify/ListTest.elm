@@ -8070,6 +8070,38 @@ a = List.all (f <| y) <| List.repeat n <| g <| x
 a = ((n <= 0) || ((f <| y) <| (g <| x)))
 """
                         ]
+        , test "should replace List.all identity (List.map f list) by List.all f list" <|
+            \() ->
+                """module A exposing (..)
+a = List.all identity (List.map f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map, then List.all with an identity function can be combined into List.all"
+                            , details = [ "You can replace this call by List.all with the same arguments given to List.map which is meant for this exact purpose." ]
+                            , under = "List.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.all f list)
+"""
+                        ]
+        , test "should replace List.all identity << List.map f by List.all f" <|
+            \() ->
+                """module A exposing (..)
+a = List.all identity << List.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map, then List.all with an identity function can be combined into List.all"
+                            , details = [ "You can replace this composition by List.all with the same arguments given to List.map which is meant for this exact purpose." ]
+                            , under = "List.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.all f
+"""
+                        ]
         ]
 
 
@@ -8294,6 +8326,38 @@ a = List.any (f <| y) <| List.repeat n <| g <| x
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = ((n >= 1) && ((f <| y) <| (g <| x)))
+"""
+                        ]
+        , test "should replace List.any identity (List.map f list) by List.any f list" <|
+            \() ->
+                """module A exposing (..)
+a = List.any identity (List.map f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map, then List.any with an identity function can be combined into List.any"
+                            , details = [ "You can replace this call by List.any with the same arguments given to List.map which is meant for this exact purpose." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.any f list)
+"""
+                        ]
+        , test "should replace List.any identity << List.map f by List.any f" <|
+            \() ->
+                """module A exposing (..)
+a = List.any identity << List.map f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map, then List.any with an identity function can be combined into List.any"
+                            , details = [ "You can replace this composition by List.any with the same arguments given to List.map which is meant for this exact purpose." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.any f
 """
                         ]
         ]

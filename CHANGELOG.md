@@ -24,6 +24,8 @@ The rule now simplifies:
 - `List.any f (List.repeat n a)` to `n >= 1 && f a`
 - `List.member needle (List.repeat n b)` to `n >= 1 && needle == b`
 - `List.all f (List.repeat n a)` to `n <= 0 || f a`
+- `List.any identity (List.map f list)` to `List.any f list`
+- `List.all identity (List.map f list)` to `List.all f list`
 - `List.isEmpty (List.filter f list)` to `not (List.any f list)`
 - `List.isEmpty (List.filter (not << f) list)` to `List.all f list`
 - `not (List.any (not << f) list)` to `List.all f list`
