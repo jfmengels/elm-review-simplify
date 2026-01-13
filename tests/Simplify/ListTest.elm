@@ -8102,6 +8102,70 @@ a = List.all identity << List.map f
 a = List.all f
 """
                         ]
+        , test "should replace List.all (always False) list by List.isEmpty list" <|
+            \() ->
+                """module A exposing (..)
+a = List.all (always False) list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.all with a function that will always return False is the same as List.isEmpty"
+                            , details = [ "You can replace this call by List.isEmpty on the list given to the List.all call." ]
+                            , under = "List.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty list
+"""
+                        ]
+        , test "should replace List.all (always False) <| f <| x by List.isEmpty <| f <| x" <|
+            \() ->
+                """module A exposing (..)
+a = List.all (always False) <| f <| x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.all with a function that will always return False is the same as List.isEmpty"
+                            , details = [ "You can replace this call by List.isEmpty on the list given to the List.all call." ]
+                            , under = "List.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty <| f <| x
+"""
+                        ]
+        , test "should replace x |> f |> List.all (always False) by x |> f |> List.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = x |> f |> List.all (always False)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.all with a function that will always return False is the same as List.isEmpty"
+                            , details = [ "You can replace this call by List.isEmpty on the list given to the List.all call." ]
+                            , under = "List.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> f |> List.isEmpty
+"""
+                        ]
+        , test "should replace List.all (always False) by List.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = List.all (always False)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.all with a function that will always return False is the same as List.isEmpty"
+                            , details = [ "You can replace this call by List.isEmpty." ]
+                            , under = "List.all"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty
+"""
+                        ]
         ]
 
 

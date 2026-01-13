@@ -621,6 +621,9 @@ Destructuring using case expressions
     String.all (always True) str
     --> True
 
+    String.all (always False) str
+    --> String.isEmpty str
+
     -- The following simplifications for String.foldl also work for String.foldr
     String.foldl f initial ""
     --> initial
@@ -1014,6 +1017,9 @@ Destructuring using case expressions
 
     List.all (always True) list
     --> True
+
+    List.all (always False) list
+    --> List.isEmpty list
 
     List.all identity [ a, False, b ]
     --> False
@@ -14963,11 +14969,20 @@ callOnCollectionWithAbsorbingElementChecks situation ( collection, elementAbsorb
 {-| The all elements pass a given test checks
 
     all f empty --> True
+
     all (always True) --> always True
-    all (always True) emptiable -> True
+
+    all (always True) emptiable --> True
+
+    all (always False) emptiable --> isEmpty emptiable
+
+    all (always False) --> isEmpty
 
 -}
-emptiableAllChecks : EmptiableProperties empty otherProperties -> CallCheckInfo -> Maybe (Error {})
+emptiableAllChecks :
+    TypeProperties (EmptiableProperties empty { otherProperties | isEmptyFn : ( ModuleName, String ) })
+    -> CallCheckInfo
+    -> Maybe (Error {})
 emptiableAllChecks emptiable checkInfo =
     callOnEmptyReturnsCheck
         { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.trueVariant res) }
@@ -14986,7 +15001,37 @@ emptiableAllChecks emptiable checkInfo =
                                         checkInfo
                                     )
 
-                            _ ->
+                            Just False ->
+                                Just
+                                    (Rule.errorWithFix
+                                        { message =
+                                            qualifiedToString checkInfo.fn
+                                                ++ " with a function that will always return False is the same as "
+                                                ++ qualifiedToString emptiable.isEmptyFn
+                                        , details =
+                                            [ "You can replace this call by "
+                                                ++ qualifiedToString emptiable.isEmptyFn
+                                                ++ (case checkInfo.argsAfterFirst of
+                                                        [] ->
+                                                            ""
+
+                                                        _ :: _ ->
+                                                            " on the "
+                                                                ++ emptiable.represents
+                                                                ++ " given to the "
+                                                                ++ qualifiedToString checkInfo.fn
+                                                                ++ " call"
+                                                   )
+                                                ++ "."
+                                            ]
+                                        }
+                                        checkInfo.fnRange
+                                        [ Fix.replaceRangeBy (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+                                            (qualifiedToString (qualify emptiable.isEmptyFn checkInfo))
+                                        ]
+                                    )
+
+                            Nothing ->
                                 Nothing
 
                     Nothing ->
