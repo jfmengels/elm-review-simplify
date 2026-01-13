@@ -1030,6 +1030,9 @@ Destructuring using case expressions
     List.all f (List.repeat n a)
     --> n <= 0 || f a
 
+    List.all identity (List.map f list)
+    --> List.all f list
+
     not (List.all (not << f) list)
     --> List.any f list
 
@@ -1056,6 +1059,9 @@ Destructuring using case expressions
 
     List.any f (List.repeat n a)
     --> n >= 1 && f a
+
+    List.any identity (List.map f list)
+    --> List.any f list
 
     not (List.any (not << f) list)
     --> List.all f list
@@ -9984,12 +9990,15 @@ listLengthChecks =
 
 listAllChecks : IntoFnCheck
 listAllChecks =
-    intoFnCheckOnlyCall
-        (\checkInfo ->
-            emptiableAllChecks listCollection checkInfo
-                |> onNothing (\() -> collectionAllChecks listCollection checkInfo)
-                |> onNothing (\() -> listAllOnRepeatCallCheck checkInfo)
-        )
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (\checkInfo ->
+                emptiableAllChecks listCollection checkInfo
+                    |> onNothing (\() -> collectionAllChecks listCollection checkInfo)
+                    |> onNothing (\() -> listAllOnRepeatCallCheck checkInfo)
+            )
+        , mapToOperationWithIdentityCanBeCombinedToOperationChecks listCollection
+        ]
 
 
 listAllOnRepeatCallCheck : CallCheckInfo -> Maybe (Error {})
@@ -10050,14 +10059,17 @@ listAllOnRepeatCallCheck checkInfo =
 
 listAnyChecks : IntoFnCheck
 listAnyChecks =
-    intoFnCheckOnlyCall
-        (\checkInfo ->
-            emptiableAnyChecks listCollection checkInfo
-                |> onNothing (\() -> collectionAnyChecks listCollection checkInfo)
-                |> onNothing
-                    (\() -> operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck Fn.List.member checkInfo)
-                |> onNothing (\() -> listAnyOnRepeatCallCheck checkInfo)
-        )
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (\checkInfo ->
+                emptiableAnyChecks listCollection checkInfo
+                    |> onNothing (\() -> collectionAnyChecks listCollection checkInfo)
+                    |> onNothing
+                        (\() -> operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck Fn.List.member checkInfo)
+                    |> onNothing (\() -> listAnyOnRepeatCallCheck checkInfo)
+            )
+        , mapToOperationWithIdentityCanBeCombinedToOperationChecks listCollection
+        ]
 
 
 listAnyOnRepeatCallCheck : CallCheckInfo -> Maybe (Error {})
