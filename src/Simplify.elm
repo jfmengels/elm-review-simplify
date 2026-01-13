@@ -10941,7 +10941,7 @@ dictMemberChecks =
                                 , elements =
                                     { countDescription = "size"
                                     , elementDescription = "key"
-                                    , determineCount = dictDetermineSize
+                                    , determineCount = determineCollectionSize
                                     , get = dictGetKeys
                                     }
                                 }
@@ -12614,7 +12614,7 @@ listCollection =
         { get = listGetElements
         , elementDescription = "element"
         , countDescription = "length"
-        , determineCount = listDetermineLength
+        , determineCount = determineCollectionSize
         }
     , wrap = listSingletonConstruct
     , mapFn = Fn.List.map
@@ -12726,30 +12726,6 @@ normalListGetElements expression =
             Nothing
 
 
-listDetermineLength : Normalize.Resources a -> Node Expression -> CollectionSize
-listDetermineLength resources expressionNode =
-    normalListDetermineLength
-        (Normalize.normalizeExpression resources expressionNode)
-
-
-normalListDetermineLength : Expression -> CollectionSize
-normalListDetermineLength expression =
-    case expression of
-        Expression.ListExpr elements ->
-            collectionSizeExact (List.length elements)
-
-        Expression.OperatorApplication "::" _ _ (Node _ right) ->
-            collectionSizeAdd1 (normalListDetermineLength right)
-
-        Expression.OperatorApplication "++" _ (Node _ left) (Node _ right) ->
-            collectionSizeCombineEachBoundWith (+)
-                (normalListDetermineLength left)
-                (normalListDetermineLength right)
-
-        _ ->
-            normalGetFnOrFnCallAndDetermineCollectionSize expression
-
-
 stringCollection : TypeProperties (CollectionProperties (WrapperProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) })))))
 stringCollection =
     { represents = "string"
@@ -12758,7 +12734,7 @@ stringCollection =
     , elements =
         { countDescription = "length"
         , elementDescription = "character"
-        , determineCount = stringDetermineLength
+        , determineCount = determineCollectionSize
         , get = stringGetElements
         }
     , wrap = singleCharConstruct
@@ -12794,27 +12770,6 @@ singleCharConstruct =
     fnCallConstructWithOneValueProperties (A "single-char string") Fn.String.fromChar
 
 
-stringDetermineLength : Normalize.Resources res -> Node Expression -> CollectionSize
-stringDetermineLength resources expressionNode =
-    normalStringDetermineLength
-        (Normalize.normalizeExpression resources expressionNode)
-
-
-normalStringDetermineLength : Expression -> CollectionSize
-normalStringDetermineLength expression =
-    case expression of
-        Expression.Literal string ->
-            collectionSizeExact (String.length string)
-
-        Expression.OperatorApplication "++" _ (Node _ left) (Node _ right) ->
-            collectionSizeCombineEachBoundWith (+)
-                (normalStringDetermineLength left)
-                (normalStringDetermineLength right)
-
-        _ ->
-            normalGetFnOrFnCallAndDetermineCollectionSize expression
-
-
 stringGetElements : Infer.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
 stringGetElements resources expressionNode =
     expressionNode
@@ -12836,7 +12791,7 @@ arrayCollection =
     , elements =
         { countDescription = "length"
         , elementDescription = "element"
-        , determineCount = arrayDetermineLength
+        , determineCount = determineCollectionSize
         , get = arrayGetElements
         }
     , fromList = ConstructionFromListCall Fn.Array.fromList
@@ -12860,17 +12815,6 @@ arrayGetElements resources expressionNode =
                 Nothing
 
 
-arrayDetermineLength : Normalize.Resources a -> Node Expression -> CollectionSize
-arrayDetermineLength resources expressionNode =
-    normalArrayDetermineLength
-        (Normalize.normalizeExpression resources expressionNode)
-
-
-normalArrayDetermineLength : Expression -> CollectionSize
-normalArrayDetermineLength expression =
-    normalGetFnOrFnCallAndDetermineCollectionSize expression
-
-
 setCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (WrapperProperties (ConstructibleFromListProperties (MappableProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) }))))))
 setCollection =
     { represents = "set"
@@ -12879,7 +12823,7 @@ setCollection =
     , elements =
         { countDescription = "size"
         , elementDescription = "element"
-        , determineCount = setDetermineSize
+        , determineCount = determineCollectionSize
         , get = setGetElements
         }
     , wrap = setSingletonConstruct
@@ -12945,17 +12889,6 @@ getComparableWithExpressionNode resources expressionNode =
         |> Maybe.map (\comparable -> { comparable = comparable, expressionNode = expressionNode })
 
 
-setDetermineSize : Normalize.Resources res -> Node Expression -> CollectionSize
-setDetermineSize resources expressionNode =
-    normalSetDetermineSize
-        (Normalize.normalizeExpression resources expressionNode)
-
-
-normalSetDetermineSize : Expression -> CollectionSize
-normalSetDetermineSize expression =
-    normalGetFnOrFnCallAndDetermineCollectionSize expression
-
-
 dictCollection : TypeProperties (CollectionProperties (EmptiableProperties ConstantProperties (ConstructibleFromListProperties (WithElementCountFn { isEmptyFn : ( ModuleName, String ) }))))
 dictCollection =
     { represents = "dict"
@@ -12964,27 +12897,13 @@ dictCollection =
     , elements =
         { countDescription = "size"
         , elementDescription = "value"
-        , determineCount = dictDetermineSize
+        , determineCount = determineCollectionSize
         , get = dictGetValues
         }
     , fromList = ConstructionFromListCall Fn.Dict.fromList
     , isEmptyFn = Fn.Dict.isEmpty
     , elementCount = { fn = Fn.Dict.size, isConstantTime = False }
     }
-
-
-dictDetermineSize :
-    Normalize.Resources a
-    -> Node Expression
-    -> CollectionSize
-dictDetermineSize resources expressionNode =
-    normalDictDetermineSize
-        (Normalize.normalizeExpression resources expressionNode)
-
-
-normalDictDetermineSize : Expression -> CollectionSize
-normalDictDetermineSize expression =
-    normalGetFnOrFnCallAndDetermineCollectionSize expression
 
 
 dictGetValues : Normalize.Resources res -> Node Expression -> Maybe { known : List (Node Expression), allKnown : Bool }
@@ -18698,9 +18617,34 @@ collectionSizeToNumberBounds collectionSize =
     }
 
 
-normalGetFnOrFnCallAndDetermineCollectionSize : Expression -> CollectionSize
-normalGetFnOrFnCallAndDetermineCollectionSize expression =
+determineCollectionSize : Normalize.Resources res -> Node Expression -> CollectionSize
+determineCollectionSize resources expressionNode =
+    normalDetermineCollectionSize
+        (Normalize.normalizeExpression resources expressionNode)
+
+
+normalDetermineCollectionSize : Expression -> CollectionSize
+normalDetermineCollectionSize expression =
     case expression of
+        Expression.ListExpr elements ->
+            collectionSizeExact (List.length elements)
+
+        Expression.OperatorApplication operator _ (Node _ left) (Node _ right) ->
+            case operator of
+                "::" ->
+                    collectionSizeAdd1 (normalDetermineCollectionSize right)
+
+                "++" ->
+                    collectionSizeCombineEachBoundWith (+)
+                        (normalDetermineCollectionSize left)
+                        (normalDetermineCollectionSize right)
+
+                _ ->
+                    collectionSizeUnknown
+
+        Expression.Literal string ->
+            collectionSizeExact (String.length string)
+
         Expression.FunctionOrValue qualification name ->
             normalFnOrFnCallDetermineCollectionSize ( qualification, name ) []
 
@@ -18741,7 +18685,7 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                     [ Node _ countArg, Node _ listArg ] ->
                         collectionSizesMin
                             (numberBoundsToCollectionSize (normalGetNumberBounds countArg))
-                            (normalListDetermineLength listArg)
+                            (normalDetermineCollectionSize listArg)
 
                     _ ->
                         collectionSizeUnknown
@@ -18752,7 +18696,7 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                     [ Node _ countArg, Node _ listArg ] ->
                         numberBoundsToCollectionSize
                             (numberBoundsCombineEachBoundWith (+)
-                                (collectionSizeToNumberBounds (normalListDetermineLength listArg))
+                                (collectionSizeToNumberBounds (normalDetermineCollectionSize listArg))
                                 (numberBoundsNegate (normalGetNumberBounds countArg))
                             )
 
@@ -18788,8 +18732,8 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                 case args of
                     [ Node _ leftArg, Node _ rightArg ] ->
                         collectionSizeCombineEachBoundWith (+)
-                            (normalListDetermineLength leftArg)
-                            (normalListDetermineLength rightArg)
+                            (normalDetermineCollectionSize leftArg)
+                            (normalDetermineCollectionSize rightArg)
 
                     _ ->
                         collectionSizeUnknown
@@ -18801,7 +18745,7 @@ normalFnOrFnCallDetermineCollectionSizeDict =
           , \args ->
                 case args of
                     [ Node _ listArg ] ->
-                        normalListDetermineLength listArg
+                        normalDetermineCollectionSize listArg
 
                     _ ->
                         collectionSizeUnknown
@@ -18830,7 +18774,7 @@ normalFnOrFnCallDetermineCollectionSizeDict =
           , \args ->
                 case args of
                     [ _, Node _ arrayArg ] ->
-                        collectionSizeAdd1 (normalArrayDetermineLength arrayArg)
+                        collectionSizeAdd1 (normalDetermineCollectionSize arrayArg)
 
                     _ ->
                         collectionSizeUnknown
@@ -18840,8 +18784,8 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                 case args of
                     [ Node _ leftArg, Node _ rightArg ] ->
                         collectionSizeCombineEachBoundWith (+)
-                            (normalArrayDetermineLength leftArg)
-                            (normalArrayDetermineLength rightArg)
+                            (normalDetermineCollectionSize leftArg)
+                            (normalDetermineCollectionSize rightArg)
 
                     _ ->
                         collectionSizeUnknown
@@ -18880,7 +18824,7 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                                     let
                                         listLength : CollectionSize
                                         listLength =
-                                            normalListDetermineLength listArg
+                                            normalDetermineCollectionSize listArg
                                     in
                                     { min = min 1 listLength.min, max = listLength.max }
                                 )
@@ -18922,7 +18866,7 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                                     let
                                         listLength : CollectionSize
                                         listLength =
-                                            normalListDetermineLength listArg
+                                            normalDetermineCollectionSize listArg
                                     in
                                     { min = min 1 listLength.min, max = listLength.max }
                                 )
@@ -18942,7 +18886,7 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                         let
                             charCount : CollectionSize
                             charCount =
-                                normalListDetermineLength listArg
+                                normalDetermineCollectionSize listArg
                         in
                         { min = charCount.min
                         , max = Maybe.map (\max -> max * 2) charCount.max
@@ -18956,8 +18900,8 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                 case args of
                     [ Node _ leftArg, Node _ rightArg ] ->
                         collectionSizeCombineEachBoundWith (+)
-                            (normalArrayDetermineLength leftArg)
-                            (normalArrayDetermineLength rightArg)
+                            (normalDetermineCollectionSize leftArg)
+                            (normalDetermineCollectionSize rightArg)
 
                     _ ->
                         collectionSizeUnknown
@@ -18969,7 +18913,7 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                         let
                             tailCollectionSize : CollectionSize
                             tailCollectionSize =
-                                normalStringDetermineLength stringArg
+                                normalDetermineCollectionSize stringArg
                         in
                         { min = tailCollectionSize.min + 1
                         , max = Maybe.map (\max -> max + 2) tailCollectionSize.max
@@ -18983,7 +18927,7 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                 case args of
                     [ Node _ countArg, Node _ stringArg ] ->
                         collectionSizeCombineEachBoundWith (*)
-                            (normalStringDetermineLength stringArg)
+                            (normalDetermineCollectionSize stringArg)
                             (numberBoundsToCollectionSize
                                 (normalGetNumberBounds countArg)
                             )
@@ -18997,7 +18941,7 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                     [ Node _ countArg, Node _ stringArg ] ->
                         collectionSizesMin
                             (numberBoundsToCollectionSize (normalGetNumberBounds countArg))
-                            (normalStringDetermineLength stringArg)
+                            (normalDetermineCollectionSize stringArg)
 
                     _ ->
                         collectionSizeUnknown
@@ -19008,7 +18952,7 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                     [ Node _ countArg, Node _ stringArg ] ->
                         collectionSizesMin
                             (numberBoundsToCollectionSize (normalGetNumberBounds countArg))
-                            (normalStringDetermineLength stringArg)
+                            (normalDetermineCollectionSize stringArg)
 
                     _ ->
                         collectionSizeUnknown
@@ -19019,7 +18963,7 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                     [ Node _ countArg, Node _ stringArg ] ->
                         numberBoundsToCollectionSize
                             (numberBoundsCombineEachBoundWith (+)
-                                (collectionSizeToNumberBounds (normalStringDetermineLength stringArg))
+                                (collectionSizeToNumberBounds (normalDetermineCollectionSize stringArg))
                                 (numberBoundsNegate (normalGetNumberBounds countArg))
                             )
 
@@ -19032,7 +18976,7 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                     [ Node _ countArg, Node _ stringArg ] ->
                         numberBoundsToCollectionSize
                             (numberBoundsCombineEachBoundWith (+)
-                                (collectionSizeToNumberBounds (normalStringDetermineLength stringArg))
+                                (collectionSizeToNumberBounds (normalDetermineCollectionSize stringArg))
                                 (numberBoundsNegate (normalGetNumberBounds countArg))
                             )
 
@@ -21034,23 +20978,23 @@ normalGetNumberBounds expressionNormal =
                 [ Node _ arg0 ] ->
                     if fn == Fn.Array.length then
                         collectionSizeToNumberBounds
-                            (normalArrayDetermineLength arg0)
+                            (normalDetermineCollectionSize arg0)
 
                     else if fn == Fn.List.length then
                         collectionSizeToNumberBounds
-                            (normalListDetermineLength arg0)
+                            (normalDetermineCollectionSize arg0)
 
                     else if fn == Fn.String.length then
                         collectionSizeToNumberBounds
-                            (normalStringDetermineLength arg0)
+                            (normalDetermineCollectionSize arg0)
 
                     else if fn == Fn.Set.size then
                         collectionSizeToNumberBounds
-                            (normalSetDetermineSize arg0)
+                            (normalDetermineCollectionSize arg0)
 
                     else if fn == Fn.Dict.size then
                         collectionSizeToNumberBounds
-                            (normalDictDetermineSize arg0)
+                            (normalDetermineCollectionSize arg0)
 
                     else if fn == Fn.Basics.abs then
                         let
