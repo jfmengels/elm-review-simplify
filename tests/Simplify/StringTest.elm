@@ -1742,40 +1742,20 @@ a = String.toUpper << String.toUpper
 a = String.toUpper
 """
                         ]
-        , test "should replace String.toUpper (String.toLower str) to String.toUpper str" <|
+        , test "should not report String.toUpper (String.toLower str), see https://github.com/jfmengels/elm-review-simplify/pull/429#issuecomment-3746681750" <|
             \() ->
                 """module A exposing (..)
 a = String.toUpper (String.toLower str)
 """
                     |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary String.toLower before String.toUpper"
-                            , details = [ "Lowercasing uppercase characters will be overwritten by the final String.toUpper. You can replace the String.toLower call by the unchanged string." ]
-                            , under = "String.toUpper"
-                            }
-                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 19 } }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = String.toUpper str
-"""
-                        ]
-        , test "should replace String.toUpper << String.toLower to String.toUpper" <|
+                    |> Review.Test.expectNoErrors
+        , test "should not report String.toUpper << String.toLower, see https://github.com/jfmengels/elm-review-simplify/pull/429#issuecomment-3746681750" <|
             \() ->
                 """module A exposing (..)
 a = String.toUpper << String.toLower
 """
                     |> Review.Test.run ruleWithDefaults
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
-                            { message = "Unnecessary String.toLower before String.toUpper"
-                            , details = [ "Lowercasing uppercase characters will be overwritten by the final String.toUpper. You can remove the String.toLower call." ]
-                            , under = "String.toUpper"
-                            }
-                            |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 19 } }
-                            |> Review.Test.whenFixed """module A exposing (..)
-a = String.toUpper
-"""
-                        ]
+                    |> Review.Test.expectNoErrors
         ]
 
 

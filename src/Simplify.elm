@@ -491,9 +491,6 @@ Destructuring using case expressions
     String.toUpper (String.toUpper str)
     --> String.toUpper str
 
-    String.toUpper (String.toLower str)
-    --> String.toUpper str
-
     String.reverse ""
     --> ""
 
@@ -7609,14 +7606,6 @@ stringToUpperChecks =
     intoFnChecksFirstThatConstructsError
         [ unnecessaryOnEmptyCheck stringCollection
         , operationDoesNotChangeResultOfOperationCheck
-        , unnecessarySpecificFnBeforeCheck
-            { fn = Fn.String.toLower
-            , fnArgCount = 1
-            , fnLastArgRepresents = "string"
-            , whyUnnecessary =
-                "Lowercasing uppercase characters will be overwritten by the final "
-                    ++ qualifiedToString Fn.String.toUpper
-            }
         ]
 
 

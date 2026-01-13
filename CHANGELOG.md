@@ -45,7 +45,6 @@ The rule now simplifies:
 - `String.toLower (String.toLower str)` to `String.toLower str`
 - `String.toUpper ""` to `""`
 - `String.toUpper (String.toUpper str)` to `String.toUpper str`
-- `String.toUpper (String.toLower str)` to `String.toUpper str`
 - `String.trimLeft ""` to `""`
 - `String.trimLeft (String.trimLeft str)` to `String.trimLeft str`
 - `String.trimLeft (String.trimRight str)` to `String.trim str`
