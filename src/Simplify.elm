@@ -1033,6 +1033,9 @@ Destructuring using case expressions
     List.all f (List.repeat n a)
     --> n <= 0 || f a
 
+    Basics.not (List.all (not << f) list)
+    --> List.any f list
+
     List.any f []
     --> False
 
@@ -1056,6 +1059,9 @@ Destructuring using case expressions
 
     List.any f (List.repeat n a)
     --> n >= 1 && f a
+
+    Basics.not (List.any (not << f) list)
+    --> List.all f list
 
     List.range 6 3
     --> []
@@ -6161,7 +6167,116 @@ basicsNotChecks =
         [ intoFnCheckOnlyCall notOnKnownBoolCheck
         , toggleFnChecks
         , intoFnCheckOnlyCall isNotOnBooleanOperatorCheck
+        , basicsNotOSpecificFnTakingFunctionIntoNotCanBeCombinedWithFunctionWithoutNotCheck
+            { earlierFn = Fn.List.any
+            , combinedFn = Fn.List.all
+            }
+        , basicsNotOSpecificFnTakingFunctionIntoNotCanBeCombinedWithFunctionWithoutNotCheck
+            { earlierFn = Fn.List.all
+            , combinedFn = Fn.List.any
+            }
         ]
+
+
+{-| The "operation taking function into Basics.not, then Basics.not" check:
+
+    earlierFn (g << Basics.not) >> Basics.not
+    --> combinedFn g
+
+    earlierFn Basics.not >> Basics.not
+    --> combinedFn identity
+
+-}
+basicsNotOSpecificFnTakingFunctionIntoNotCanBeCombinedWithFunctionWithoutNotCheck :
+    { earlierFn : ( ModuleName, String )
+    , combinedFn : ( ModuleName, String )
+    }
+    -> IntoFnCheck
+basicsNotOSpecificFnTakingFunctionIntoNotCanBeCombinedWithFunctionWithoutNotCheck config =
+    { composition =
+        \checkInfo ->
+            if checkInfo.earlier.fn == config.earlierFn then
+                case checkInfo.earlier.args of
+                    [ elementIsBadCheck ] ->
+                        case getFunctionIntoNotRemoveFix checkInfo elementIsBadCheck of
+                            Nothing ->
+                                Nothing
+
+                            Just functionsRemoveIntoNot ->
+                                Just
+                                    { info =
+                                        { message =
+                                            qualifiedToString checkInfo.later.fn
+                                                ++ " on "
+                                                ++ qualifiedToString config.earlierFn
+                                                ++ " with a function into "
+                                                ++ qualifiedToString Fn.Basics.not
+                                                ++ " can be combined into "
+                                                ++ qualifiedToString config.combinedFn
+                                        , details =
+                                            [ "You can replace this composition by "
+                                                ++ qualifiedToString config.combinedFn
+                                                ++ " with the function given to "
+                                                ++ qualifiedToString config.earlierFn
+                                                ++ " before the "
+                                                ++ qualifiedToString Fn.Basics.not
+                                                ++ "."
+                                            ]
+                                        }
+                                    , fix =
+                                        Fix.removeRange checkInfo.later.removeRange
+                                            :: Fix.replaceRangeBy checkInfo.earlier.fnRange
+                                                (qualifiedToString (qualify config.combinedFn checkInfo))
+                                            :: functionsRemoveIntoNot
+                                    }
+
+                    _ ->
+                        Nothing
+
+            else
+                Nothing
+    , call =
+        \checkInfo ->
+            case AstHelpers.getSpecificUnreducedFnCall config.earlierFn checkInfo.lookupTable checkInfo.firstArg of
+                Nothing ->
+                    Nothing
+
+                Just filterCall ->
+                    case getFunctionIntoNotRemoveFix checkInfo filterCall.firstArg of
+                        Nothing ->
+                            Nothing
+
+                        Just functionsRemoveIntoNot ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message =
+                                        qualifiedToString checkInfo.fn
+                                            ++ " on "
+                                            ++ qualifiedToString config.earlierFn
+                                            ++ " with a function into "
+                                            ++ qualifiedToString Fn.Basics.not
+                                            ++ " can be combined into "
+                                            ++ qualifiedToString config.combinedFn
+                                    , details =
+                                        [ "You can replace this call by "
+                                            ++ qualifiedToString config.combinedFn
+                                            ++ " with the function given to "
+                                            ++ qualifiedToString config.earlierFn
+                                            ++ " before the "
+                                            ++ qualifiedToString Fn.Basics.not
+                                            ++ "."
+                                        ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.replaceRangeBy filterCall.fnRange
+                                        (qualifiedToString (qualify config.combinedFn checkInfo))
+                                        :: replaceCallBySubExpressionFix checkInfo.parentRange
+                                            checkInfo.callStyle
+                                            checkInfo.firstArg
+                                        ++ functionsRemoveIntoNot
+                                    )
+                                )
+    }
 
 
 notOnKnownBoolCheck : CallCheckInfo -> Maybe (Error {})
@@ -9604,7 +9719,7 @@ listIsEmptyOnListFilterChecks =
                 case checkInfo.earlier.args of
                     [ elementIsBadCheck ] ->
                         Just
-                            (case getFunctionIntoNot checkInfo elementIsBadCheck of
+                            (case getFunctionIntoNotRemoveFix checkInfo elementIsBadCheck of
                                 Just functionsRemoveIntoNot ->
                                     { info =
                                         { message =
@@ -9674,7 +9789,7 @@ listIsEmptyOnListFilterChecks =
 
                 Just filterCall ->
                     Just
-                        (case getFunctionIntoNot checkInfo filterCall.firstArg of
+                        (case getFunctionIntoNotRemoveFix checkInfo filterCall.firstArg of
                             Just functionsRemoveIntoNot ->
                                 Rule.errorWithFix
                                     { message =
@@ -9734,8 +9849,20 @@ listIsEmptyOnListFilterChecks =
     }
 
 
-getFunctionIntoNot : AstHelpers.ReduceLambdaResources (QualifyResources a) -> Node Expression -> Maybe (List Fix)
-getFunctionIntoNot resources expressionNode =
+{-| Remove the not in a function that ends in not, for example:
+
+    f << not
+    --> f
+
+    \x -> if c then not (f x) else not (g y)
+    --> \x -> if c then f x else g y
+
+    not
+    --> identity
+
+-}
+getFunctionIntoNotRemoveFix : AstHelpers.ReduceLambdaResources (QualifyResources a) -> Node Expression -> Maybe (List Fix)
+getFunctionIntoNotRemoveFix resources expressionNode =
     sameInAllBranches
         (\fullFunctionBranch ->
             if AstHelpers.isSpecificValueOrFn Fn.Basics.not resources fullFunctionBranch then

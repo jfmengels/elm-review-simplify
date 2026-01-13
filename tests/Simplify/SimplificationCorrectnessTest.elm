@@ -406,6 +406,38 @@ all =
                     |> Expect.equal
                         (List.all identity list)
             )
+        , Test.fuzz
+            (Fuzz.list Fuzz.int)
+            "Basics.not << List.any (Basics.not << f) is the same as List.all f"
+            (\list ->
+                (Basics.not <| List.any (Basics.not << isEven) list)
+                    |> Expect.equal
+                        (List.all isEven list)
+            )
+        , Test.fuzz
+            (Fuzz.list Fuzz.bool)
+            "Basics.not << List.any Basics.not is the same as List.all identity"
+            (\list ->
+                (Basics.not <| List.any Basics.not list)
+                    |> Expect.equal
+                        (List.all identity list)
+            )
+        , Test.fuzz
+            (Fuzz.list Fuzz.int)
+            "Basics.not << List.all (Basics.not << f) is the same as List.any f"
+            (\list ->
+                (Basics.not <| List.all (Basics.not << isEven) list)
+                    |> Expect.equal
+                        (List.any isEven list)
+            )
+        , Test.fuzz
+            (Fuzz.list Fuzz.bool)
+            "Basics.not << List.all Basics.not is the same as List.any identity"
+            (\list ->
+                (Basics.not <| List.all Basics.not list)
+                    |> Expect.equal
+                        (List.any identity list)
+            )
         , Test.fuzz Fuzz.string
             "String.toUpper << String.toUpper is the same as String.toUpper"
             (\string ->
