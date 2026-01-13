@@ -971,4 +971,80 @@ a = Dict.size (Dict.fromList ((0,()) :: (1,()) :: tail)) < 2
 a = False
 """
                         ]
+        , test "should replace List.length (List.drop 2 (e0 :: e1 :: e2 :: e3 :: e4Up)) >= 2 by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.drop 2 (e0 :: e1 :: e2 :: e3 :: e4Up)) >= 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be at least 2 and the right number was determined to be exactly 2."
+                                ]
+                            , under = ">="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace List.length (List.take 3 (e0 :: e1 :: el2Up)) >= 2 by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.take 3 (e0 :: e1 :: el2Up)) >= 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 2 and 3 inclusive and the right number was determined to be exactly 2."
+                                ]
+                            , under = ">="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace String.length (String.left (clamp 1 5 n) str) <= 5 by True" <|
+            \() ->
+                """module A exposing (..)
+a = String.length (String.left (clamp 1 5 n) str) <= 5
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 0 and 5 inclusive and the right number was determined to be exactly 5."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace String.length (String.dropRight (clamp 1 5 n) \"123456789\") <= 8 by True" <|
+            \() ->
+                """module A exposing (..)
+a = String.length (String.dropRight (clamp 1 5 n) "123456789") <= 8
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 4 and 8 inclusive and the right number was determined to be exactly 8."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         ]
