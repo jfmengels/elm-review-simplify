@@ -4,7 +4,7 @@ import Dict
 import Expect
 import Fuzz
 import Set
-import Test exposing (Test)
+import Test exposing (Test, test)
 
 
 all : Test
@@ -445,12 +445,12 @@ all =
                     |> Expect.equal
                         (String.toUpper string)
             )
-        , Test.fuzz Fuzz.string
-            "String.toUpper << String.toLower is the same as String.toUpper"
-            (\string ->
-                String.toUpper (String.toLower string)
-                    |> Expect.equal
-                        (String.toUpper string)
+        , test "String.toUpper << String.toLower is NOT the same as String.toUpper"
+            (\() ->
+                -- https://github.com/jfmengels/elm-review-simplify/pull/429#issuecomment-3746681750
+                String.toUpper (String.toLower "Ω")
+                    |> Expect.notEqual
+                        (String.toUpper "Ω")
             )
         , Test.fuzz Fuzz.string
             "String.toLower << String.toLower is the same as String.toLower"
