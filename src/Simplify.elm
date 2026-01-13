@@ -1033,7 +1033,7 @@ Destructuring using case expressions
     List.all f (List.repeat n a)
     --> n <= 0 || f a
 
-    Basics.not (List.all (not << f) list)
+    not (List.all (not << f) list)
     --> List.any f list
 
     List.any f []
@@ -1060,7 +1060,7 @@ Destructuring using case expressions
     List.any f (List.repeat n a)
     --> n >= 1 && f a
 
-    Basics.not (List.any (not << f) list)
+    not (List.any (not << f) list)
     --> List.all f list
 
     List.range 6 3
