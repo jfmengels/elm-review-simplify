@@ -4076,6 +4076,22 @@ a = List.filter f list |> List.isEmpty
 a = List.any f list |> not
 """
                         ]
+        , test "should replace List.isEmpty (List.filter not list) by List.all identity list" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (List.filter not list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.isEmpty on List.filter with a function into Basics.not can be combined into List.all"
+                            , details = [ "You can replace this call by List.all with the function given to List.filter before the Basics.not." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.all identity list
+"""
+                        ]
         , test "should replace List.isEmpty (List.filter (not << f) list) by List.all f list" <|
             \() ->
                 """module A exposing (..)

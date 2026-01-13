@@ -399,6 +399,13 @@ all =
                     |> Expect.equal
                         (List.all isEven list)
             )
+        , Test.fuzz (Fuzz.list Fuzz.bool)
+            "List.isEmpty << List.filter Basics.not is the same as List.all identity"
+            (\list ->
+                List.isEmpty (List.filter Basics.not list)
+                    |> Expect.equal
+                        (List.all identity list)
+            )
         , Test.fuzz Fuzz.string
             "String.toUpper << String.toUpper is the same as String.toUpper"
             (\string ->
