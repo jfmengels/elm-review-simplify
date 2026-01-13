@@ -9605,7 +9605,7 @@ listIsEmptyOnListFilterChecks =
                     [ elementIsBadCheck ] ->
                         Just
                             (case getFunctionIntoNot checkInfo elementIsBadCheck of
-                                Just functionsIntoNot ->
+                                Just functionsRemoveIntoNot ->
                                     { info =
                                         { message =
                                             qualifiedToString checkInfo.later.fn
@@ -9629,13 +9629,7 @@ listIsEmptyOnListFilterChecks =
                                         Fix.removeRange checkInfo.later.removeRange
                                             :: Fix.replaceRangeBy checkInfo.earlier.fnRange
                                                 (qualifiedToString (qualify Fn.List.all checkInfo))
-                                            :: (functionsIntoNot
-                                                    |> List.concatMap
-                                                        (\intoNot ->
-                                                            replaceBySubExpressionFix intoNot.withNotRange
-                                                                intoNot.withoutNot
-                                                        )
-                                               )
+                                            :: functionsRemoveIntoNot
                                     }
 
                                 Nothing ->
@@ -9681,7 +9675,7 @@ listIsEmptyOnListFilterChecks =
                 Just filterCall ->
                     Just
                         (case getFunctionIntoNot checkInfo filterCall.firstArg of
-                            Just functionsIntoNot ->
+                            Just functionsRemoveIntoNot ->
                                 Rule.errorWithFix
                                     { message =
                                         qualifiedToString checkInfo.fn
@@ -9707,13 +9701,7 @@ listIsEmptyOnListFilterChecks =
                                         :: replaceCallBySubExpressionFix checkInfo.parentRange
                                             checkInfo.callStyle
                                             checkInfo.firstArg
-                                        ++ (functionsIntoNot
-                                                |> List.concatMap
-                                                    (\intoNot ->
-                                                        replaceBySubExpressionFix intoNot.withNotRange
-                                                            intoNot.withoutNot
-                                                    )
-                                           )
+                                        ++ functionsRemoveIntoNot
                                     )
 
                             Nothing ->
@@ -9746,44 +9734,50 @@ listIsEmptyOnListFilterChecks =
     }
 
 
-getFunctionIntoNot : AstHelpers.ReduceLambdaResources a -> Node Expression -> Maybe (List { withNotRange : Range, withoutNot : Node Expression })
+getFunctionIntoNot : AstHelpers.ReduceLambdaResources (QualifyResources a) -> Node Expression -> Maybe (List Fix)
 getFunctionIntoNot resources expressionNode =
     sameInAllBranches
         (\fullFunctionBranch ->
-            case AstHelpers.removeParens fullFunctionBranch of
-                Node _ (Expression.LambdaExpression lambda) ->
-                    case lambda.args of
-                        [ _ ] ->
-                            sameInAllBranches
-                                (\lambdaResultBranch ->
-                                    AstHelpers.getSpecificUnreducedFnCall Fn.Basics.not resources.lookupTable lambdaResultBranch
-                                        |> Maybe.map
-                                            (\notFnCall ->
-                                                { withNotRange = notFnCall.nodeRange
-                                                , withoutNot = notFnCall.firstArg
-                                                }
-                                            )
-                                )
-                                lambda.expression
+            if AstHelpers.isSpecificValueOrFn Fn.Basics.not resources fullFunctionBranch then
+                Just
+                    [ Fix.replaceRangeBy (Node.range fullFunctionBranch)
+                        (qualifiedToString (qualify Fn.Basics.identity resources))
+                    ]
 
-                        _ ->
-                            Nothing
+            else
+                case AstHelpers.removeParens fullFunctionBranch of
+                    Node _ (Expression.LambdaExpression lambda) ->
+                        case lambda.args of
+                            [ _ ] ->
+                                sameInAllBranches
+                                    (\lambdaResultBranch ->
+                                        AstHelpers.getSpecificUnreducedFnCall Fn.Basics.not resources.lookupTable lambdaResultBranch
+                                            |> Maybe.map
+                                                (\notFnCall ->
+                                                    replaceBySubExpressionFix notFnCall.nodeRange
+                                                        notFnCall.firstArg
+                                                )
+                                    )
+                                    lambda.expression
+                                    |> Maybe.map List.concat
 
-                unparenthesizedExpressionNode ->
-                    case getFullComposition unparenthesizedExpressionNode of
-                        Nothing ->
-                            Nothing
-
-                        Just composition ->
-                            if AstHelpers.isSpecificValueOrFn Fn.Basics.not resources composition.composedLater then
-                                Just
-                                    [ { withNotRange = Node.range fullFunctionBranch
-                                      , withoutNot = composition.earlier
-                                      }
-                                    ]
-
-                            else
+                            _ ->
                                 Nothing
+
+                    unparenthesizedExpressionNode ->
+                        case getFullComposition unparenthesizedExpressionNode of
+                            Nothing ->
+                                Nothing
+
+                            Just composition ->
+                                if AstHelpers.isSpecificValueOrFn Fn.Basics.not resources composition.composedLater then
+                                    Just
+                                        (replaceBySubExpressionFix (Node.range fullFunctionBranch)
+                                            composition.earlier
+                                        )
+
+                                else
+                                    Nothing
         )
         expressionNode
         |> Maybe.map List.concat
