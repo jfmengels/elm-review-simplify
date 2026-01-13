@@ -6198,28 +6198,38 @@ basicsNotOSpecificFnTakingFunctionIntoNotCanBeCombinedWithFunctionWithoutNotChec
             if checkInfo.earlier.fn == config.earlierFn then
                 case checkInfo.earlier.args of
                     [ elementIsBadCheck ] ->
-                        case getFunctionIntoNotRemoveFix checkInfo elementIsBadCheck of
+                        case getFunctionIntoNot checkInfo elementIsBadCheck of
                             Nothing ->
                                 Nothing
 
-                            Just functionsRemoveIntoNot ->
+                            Just functionIntoNot ->
                                 Just
                                     { info =
                                         { message =
                                             qualifiedToString checkInfo.later.fn
                                                 ++ " on "
                                                 ++ qualifiedToString config.earlierFn
-                                                ++ " with a function into "
+                                                ++ (if functionIntoNot.isStandaloneNot then
+                                                        " "
+
+                                                    else
+                                                        " with a function into "
+                                                   )
                                                 ++ qualifiedToString Fn.Basics.not
                                                 ++ " can be combined into "
                                                 ++ qualifiedToString config.combinedFn
                                         , details =
                                             [ "You can replace this composition by "
                                                 ++ qualifiedToString config.combinedFn
-                                                ++ " with the function given to "
-                                                ++ qualifiedToString config.earlierFn
-                                                ++ " before the "
-                                                ++ qualifiedToString Fn.Basics.not
+                                                ++ (if functionIntoNot.isStandaloneNot then
+                                                        " " ++ qualifiedToString (qualify Fn.Basics.identity defaultQualifyResources)
+
+                                                    else
+                                                        " with the function given to "
+                                                            ++ qualifiedToString config.earlierFn
+                                                            ++ " before the "
+                                                            ++ qualifiedToString Fn.Basics.not
+                                                   )
                                                 ++ "."
                                             ]
                                         }
@@ -6227,7 +6237,7 @@ basicsNotOSpecificFnTakingFunctionIntoNotCanBeCombinedWithFunctionWithoutNotChec
                                         Fix.removeRange checkInfo.later.removeRange
                                             :: Fix.replaceRangeBy checkInfo.earlier.fnRange
                                                 (qualifiedToString (qualify config.combinedFn checkInfo))
-                                            :: functionsRemoveIntoNot
+                                            :: functionIntoNot.removeFix
                                     }
 
                     _ ->
@@ -6242,28 +6252,38 @@ basicsNotOSpecificFnTakingFunctionIntoNotCanBeCombinedWithFunctionWithoutNotChec
                     Nothing
 
                 Just filterCall ->
-                    case getFunctionIntoNotRemoveFix checkInfo filterCall.firstArg of
+                    case getFunctionIntoNot checkInfo filterCall.firstArg of
                         Nothing ->
                             Nothing
 
-                        Just functionsRemoveIntoNot ->
+                        Just functionIntoNot ->
                             Just
                                 (Rule.errorWithFix
                                     { message =
                                         qualifiedToString checkInfo.fn
                                             ++ " on "
                                             ++ qualifiedToString config.earlierFn
-                                            ++ " with a function into "
+                                            ++ (if functionIntoNot.isStandaloneNot then
+                                                    " "
+
+                                                else
+                                                    " with a function into "
+                                               )
                                             ++ qualifiedToString Fn.Basics.not
                                             ++ " can be combined into "
                                             ++ qualifiedToString config.combinedFn
                                     , details =
                                         [ "You can replace this call by "
                                             ++ qualifiedToString config.combinedFn
-                                            ++ " with the function given to "
-                                            ++ qualifiedToString config.earlierFn
-                                            ++ " before the "
-                                            ++ qualifiedToString Fn.Basics.not
+                                            ++ (if functionIntoNot.isStandaloneNot then
+                                                    " " ++ qualifiedToString (qualify Fn.Basics.identity defaultQualifyResources)
+
+                                                else
+                                                    " with the function given to "
+                                                        ++ qualifiedToString config.earlierFn
+                                                        ++ " before the "
+                                                        ++ qualifiedToString Fn.Basics.not
+                                               )
                                             ++ "."
                                         ]
                                     }
@@ -6273,7 +6293,7 @@ basicsNotOSpecificFnTakingFunctionIntoNotCanBeCombinedWithFunctionWithoutNotChec
                                         :: replaceCallBySubExpressionFix checkInfo.parentRange
                                             checkInfo.callStyle
                                             checkInfo.firstArg
-                                        ++ functionsRemoveIntoNot
+                                        ++ functionIntoNot.removeFix
                                     )
                                 )
     }
@@ -9719,24 +9739,34 @@ listIsEmptyOnListFilterChecks =
                 case checkInfo.earlier.args of
                     [ elementIsBadCheck ] ->
                         Just
-                            (case getFunctionIntoNotRemoveFix checkInfo elementIsBadCheck of
-                                Just functionsRemoveIntoNot ->
+                            (case getFunctionIntoNot checkInfo elementIsBadCheck of
+                                Just functionIntoNot ->
                                     { info =
                                         { message =
                                             qualifiedToString checkInfo.later.fn
                                                 ++ " on "
                                                 ++ qualifiedToString Fn.List.filter
-                                                ++ " with a function into "
+                                                ++ (if functionIntoNot.isStandaloneNot then
+                                                        " "
+
+                                                    else
+                                                        " with a function into "
+                                                   )
                                                 ++ qualifiedToString Fn.Basics.not
                                                 ++ " can be combined into "
                                                 ++ qualifiedToString Fn.List.all
                                         , details =
                                             [ "You can replace this composition by "
                                                 ++ qualifiedToString Fn.List.all
-                                                ++ " with the function given to "
-                                                ++ qualifiedToString Fn.List.filter
-                                                ++ " before the "
-                                                ++ qualifiedToString Fn.Basics.not
+                                                ++ (if functionIntoNot.isStandaloneNot then
+                                                        " " ++ qualifiedToString (qualify Fn.Basics.identity defaultQualifyResources)
+
+                                                    else
+                                                        " with the function given to "
+                                                            ++ qualifiedToString Fn.List.filter
+                                                            ++ " before the "
+                                                            ++ qualifiedToString Fn.Basics.not
+                                                   )
                                                 ++ "."
                                             ]
                                         }
@@ -9744,7 +9774,7 @@ listIsEmptyOnListFilterChecks =
                                         Fix.removeRange checkInfo.later.removeRange
                                             :: Fix.replaceRangeBy checkInfo.earlier.fnRange
                                                 (qualifiedToString (qualify Fn.List.all checkInfo))
-                                            :: functionsRemoveIntoNot
+                                            :: functionIntoNot.removeFix
                                     }
 
                                 Nothing ->
@@ -9789,24 +9819,34 @@ listIsEmptyOnListFilterChecks =
 
                 Just filterCall ->
                     Just
-                        (case getFunctionIntoNotRemoveFix checkInfo filterCall.firstArg of
-                            Just functionsRemoveIntoNot ->
+                        (case getFunctionIntoNot checkInfo filterCall.firstArg of
+                            Just functionIntoNot ->
                                 Rule.errorWithFix
                                     { message =
                                         qualifiedToString checkInfo.fn
                                             ++ " on "
                                             ++ qualifiedToString Fn.List.filter
-                                            ++ " with a function into "
+                                            ++ (if functionIntoNot.isStandaloneNot then
+                                                    " "
+
+                                                else
+                                                    " with a function into "
+                                               )
                                             ++ qualifiedToString Fn.Basics.not
                                             ++ " can be combined into "
                                             ++ qualifiedToString Fn.List.all
                                     , details =
                                         [ "You can replace this call by "
                                             ++ qualifiedToString Fn.List.all
-                                            ++ " with the function given to "
-                                            ++ qualifiedToString Fn.List.filter
-                                            ++ " before the "
-                                            ++ qualifiedToString Fn.Basics.not
+                                            ++ (if functionIntoNot.isStandaloneNot then
+                                                    " " ++ qualifiedToString (qualify Fn.Basics.identity defaultQualifyResources)
+
+                                                else
+                                                    " with the function given to "
+                                                        ++ qualifiedToString Fn.List.filter
+                                                        ++ " before the "
+                                                        ++ qualifiedToString Fn.Basics.not
+                                               )
                                             ++ "."
                                         ]
                                     }
@@ -9816,7 +9856,7 @@ listIsEmptyOnListFilterChecks =
                                         :: replaceCallBySubExpressionFix checkInfo.parentRange
                                             checkInfo.callStyle
                                             checkInfo.firstArg
-                                        ++ functionsRemoveIntoNot
+                                        ++ functionIntoNot.removeFix
                                     )
 
                             Nothing ->
@@ -9861,17 +9901,20 @@ listIsEmptyOnListFilterChecks =
     --> identity
 
 -}
-getFunctionIntoNotRemoveFix : AstHelpers.ReduceLambdaResources (QualifyResources a) -> Node Expression -> Maybe (List Fix)
-getFunctionIntoNotRemoveFix resources expressionNode =
-    sameInAllBranches
-        (\fullFunctionBranch ->
-            if AstHelpers.isSpecificValueOrFn Fn.Basics.not resources fullFunctionBranch then
-                Just
-                    [ Fix.replaceRangeBy (Node.range fullFunctionBranch)
-                        (qualifiedToString (qualify Fn.Basics.identity resources))
-                    ]
+getFunctionIntoNot : AstHelpers.ReduceLambdaResources (QualifyResources a) -> Node Expression -> Maybe { removeFix : List Fix, isStandaloneNot : Bool }
+getFunctionIntoNot resources expressionNode =
+    if AstHelpers.isSpecificValueOrFn Fn.Basics.not resources expressionNode then
+        Just
+            { isStandaloneNot = True
+            , removeFix =
+                [ Fix.replaceRangeBy (Node.range expressionNode)
+                    (qualifiedToString (qualify Fn.Basics.identity resources))
+                ]
+            }
 
-            else
+    else
+        sameInAllBranches
+            (\fullFunctionBranch ->
                 case AstHelpers.removeParens fullFunctionBranch of
                     Node _ (Expression.LambdaExpression lambda) ->
                         case lambda.args of
@@ -9905,9 +9948,12 @@ getFunctionIntoNotRemoveFix resources expressionNode =
 
                                 else
                                     Nothing
-        )
-        expressionNode
-        |> Maybe.map List.concat
+            )
+            expressionNode
+            |> Maybe.map
+                (\removeFixes ->
+                    { isStandaloneNot = False, removeFix = List.concat removeFixes }
+                )
 
 
 listLengthChecks : IntoFnCheck

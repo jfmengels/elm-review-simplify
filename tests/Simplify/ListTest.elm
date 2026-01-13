@@ -4084,8 +4084,8 @@ a = List.isEmpty (List.filter not list)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "List.isEmpty on List.filter with a function into Basics.not can be combined into List.all"
-                            , details = [ "You can replace this call by List.all with the function given to List.filter before the Basics.not." ]
+                            { message = "List.isEmpty on List.filter Basics.not can be combined into List.all"
+                            , details = [ "You can replace this call by List.all identity." ]
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

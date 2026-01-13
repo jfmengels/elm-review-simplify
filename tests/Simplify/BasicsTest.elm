@@ -1516,8 +1516,8 @@ a = Basics.not (List.any not list)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Basics.not on List.any with a function into Basics.not can be combined into List.all"
-                            , details = [ "You can replace this call by List.all with the function given to List.any before the Basics.not." ]
+                            { message = "Basics.not on List.any Basics.not can be combined into List.all"
+                            , details = [ "You can replace this call by List.all identity." ]
                             , under = "Basics.not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1532,8 +1532,8 @@ a = Basics.not << List.any not
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Basics.not on List.any with a function into Basics.not can be combined into List.all"
-                            , details = [ "You can replace this composition by List.all with the function given to List.any before the Basics.not." ]
+                            { message = "Basics.not on List.any Basics.not can be combined into List.all"
+                            , details = [ "You can replace this composition by List.all identity." ]
                             , under = "Basics.not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1564,8 +1564,8 @@ a = Basics.not (List.all not list)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Basics.not on List.all with a function into Basics.not can be combined into List.any"
-                            , details = [ "You can replace this call by List.any with the function given to List.all before the Basics.not." ]
+                            { message = "Basics.not on List.all Basics.not can be combined into List.any"
+                            , details = [ "You can replace this call by List.any identity." ]
                             , under = "Basics.not"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
