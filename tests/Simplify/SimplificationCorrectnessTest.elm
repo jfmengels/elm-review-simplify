@@ -522,6 +522,20 @@ all =
                     |> Expect.equal
                         (String.trim string)
             )
+        , Test.fuzz Fuzz.string
+            "String.all (always False) is the same as String.isEmpty"
+            (\string ->
+                String.all (always False) string
+                    |> Expect.equal
+                        (String.isEmpty string)
+            )
+        , Test.fuzz Fuzz.string
+            "String.any (always True) is the same as not << String.isEmpty"
+            (\string ->
+                String.any (always True) string
+                    |> Expect.equal
+                        (Basics.not (String.isEmpty string))
+            )
         ]
 
 

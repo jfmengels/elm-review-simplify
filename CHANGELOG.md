@@ -26,6 +26,8 @@ The rule now simplifies:
 - `List.all f (List.repeat n a)` to `n <= 0 || f a`
 - `List.all (always False) list` to `List.isEmpty list`
 - `String.all (always False) str` to `String.isEmpty str`
+- `List.any (always True) list` to `not (List.isEmpty list)`
+- `String.any (always True) str` to `not (String.isEmpty str)`
 - `List.any identity (List.map f list)` to `List.any f list`
 - `List.all identity (List.map f list)` to `List.all f list`
 - `List.isEmpty (List.filter f list)` to `not (List.any f list)`

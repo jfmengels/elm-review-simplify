@@ -8424,6 +8424,102 @@ a = List.any identity << List.map f
 a = List.any f
 """
                         ]
+        , test "should replace List.any (always True) list by not (List.isEmpty list)" <|
+            \() ->
+                """module A exposing (..)
+a = List.any (always True) list
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.any with a function that will always return True is the same as Basics.not on List.isEmpty"
+                            , details = [ "You can replace this call by Basics.not on List.isEmpty on the list given to the List.any call." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not (List.isEmpty list)
+"""
+                        ]
+        , test "should replace List.any (always True) <| f <| x by not <| List.isEmpty <| f <| x" <|
+            \() ->
+                """module A exposing (..)
+a = List.any (always True) <| f <| x
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.any with a function that will always return True is the same as Basics.not on List.isEmpty"
+                            , details = [ "You can replace this call by Basics.not on List.isEmpty on the list given to the List.any call." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not <| List.isEmpty <| f <| x
+"""
+                        ]
+        , test "should replace x |> f |> List.any (always True) by x |> f |> List.isEmpty |> not" <|
+            \() ->
+                """module A exposing (..)
+a = x |> f |> List.any (always True)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.any with a function that will always return True is the same as Basics.not on List.isEmpty"
+                            , details = [ "You can replace this call by Basics.not on List.isEmpty on the list given to the List.any call." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = x |> f |> List.isEmpty |> not
+"""
+                        ]
+        , test "should replace List.any (always True) by not << List.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = List.any (always True)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.any with a function that will always return True is the same as Basics.not on List.isEmpty"
+                            , details = [ "You can replace this call by List.isEmpty, then Basics.not." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (not << List.isEmpty)
+"""
+                        ]
+        , test "should replace List.any <| always True by not << List.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = List.any <| always True
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.any with a function that will always return True is the same as Basics.not on List.isEmpty"
+                            , details = [ "You can replace this call by List.isEmpty, then Basics.not." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (not << List.isEmpty)
+"""
+                        ]
+        , test "should replace always True |> List.any by List.isEmpty >> not" <|
+            \() ->
+                """module A exposing (..)
+a = always True |> List.any
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.any with a function that will always return True is the same as Basics.not on List.isEmpty"
+                            , details = [ "You can replace this call by List.isEmpty, then Basics.not." ]
+                            , under = "List.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.isEmpty >> not)
+"""
+                        ]
         ]
 
 
