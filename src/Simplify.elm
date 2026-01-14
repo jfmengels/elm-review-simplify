@@ -615,6 +615,9 @@ Destructuring using case expressions
     String.any (always False) str
     -> False
 
+    String.any (always True) str
+    --> not (String.isEmpty str)
+
     String.all f ""
     --> True
 
@@ -1047,6 +1050,9 @@ Destructuring using case expressions
 
     List.any (always False) list
     --> False
+
+    List.any (always True) list
+    --> not (List.isEmpty list)
 
     List.any identity [ a, True, b ]
     --> True
@@ -7352,6 +7358,31 @@ composeWithEarlierFix config =
             , Fix.insertAt config.range.end
                 (" << " ++ config.earlier ++ ")")
             ]
+
+
+fnCompositionString :
+    { direction : CallStyle.LeftOrRightDirection
+    , earlier : ( ModuleName, String )
+    , later : ( ModuleName, String )
+    }
+    -> QualifyResources a
+    -> String
+fnCompositionString config resources =
+    let
+        earlierFnString : String
+        earlierFnString =
+            qualifiedToString (qualify config.earlier resources)
+
+        laterFnString : String
+        laterFnString =
+            qualifiedToString (qualify config.later resources)
+    in
+    case config.direction of
+        CallStyle.LeftToRight ->
+            earlierFnString ++ " >> " ++ laterFnString
+
+        CallStyle.RightToLeft ->
+            laterFnString ++ " << " ++ earlierFnString
 
 
 tuplePartMapOnMapBothCheck : { argIndex : Int } -> IntoFnCheck
@@ -14746,6 +14777,29 @@ fixToCall config resources =
             Fix.insertAt config.argRange.end (" |> " ++ fnAsString)
 
 
+callOnExistingCallFix :
+    { fn : ( ModuleName, String ), style : FunctionCallStyle, range : Range }
+    -> QualifyResources a
+    -> List Fix
+callOnExistingCallFix config resources =
+    let
+        fnAsString : String
+        fnAsString =
+            qualifiedToString (qualify config.fn resources)
+    in
+    case config.style of
+        CallStyle.Application ->
+            [ Fix.insertAt config.range.start (fnAsString ++ " (")
+            , Fix.insertAt config.range.end ")"
+            ]
+
+        CallStyle.Pipe CallStyle.RightToLeft ->
+            [ Fix.insertAt config.range.start (fnAsString ++ " <| ") ]
+
+        CallStyle.Pipe CallStyle.LeftToRight ->
+            [ Fix.insertAt config.range.end (" |> " ++ fnAsString) ]
+
+
 {-| Map where the usual map function has an extra argument with special information.
 
 For example `indexedMap` also supplied an index. Not using the index would be identical to `map`.
@@ -15091,9 +15145,14 @@ collectionAllChecks collection checkInfo =
     any f empty --> False
     any (always False) --> always False
     any (always False) emptiable -> False
+    any (always True) --> not << isEmpty
+    any (always True) emptiable --> not (isEmpty emptiable)
 
 -}
-emptiableAnyChecks : EmptiableProperties empty otherProperties -> CallCheckInfo -> Maybe (Error {})
+emptiableAnyChecks :
+    TypeProperties (EmptiableProperties empty { otherProperties | isEmptyFn : ( ModuleName, String ) })
+    -> CallCheckInfo
+    -> Maybe (Error {})
 emptiableAnyChecks emptiable checkInfo =
     callOnEmptyReturnsCheck
         { resultAsString = \res -> qualifiedToString (qualify Fn.Basics.falseVariant res) }
@@ -15112,7 +15171,70 @@ emptiableAnyChecks emptiable checkInfo =
                                         checkInfo
                                     )
 
-                            _ ->
+                            Just True ->
+                                Just
+                                    (Rule.errorWithFix
+                                        { message =
+                                            qualifiedToString checkInfo.fn
+                                                ++ " with a function that will always return True is the same as "
+                                                ++ qualifiedToString Fn.Basics.not
+                                                ++ " on "
+                                                ++ qualifiedToString emptiable.isEmptyFn
+                                        , details =
+                                            [ "You can replace this call by "
+                                                ++ (case checkInfo.argsAfterFirst of
+                                                        [] ->
+                                                            qualifiedToString emptiable.isEmptyFn
+                                                                ++ ", then "
+                                                                ++ qualifiedToString Fn.Basics.not
+
+                                                        _ :: _ ->
+                                                            qualifiedToString Fn.Basics.not
+                                                                ++ " on "
+                                                                ++ qualifiedToString emptiable.isEmptyFn
+                                                                ++ " on the "
+                                                                ++ emptiable.represents
+                                                                ++ " given to the "
+                                                                ++ qualifiedToString checkInfo.fn
+                                                                ++ " call"
+                                                   )
+                                                ++ "."
+                                            ]
+                                        }
+                                        checkInfo.fnRange
+                                        (case checkInfo.argsAfterFirst of
+                                            [] ->
+                                                [ Fix.replaceRangeBy checkInfo.parentRange
+                                                    ("("
+                                                        ++ fnCompositionString
+                                                            { earlier = emptiable.isEmptyFn
+                                                            , later = Fn.Basics.not
+                                                            , direction =
+                                                                case checkInfo.callStyle of
+                                                                    CallStyle.Pipe direction ->
+                                                                        direction
+
+                                                                    CallStyle.Application ->
+                                                                        CallStyle.RightToLeft
+                                                            }
+                                                            checkInfo
+                                                        ++ ")"
+                                                    )
+                                                ]
+
+                                            _ :: _ ->
+                                                Fix.replaceRangeBy (Range.combine [ checkInfo.fnRange, Node.range checkInfo.firstArg ])
+                                                    (qualifiedToString (qualify emptiable.isEmptyFn checkInfo))
+                                                    :: callOnExistingCallFix
+                                                        { fn = Fn.Basics.not
+                                                        , range = checkInfo.parentRange
+                                                        , style = checkInfo.callStyle
+                                                        }
+                                                        checkInfo
+                                        )
+                                    )
+
+                            Nothing ->
                                 Nothing
 
                     Nothing ->

@@ -3072,6 +3072,38 @@ a = String.any (always False)
 a = always False
 """
                         ]
+        , test "should replace String.any (always True) string by not (String.isEmpty string)" <|
+            \() ->
+                """module A exposing (..)
+a = String.any (always True) string
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.any with a function that will always return True is the same as Basics.not on String.isEmpty"
+                            , details = [ "You can replace this call by Basics.not on String.isEmpty on the string given to the String.any call." ]
+                            , under = "String.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = not (String.isEmpty string)
+"""
+                        ]
+        , test "should replace String.any (always True) by not << String.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = String.any (always True)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.any with a function that will always return True is the same as Basics.not on String.isEmpty"
+                            , details = [ "You can replace this call by String.isEmpty, then Basics.not." ]
+                            , under = "String.any"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (not << String.isEmpty)
+"""
+                        ]
         ]
 
 
