@@ -1300,7 +1300,7 @@ a = Task.attempt identity << Task.map f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Task.map, then Task.attempt with an identity function can be combined into Task.attempt"
-                            , details = [ "You can replace this composition by Task.attempt with the same arguments given to Task.map which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by Task.attempt with the same argument given to Task.map which is meant for this exact purpose." ]
                             , under = "Task.attempt"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1318,7 +1318,7 @@ a = Task.map f >> Task.attempt identity
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Task.map, then Task.attempt with an identity function can be combined into Task.attempt"
-                            , details = [ "You can replace this composition by Task.attempt with the same arguments given to Task.map which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by Task.attempt with the same argument given to Task.map which is meant for this exact purpose." ]
                             , under = "Task.attempt"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1369,7 +1369,7 @@ a = Task.perform identity << Task.map f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Task.map, then Task.perform with an identity function can be combined into Task.perform"
-                            , details = [ "You can replace this composition by Task.perform with the same arguments given to Task.map which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by Task.perform with the same argument given to Task.map which is meant for this exact purpose." ]
                             , under = "Task.perform"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1387,7 +1387,7 @@ a = Task.map f >> Task.perform identity
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Task.map, then Task.perform with an identity function can be combined into Task.perform"
-                            , details = [ "You can replace this composition by Task.perform with the same arguments given to Task.map which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by Task.perform with the same argument given to Task.map which is meant for this exact purpose." ]
                             , under = "Task.perform"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

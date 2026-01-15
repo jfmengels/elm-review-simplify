@@ -1053,7 +1053,7 @@ a = List.map f >> List.concat
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.map, then List.concat can be combined into List.concatMap"
-                            , details = [ "You can replace this composition by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by List.concatMap with the same argument given to List.map which is meant for this exact purpose." ]
                             , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1069,7 +1069,7 @@ a = List.concat << List.map f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.map, then List.concat can be combined into List.concatMap"
-                            , details = [ "You can replace this composition by List.concatMap with the same arguments given to List.map which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by List.concatMap with the same argument given to List.map which is meant for this exact purpose." ]
                             , under = "List.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1244,7 +1244,7 @@ a = List.sort list |> List.head
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.sort, then List.head can be combined into List.minimum"
-                            , details = [ "You can replace this call by List.minimum with the same arguments given to List.sort which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by List.minimum with the same argument given to List.sort which is meant for this exact purpose." ]
                             , under = "List.head"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2504,7 +2504,7 @@ a = Dict.toList >> List.map Tuple.first
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
-                            , details = [ "You can replace this composition by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by Dict.keys which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2522,7 +2522,7 @@ a = Dict.toList >> List.map (\\( part0, _ ) -> part0)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
-                            , details = [ "You can replace this composition by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by Dict.keys which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2540,7 +2540,7 @@ a = List.map Tuple.first << Dict.toList
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
-                            , details = [ "You can replace this composition by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by Dict.keys which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2558,7 +2558,7 @@ a = Dict.toList >> List.map Tuple.second
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.map with Tuple.second can be combined into Dict.values"
-                            , details = [ "You can replace this composition by Dict.values with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by Dict.values which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2576,7 +2576,7 @@ a = Dict.toList >> List.map (\\( _, part1 ) -> part1)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.map with Tuple.second can be combined into Dict.values"
-                            , details = [ "You can replace this composition by Dict.values with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by Dict.values which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2594,7 +2594,7 @@ a = List.map Tuple.second << Dict.toList
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.map with Tuple.second can be combined into Dict.values"
-                            , details = [ "You can replace this composition by Dict.values with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by Dict.values which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2612,7 +2612,7 @@ a = List.map Tuple.first (Dict.toList dict)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
-                            , details = [ "You can replace this call by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Dict.keys with the same argument given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2630,7 +2630,7 @@ a = List.map Tuple.first (Dict.toList <| dict)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
-                            , details = [ "You can replace this call by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Dict.keys with the same argument given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2648,7 +2648,7 @@ a = List.map Tuple.first (dict |> Dict.toList)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
-                            , details = [ "You can replace this call by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Dict.keys with the same argument given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2666,7 +2666,7 @@ a = List.map Tuple.first <| Dict.toList dict
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
-                            , details = [ "You can replace this call by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Dict.keys with the same argument given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2684,7 +2684,7 @@ a = List.map Tuple.first <| (Dict.toList <| dict)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
-                            , details = [ "You can replace this call by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Dict.keys with the same argument given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2702,7 +2702,7 @@ a = List.map Tuple.first <| (dict |> Dict.toList)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
-                            , details = [ "You can replace this call by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Dict.keys with the same argument given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2720,7 +2720,7 @@ a = Dict.toList dict |> List.map Tuple.first
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.map with Tuple.first can be combined into Dict.keys"
-                            , details = [ "You can replace this call by Dict.keys with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Dict.keys with the same argument given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2738,7 +2738,7 @@ a = array |> Array.toIndexedList |> List.map Tuple.second
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.toIndexedList, then List.map with Tuple.second can be combined into Array.toList"
-                            , details = [ "You can replace this call by Array.toList with the same arguments given to Array.toIndexedList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Array.toList with the same argument given to Array.toIndexedList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2756,7 +2756,7 @@ a = array |> Array.toIndexedList |> List.map (\\( _, part1 ) -> part1)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.toIndexedList, then List.map with Tuple.second can be combined into Array.toList"
-                            , details = [ "You can replace this call by Array.toList with the same arguments given to Array.toIndexedList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Array.toList with the same argument given to Array.toIndexedList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2774,7 +2774,7 @@ a = Array.toIndexedList >> List.map Tuple.second
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.toIndexedList, then List.map with Tuple.second can be combined into Array.toList"
-                            , details = [ "You can replace this composition by Array.toList with the same arguments given to Array.toIndexedList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by Array.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2792,7 +2792,7 @@ a = Array.toIndexedList >> List.map (\\( _, part1 ) -> part1)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.toIndexedList, then List.map with Tuple.second can be combined into Array.toList"
-                            , details = [ "You can replace this composition by Array.toList with the same arguments given to Array.toIndexedList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by Array.toList which is meant for this exact purpose." ]
                             , under = "List.map"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3586,7 +3586,7 @@ a = List.map f >> List.filterMap identity
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.map, then List.filterMap with an identity function can be combined into List.filterMap"
-                            , details = [ "You can replace this composition by List.filterMap with the same arguments given to List.map which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by List.filterMap with the same argument given to List.map which is meant for this exact purpose." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -3625,7 +3625,7 @@ a = List.filterMap identity << List.map f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.map, then List.filterMap with an identity function can be combined into List.filterMap"
-                            , details = [ "You can replace this composition by List.filterMap with the same arguments given to List.map which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by List.filterMap with the same argument given to List.map which is meant for this exact purpose." ]
                             , under = "List.filterMap"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4042,7 +4042,7 @@ a = Set.toList set |> List.isEmpty
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Set.toList, then List.isEmpty can be combined into Set.isEmpty"
-                            , details = [ "You can replace this call by Set.isEmpty with the same arguments given to Set.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Set.isEmpty with the same argument given to Set.toList which is meant for this exact purpose." ]
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4060,7 +4060,7 @@ a = Dict.toList dict |> List.isEmpty
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.isEmpty can be combined into Dict.isEmpty"
-                            , details = [ "You can replace this call by Dict.isEmpty with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Dict.isEmpty with the same argument given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4078,7 +4078,7 @@ a = Dict.values dict |> List.isEmpty
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.values, then List.isEmpty can be combined into Dict.isEmpty"
-                            , details = [ "You can replace this call by Dict.isEmpty with the same arguments given to Dict.values which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Dict.isEmpty with the same argument given to Dict.values which is meant for this exact purpose." ]
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4096,7 +4096,7 @@ a = Dict.keys dict |> List.isEmpty
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.keys, then List.isEmpty can be combined into Dict.isEmpty"
-                            , details = [ "You can replace this call by Dict.isEmpty with the same arguments given to Dict.keys which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Dict.isEmpty with the same argument given to Dict.keys which is meant for this exact purpose." ]
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4114,7 +4114,7 @@ a = Array.toList array |> List.isEmpty
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.toList, then List.isEmpty can be combined into Array.isEmpty"
-                            , details = [ "You can replace this call by Array.isEmpty with the same arguments given to Array.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Array.isEmpty with the same argument given to Array.toList which is meant for this exact purpose." ]
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4132,7 +4132,7 @@ a = Array.toIndexedList array |> List.isEmpty
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.toIndexedList, then List.isEmpty can be combined into Array.isEmpty"
-                            , details = [ "You can replace this call by Array.isEmpty with the same arguments given to Array.toIndexedList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Array.isEmpty with the same argument given to Array.toIndexedList which is meant for this exact purpose." ]
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4149,7 +4149,7 @@ a = List.isEmpty (String.toList string)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "String.toList, then List.isEmpty can be combined into String.isEmpty"
-                            , details = [ "You can replace this call by String.isEmpty with the same arguments given to String.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by String.isEmpty with the same argument given to String.toList which is meant for this exact purpose." ]
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -4165,7 +4165,7 @@ a = List.isEmpty << String.toList
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "String.toList, then List.isEmpty can be combined into String.isEmpty"
-                            , details = [ "You can replace this composition by String.isEmpty with the same arguments given to String.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by String.isEmpty which is meant for this exact purpose." ]
                             , under = "List.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8223,7 +8223,7 @@ a = List.all identity << List.map f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.map, then List.all with an identity function can be combined into List.all"
-                            , details = [ "You can replace this composition by List.all with the same arguments given to List.map which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by List.all with the same argument given to List.map which is meant for this exact purpose." ]
                             , under = "List.all"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8545,7 +8545,7 @@ a = List.any identity << List.map f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.map, then List.any with an identity function can be combined into List.any"
-                            , details = [ "You can replace this composition by List.any with the same arguments given to List.map which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by List.any with the same argument given to List.map which is meant for this exact purpose." ]
                             , under = "List.any"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8974,7 +8974,7 @@ a = Set.toList set |> List.length
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Set.toList, then List.length can be combined into Set.size"
-                            , details = [ "You can replace this call by Set.size with the same arguments given to Set.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Set.size with the same argument given to Set.toList which is meant for this exact purpose." ]
                             , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8992,7 +8992,7 @@ a = Dict.toList dict |> List.length
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.toList, then List.length can be combined into Dict.size"
-                            , details = [ "You can replace this call by Dict.size with the same arguments given to Dict.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Dict.size with the same argument given to Dict.toList which is meant for this exact purpose." ]
                             , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9010,7 +9010,7 @@ a = Dict.values dict |> List.length
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.values, then List.length can be combined into Dict.size"
-                            , details = [ "You can replace this call by Dict.size with the same arguments given to Dict.values which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Dict.size with the same argument given to Dict.values which is meant for this exact purpose." ]
                             , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9028,7 +9028,7 @@ a = Dict.keys dict |> List.length
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.keys, then List.length can be combined into Dict.size"
-                            , details = [ "You can replace this call by Dict.size with the same arguments given to Dict.keys which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Dict.size with the same argument given to Dict.keys which is meant for this exact purpose." ]
                             , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9046,7 +9046,7 @@ a = Array.toList array |> List.length
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.toList, then List.length can be combined into Array.length"
-                            , details = [ "You can replace this call by Array.length with the same arguments given to Array.toList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Array.length with the same argument given to Array.toList which is meant for this exact purpose." ]
                             , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -9064,7 +9064,7 @@ a = Array.toIndexedList array |> List.length
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.toIndexedList, then List.length can be combined into Array.length"
-                            , details = [ "You can replace this call by Array.length with the same arguments given to Array.toIndexedList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by Array.length with the same argument given to Array.toIndexedList which is meant for this exact purpose." ]
                             , under = "List.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

@@ -270,7 +270,7 @@ a = String.isEmpty (String.fromList list)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "String.fromList, then String.isEmpty can be combined into List.isEmpty"
-                            , details = [ "You can replace this call by List.isEmpty with the same arguments given to String.fromList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by List.isEmpty with the same argument given to String.fromList which is meant for this exact purpose." ]
                             , under = "String.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -286,7 +286,7 @@ a = String.isEmpty << String.fromList
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "String.fromList, then String.isEmpty can be combined into List.isEmpty"
-                            , details = [ "You can replace this composition by List.isEmpty with the same arguments given to String.fromList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by List.isEmpty which is meant for this exact purpose." ]
                             , under = "String.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -565,7 +565,7 @@ a = String.concat << List.repeat n
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.repeat, then String.concat can be combined into String.repeat"
-                            , details = [ "You can replace this composition by String.repeat with the same arguments given to List.repeat which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by String.repeat with the same argument given to List.repeat which is meant for this exact purpose." ]
                             , under = "String.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -613,7 +613,7 @@ a = String.concat << List.intersperse str
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.intersperse, then String.concat can be combined into String.join"
-                            , details = [ "You can replace this composition by String.join with the same arguments given to List.intersperse which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by String.join with the same argument given to List.intersperse which is meant for this exact purpose." ]
                             , under = "String.concat"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2047,7 +2047,7 @@ a = String.trimLeft (String.trimRight str)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "String.trimRight, then String.trimLeft can be combined into String.trim"
-                            , details = [ "You can replace this call by String.trim with the same arguments given to String.trimRight which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by String.trim with the same argument given to String.trimRight which is meant for this exact purpose." ]
                             , under = "String.trimLeft"
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 20 } }
@@ -2112,7 +2112,7 @@ a = String.trimRight (String.trimLeft str)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "String.trimLeft, then String.trimRight can be combined into String.trim"
-                            , details = [ "You can replace this call by String.trim with the same arguments given to String.trimLeft which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by String.trim with the same argument given to String.trimLeft which is meant for this exact purpose." ]
                             , under = "String.trimRight"
                             }
                             |> Review.Test.atExactly { start = { row = 2, column = 5 }, end = { row = 2, column = 21 } }
