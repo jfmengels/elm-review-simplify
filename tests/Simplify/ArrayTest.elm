@@ -1339,7 +1339,7 @@ a = Array.isEmpty (Array.initialize n f)
         , test "should replace comparisons to the empty array with Array.isEmpty" <|
             \() ->
                 """module A exposing (..)
-
+import Array
 a = x == Array.empty"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -1349,13 +1349,13 @@ a = x == Array.empty"""
                             , under = "== Array.empty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-
+import Array
 a = Array.isEmpty x"""
                         ]
         , test "should replace comparisons to the empty array with Array.isEmpty (in parens)" <|
             \() ->
                 """module A exposing (..)
-
+import Array
 a = x == (Array.empty)"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -1365,13 +1365,13 @@ a = x == (Array.empty)"""
                             , under = "== (Array.empty)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-
+import Array
 a = Array.isEmpty x"""
                         ]
         , test "should replace comparisons to the empty array with Array.isEmpty (reverse order)" <|
             \() ->
                 """module A exposing (..)
-
+import Array
 a = Array.empty == x"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -1381,13 +1381,13 @@ a = Array.empty == x"""
                             , under = "Array.empty =="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-
+import Array
 a = Array.isEmpty x"""
                         ]
         , test "should replace comparisons to the empty array with Array.isEmpty (negated)" <|
             \() ->
                 """module A exposing (..)
-
+import Array
 a = x /= Array.empty"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -1397,13 +1397,13 @@ a = x /= Array.empty"""
                             , under = "/= Array.empty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-
+import Array
 a = not (Array.isEmpty x)"""
                         ]
         , test "should replace comparisons to the empty array with Array.isEmpty (negated, reverse order)" <|
             \() ->
                 """module A exposing (..)
-
+import Array
 a = Array.empty /= x"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -1413,13 +1413,13 @@ a = Array.empty /= x"""
                             , under = "Array.empty /="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-
+import Array
 a = not (Array.isEmpty x)"""
                         ]
         , test "should replace comparisons to the empty array with Array.isEmpty (needs parentheses)" <|
             \() ->
                 """module A exposing (..)
-
+import Array
 a = x ++ y == Array.empty"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -1429,13 +1429,13 @@ a = x ++ y == Array.empty"""
                             , under = "== Array.empty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-
+import Array
 a = Array.isEmpty (x ++ y)"""
                         ]
         , test "should replace comparisons to the empty array with Array.isEmpty (needs parentheses, reverse order)" <|
             \() ->
                 """module A exposing (..)
-
+import Array
 a = Array.empty == x ++ y"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -1445,13 +1445,13 @@ a = Array.empty == x ++ y"""
                             , under = "Array.empty =="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-
+import Array
 a = Array.isEmpty (x ++ y)"""
                         ]
         , test "should replace comparisons to the empty array with Array.isEmpty (needs parentheses, negated)" <|
             \() ->
                 """module A exposing (..)
-
+import Array
 a = x ++ y /= Array.empty"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -1461,13 +1461,13 @@ a = x ++ y /= Array.empty"""
                             , under = "/= Array.empty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-
+import Array
 a = not (Array.isEmpty (x ++ y))"""
                         ]
         , test "should replace comparisons to the empty array with Array.isEmpty (needs parentheses, negated, reverse order)" <|
             \() ->
                 """module A exposing (..)
-
+import Array
 a = Array.empty /= x ++ y"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -1477,13 +1477,13 @@ a = Array.empty /= x ++ y"""
                             , under = "Array.empty /="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-
+import Array
 a = not (Array.isEmpty (x ++ y))"""
                         ]
         , test "should replace comparisons to the empty array with Array.isEmpty (infix)" <|
             \() ->
                 """module A exposing (..)
-
+import Array
 a = x |> (==) Array.empty"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -1493,13 +1493,13 @@ a = x |> (==) Array.empty"""
                             , under = "(==) Array.empty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-
+import Array
 a = x |> Array.isEmpty"""
                         ]
         , test "should replace comparisons to the empty array with Array.isEmpty (infix, with parens)" <|
             \() ->
                 """module A exposing (..)
-
+import Array
 a = x |> (==) (Array.empty)"""
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -1509,12 +1509,13 @@ a = x |> (==) (Array.empty)"""
                             , under = "(==) (Array.empty)"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-
+import Array
 a = x |> Array.isEmpty"""
                         ]
         , test "should replace Array.isEmpty (Array.map f array) by Array.isEmpty array" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.isEmpty (Array.map f array)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -1525,12 +1526,14 @@ a = Array.isEmpty (Array.map f array)
                             , under = "Array.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.isEmpty array
 """
                         ]
         , test "should replace Array.isEmpty (Array.indexedMap f array) by Array.isEmpty array" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.isEmpty (Array.indexedMap f array)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -1541,6 +1544,7 @@ a = Array.isEmpty (Array.indexedMap f array)
                             , under = "Array.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.isEmpty array
 """
                         ]
@@ -2046,6 +2050,7 @@ a = max 0 n
         , test "should replace Array.length (Array.map f array) by Array.length array" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.length (Array.map f array)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -2056,12 +2061,14 @@ a = Array.length (Array.map f array)
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.length array
 """
                         ]
         , test "should replace Array.length (Array.indexedMap f array) by Array.length array" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.length (Array.indexedMap f array)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -2072,6 +2079,7 @@ a = Array.length (Array.indexedMap f array)
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.length array
 """
                         ]
@@ -3049,6 +3057,7 @@ a = Array.slice 1 -2
         , test "should replace Array.slice start end (Array.map f array) by Array.map f (Array.slice start end array)" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.slice start end (Array.map f array)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3059,12 +3068,14 @@ a = Array.slice start end (Array.map f array)
                             , under = "Array.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.map f (Array.slice start end array)
 """
                         ]
         , test "should replace Array.slice start end << Array.map f by Array.map f << Array.slice start end" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.slice start end << Array.map f
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3075,12 +3086,14 @@ a = Array.slice start end << Array.map f
                             , under = "Array.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = (Array.map f << Array.slice start end)
 """
                         ]
         , test "should replace Array.slice 0 end (Array.indexedMap f array) by Array.indexedMap f (Array.slice 0 end array)" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.slice 0 end (Array.indexedMap f array)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3091,12 +3104,14 @@ a = Array.slice 0 end (Array.indexedMap f array)
                             , under = "Array.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.indexedMap f (Array.slice 0 end array)
 """
                         ]
         , test "should replace Array.slice 0 end << Array.indexedMap f by Array.indexedMap f << Array.slice 0 end" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.slice 0 end << Array.indexedMap f
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3107,6 +3122,7 @@ a = Array.slice 0 end << Array.indexedMap f
                             , under = "Array.slice"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = (Array.indexedMap f << Array.slice 0 end)
 """
                         ]
@@ -3202,6 +3218,7 @@ a = always
         , test "should replace Array.foldl f x (Array.fromList list) by List.foldl f x list" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.foldl f x (Array.fromList list)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3212,12 +3229,14 @@ a = Array.foldl f x (Array.fromList list)
                             , under = "Array.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = List.foldl f x list
 """
                         ]
         , test "should replace Array.foldl f x << Array.fromList by Array.foldl f x" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.foldl f x << Array.fromList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3228,12 +3247,14 @@ a = Array.foldl f x << Array.fromList
                             , under = "Array.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = List.foldl f x
 """
                         ]
         , test "should replace Array.fromList >> Array.foldl f x by Array.foldl f x" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.fromList >> Array.foldl f x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3244,6 +3265,7 @@ a = Array.fromList >> Array.foldl f x
                             , under = "Array.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = List.foldl f x
 """
                         ]
@@ -3339,6 +3361,7 @@ a = always
         , test "should replace Array.foldr f x (Array.fromList list) by List.foldr f x list" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.foldr f x (Array.fromList list)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3349,12 +3372,14 @@ a = Array.foldr f x (Array.fromList list)
                             , under = "Array.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = List.foldr f x list
 """
                         ]
         , test "should replace Array.foldr f x << Array.fromList by Array.foldr f x" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.foldr f x << Array.fromList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3365,12 +3390,14 @@ a = Array.foldr f x << Array.fromList
                             , under = "Array.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = List.foldr f x
 """
                         ]
         , test "should replace Array.fromList >> Array.foldr f x by Array.foldr f x" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.fromList >> Array.foldr f x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -3381,6 +3408,7 @@ a = Array.fromList >> Array.foldr f x
                             , under = "Array.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = List.foldr f x
 """
                         ]

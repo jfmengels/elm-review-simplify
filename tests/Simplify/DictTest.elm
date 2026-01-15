@@ -487,6 +487,7 @@ a = Dict.fromList [ let a = 0 in ( 0, 0 ) ]
         , test "should replace Dict.fromList (List.repeat n a) by if n >= 1 then Dict.fromList [ a ] else Dict.empty" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.fromList (List.repeat n b)
 """
                     |> whenNotExpectingNaN Review.Test.run
@@ -496,6 +497,7 @@ a = Dict.fromList (List.repeat n b)
                             , under = "Dict.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = (if n >= 1 then
                                  Dict.fromList [ b ]
 
