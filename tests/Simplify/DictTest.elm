@@ -166,7 +166,7 @@ a = list |> Dict.fromList |> Dict.isEmpty
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.fromList, then Dict.isEmpty can be combined into List.isEmpty"
-                            , details = [ "You can replace this call by List.isEmpty with the same arguments given to Dict.fromList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by List.isEmpty with the same argument given to Dict.fromList which is meant for this exact purpose." ]
                             , under = "Dict.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

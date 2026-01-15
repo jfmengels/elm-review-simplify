@@ -268,7 +268,7 @@ a = Array.repeat n >> Array.toList
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.repeat, then Array.toList can be combined into List.repeat"
-                            , details = [ "You can replace this composition by List.repeat with the same arguments given to Array.repeat which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by List.repeat with the same argument given to Array.repeat which is meant for this exact purpose." ]
                             , under = "Array.toList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1294,7 +1294,7 @@ a = list |> Array.fromList |> Array.isEmpty
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.fromList, then Array.isEmpty can be combined into List.isEmpty"
-                            , details = [ "You can replace this call by List.isEmpty with the same arguments given to Array.fromList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by List.isEmpty with the same argument given to Array.fromList which is meant for this exact purpose." ]
                             , under = "Array.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -2085,7 +2085,7 @@ a = Array.fromList list |> Array.length
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Array.fromList, then Array.length can be combined into List.length"
-                            , details = [ "You can replace this call by List.length with the same arguments given to Array.fromList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by List.length with the same argument given to Array.fromList which is meant for this exact purpose." ]
                             , under = "Array.length"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

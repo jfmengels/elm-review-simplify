@@ -271,7 +271,7 @@ a = Tuple.first << List.partition f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.partition, then Tuple.first can be combined into List.filter"
-                            , details = [ "You can replace this composition by List.filter with the same arguments given to List.partition which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by List.filter with the same argument given to List.partition which is meant for this exact purpose." ]
                             , under = "Tuple.first"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -288,7 +288,7 @@ a = Tuple.first << Set.partition f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Set.partition, then Tuple.first can be combined into Set.filter"
-                            , details = [ "You can replace this composition by Set.filter with the same arguments given to Set.partition which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by Set.filter with the same argument given to Set.partition which is meant for this exact purpose." ]
                             , under = "Tuple.first"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -306,7 +306,7 @@ a = Tuple.first << Dict.partition f
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Dict.partition, then Tuple.first can be combined into Dict.filter"
-                            , details = [ "You can replace this composition by Dict.filter with the same arguments given to Dict.partition which is meant for this exact purpose." ]
+                            , details = [ "You can replace this composition by Dict.filter with the same argument given to Dict.partition which is meant for this exact purpose." ]
                             , under = "Tuple.first"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

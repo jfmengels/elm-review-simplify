@@ -1053,7 +1053,7 @@ a = list |> Set.fromList |> Set.isEmpty
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "Set.fromList, then Set.isEmpty can be combined into List.isEmpty"
-                            , details = [ "You can replace this call by List.isEmpty with the same arguments given to Set.fromList which is meant for this exact purpose." ]
+                            , details = [ "You can replace this call by List.isEmpty with the same argument given to Set.fromList which is meant for this exact purpose." ]
                             , under = "Set.isEmpty"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

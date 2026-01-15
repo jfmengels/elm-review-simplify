@@ -17007,7 +17007,21 @@ onSpecificFnCallCanBeCombinedCheck config =
                         Just
                             (Rule.errorWithFix
                                 { message = qualifiedToString config.earlierFn ++ ", then " ++ laterOperationDescription checkInfo.fn ++ " can be combined into " ++ qualifiedToString config.combinedFn
-                                , details = [ "You can replace this call by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.earlierFn ++ " which is meant for this exact purpose." ]
+                                , details =
+                                    [ "You can replace this call by "
+                                        ++ qualifiedToString config.combinedFn
+                                        ++ " with the same "
+                                        ++ (case fromFnCall.argsAfterFirst of
+                                                [] ->
+                                                    "argument"
+
+                                                _ :: _ ->
+                                                    "arguments"
+                                           )
+                                        ++ " given to "
+                                        ++ qualifiedToString config.earlierFn
+                                        ++ " which is meant for this exact purpose."
+                                    ]
                                 }
                                 checkInfo.fnRange
                                 (Fix.replaceRangeBy
@@ -17032,7 +17046,21 @@ onSpecificFnCallCanBeCombinedCheck config =
                 Just
                     { info =
                         { message = qualifiedToString config.earlierFn ++ ", then " ++ laterOperationDescription checkInfo.later.fn ++ " can be combined into " ++ qualifiedToString config.combinedFn
-                        , details = [ "You can replace this composition by " ++ qualifiedToString config.combinedFn ++ " with the same arguments given to " ++ qualifiedToString config.earlierFn ++ " which is meant for this exact purpose." ]
+                        , details =
+                            [ "You can replace this composition by "
+                                ++ qualifiedToString config.combinedFn
+                                ++ (case checkInfo.earlier.args of
+                                        [] ->
+                                            ""
+
+                                        [ _ ] ->
+                                            " with the same argument given to " ++ qualifiedToString config.earlierFn
+
+                                        _ :: _ :: _ ->
+                                            " with the same arguments given to " ++ qualifiedToString config.earlierFn
+                                   )
+                                ++ " which is meant for this exact purpose."
+                            ]
                         }
                     , fix =
                         [ Fix.replaceRangeBy
