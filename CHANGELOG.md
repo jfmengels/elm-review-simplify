@@ -72,6 +72,8 @@ The rule now simplifies:
 - `Set.isEmpty (Set.map f set)` to `Set.isEmpty set`
 - `Dict.isEmpty (Dict.map f dict)` to `Dict.isEmpty dict`
 - `Dict.size (Dict.map f dict)` to `Dict.size dict`
+- `List.isEmpty (String.toList string)` to `String.isEmpty string`
+- `String.isEmpty (String.fromList list)` to `List.isEmpty list`
 - more string sizes can be determined, to simplify for example `String.isEmpty (String.fromInt str)` to `False`
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 

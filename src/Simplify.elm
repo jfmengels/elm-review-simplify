@@ -420,6 +420,9 @@ Destructuring using case expressions
     String.isEmpty (String.map f str)
     --> String.isEmpty str
 
+    String.isEmpty (String.fromList list)
+    --> List.isEmpty list
+
     String.uncons ""
     --> Nothing
 
@@ -910,6 +913,9 @@ Destructuring using case expressions
 
     List.isEmpty (List.filter (not << f) list)
     --> List.all f list
+
+    List.isEmpty (String.toList string)
+    --> String.isEmpty string
 
     List.sum []
     --> 0
@@ -7598,6 +7604,11 @@ stringIsEmptyChecks : IntoFnCheck
 stringIsEmptyChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (collectionIsEmptyChecks stringCollection)
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.String.fromList
+            , combinedFn = Fn.List.isEmpty
+            }
         , unnecessarySpecificFnBeforeCheck
             { fn = Fn.String.reverse
             , fnArgCount = 1
@@ -9813,6 +9824,11 @@ listIsEmptyChecks =
             { args = []
             , earlierFn = Fn.Dict.keys
             , combinedFn = Fn.Dict.isEmpty
+            }
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = []
+            , earlierFn = Fn.String.toList
+            , combinedFn = Fn.String.isEmpty
             }
         , listOperationsKeepingLengthBeforeAreUnnecessaryChecks
         , listIsEmptyOnListFilterChecks
