@@ -1255,7 +1255,7 @@ Destructuring using case expressions
     --> True
 
     -- same for Array.indexedMap
-    Array.isEmpty (Array.map array)
+    Array.isEmpty (Array.map f array)
     --> Array.isEmpty array
 
     Array.repeat 0 x
@@ -1283,7 +1283,7 @@ Destructuring using case expressions
     --> max 0 n
 
     -- same for Array.indexedMap
-    Array.length (Array.map array)
+    Array.length (Array.map f array)
     --> Array.length array
 
     Array.filter f (Array.filter f array)
