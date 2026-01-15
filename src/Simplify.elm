@@ -416,6 +416,10 @@ Destructuring using case expressions
     String.isEmpty "a"
     --> False
 
+    -- same for String.reverse
+    String.isEmpty (String.map f str)
+    --> String.isEmpty str
+
     String.uncons ""
     --> Nothing
 
@@ -454,6 +458,9 @@ Destructuring using case expressions
 
     String.length str == 0
     --> String.isEmpty str
+
+    String.length (String.reverse str)
+    --> String.length str
 
     String.repeat n ""
     --> ""
@@ -894,6 +901,10 @@ Destructuring using case expressions
     List.isEmpty (x :: xs)
     --> False
 
+    -- same for List.sort, List.sortBy, List.sortWith, List.map, List.indexedMap
+    List.isEmpty (List.reverse list)
+    --> List.isEmpty list
+
     List.isEmpty (List.filter f list)
     --> not (List.any f list)
 
@@ -1087,6 +1098,10 @@ Destructuring using case expressions
     List.length [ a, b, c ]
     --> 3
 
+    -- same for List.sort, List.sortBy, List.sortWith, List.map, List.indexedMap
+    List.length (List.reverse list)
+    --> List.length list
+
     List.repeat 0 x
     --> []
 
@@ -1233,6 +1248,10 @@ Destructuring using case expressions
     Array.isEmpty Array.empty
     --> True
 
+    -- same for Array.indexedMap
+    Array.isEmpty (Array.map array)
+    --> Array.isEmpty array
+
     Array.repeat 0 x
     --> Array.empty
 
@@ -1256,6 +1275,11 @@ Destructuring using case expressions
 
     Array.length (Array.initialize n f)
     --> max 0 n
+    --> True
+
+    -- same for Array.indexedMap
+    Array.length (Array.map array)
+    --> Array.length array
 
     Array.filter f (Array.filter f array)
     --> Array.filter f array
@@ -1403,6 +1427,9 @@ Destructuring using case expressions
     Set.isEmpty (Set.fromList ([a] ++ list))
     --> False
 
+    Set.isEmpty (Set.map f set)
+    --> Set.isEmpty set
+
     Set.member x Set.empty
     --> False
 
@@ -1536,11 +1563,17 @@ Destructuring using case expressions
     Dict.isEmpty Dict.empty
     --> True
 
+    Dict.isEmpty (Dict.map f dict)
+    --> Dict.isEmpty dict
+
     Dict.toList Dict.empty
     --> []
 
     Dict.size Dict.empty
     --> 0
+
+    Dict.size (Dict.map f dict)
+    --> Dict.size dict
 
     Dict.member x Dict.empty
     --> False
@@ -7563,12 +7596,34 @@ stringFromFloatChecks =
 
 stringIsEmptyChecks : IntoFnCheck
 stringIsEmptyChecks =
-    intoFnCheckOnlyCall (collectionIsEmptyChecks stringCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (collectionIsEmptyChecks stringCollection)
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.String.reverse
+            , fnArgCount = 1
+            , fnLastArgRepresents = "string"
+            , whyUnnecessary = "Reordering the chars in a string does not affect its length"
+            }
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.String.map
+            , fnArgCount = 2
+            , fnLastArgRepresents = "string"
+            , whyUnnecessary = "Changing each char in a string to another char can never make a non-empty string empty or an empty string non-empty"
+            }
+        ]
 
 
 stringLengthChecks : IntoFnCheck
 stringLengthChecks =
-    intoFnCheckOnlyCall (collectionSizeChecks stringCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (collectionSizeChecks stringCollection)
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.String.reverse
+            , fnArgCount = 1
+            , fnLastArgRepresents = "string"
+            , whyUnnecessary = "Reordering the chars in a string does not affect its length"
+            }
+        ]
 
 
 stringSliceChecks : IntoFnCheck
@@ -9759,6 +9814,7 @@ listIsEmptyChecks =
             , earlierFn = Fn.Dict.keys
             , combinedFn = Fn.Dict.isEmpty
             }
+        , listOperationsKeepingLengthBeforeAreUnnecessaryChecks
         , listIsEmptyOnListFilterChecks
         ]
 
@@ -10022,6 +10078,26 @@ listLengthChecks =
             , earlierFn = Fn.Array.toIndexedList
             , combinedFn = Fn.Array.length
             }
+        , listOperationsKeepingLengthBeforeAreUnnecessaryChecks
+        ]
+
+
+listOperationsKeepingLengthBeforeAreUnnecessaryChecks : IntoFnCheck
+listOperationsKeepingLengthBeforeAreUnnecessaryChecks =
+    intoFnChecksFirstThatConstructsError
+        [ unnecessarySpecificFnBeforeCheck
+            { fn = Fn.List.map
+            , fnArgCount = 2
+            , fnLastArgRepresents = "list"
+            , whyUnnecessary = "Changing each element in a list does not affect its length"
+            }
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.List.indexedMap
+            , fnArgCount = 2
+            , fnLastArgRepresents = "list"
+            , whyUnnecessary = "Changing each element in a list does not affect its length"
+            }
+        , listReorderOperationsBeforeAreUnnecessaryChecks "length"
         ]
 
 
@@ -10482,6 +10558,7 @@ arrayIsEmptyChecks =
             , earlierFn = Fn.Array.fromList
             , combinedFn = Fn.List.isEmpty
             }
+        , arrayOperationsKeepingLengthBeforeAreUnnecessaryChecks
         ]
 
 
@@ -10497,6 +10574,31 @@ arrayLengthChecks =
             { args = []
             , earlierFn = Fn.Array.fromList
             , combinedFn = Fn.List.length
+            }
+        , arrayOperationsKeepingLengthBeforeAreUnnecessaryChecks
+        ]
+
+
+arrayOperationsKeepingLengthBeforeAreUnnecessaryChecks : IntoFnCheck
+arrayOperationsKeepingLengthBeforeAreUnnecessaryChecks =
+    intoFnChecksFirstThatConstructsError
+        [ unnecessarySpecificFnBeforeCheck
+            { fn = Fn.Array.map
+            , fnArgCount = 2
+            , fnLastArgRepresents = "array"
+            , whyUnnecessary = "Changing each element in an array does not affect its length"
+            }
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.Array.indexedMap
+            , fnArgCount = 2
+            , fnLastArgRepresents = "array"
+            , whyUnnecessary = "Changing each element in an array does not affect its length"
+            }
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.Array.set
+            , fnArgCount = 3
+            , fnLastArgRepresents = "array"
+            , whyUnnecessary = "Changing one element in an array does not affect its length"
             }
         ]
 
@@ -10728,6 +10830,12 @@ setIsEmptyChecks =
             { args = []
             , earlierFn = Fn.Set.fromList
             , combinedFn = Fn.List.isEmpty
+            }
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.Set.map
+            , fnArgCount = 2
+            , fnLastArgRepresents = "set"
+            , whyUnnecessary = "Mapping an empty set will result in an empty set and otherwise creating a new set with any element inserted will not be empty, even if all new elements are the same"
             }
         ]
 
@@ -11121,12 +11229,26 @@ dictIsEmptyChecks =
             , earlierFn = Fn.Dict.fromList
             , combinedFn = Fn.List.isEmpty
             }
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.Dict.map
+            , fnArgCount = 2
+            , fnLastArgRepresents = "dict"
+            , whyUnnecessary = "Changing each value in a dict does not affect its size"
+            }
         ]
 
 
 dictSizeChecks : IntoFnCheck
 dictSizeChecks =
-    intoFnCheckOnlyCall (collectionSizeChecks dictCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (collectionSizeChecks dictCollection)
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.Dict.map
+            , fnArgCount = 2
+            , fnLastArgRepresents = "dict"
+            , whyUnnecessary = "Changing each value in a dict does not affect its size"
+            }
+        ]
 
 
 dictMemberChecks : IntoFnCheck

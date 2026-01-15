@@ -229,6 +229,38 @@ a = String.isEmpty (String.append str <| String.fromChar 'x')
 a = False
 """
                         ]
+        , test "should replace String.isEmpty (String.reverse string) by String.isEmpty string" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty (String.reverse string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.reverse before String.isEmpty"
+                            , details = [ "Reordering the chars in a string does not affect its length. You can replace the String.reverse call by the unchanged string." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.isEmpty string
+"""
+                        ]
+        , test "should replace String.isEmpty (String.map f string) by String.isEmpty string" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty (String.map f string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.map before String.isEmpty"
+                            , details = [ "Changing each char in a string to another char can never make a non-empty string empty or an empty string non-empty. You can replace the String.map call by the unchanged string." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.isEmpty string
+"""
+                        ]
         ]
 
 
@@ -341,6 +373,22 @@ a = if l == "" then String.length l else 1
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = if l == "" then 0 else 1
+"""
+                        ]
+        , test "should replace String.length (String.reverse string) by String.length string" <|
+            \() ->
+                """module A exposing (..)
+a = String.length (String.reverse string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary String.reverse before String.length"
+                            , details = [ "Reordering the chars in a string does not affect its length. You can replace the String.reverse call by the unchanged string." ]
+                            , under = "String.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.length string
 """
                         ]
         ]

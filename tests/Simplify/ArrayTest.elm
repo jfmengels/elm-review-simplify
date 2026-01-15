@@ -1512,6 +1512,38 @@ a = x |> (==) (Array.empty)"""
 
 a = x |> Array.isEmpty"""
                         ]
+        , test "should replace Array.isEmpty (Array.map f array) by Array.isEmpty array" <|
+            \() ->
+                """module A exposing (..)
+a = Array.isEmpty (Array.map f array)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Array.map before Array.isEmpty"
+                            , details = [ "Changing each element in an array does not affect its length. You can replace the Array.map call by the unchanged array." ]
+                            , under = "Array.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Array.isEmpty array
+"""
+                        ]
+        , test "should replace Array.isEmpty (Array.indexedMap f array) by Array.isEmpty array" <|
+            \() ->
+                """module A exposing (..)
+a = Array.isEmpty (Array.indexedMap f array)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Array.indexedMap before Array.isEmpty"
+                            , details = [ "Changing each element in an array does not affect its length. You can replace the Array.indexedMap call by the unchanged array." ]
+                            , under = "Array.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Array.isEmpty array
+"""
+                        ]
         ]
 
 
@@ -2009,6 +2041,38 @@ a = Array.length (Array.initialize n f)
                             |> Review.Test.whenFixed """module A exposing (..)
 import Array
 a = max 0 n
+"""
+                        ]
+        , test "should replace Array.length (Array.map f array) by Array.length array" <|
+            \() ->
+                """module A exposing (..)
+a = Array.length (Array.map f array)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Array.map before Array.length"
+                            , details = [ "Changing each element in an array does not affect its length. You can replace the Array.map call by the unchanged array." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Array.length array
+"""
+                        ]
+        , test "should replace Array.length (Array.indexedMap f array) by Array.length array" <|
+            \() ->
+                """module A exposing (..)
+a = Array.length (Array.indexedMap f array)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Array.indexedMap before Array.length"
+                            , details = [ "Changing each element in an array does not affect its length. You can replace the Array.indexedMap call by the unchanged array." ]
+                            , under = "Array.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Array.length array
 """
                         ]
         , test "should replace Array.fromList list |> Array.length with List.length list" <|

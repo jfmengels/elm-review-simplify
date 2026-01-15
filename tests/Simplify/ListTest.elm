@@ -3936,6 +3936,102 @@ a = List.isEmpty (List.append init [last])
 a = False
 """
                         ]
+        , test "should replace List.isEmpty (List.reverse list) by List.isEmpty list" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (List.reverse list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.reverse before List.isEmpty"
+                            , details = [ "Reordering a list does not affect its length. You can replace the List.reverse call by the unchanged list." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty list
+"""
+                        ]
+        , test "should replace List.isEmpty (List.sort list) by List.isEmpty list" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (List.sort list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort before List.isEmpty"
+                            , details = [ "Reordering a list does not affect its length. You can replace the List.sort call by the unchanged list." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty list
+"""
+                        ]
+        , test "should replace List.isEmpty (List.sortBy f list) by List.isEmpty list" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (List.sortBy f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortBy before List.isEmpty"
+                            , details = [ "Reordering a list does not affect its length. You can replace the List.sortBy call by the unchanged list." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty list
+"""
+                        ]
+        , test "should replace List.isEmpty (List.sortWith f list) by List.isEmpty list" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (List.sortWith f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortWith before List.isEmpty"
+                            , details = [ "Reordering a list does not affect its length. You can replace the List.sortWith call by the unchanged list." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty list
+"""
+                        ]
+        , test "should replace List.isEmpty (List.map f list) by List.isEmpty list" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (List.map f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.map before List.isEmpty"
+                            , details = [ "Changing each element in a list does not affect its length. You can replace the List.map call by the unchanged list." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty list
+"""
+                        ]
+        , test "should replace List.isEmpty (List.indexedMap f list) by List.isEmpty list" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (List.indexedMap f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.indexedMap before List.isEmpty"
+                            , details = [ "Changing each element in a list does not affect its length. You can replace the List.indexedMap call by the unchanged list." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty list
+"""
+                        ]
         , test "should replace Set.toList set |> List.isEmpty by Set.isEmpty" <|
             \() ->
                 """module A exposing (..)
@@ -8733,6 +8829,102 @@ a = List.length (List.take 2 (e0 :: e1Up))
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
+        , test "should replace List.length (List.reverse list) by List.length list" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.reverse list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.reverse before List.length"
+                            , details = [ "Reordering a list does not affect its length. You can replace the List.reverse call by the unchanged list." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.length list
+"""
+                        ]
+        , test "should replace List.length (List.sort list) by List.length list" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.sort list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sort before List.length"
+                            , details = [ "Reordering a list does not affect its length. You can replace the List.sort call by the unchanged list." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.length list
+"""
+                        ]
+        , test "should replace List.length (List.sortBy f list) by List.length list" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.sortBy f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortBy before List.length"
+                            , details = [ "Reordering a list does not affect its length. You can replace the List.sortBy call by the unchanged list." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.length list
+"""
+                        ]
+        , test "should replace List.length (List.sortWith f list) by List.length list" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.sortWith f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.sortWith before List.length"
+                            , details = [ "Reordering a list does not affect its length. You can replace the List.sortWith call by the unchanged list." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.length list
+"""
+                        ]
+        , test "should replace List.length (List.map f list) by List.length list" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.map f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.map before List.length"
+                            , details = [ "Changing each element in a list does not affect its length. You can replace the List.map call by the unchanged list." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.length list
+"""
+                        ]
+        , test "should replace List.length (List.indexedMap f list) by List.length list" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.indexedMap f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary List.indexedMap before List.length"
+                            , details = [ "Changing each element in a list does not affect its length. You can replace the List.indexedMap call by the unchanged list." ]
+                            , under = "List.length"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.length list
+"""
+                        ]
         , test "should replace Set.toList set |> List.length with Set.size" <|
             \() ->
                 """module A exposing (..)

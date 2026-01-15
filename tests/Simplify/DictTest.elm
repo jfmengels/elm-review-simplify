@@ -138,6 +138,24 @@ import Dict
 a = False
 """
                         ]
+        , test "should replace Dict.isEmpty (Dict.map f dict) by Dict.isEmpty dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.isEmpty (Dict.map f dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Dict.map before Dict.isEmpty"
+                            , details = [ "Changing each value in a dict does not affect its size. You can replace the Dict.map call by the unchanged dict." ]
+                            , under = "Dict.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.isEmpty dict
+"""
+                        ]
         , test "should replace list |> Dict.fromList |> Dict.isEmpty by list |> List.isEmpty" <|
             \() ->
                 """module A exposing (..)
@@ -715,6 +733,24 @@ a = 3
                             |> Review.Test.whenFixed """module A exposing (..)
 import Dict
 a = Dict.size (Dict.fromList [(1.3,()), (-1.3,()), (2.1,())])
+"""
+                        ]
+        , test "should replace Dict.size (Dict.map f dict) by Dict.size dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.size (Dict.map f dict)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Dict.map before Dict.size"
+                            , details = [ "Changing each value in a dict does not affect its size. You can replace the Dict.map call by the unchanged dict." ]
+                            , under = "Dict.size"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.size dict
 """
                         ]
         ]
