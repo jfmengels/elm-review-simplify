@@ -63,6 +63,15 @@ The rule now simplifies:
 - `String.trim (String.trimLeft str)` to `String.trim str`
 - `String.trim (String.trimRight str)` to `String.trim str`
 - `String.trim (String.trim str)` to `String.trim str`
+- `List.isEmpty (List.reverse list)` to `List.isEmpty list` (same for `List.sort`, `List.sortBy`, `List.sortWith`, `List.map` and `List.indexedMap`)
+- `List.length (List.reverse list)` to `List.length list` (same for `List.sort`, `List.sortBy`, `List.sortWith`, `List.map` and `List.indexedMap`)
+- `Array.isEmpty (Array.map array)` to `Array.isEmpty array` (same for `Array.indexedMap` and `Array.set`)
+- `Array.length (Array.map array)` to `Array.length array` (same for `Array.indexedMap` and `Array.set`)
+- `String.length (String.reverse str)` to `String.length str`
+- `String.isEmpty (String.map f str)` to `String.isEmpty str` (same for `String.reverse`)
+- `Set.isEmpty (Set.map f set)` to `Set.isEmpty set`
+- `Dict.isEmpty (Dict.map f dict)` to `Dict.isEmpty dict`
+- `Dict.size (Dict.map f dict)` to `Dict.size dict`
 - more string sizes can be determined, to simplify for example `String.isEmpty (String.fromInt str)` to `False`
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 
