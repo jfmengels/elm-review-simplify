@@ -1494,6 +1494,7 @@ a = Set.fromList list
         , test "should replace Set.fromList (List.repeat n a) by if n >= 1 then Set.singleton a else Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.fromList (List.repeat n b)
 """
                     |> whenNotExpectingNaN Review.Test.run
@@ -1503,6 +1504,7 @@ a = Set.fromList (List.repeat n b)
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = (if n >= 1 then
                                 Set.singleton b
 
@@ -1513,6 +1515,7 @@ a = (if n >= 1 then
         , test "should replace Set.fromList << List.repeat n by if n >= 1 then Set.singleton else always Set.empty" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.fromList << List.repeat n
 """
                     |> whenNotExpectingNaN Review.Test.run
@@ -1522,6 +1525,7 @@ a = Set.fromList << List.repeat n
                             , under = "Set.fromList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = (if n >= 1 then
         Set.singleton
 
