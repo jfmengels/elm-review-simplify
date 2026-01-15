@@ -1025,6 +1025,24 @@ import Set
 a = False
 """
                         ]
+        , test "should replace Set.isEmpty (Set.map f set) by Set.isEmpty set" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.isEmpty (Set.map f set)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Set.map before Set.isEmpty"
+                            , details = [ "Mapping an empty set will result in an empty set and otherwise creating a new set with any element inserted will not be empty, even if all new elements are the same. You can replace the Set.map call by the unchanged set." ]
+                            , under = "Set.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = Set.isEmpty set
+"""
+                        ]
         , test "should replace Set.singleton set |> Set.isEmpty by False" <|
             \() ->
                 """module A exposing (..)
