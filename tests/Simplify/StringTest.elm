@@ -261,6 +261,38 @@ a = String.isEmpty (String.map f string)
 a = String.isEmpty string
 """
                         ]
+        , test "should replace String.isEmpty (String.fromList list) by List.isEmpty list" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty (String.fromList list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromList, then String.isEmpty can be combined into List.isEmpty"
+                            , details = [ "You can replace this call by List.isEmpty with the same arguments given to String.fromList which is meant for this exact purpose." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (List.isEmpty list)
+"""
+                        ]
+        , test "should replace String.isEmpty << String.fromList by List.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = String.isEmpty << String.fromList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.fromList, then String.isEmpty can be combined into List.isEmpty"
+                            , details = [ "You can replace this composition by List.isEmpty with the same arguments given to String.fromList which is meant for this exact purpose." ]
+                            , under = "String.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.isEmpty
+"""
+                        ]
         ]
 
 
@@ -272,6 +304,13 @@ stringLengthTests =
                 """module A exposing (..)
 a = String.length
 b = String.length str
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report String.length (String.fromList list) because String.length measures UTF-16 parts, not code points" <|
+            \() ->
+                """module A exposing (..)
+a = String.length (String.fromList list)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors

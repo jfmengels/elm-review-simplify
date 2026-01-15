@@ -4140,6 +4140,38 @@ import Array
 a = Array.isEmpty array
 """
                         ]
+        , test "should replace List.isEmpty (String.toList string) by String.isEmpty string" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty (String.toList string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.toList, then List.isEmpty can be combined into String.isEmpty"
+                            , details = [ "You can replace this call by String.isEmpty with the same arguments given to String.toList which is meant for this exact purpose." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (String.isEmpty string)
+"""
+                        ]
+        , test "should replace List.isEmpty << String.toList by String.isEmpty" <|
+            \() ->
+                """module A exposing (..)
+a = List.isEmpty << String.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.toList, then List.isEmpty can be combined into String.isEmpty"
+                            , details = [ "You can replace this composition by String.isEmpty with the same arguments given to String.toList which is meant for this exact purpose." ]
+                            , under = "List.isEmpty"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.isEmpty
+"""
+                        ]
         , test "should replace List.isEmpty (List.filter f list) by not (List.all f list)" <|
             \() ->
                 """module A exposing (..)
@@ -8707,6 +8739,13 @@ listLengthTests =
                 """module A exposing (..)
 a = List.length
 a = List.length b
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectNoErrors
+        , test "should not report List.length (String.toList str) because String.length measures UTF-16 parts, not code points" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (String.toList str)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
