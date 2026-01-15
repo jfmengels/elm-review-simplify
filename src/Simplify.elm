@@ -1281,7 +1281,6 @@ Destructuring using case expressions
 
     Array.length (Array.initialize n f)
     --> max 0 n
-    --> True
 
     -- same for Array.indexedMap
     Array.length (Array.map array)
