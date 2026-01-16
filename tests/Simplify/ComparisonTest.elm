@@ -1291,7 +1291,7 @@ import Dict
 a = True
 """
                         ]
-        , test "should replace Set.size (Set.union (Set.fromList [ e ]) (Set.singleton k v)) <= 2 by True" <|
+        , test "should replace Set.size (Set.union (Set.fromList (List.take 2 xs)) (List.take 1 ys)) <= 3 by True" <|
             \() ->
                 """module A exposing (..)
 import Set
@@ -1309,6 +1309,48 @@ a = Set.size (Set.union (Set.fromList (List.take 2 xs)) (List.take 1 ys)) <= 3
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 import Set
+a = True
+"""
+                        ]
+        , test "should replace Set.size (Set.intersect (Set.fromList (List.take 2 xs)) (List.take 3 ys)) <= 2 by True" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.size (Set.intersect (Set.fromList (List.take 2 xs)) (List.take 3 ys)) <= 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 0 and 2 inclusive and the right number was determined to be exactly 2."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = True
+"""
+                        ]
+        , test "should replace Dict.size (Dict.intersect (Dict.fromList (List.take 2 xs)) (List.take 3 ys)) <= 2 by True" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.size (Dict.intersect (Dict.fromList (List.take 2 xs)) (List.take 3 ys)) <= 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 0 and 2 inclusive and the right number was determined to be exactly 2."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = True
 """
                         ]

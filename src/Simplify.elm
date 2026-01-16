@@ -19128,19 +19128,23 @@ collectionSizeCombineEachBoundWith combineABBounds aCollectionSize bCollectionSi
 collectionSizesMin : CollectionSize -> CollectionSize -> CollectionSize
 collectionSizesMin aCollectionSize bCollectionSize =
     { min = Basics.min aCollectionSize.min bCollectionSize.min
-    , max =
-        case aCollectionSize.max of
-            Nothing ->
-                bCollectionSize.max
-
-            Just aCollectionSizeMax ->
-                case bCollectionSize.max of
-                    Nothing ->
-                        aCollectionSize.max
-
-                    Just bCollectionSizeMax ->
-                        Just (Basics.min aCollectionSizeMax bCollectionSizeMax)
+    , max = collectionMaxSizesMin aCollectionSize.max bCollectionSize.max
     }
+
+
+collectionMaxSizesMin : Maybe Int -> Maybe Int -> Maybe Int
+collectionMaxSizesMin aCollectionMaxSize bCollectionMaxSize =
+    case aCollectionMaxSize of
+        Nothing ->
+            bCollectionMaxSize
+
+        Just aCollectionSizeMax ->
+            case bCollectionMaxSize of
+                Nothing ->
+                    aCollectionMaxSize
+
+                Just bCollectionSizeMax ->
+                    Just (Basics.min aCollectionSizeMax bCollectionSizeMax)
 
 
 numberBoundsToCollectionSize : { min : Float, max : Float } -> CollectionSize
@@ -19544,6 +19548,20 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                     _ ->
                         collectionSizeUnknown
           )
+        , ( Fn.Set.intersect
+          , \args ->
+                case args of
+                    [ Node _ aSetArg, Node _ bSetArg ] ->
+                        { min = 0
+                        , max =
+                            collectionMaxSizesMin
+                                (normalDetermineCollectionSize aSetArg).max
+                                (normalDetermineCollectionSize bSetArg).max
+                        }
+
+                    _ ->
+                        collectionSizeUnknown
+          )
 
         -- Dict
         , ( Fn.Dict.empty, \_ -> collectionSizeExact 0 )
@@ -19633,6 +19651,20 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                         in
                         { min = Basics.max aDictSize.min bDictSize.min
                         , max = Maybe.map2 (+) aDictSize.max bDictSize.max
+                        }
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.Dict.intersect
+          , \args ->
+                case args of
+                    [ Node _ aDictArg, Node _ bDictArg ] ->
+                        { min = 0
+                        , max =
+                            collectionMaxSizesMin
+                                (normalDetermineCollectionSize aDictArg).max
+                                (normalDetermineCollectionSize bDictArg).max
                         }
 
                     _ ->
