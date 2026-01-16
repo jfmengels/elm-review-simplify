@@ -3244,6 +3244,70 @@ a = always False |> List.filter
 a = always []
 """
                         ]
+        , test "should replace List.filter f (List.reverse list) by List.reverse (List.filter f list)" <|
+            \() ->
+                """module A exposing (..)
+a = List.filter f (List.reverse list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.filter on List.reverse can be optimized to List.reverse on List.filter"
+                            , details = [ "You can replace this call by List.reverse, on List.filter with the function given to the original List.filter." ]
+                            , under = "List.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.reverse (List.filter f list)
+"""
+                        ]
+        , test "should replace List.filter f (List.sort list) by List.sort (List.filter f list)" <|
+            \() ->
+                """module A exposing (..)
+a = List.filter f (List.sort list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.filter on List.sort can be optimized to List.sort on List.filter"
+                            , details = [ "You can replace this call by List.sort, on List.filter with the function given to the original List.filter." ]
+                            , under = "List.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sort (List.filter f list)
+"""
+                        ]
+        , test "should replace List.filter f (List.sortBy f list) by List.sortBy f (List.filter f list)" <|
+            \() ->
+                """module A exposing (..)
+a = List.filter f (List.sortBy f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.filter on List.sortBy can be optimized to List.sortBy on List.filter"
+                            , details = [ "You can replace this call by List.sortBy with the function given to the original List.sortBy, on List.filter with the function given to the original List.filter." ]
+                            , under = "List.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sortBy f (List.filter f list)
+"""
+                        ]
+        , test "should replace List.filter f (List.sortWith f list) by List.sortWith f (List.filter f list)" <|
+            \() ->
+                """module A exposing (..)
+a = List.filter f (List.sortWith f list)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.filter on List.sortWith can be optimized to List.sortWith on List.filter"
+                            , details = [ "You can replace this call by List.sortWith with the compare function given to the original List.sortWith, on List.filter with the function given to the original List.filter." ]
+                            , under = "List.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.sortWith f (List.filter f list)
+"""
+                        ]
         ]
 
 

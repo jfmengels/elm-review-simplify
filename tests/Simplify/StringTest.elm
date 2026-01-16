@@ -2992,6 +2992,38 @@ a = String.filter (always False)
 a = always ""
 """
                         ]
+        , test "should replace String.filter f (String.reverse string) by String.reverse (String.filter f string)" <|
+            \() ->
+                """module A exposing (..)
+a = String.filter f (String.reverse string)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.filter on String.reverse can be optimized to String.reverse on String.filter"
+                            , details = [ "You can replace this call by String.reverse, on String.filter with the function given to the original String.filter." ]
+                            , under = "String.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = String.reverse (String.filter f string)
+"""
+                        ]
+        , test "should replace String.filter f << String.reverse by String.reverse << String.filter f" <|
+            \() ->
+                """module A exposing (..)
+a = String.filter f << String.reverse
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "String.filter on String.reverse can be optimized to String.reverse on String.filter"
+                            , details = [ "You can replace this composition by String.filter with the function given to the original String.filter, then String.reverse." ]
+                            , under = "String.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (String.reverse << String.filter f)
+"""
+                        ]
         ]
 
 

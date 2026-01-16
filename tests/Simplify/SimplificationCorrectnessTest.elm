@@ -536,12 +536,24 @@ all =
                     |> Expect.equal
                         (Basics.not (String.isEmpty string))
             )
+        , Test.fuzz Fuzz.string
+            "String.filter f << String.reverse is the same as String.reverse << String.filter f"
+            (\string ->
+                String.filter charCodeIsEven (String.reverse string)
+                    |> Expect.equal
+                        (String.reverse (String.filter charCodeIsEven string))
+            )
         ]
 
 
 isEven : Int -> Bool
 isEven n =
     remainderBy 2 n == 0
+
+
+charCodeIsEven : Char -> Bool
+charCodeIsEven c =
+    isEven (Char.toCode c)
 
 
 fuzzFloatWithoutNaN : Fuzz.Fuzzer Float

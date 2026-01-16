@@ -74,6 +74,8 @@ The rule now simplifies:
 - `Dict.size (Dict.map f dict)` to `Dict.size dict`
 - `List.isEmpty (String.toList string)` to `String.isEmpty string`
 - `String.isEmpty (String.fromList list)` to `List.isEmpty list`
+- `List.filter f (List.reverse list)` to `List.sort (List.reverse f list)` (same for `List.sort`, `List.sortBy` and `List.sortWith`)
+- `String.filter f (String.reverse str)` to `String.filter f str`
 - more string sizes can be determined, to simplify for example `String.isEmpty (String.fromInt str)` to `False`
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 
