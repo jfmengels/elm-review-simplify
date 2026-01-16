@@ -611,7 +611,7 @@ Destructuring using case expressions
     --> ""
 
     String.filter f (String.reverse str)
-    --> String.filter f str
+    --> String.reverse (String.filter f str)
 
     String.map f ""
     --> ""
