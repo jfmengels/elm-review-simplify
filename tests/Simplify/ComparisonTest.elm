@@ -1237,4 +1237,67 @@ a = List.length (List.map4 f (List.take 3 zs) (List.repeat 5 0 ++ xs) (List.repe
 a = True
 """
                         ]
+        , test "should replace Dict.size (Dict.union (Dict.insert k0 dict0) (Dict.fromList [ (0,v0), (1,v1) ])) >= 2 by True" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.size (Dict.union (Dict.insert k0 dict0) (Dict.fromList [ (0,v0), (1,v1) ])) >= 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be at least 2 and the right number was determined to be exactly 2."
+                                ]
+                            , under = ">="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = True
+"""
+                        ]
+        , test "should replace Dict.size (Dict.union (Dict.fromList [ e ]) (Dict.singleton k v)) <= 2 by True" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.size (Dict.union (Dict.fromList [ e ]) (Dict.singleton k v)) <= 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 1 and 2 inclusive and the right number was determined to be exactly 2."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = True
+"""
+                        ]
+        , test "should replace Set.size (Set.union (Set.fromList [ e ]) (Set.singleton k v)) <= 2 by True" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.size (Set.union (Set.fromList (List.take 2 xs)) (List.take 1 ys)) <= 3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 0 and 3 inclusive and the right number was determined to be exactly 3."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = True
+"""
+                        ]
         ]

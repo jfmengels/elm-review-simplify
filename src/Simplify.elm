@@ -19524,6 +19524,26 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                     _ ->
                         collectionSizeUnknown
           )
+        , ( Fn.Set.union
+          , \args ->
+                case args of
+                    [ Node _ aSetArg, Node _ bSetArg ] ->
+                        let
+                            sSetSize : CollectionSize
+                            sSetSize =
+                                normalDetermineCollectionSize aSetArg
+
+                            bSetSize : CollectionSize
+                            bSetSize =
+                                normalDetermineCollectionSize bSetArg
+                        in
+                        { min = Basics.max sSetSize.min bSetSize.min
+                        , max = Maybe.map2 (+) sSetSize.max bSetSize.max
+                        }
+
+                    _ ->
+                        collectionSizeUnknown
+          )
 
         -- Dict
         , ( Fn.Dict.empty, \_ -> collectionSizeExact 0 )
@@ -19594,6 +19614,26 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                                     in
                                     { min = min 1 listLength.min, max = listLength.max }
                                 )
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.Dict.union
+          , \args ->
+                case args of
+                    [ Node _ aDictArg, Node _ bDictArg ] ->
+                        let
+                            sDictSize : CollectionSize
+                            sDictSize =
+                                normalDetermineCollectionSize aDictArg
+
+                            bDictSize : CollectionSize
+                            bDictSize =
+                                normalDetermineCollectionSize bDictArg
+                        in
+                        { min = Basics.max sDictSize.min bDictSize.min
+                        , max = Maybe.map2 (+) sDictSize.max bDictSize.max
+                        }
 
                     _ ->
                         collectionSizeUnknown
