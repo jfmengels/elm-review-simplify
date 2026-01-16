@@ -1047,4 +1047,42 @@ a = String.length (String.dropRight (clamp 1 5 n) "123456789") <= 8
 a = True
 """
                         ]
+        , test "should replace Set.size (Set.insert k set) + 1 >= 2 by True" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size (Set.insert k set) + 1 >= 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be at least 2 and the right number was determined to be exactly 2."
+                                ]
+                            , under = ">="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace Dict.size (Dict.insert k dict) + 1 >= 2 by True" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.size (Dict.insert k dict) + 1 >= 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be at least 2 and the right number was determined to be exactly 2."
+                                ]
+                            , under = ">="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         ]

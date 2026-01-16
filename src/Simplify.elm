@@ -19354,6 +19354,22 @@ normalFnOrFnCallDetermineCollectionSizeDict =
         -- Set
         , ( Fn.Set.empty, \_ -> collectionSizeExact 0 )
         , ( Fn.Set.singleton, \_ -> collectionSizeExact 1 )
+        , ( Fn.Set.insert
+          , \args ->
+                case args of
+                    [ _, Node _ setArg ] ->
+                        let
+                            sizeBeforeInsert : CollectionSize
+                            sizeBeforeInsert =
+                                normalDetermineCollectionSize setArg
+                        in
+                        { min = Basics.max 1 sizeBeforeInsert.min
+                        , max = Maybe.map (\max -> max + 1) sizeBeforeInsert.max
+                        }
+
+                    _ ->
+                        collectionSizeUnknown
+          )
         , ( Fn.Set.fromList
           , \args ->
                 case args of
@@ -19396,6 +19412,22 @@ normalFnOrFnCallDetermineCollectionSizeDict =
         -- Dict
         , ( Fn.Dict.empty, \_ -> collectionSizeExact 0 )
         , ( Fn.Dict.singleton, \_ -> collectionSizeExact 1 )
+        , ( Fn.Dict.insert
+          , \args ->
+                case args of
+                    [ _, Node _ dictArg ] ->
+                        let
+                            sizeBeforeInsert : CollectionSize
+                            sizeBeforeInsert =
+                                normalDetermineCollectionSize dictArg
+                        in
+                        { min = Basics.max 1 sizeBeforeInsert.min
+                        , max = Maybe.map (\max -> max + 1) sizeBeforeInsert.max
+                        }
+
+                    _ ->
+                        collectionSizeUnknown
+          )
         , ( Fn.Dict.fromList
           , \args ->
                 case args of
