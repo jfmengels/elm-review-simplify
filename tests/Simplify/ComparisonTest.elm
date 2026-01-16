@@ -1085,4 +1085,42 @@ a = Dict.size (Dict.insert k dict) + 1 >= 2
 a = True
 """
                         ]
+        , test "should replace Set.size (Set.remove k (Set.fromList [ e0, e1 ])) <= 2 by True" <|
+            \() ->
+                """module A exposing (..)
+a = Set.size (Set.remove k (Set.fromList [ e0, e1 ])) <= 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 0 and 2 inclusive and the right number was determined to be exactly 2."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace Dict.size (Dict.remove k (Dict.fromList [ e0, e1 ])) <= 2 by True" <|
+            \() ->
+                """module A exposing (..)
+a = Dict.size (Dict.remove k (Dict.fromList [ e0, e1 ])) <= 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 0 and 2 inclusive and the right number was determined to be exactly 2."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         ]
