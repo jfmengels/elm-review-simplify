@@ -1161,4 +1161,23 @@ a = List.length ("" :: String.lines str) >= 2
 a = True
 """
                         ]
+        , test "should replace List.length (List.intersperse 0 (el0 :: el1 :: el2Up)) >= 3 by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.intersperse 0 (el0 :: el1 :: el2Up)) >= 3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be at least 3 and the right number was determined to be exactly 3."
+                                ]
+                            , under = ">="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         ]

@@ -19287,6 +19287,24 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                     _ ->
                         collectionSizeUnknown
           )
+        , ( Fn.List.intersperse
+          , \args ->
+                case args of
+                    [ _, Node _ listArg ] ->
+                        let
+                            collectionSizeBeforeIntersperse : CollectionSize
+                            collectionSizeBeforeIntersperse =
+                                normalDetermineCollectionSize listArg
+                        in
+                        { min = Basics.max 0 (2 * collectionSizeBeforeIntersperse.min - 1)
+                        , max =
+                            Maybe.map (\max -> Basics.max 0 (2 * max - 1))
+                                collectionSizeBeforeIntersperse.max
+                        }
+
+                    _ ->
+                        collectionSizeUnknown
+          )
         , ( Fn.List.append
           , \args ->
                 case args of
