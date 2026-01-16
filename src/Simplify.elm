@@ -19316,6 +19316,62 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                     _ ->
                         collectionSizeUnknown
           )
+        , ( Fn.List.map2
+          , \args ->
+                case args of
+                    [ _, Node _ list0Arg, Node _ list1Arg ] ->
+                        collectionSizesMin
+                            (normalDetermineCollectionSize list0Arg)
+                            (normalDetermineCollectionSize list1Arg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.List.map3
+          , \args ->
+                case args of
+                    [ _, Node _ list0Arg, Node _ list1Arg, Node _ list2Arg ] ->
+                        normalDetermineCollectionSize list0Arg
+                            |> collectionSizesMin
+                                (normalDetermineCollectionSize list1Arg)
+                            |> collectionSizesMin
+                                (normalDetermineCollectionSize list2Arg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.List.map4
+          , \args ->
+                case args of
+                    [ _, Node _ list0Arg, Node _ list1Arg, Node _ list2Arg, Node _ list3Arg ] ->
+                        normalDetermineCollectionSize list0Arg
+                            |> collectionSizesMin
+                                (normalDetermineCollectionSize list1Arg)
+                            |> collectionSizesMin
+                                (normalDetermineCollectionSize list2Arg)
+                            |> collectionSizesMin
+                                (normalDetermineCollectionSize list3Arg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.List.map5
+          , \args ->
+                case args of
+                    [ _, Node _ list0Arg, Node _ list1Arg, Node _ list2Arg, Node _ list3Arg, Node _ list4Arg ] ->
+                        normalDetermineCollectionSize list0Arg
+                            |> collectionSizesMin
+                                (normalDetermineCollectionSize list1Arg)
+                            |> collectionSizesMin
+                                (normalDetermineCollectionSize list2Arg)
+                            |> collectionSizesMin
+                                (normalDetermineCollectionSize list3Arg)
+                            |> collectionSizesMin
+                                (normalDetermineCollectionSize list4Arg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
         , ( Fn.String.lines
           , \args ->
                 case args of
