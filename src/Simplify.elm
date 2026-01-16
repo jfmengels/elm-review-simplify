@@ -19298,6 +19298,32 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                     _ ->
                         collectionSizeUnknown
           )
+        , ( Fn.String.lines
+          , \args ->
+                case args of
+                    [ Node _ stringArg ] ->
+                        { min = 1
+                        , max =
+                            Maybe.map (\max -> max + 1)
+                                (normalDetermineCollectionSize stringArg).max
+                        }
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.String.words
+          , \args ->
+                case args of
+                    [ Node _ stringArg ] ->
+                        { min = 1
+                        , max =
+                            Maybe.map (\max -> max + 1)
+                                (normalDetermineCollectionSize stringArg).max
+                        }
+
+                    _ ->
+                        collectionSizeUnknown
+          )
 
         -- Array
         , ( Fn.Array.empty, \_ -> collectionSizeExact 0 )
