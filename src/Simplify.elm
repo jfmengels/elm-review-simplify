@@ -610,6 +610,9 @@ Destructuring using case expressions
     String.filter (always False) str
     --> ""
 
+    String.filter f (String.reverse str)
+    --> String.filter f str
+
     String.map f ""
     --> ""
 
@@ -840,6 +843,10 @@ Destructuring using case expressions
 
     List.filter (always False) list
     --> []
+
+    -- same for List.sort, List.sortBy, List.sortWith
+    List.filter f (List.reverse list)
+    --> List.reverse (List.filter f list)
 
     List.filterMap Just list
     --> list
@@ -7739,7 +7746,16 @@ stringDropRightChecks =
 
 stringFilterChecks : IntoFnCheck
 stringFilterChecks =
-    emptiableKeepWhenChecks stringCollection
+    intoFnChecksFirstThatConstructsError
+        [ emptiableKeepWhenChecks stringCollection
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { laterOperationArgsDescription = Just "function"
+            , earlierFn = Fn.String.reverse
+            , earlierFnArgCount = 1
+            , earlierFnOperationArgsDescription = Nothing
+            , asLaterFn = Fn.String.reverse
+            }
+        ]
 
 
 stringMapChecks : IntoFnCheck
@@ -10272,7 +10288,37 @@ listAnyOnRepeatCallCheck checkInfo =
 
 listFilterChecks : IntoFnCheck
 listFilterChecks =
-    emptiableKeepWhenChecks listCollection
+    intoFnChecksFirstThatConstructsError
+        [ emptiableKeepWhenChecks listCollection
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { laterOperationArgsDescription = Just "function"
+            , earlierFn = Fn.List.reverse
+            , earlierFnArgCount = 1
+            , earlierFnOperationArgsDescription = Nothing
+            , asLaterFn = Fn.List.reverse
+            }
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { laterOperationArgsDescription = Just "function"
+            , earlierFn = Fn.List.sort
+            , earlierFnArgCount = 1
+            , earlierFnOperationArgsDescription = Nothing
+            , asLaterFn = Fn.List.sort
+            }
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { laterOperationArgsDescription = Just "function"
+            , earlierFn = Fn.List.sortBy
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = Just "function"
+            , asLaterFn = Fn.List.sortBy
+            }
+        , earlierOperationCanBeMovedAfterAsForPerformanceChecks
+            { laterOperationArgsDescription = Just "function"
+            , earlierFn = Fn.List.sortWith
+            , earlierFnArgCount = 2
+            , earlierFnOperationArgsDescription = Just "compare function"
+            , asLaterFn = Fn.List.sortWith
+            }
+        ]
 
 
 listPartitionChecks : IntoFnCheck
