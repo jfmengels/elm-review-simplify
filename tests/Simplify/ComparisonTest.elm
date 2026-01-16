@@ -936,6 +936,7 @@ a = False
         , test "should replace Set.size (Set.fromList [ first, second ]) >= 3 by False" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size (Set.fromList [ first, second ]) >= 3
 """
                     |> Review.Test.run ruleWithDefaults
@@ -949,12 +950,14 @@ a = Set.size (Set.fromList [ first, second ]) >= 3
                             , under = ">="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = False
 """
                         ]
         , test "should replace Dict.size (Dict.fromList ((0,()) :: (1,()) :: tail)) < 2 by False" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.size (Dict.fromList ((0,()) :: (1,()) :: tail)) < 2
 """
                     |> Review.Test.run ruleWithDefaults
@@ -968,6 +971,7 @@ a = Dict.size (Dict.fromList ((0,()) :: (1,()) :: tail)) < 2
                             , under = "<"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = False
 """
                         ]
@@ -1050,6 +1054,7 @@ a = True
         , test "should replace Set.size (Set.insert k set) + 1 >= 2 by True" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size (Set.insert k set) + 1 >= 2
 """
                     |> Review.Test.run ruleWithDefaults
@@ -1063,12 +1068,14 @@ a = Set.size (Set.insert k set) + 1 >= 2
                             , under = ">="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = True
 """
                         ]
         , test "should replace Dict.size (Dict.insert k dict) + 1 >= 2 by True" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.size (Dict.insert k dict) + 1 >= 2
 """
                     |> Review.Test.run ruleWithDefaults
@@ -1082,12 +1089,14 @@ a = Dict.size (Dict.insert k dict) + 1 >= 2
                             , under = ">="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = True
 """
                         ]
         , test "should replace Set.size (Set.remove k (Set.fromList [ e0, e1 ])) <= 2 by True" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.size (Set.remove k (Set.fromList [ e0, e1 ])) <= 2
 """
                     |> Review.Test.run ruleWithDefaults
@@ -1101,12 +1110,14 @@ a = Set.size (Set.remove k (Set.fromList [ e0, e1 ])) <= 2
                             , under = "<="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = True
 """
                         ]
         , test "should replace Dict.size (Dict.remove k (Dict.fromList [ e0, e1 ])) <= 2 by True" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.size (Dict.remove k (Dict.fromList [ e0, e1 ])) <= 2
 """
                     |> Review.Test.run ruleWithDefaults
@@ -1120,6 +1131,7 @@ a = Dict.size (Dict.remove k (Dict.fromList [ e0, e1 ])) <= 2
                             , under = "<="
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = True
 """
                         ]

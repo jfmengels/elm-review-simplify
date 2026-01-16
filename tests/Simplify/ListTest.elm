@@ -5335,6 +5335,7 @@ a = always
         , test "should replace List.foldl f x (Set.toList set) by Set.foldl f x set" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = List.foldl f x (Set.toList set)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5345,12 +5346,14 @@ a = List.foldl f x (Set.toList set)
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.foldl f x set
 """
                         ]
         , test "should replace List.foldl f x << Set.toList by Set.foldl f x" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = List.foldl f x << Set.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5361,12 +5364,14 @@ a = List.foldl f x << Set.toList
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.foldl f x
 """
                         ]
         , test "should replace Set.toList >> List.foldl f x by Set.foldl f x" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.toList >> List.foldl f x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5377,12 +5382,14 @@ a = Set.toList >> List.foldl f x
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.foldl f x
 """
                         ]
         , test "should replace List.foldl f x (Array.toList array) by Array.foldl f x array" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = List.foldl f x (Array.toList array)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5393,12 +5400,14 @@ a = List.foldl f x (Array.toList array)
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.foldl f x array
 """
                         ]
         , test "should replace List.foldl f x << Array.toList by Array.foldl f x" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = List.foldl f x << Array.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5409,12 +5418,14 @@ a = List.foldl f x << Array.toList
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.foldl f x
 """
                         ]
         , test "should replace Array.toList >> List.foldl f x by Array.foldl f x" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.toList >> List.foldl f x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5425,12 +5436,14 @@ a = Array.toList >> List.foldl f x
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.foldl f x
 """
                         ]
         , test "should replace List.foldl (\\a s -> f a s) init (Dict.values dict) by Dict.foldl (\\_ a s -> f a s) init dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldl (\\a s -> f a s) init (Dict.values dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5442,12 +5455,14 @@ a = List.foldl (\\a s -> f a s) init (Dict.values dict)
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldl (\\_ a s -> f a s) init dict
 """
                         ]
         , test "should replace List.foldl (\\a -> f a) init (Dict.values dict) by Dict.foldl (\\_ a -> f a) init dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldl (\\a -> f a) init (Dict.values dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5459,12 +5474,14 @@ a = List.foldl (\\a -> f a) init (Dict.values dict)
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldl (\\_ a -> f a) init dict
 """
                         ]
         , test "should replace List.foldl (if c then \\a s -> f a else \\a -> f a) init (Dict.values dict) by Dict.foldl (if c then \\_ a s -> f a else \\_ a -> f a) init dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldl (if c then \\a s -> f a else \\a -> f a) init (Dict.values dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5476,12 +5493,14 @@ a = List.foldl (if c then \\a s -> f a else \\a -> f a) init (Dict.values dict)
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldl (if c then \\_ a s -> f a else \\_ a -> f a) init dict
 """
                         ]
         , test "should replace List.foldl f init (Dict.values dict) by Dict.foldl (always f) init dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldl f init (Dict.values dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5493,12 +5512,14 @@ a = List.foldl f init (Dict.values dict)
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldl (always f) init dict
 """
                         ]
         , test "should replace List.foldl (\\a s -> f a s) init << Dict.values by Dict.foldl (\\_ a s -> f a s) init" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldl (\\a s -> f a s) init << Dict.values
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5510,12 +5531,14 @@ a = List.foldl (\\a s -> f a s) init << Dict.values
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldl (\\_ a s -> f a s) init
 """
                         ]
         , test "should replace Dict.values >> List.foldl (\\a s -> f a s) init by Dict.foldl (\\_ a s -> f a s) init" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.values >> List.foldl (\\a s -> f a s) init
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5527,12 +5550,14 @@ a = Dict.values >> List.foldl (\\a s -> f a s) init
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldl (\\_ a s -> f a s) init
 """
                         ]
         , test "should replace List.foldl (\\a s -> f a s) init (Dict.keys dict) by Dict.foldl (\\a _ s -> f a s) init dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldl (\\a s -> f a s) init (Dict.keys dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5544,12 +5569,14 @@ a = List.foldl (\\a s -> f a s) init (Dict.keys dict)
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldl (\\a _ s -> f a s) init dict
 """
                         ]
         , test "should replace List.foldl f init (Dict.keys dict) by Dict.foldl (always f) init dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldl f init (Dict.keys dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5561,12 +5588,14 @@ a = List.foldl f init (Dict.keys dict)
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldl (always << f) init dict
 """
                         ]
         , test "should replace List.foldl (\\a s -> f a s) init << Dict.keys by Dict.foldl (\\a _ s -> f a s) init" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldl (\\a s -> f a s) init << Dict.keys
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5578,12 +5607,14 @@ a = List.foldl (\\a s -> f a s) init << Dict.keys
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldl (\\a _ s -> f a s) init
 """
                         ]
         , test "should replace Dict.keys >> List.foldl (\\a s -> f a s) init by Dict.foldl (\\a _ s -> f a s) init" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.keys >> List.foldl (\\a s -> f a s) init
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5595,12 +5626,14 @@ a = Dict.keys >> List.foldl (\\a s -> f a s) init
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldl (\\a _ s -> f a s) init
 """
                         ]
         , test "should replace List.foldl (\\(k,v) -> f k v) init (Dict.toList dict) by Dict.foldl (\\k v -> f k v) init dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldl (\\(k,v) -> f k v) init (Dict.toList dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5612,12 +5645,14 @@ a = List.foldl (\\(k,v) -> f k v) init (Dict.toList dict)
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldl (\\k v -> f k v) init dict
 """
                         ]
         , test "should replace dict |> Dict.toList |> List.foldl (\\(Variant k,Variant v) acc -> f k v acc) init by dict |> Dict.foldl (\\(Variant k) (Variant v) acc -> f k v acc) init" <|
             \() ->
                 """module A exposing (..)
+import Dict
 type Variant = Variant Int
 a = dict |> Dict.toList |> List.foldl (\\(Variant k,Variant v) acc -> f k v acc) init
 """
@@ -5630,6 +5665,7 @@ a = dict |> Dict.toList |> List.foldl (\\(Variant k,Variant v) acc -> f k v acc)
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 type Variant = Variant Int
 a = dict |> Dict.foldl (\\(Variant k) (Variant v) acc -> f k v acc) init
 """
@@ -5637,6 +5673,7 @@ a = dict |> Dict.foldl (\\(Variant k) (Variant v) acc -> f k v acc) init
         , test "should replace List.foldl (\\(k,v) -> f k v) init << Dict.toList by Dict.foldl (\\k v -> f k v) init" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldl (\\(k,v) -> f k v) init << Dict.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -5648,6 +5685,7 @@ a = List.foldl (\\(k,v) -> f k v) init << Dict.toList
                             , under = "List.foldl"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldl (\\k v -> f k v) init
 """
                         ]
@@ -6684,6 +6722,7 @@ a = initial extraArgument
         , test "should replace List.foldr f x (Set.toList set) by Set.foldl f x set" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = List.foldr f x (Set.toList set)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6694,12 +6733,14 @@ a = List.foldr f x (Set.toList set)
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.foldr f x set
 """
                         ]
         , test "should replace List.foldr f x << Set.toList by Set.foldr f x" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = List.foldr f x << Set.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6710,12 +6751,14 @@ a = List.foldr f x << Set.toList
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.foldr f x
 """
                         ]
         , test "should replace Set.toList >> List.foldr f x by Set.foldr f x" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.toList >> List.foldr f x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6726,12 +6769,14 @@ a = Set.toList >> List.foldr f x
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.foldr f x
 """
                         ]
         , test "should replace List.foldr f x (Array.toList array) by Array.foldr f x array" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = List.foldr f x (Array.toList array)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6742,12 +6787,14 @@ a = List.foldr f x (Array.toList array)
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.foldr f x array
 """
                         ]
         , test "should replace List.foldr f x << Array.toList by Array.foldr f x" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = List.foldr f x << Array.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6758,12 +6805,14 @@ a = List.foldr f x << Array.toList
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.foldr f x
 """
                         ]
         , test "should replace Array.toList >> List.foldr f x by Array.foldr f x" <|
             \() ->
                 """module A exposing (..)
+import Array
 a = Array.toList >> List.foldr f x
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6774,12 +6823,14 @@ a = Array.toList >> List.foldr f x
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Array
 a = Array.foldr f x
 """
                         ]
         , test "should replace List.foldr (\\a s -> f a s) init (Dict.values dict) by Dict.foldr (\\_ a s -> f a s) init dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldr (\\a s -> f a s) init (Dict.values dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6791,12 +6842,14 @@ a = List.foldr (\\a s -> f a s) init (Dict.values dict)
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldr (\\_ a s -> f a s) init dict
 """
                         ]
         , test "should replace List.foldr (\\a -> f a) init (Dict.values dict) by Dict.foldr (\\_ a -> f a) init dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldr (\\a -> f a) init (Dict.values dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6808,12 +6861,14 @@ a = List.foldr (\\a -> f a) init (Dict.values dict)
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldr (\\_ a -> f a) init dict
 """
                         ]
         , test "should replace List.foldr (if c then \\a s -> f a else \\a -> f a) init (Dict.values dict) by Dict.foldr (if c then \\_ a s -> f a else \\_ a -> f a) init dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldr (if c then \\a s -> f a else \\a -> f a) init (Dict.values dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6825,12 +6880,14 @@ a = List.foldr (if c then \\a s -> f a else \\a -> f a) init (Dict.values dict)
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldr (if c then \\_ a s -> f a else \\_ a -> f a) init dict
 """
                         ]
         , test "should replace List.foldr f init (Dict.values dict) by Dict.foldr (always f) init dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldr f init (Dict.values dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6842,12 +6899,14 @@ a = List.foldr f init (Dict.values dict)
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldr (always f) init dict
 """
                         ]
         , test "should replace List.foldr (\\a s -> f a s) init << Dict.values by Dict.foldr (\\_ a s -> f a s) init" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldr (\\a s -> f a s) init << Dict.values
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6859,12 +6918,14 @@ a = List.foldr (\\a s -> f a s) init << Dict.values
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldr (\\_ a s -> f a s) init
 """
                         ]
         , test "should replace Dict.values >> List.foldr (\\a s -> f a s) init by Dict.foldr (\\_ a s -> f a s) init" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.values >> List.foldr (\\a s -> f a s) init
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6876,12 +6937,14 @@ a = Dict.values >> List.foldr (\\a s -> f a s) init
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldr (\\_ a s -> f a s) init
 """
                         ]
         , test "should replace List.foldr (\\a s -> f a s) init (Dict.keys dict) by Dict.foldr (\\a _ s -> f a s) init dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldr (\\a s -> f a s) init (Dict.keys dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6893,12 +6956,14 @@ a = List.foldr (\\a s -> f a s) init (Dict.keys dict)
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldr (\\a _ s -> f a s) init dict
 """
                         ]
         , test "should replace List.foldr f init (Dict.keys dict) by Dict.foldr (always f) init dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldr f init (Dict.keys dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6910,12 +6975,14 @@ a = List.foldr f init (Dict.keys dict)
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldr (always << f) init dict
 """
                         ]
         , test "should replace List.foldr (\\a s -> f a s) init << Dict.keys by Dict.foldr (\\a _ s -> f a s) init" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldr (\\a s -> f a s) init << Dict.keys
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6927,12 +6994,14 @@ a = List.foldr (\\a s -> f a s) init << Dict.keys
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldr (\\a _ s -> f a s) init
 """
                         ]
         , test "should replace Dict.keys >> List.foldr (\\a s -> f a s) init by Dict.foldr (\\a _ s -> f a s) init" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.keys >> List.foldr (\\a s -> f a s) init
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6944,12 +7013,14 @@ a = Dict.keys >> List.foldr (\\a s -> f a s) init
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldr (\\a _ s -> f a s) init
 """
                         ]
         , test "should replace List.foldr (\\(k,v) -> f k v) init (Dict.toList dict) by Dict.foldr (\\k v -> f k v) init dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldr (\\(k,v) -> f k v) init (Dict.toList dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6961,12 +7032,14 @@ a = List.foldr (\\(k,v) -> f k v) init (Dict.toList dict)
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldr (\\k v -> f k v) init dict
 """
                         ]
         , test "should replace List.foldr (\\(k,v) -> f k v) init << Dict.toList by Dict.foldr (\\k v -> f k v) init" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.foldr (\\(k,v) -> f k v) init << Dict.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -6978,6 +7051,7 @@ a = List.foldr (\\(k,v) -> f k v) init << Dict.toList
                             , under = "List.foldr"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.foldr (\\k v -> f k v) init
 """
                         ]
@@ -9568,6 +9642,7 @@ a = List.repeat n
         , test "should replace List.sort (Set.toList set) by Set.toList set" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = List.sort (Set.toList set)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -9578,12 +9653,14 @@ a = List.sort (Set.toList set)
                             , under = "List.sort"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.toList set
 """
                         ]
         , test "should replace List.sort << Set.toList by Set.toList" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = List.sort << Set.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -9594,12 +9671,14 @@ a = List.sort << Set.toList
                             , under = "List.sort"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.toList
 """
                         ]
         , test "should replace Set.toList >> List.sort by Set.toList" <|
             \() ->
                 """module A exposing (..)
+import Set
 a = Set.toList >> List.sort
 """
                     |> Review.Test.run ruleWithDefaults
@@ -9610,12 +9689,14 @@ a = Set.toList >> List.sort
                             , under = "List.sort"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Set
 a = Set.toList
 """
                         ]
         , test "should replace List.sort (Dict.toList dict) by Dict.toList dict" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.sort (Dict.toList dict)
 """
                     |> Review.Test.run ruleWithDefaults
@@ -9626,12 +9707,14 @@ a = List.sort (Dict.toList dict)
                             , under = "List.sort"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.toList dict
 """
                         ]
         , test "should replace List.sort << Dict.toList by Dict.toList" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = List.sort << Dict.toList
 """
                     |> Review.Test.run ruleWithDefaults
@@ -9642,12 +9725,14 @@ a = List.sort << Dict.toList
                             , under = "List.sort"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.toList
 """
                         ]
         , test "should replace Dict.toList >> List.sort by Dict.toList" <|
             \() ->
                 """module A exposing (..)
+import Dict
 a = Dict.toList >> List.sort
 """
                     |> Review.Test.run ruleWithDefaults
@@ -9658,6 +9743,7 @@ a = Dict.toList >> List.sort
                             , under = "List.sort"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
+import Dict
 a = Dict.toList
 """
                         ]
