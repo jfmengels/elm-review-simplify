@@ -1180,4 +1180,61 @@ a = List.length (List.intersperse 0 (el0 :: el1 :: el2Up)) >= 3
 a = True
 """
                         ]
+        , test "should replace List.length (List.map3 f (List.repeat 3 0 ++ xs) (List.repeat 2 0) (List.repeat 4 0)) >= 2 by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.map3 f (List.repeat 3 0) (List.repeat 2 0 ++ xs) (List.repeat 4 0)) >= 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(>=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always greater than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 2 and 3 inclusive and the right number was determined to be exactly 2."
+                                ]
+                            , under = ">="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace List.length (List.map2 f (List.repeat 3 0) xs) <= 3 by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.map2 f (List.repeat 3 0) xs) <= 3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 0 and 3 inclusive and the right number was determined to be exactly 3."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace List.length (List.map4 f (List.take 3 zs) (List.repeat 5 0 ++ xs) (List.repeat 4 0) (List.take 2 ys)) <= 2 by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (List.map4 f (List.take 3 zs) (List.repeat 5 0 ++ xs) (List.repeat 4 0) (List.take 2 ys)) <= 2
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 0 and 2 inclusive and the right number was determined to be exactly 2."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         ]
