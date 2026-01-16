@@ -19529,16 +19529,16 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                 case args of
                     [ Node _ aSetArg, Node _ bSetArg ] ->
                         let
-                            sSetSize : CollectionSize
-                            sSetSize =
+                            aSetSize : CollectionSize
+                            aSetSize =
                                 normalDetermineCollectionSize aSetArg
 
                             bSetSize : CollectionSize
                             bSetSize =
                                 normalDetermineCollectionSize bSetArg
                         in
-                        { min = Basics.max sSetSize.min bSetSize.min
-                        , max = Maybe.map2 (+) sSetSize.max bSetSize.max
+                        { min = Basics.max aSetSize.min bSetSize.min
+                        , max = Maybe.map2 (+) aSetSize.max bSetSize.max
                         }
 
                     _ ->
@@ -19623,16 +19623,16 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                 case args of
                     [ Node _ aDictArg, Node _ bDictArg ] ->
                         let
-                            sDictSize : CollectionSize
-                            sDictSize =
+                            aDictSize : CollectionSize
+                            aDictSize =
                                 normalDetermineCollectionSize aDictArg
 
                             bDictSize : CollectionSize
                             bDictSize =
                                 normalDetermineCollectionSize bDictArg
                         in
-                        { min = Basics.max sDictSize.min bDictSize.min
-                        , max = Maybe.map2 (+) sDictSize.max bDictSize.max
+                        { min = Basics.max aDictSize.min bDictSize.min
+                        , max = Maybe.map2 (+) aDictSize.max bDictSize.max
                         }
 
                     _ ->
