@@ -15511,7 +15511,7 @@ So for example
 -}
 operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck : ( ModuleName, String ) -> CallCheckInfo -> Maybe (Error {})
 operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck replacementFn checkInfo =
-    case isEqualToConstantFunction checkInfo.firstArg of
+    case getSpecificOperationWithConstantFunction "==" checkInfo checkInfo.firstArg of
         Nothing ->
             Nothing
 
@@ -15528,27 +15528,31 @@ operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck replacementFn c
                 )
 
 
-isEqualToConstantFunction : Node Expression -> Maybe { constant : Node Expression }
-isEqualToConstantFunction rawNode =
-    case Node.value (AstHelpers.removeParens rawNode) of
-        Expression.Application ((Node _ (Expression.PrefixOperator "==")) :: expr :: []) ->
-            Just { constant = expr }
+getSpecificOperationWithConstantFunction : String -> Normalize.Resources a -> Node Expression -> Maybe { constant : Node Expression }
+getSpecificOperationWithConstantFunction specificOperator resources expressionNode =
+    case Node.value expressionNode of
+        Expression.ParenthesizedExpression inParens ->
+            getSpecificOperationWithConstantFunction specificOperator resources inParens
 
         Expression.LambdaExpression lambda ->
             case lambda.args of
                 [ Node _ (Pattern.VarPattern var) ] ->
                     case Node.value (AstHelpers.removeParens lambda.expression) of
-                        Expression.OperatorApplication "==" _ left right ->
-                            let
-                                nodeToFind : Expression
-                                nodeToFind =
-                                    Expression.FunctionOrValue [] var
-                            in
-                            if (Node.value left == nodeToFind) && not (expressionContainsVariable var right) then
-                                Just { constant = right }
+                        Expression.OperatorApplication operator _ left right ->
+                            if operator == specificOperator then
+                                let
+                                    nodeToFind : Expression
+                                    nodeToFind =
+                                        Expression.FunctionOrValue [] var
+                                in
+                                if (Node.value left == nodeToFind) && not (expressionContainsVariable var right) then
+                                    Just { constant = right }
 
-                            else if (Node.value right == nodeToFind) && not (expressionContainsVariable var left) then
-                                Just { constant = left }
+                                else if (Node.value right == nodeToFind) && not (expressionContainsVariable var left) then
+                                    Just { constant = left }
+
+                                else
+                                    Nothing
 
                             else
                                 Nothing
@@ -15560,7 +15564,16 @@ isEqualToConstantFunction rawNode =
                     Nothing
 
         _ ->
-            Nothing
+            case AstHelpers.getSingleArgCall expressionNode of
+                Nothing ->
+                    Nothing
+
+                Just call ->
+                    if call.called |> Normalize.isSpecificUnappliedBinaryOperation specificOperator resources then
+                        Just { constant = call.arg }
+
+                    else
+                        Nothing
 
 
 expressionContainsVariable : String -> Node Expression -> Bool
