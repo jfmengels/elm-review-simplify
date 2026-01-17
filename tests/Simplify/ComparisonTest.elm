@@ -1693,4 +1693,62 @@ import Array
 a = True
 """
                         ]
+        , test "should replace List.length (let c = d in List.take 1 c) <= 1 by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (let c = d in List.take 1 c) <= 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 0 and 1 inclusive and the right number was determined to be exactly 1."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace List.length (if c then [] else [ 0 ]) <= 1 by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (if c then [] else [ 0 ]) <= 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 0 and 1 inclusive and the right number was determined to be exactly 1."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
+        , test "should replace List.length (case n of 0 -> [] ; _ -> [ 0 ]) <= 1 by True" <|
+            \() ->
+                """module A exposing (..)
+a = List.length (case n of 0 -> []
+                           _ -> [ 0 ]) <= 1
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "(<=) comparison will result in True"
+                            , details =
+                                [ "Based on the values and/or the context, we can determine that the interval of the left number is always less than or equal to the interval of the right number. As a result, this operation can be replaced by True."
+                                , "The left number was determined to be between 0 and 1 inclusive and the right number was determined to be exactly 1."
+                                ]
+                            , under = "<="
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = True
+"""
+                        ]
         ]
