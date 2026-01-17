@@ -1518,6 +1518,9 @@ Destructuring using case expressions
     Set.filter (\_ -> False) set
     --> Set.empty
 
+    Set.filter (\k -> k /= specificKey) set
+    --> Set.remove specificKey set
+
     Set.partition f Set.empty
     --> ( Set.empty, Set.empty )
 
@@ -10953,7 +10956,38 @@ setRemoveChecks =
 
 setFilterChecks : IntoFnCheck
 setFilterChecks =
-    emptiableKeepWhenChecks setCollection
+    intoFnChecksFirstThatConstructsError
+        [ emptiableKeepWhenChecks setCollection
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                if checkInfo.expectNaN then
+                    Nothing
+
+                else
+                    case getSpecificOperationWithConstantFunction "/=" checkInfo checkInfo.firstArg of
+                        Nothing ->
+                            Nothing
+
+                        Just inequalityTo ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message =
+                                        qualifiedToString checkInfo.fn
+                                            ++ " checking for inequality with a specific value is the same as "
+                                            ++ qualifiedToString Fn.Set.remove
+                                    , details =
+                                        [ "You can replace this call by "
+                                            ++ qualifiedToString Fn.Set.remove
+                                            ++ " with the specific value you compared against to remove which meant for this exact purpose and will also be faster."
+                                        ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify Fn.Set.remove checkInfo))
+                                        :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) inequalityTo.constant
+                                    )
+                                )
+            )
+        ]
 
 
 setPartitionChecks : IntoFnCheck
