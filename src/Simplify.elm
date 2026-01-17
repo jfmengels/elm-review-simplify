@@ -19320,6 +19320,60 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                     _ ->
                         collectionSizeUnknown
           )
+        , ( Fn.List.sort
+          , \args ->
+                case args of
+                    [ Node _ listArg ] ->
+                        normalDetermineCollectionSize listArg
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.List.sortBy
+          , \args ->
+                case args of
+                    [ _, Node _ listArg ] ->
+                        normalDetermineCollectionSize listArg
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.List.sortWith
+          , \args ->
+                case args of
+                    [ _, Node _ listArg ] ->
+                        normalDetermineCollectionSize listArg
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.List.reverse
+          , \args ->
+                case args of
+                    [ Node _ listArg ] ->
+                        normalDetermineCollectionSize listArg
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.List.map
+          , \args ->
+                case args of
+                    [ _, Node _ listArg ] ->
+                        normalDetermineCollectionSize listArg
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.List.indexedMap
+          , \args ->
+                case args of
+                    [ _, Node _ listArg ] ->
+                        normalDetermineCollectionSize listArg
+
+                    _ ->
+                        collectionSizeUnknown
+          )
         , ( Fn.List.map2
           , \args ->
                 case args of
@@ -19402,6 +19456,58 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                     _ ->
                         collectionSizeUnknown
           )
+        , ( Fn.Array.toList
+          , \args ->
+                case args of
+                    [ Node _ arrayArg ] ->
+                        normalDetermineCollectionSize arrayArg
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.Array.toIndexedList
+          , \args ->
+                case args of
+                    [ Node _ arrayArg ] ->
+                        normalDetermineCollectionSize arrayArg
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.Set.toList
+          , \args ->
+                case args of
+                    [ Node _ setArg ] ->
+                        normalDetermineCollectionSize setArg
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.Dict.toList
+          , \args ->
+                case args of
+                    [ Node _ dictArg ] ->
+                        normalDetermineCollectionSize dictArg
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.String.toList
+          , \args ->
+                case args of
+                    [ Node _ stringArg ] ->
+                        let
+                            stringLength : CollectionSize
+                            stringLength =
+                                normalDetermineCollectionSize stringArg
+                        in
+                        { min = stringLength.min // 2
+                        , max = stringLength.max
+                        }
+
+                    _ ->
+                        collectionSizeUnknown
+          )
 
         -- Array
         , ( Fn.Array.empty, \_ -> collectionSizeExact 0 )
@@ -19450,6 +19556,24 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                         collectionSizeCombineEachBoundWith (+)
                             (normalDetermineCollectionSize leftArg)
                             (normalDetermineCollectionSize rightArg)
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.Array.map
+          , \args ->
+                case args of
+                    [ _, Node _ arrayArg ] ->
+                        normalDetermineCollectionSize arrayArg
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.Array.indexedMap
+          , \args ->
+                case args of
+                    [ _, Node _ arrayArg ] ->
+                        normalDetermineCollectionSize arrayArg
 
                     _ ->
                         collectionSizeUnknown
@@ -19557,6 +19681,22 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                             collectionMaxSizesMin
                                 (normalDetermineCollectionSize aSetArg).max
                                 (normalDetermineCollectionSize bSetArg).max
+                        }
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.Set.map
+          , \args ->
+                case args of
+                    [ _, Node _ stringArg ] ->
+                        let
+                            originalSetLength : CollectionSize
+                            originalSetLength =
+                                normalDetermineCollectionSize stringArg
+                        in
+                        { min = Basics.min 1 originalSetLength.min
+                        , max = originalSetLength.max
                         }
 
                     _ ->
@@ -19670,6 +19810,15 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                     _ ->
                         collectionSizeUnknown
           )
+        , ( Fn.Dict.map
+          , \args ->
+                case args of
+                    [ _, Node _ dictArg ] ->
+                        normalDetermineCollectionSize dictArg
+
+                    _ ->
+                        collectionSizeUnknown
+          )
 
         -- String
         , ( Fn.String.fromChar, \_ -> { min = 1, max = Just 2 } )
@@ -19775,6 +19924,31 @@ normalFnOrFnCallDetermineCollectionSizeDict =
                                 (collectionSizeToNumberBounds (normalDetermineCollectionSize stringArg))
                                 (numberBoundsNegate (normalGetNumberBounds countArg))
                             )
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.String.reverse
+          , \args ->
+                case args of
+                    [ Node _ stringArg ] ->
+                        normalDetermineCollectionSize stringArg
+
+                    _ ->
+                        collectionSizeUnknown
+          )
+        , ( Fn.String.map
+          , \args ->
+                case args of
+                    [ _, Node _ stringArg ] ->
+                        let
+                            originalStringLength : CollectionSize
+                            originalStringLength =
+                                normalDetermineCollectionSize stringArg
+                        in
+                        { min = originalStringLength.min
+                        , max = Maybe.map (\max -> max * 2) originalStringLength.max
+                        }
 
                     _ ->
                         collectionSizeUnknown
