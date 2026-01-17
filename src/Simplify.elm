@@ -19236,14 +19236,14 @@ normalDetermineCollectionSize expression =
             case caseOf.cases of
                 ( _, Node _ case0Result ) :: case1Up ->
                     List.foldl
-                        (\( _, Node _ onTrue ) soFar ->
+                        (\( _, Node _ caseResult ) soFar ->
                             let
-                                onTrueCollectionSize : CollectionSize
-                                onTrueCollectionSize =
-                                    normalDetermineCollectionSize onTrue
+                                caseResultCollectionSize : CollectionSize
+                                caseResultCollectionSize =
+                                    normalDetermineCollectionSize caseResult
                             in
-                            { min = Basics.min onTrueCollectionSize.min soFar.min
-                            , max = Maybe.map2 Basics.max onTrueCollectionSize.max soFar.max
+                            { min = Basics.min caseResultCollectionSize.min soFar.min
+                            , max = Maybe.map2 Basics.max caseResultCollectionSize.max soFar.max
                             }
                         )
                         (normalDetermineCollectionSize case0Result)
