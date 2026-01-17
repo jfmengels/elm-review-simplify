@@ -19215,6 +19215,44 @@ normalDetermineCollectionSize expression =
         Expression.Application ((Node _ (Expression.FunctionOrValue qualification name)) :: args) ->
             normalFnOrFnCallDetermineCollectionSize ( qualification, name ) args
 
+        Expression.LetExpression letIn ->
+            normalDetermineCollectionSize (Node.value letIn.expression)
+
+        Expression.IfBlock _ (Node _ onTrue) (Node _ onFalse) ->
+            let
+                onTrueCollectionSize : CollectionSize
+                onTrueCollectionSize =
+                    normalDetermineCollectionSize onTrue
+
+                onFalseCollectionSize : CollectionSize
+                onFalseCollectionSize =
+                    normalDetermineCollectionSize onFalse
+            in
+            { min = Basics.min onTrueCollectionSize.min onFalseCollectionSize.min
+            , max = Maybe.map2 Basics.max onTrueCollectionSize.max onFalseCollectionSize.max
+            }
+
+        Expression.CaseExpression caseOf ->
+            case caseOf.cases of
+                ( _, Node _ case0Result ) :: case1Up ->
+                    List.foldl
+                        (\( _, Node _ onTrue ) soFar ->
+                            let
+                                onTrueCollectionSize : CollectionSize
+                                onTrueCollectionSize =
+                                    normalDetermineCollectionSize onTrue
+                            in
+                            { min = Basics.min onTrueCollectionSize.min soFar.min
+                            , max = Maybe.map2 Basics.max onTrueCollectionSize.max soFar.max
+                            }
+                        )
+                        (normalDetermineCollectionSize case0Result)
+                        case1Up
+
+                -- invalid syntax
+                [] ->
+                    collectionSizeUnknown
+
         _ ->
             collectionSizeUnknown
 
