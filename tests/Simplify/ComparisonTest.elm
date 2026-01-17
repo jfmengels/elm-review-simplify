@@ -1349,11 +1349,11 @@ import Dict
 a = True
 """
                         ]
-        , test "should replace Set.size (Set.union (Set.fromList (List.take 2 xs)) (List.take 1 ys)) <= 3 by True" <|
+        , test "should replace Set.size (Set.union (Set.fromList (List.take 2 xs)) (Set.fromList (List.take 1 ys))) <= 3 by True" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.size (Set.union (Set.fromList (List.take 2 xs)) (List.take 1 ys)) <= 3
+a = Set.size (Set.union (Set.fromList (List.take 2 xs)) (Set.fromList (List.take 1 ys))) <= 3
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -1370,11 +1370,11 @@ import Set
 a = True
 """
                         ]
-        , test "should replace Set.size (Set.intersect (Set.fromList (List.take 2 xs)) (List.take 3 ys)) <= 2 by True" <|
+        , test "should replace Set.size (Set.intersect (Set.fromList (List.take 2 xs)) (Set.fromList (List.take 3 ys))) <= 2 by True" <|
             \() ->
                 """module A exposing (..)
 import Set
-a = Set.size (Set.intersect (Set.fromList (List.take 2 xs)) (List.take 3 ys)) <= 2
+a = Set.size (Set.intersect (Set.fromList (List.take 2 xs)) (Set.fromList (List.take 3 ys))) <= 2
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
@@ -1391,11 +1391,11 @@ import Set
 a = True
 """
                         ]
-        , test "should replace Dict.size (Dict.intersect (Dict.fromList (List.take 2 xs)) (List.take 3 ys)) <= 2 by True" <|
+        , test "should replace Dict.size (Dict.intersect (Dict.fromList (List.take 2 xs)) (Dict.fromList (List.take 3 ys))) <= 2 by True" <|
             \() ->
                 """module A exposing (..)
 import Dict
-a = Dict.size (Dict.intersect (Dict.fromList (List.take 2 xs)) (List.take 3 ys)) <= 2
+a = Dict.size (Dict.intersect (Dict.fromList (List.take 2 xs)) (Dict.fromList (List.take 3 ys))) <= 2
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
