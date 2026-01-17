@@ -22088,6 +22088,44 @@ normalGetNumberBounds expressionNormal =
                 _ ->
                     numberBoundsUnknown
 
+        Expression.LetExpression letIn ->
+            normalGetNumberBounds (Node.value letIn.expression)
+
+        Expression.IfBlock _ (Node _ onTrue) (Node _ onFalse) ->
+            let
+                onTrueNumberBounds : { min : Float, max : Float }
+                onTrueNumberBounds =
+                    normalGetNumberBounds onTrue
+
+                onFalseNumberBounds : { min : Float, max : Float }
+                onFalseNumberBounds =
+                    normalGetNumberBounds onFalse
+            in
+            { min = Basics.min onTrueNumberBounds.min onFalseNumberBounds.min
+            , max = Basics.max onTrueNumberBounds.max onFalseNumberBounds.max
+            }
+
+        Expression.CaseExpression caseOf ->
+            case caseOf.cases of
+                ( _, Node _ case0Result ) :: case1Up ->
+                    List.foldl
+                        (\( _, Node _ caseResult ) soFar ->
+                            let
+                                caseResultNumberBounds : { min : Float, max : Float }
+                                caseResultNumberBounds =
+                                    normalGetNumberBounds caseResult
+                            in
+                            { min = Basics.min caseResultNumberBounds.min soFar.min
+                            , max = Basics.max caseResultNumberBounds.max soFar.max
+                            }
+                        )
+                        (normalGetNumberBounds case0Result)
+                        case1Up
+
+                -- invalid syntax
+                [] ->
+                    numberBoundsUnknown
+
         _ ->
             numberBoundsUnknown
 
