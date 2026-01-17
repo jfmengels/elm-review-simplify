@@ -491,6 +491,42 @@ import Array
 a = (f >> g)
 """
                         ]
+        , test "should replace Array.fromList (List.repeat n x) by Array.repeat n x" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList (List.repeat n x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.repeat, then Array.fromList can be combined into Array.repeat"
+                            , details = [ "You can replace this call by Array.repeat with the same arguments given to List.repeat which is meant for this exact purpose." ]
+                            , under = "Array.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (Array.repeat n x)
+"""
+                        ]
+        , test "should replace Array.fromList << List.repeat n by Array.repeat n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList << List.repeat n
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.repeat, then Array.fromList can be combined into Array.repeat"
+                            , details = [ "You can replace this composition by Array.repeat with the same argument given to List.repeat which is meant for this exact purpose." ]
+                            , under = "Array.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.repeat n
+"""
+                        ]
         ]
 
 

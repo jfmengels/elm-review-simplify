@@ -1237,6 +1237,9 @@ Destructuring using case expressions
     Array.fromList (Array.toList array)
     --> array
 
+    Array.fromList (List.repeat n a)
+    --> Array.repeat n a
+
     Array.toList (Array.fromList list)
     --> list
 
@@ -10595,6 +10598,8 @@ arrayFromListChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (emptiableFromListChecks arrayCollection)
         , onSpecificFnCallReturnsItsLastArgCheck Fn.Array.toList
+        , onSpecificFnCallCanBeCombinedCheck
+            { args = [], earlierFn = Fn.List.repeat, combinedFn = Fn.Array.repeat }
         ]
 
 

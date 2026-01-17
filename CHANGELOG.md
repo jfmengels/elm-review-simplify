@@ -67,6 +67,7 @@ The rule now simplifies:
 - `List.length (List.reverse list)` to `List.length list` (same for `List.sort`, `List.sortBy`, `List.sortWith`, `List.map` and `List.indexedMap`)
 - `Array.isEmpty (Array.map f array)` to `Array.isEmpty array` (same for `Array.indexedMap` and `Array.set`)
 - `Array.length (Array.map f array)` to `Array.length array` (same for `Array.indexedMap` and `Array.set`)
+- `Array.fromList (List.repeat n a)` to `Array.repeat n a`
 - `String.length (String.reverse str)` to `String.length str`
 - `String.isEmpty (String.map f str)` to `String.isEmpty str` (same for `String.reverse`)
 - `Set.isEmpty (Set.map f set)` to `Set.isEmpty set`
