@@ -1639,6 +1639,9 @@ Destructuring using case expressions
     Dict.filter (\k _ -> f k) (Dict.map g dict)
     --> Dict.map g (Dict.filter (\k _ -> f k) dict)
 
+    Dict.filter (\k _ -> k /= specificKey) dict
+    --> Dict.remove specificKey dict
+
     Dict.map f Dict.empty
     --> Dict.empty
 
@@ -11634,6 +11637,40 @@ dictFilterChecks =
                     isJust (getFunctionIgnoringSecondIncoming checkInfo laterFirstArg)
             , specificLaterFirstArgDescription = "by key"
             }
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                if checkInfo.expectNaN then
+                    Nothing
+
+                else
+                    case getFunctionIgnoringSecondIncoming checkInfo checkInfo.firstArg of
+                        Nothing ->
+                            Nothing
+
+                        Just filterFunctionArgIgnoringSecond ->
+                            case getSpecificOperationWithConstantFunction "/=" checkInfo filterFunctionArgIgnoringSecond of
+                                Nothing ->
+                                    Nothing
+
+                                Just inequalityTo ->
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                qualifiedToString checkInfo.fn
+                                                    ++ " checking each key for inequality with a specific value is the same as "
+                                                    ++ qualifiedToString Fn.Dict.remove
+                                            , details =
+                                                [ "You can replace this call by "
+                                                    ++ qualifiedToString Fn.Dict.remove
+                                                    ++ " with the specific value you compared against which meant for this exact purpose and will also be faster."
+                                                ]
+                                            }
+                                            checkInfo.fnRange
+                                            (Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify Fn.Dict.remove checkInfo))
+                                                :: replaceBySubExpressionFix (Node.range checkInfo.firstArg) inequalityTo.constant
+                                            )
+                                        )
+            )
         ]
 
 

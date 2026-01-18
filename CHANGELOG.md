@@ -77,6 +77,7 @@ The rule now simplifies:
 - `List.filter f (List.reverse list)` to `List.reverse (List.filter f list)` (same for `List.sort`, `List.sortBy` and `List.sortWith`)
 - `String.filter f (String.reverse str)` to `String.reverse (String.filter f str)`
 - `Set.filter (\k -> k /= specificKey) set` to `Set.remove specificKey set`
+- `Dict.filter (\k _ -> k /= specificKey) dict` to `Dict.remove specificKey dict`
 - more string sizes can be determined, to simplify for example `String.isEmpty (String.fromInt str)` to `False`
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 
