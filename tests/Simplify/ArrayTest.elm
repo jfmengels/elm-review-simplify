@@ -795,6 +795,24 @@ import Array
 a = (Array.initialize <| ((f <| x) + 1)) identity
 """
                         ]
+        , test "should replace Array.fromList (List.map (g << h) (List.range 0 <| f <| x)) by (Array.initialize <| ((f <| x) + 1)) (g << h)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList (List.map (g << h) (List.range 0 <| f <| x))
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList on List.map on List.range starting at 0 is the same as Array.initialize"
+                            , details = [ "You can replace this call by Array.initialize with the range end argument + 1 and the function argument given to the List.map call." ]
+                            , under = "Array.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (Array.initialize <| ((f <| x) + 1)) (g << h)
+"""
+                        ]
         ]
 
 

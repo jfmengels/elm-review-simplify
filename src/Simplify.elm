@@ -1246,6 +1246,9 @@ Destructuring using case expressions
     Array.fromList (List.range 0 n)
     --> Array.initialize (n + 1) identity
 
+    Array.fromList (List.map f (List.range 0 n))
+    --> Array.initialize (n + 1) f
+
     Array.toList (Array.fromList list)
     --> list
 
@@ -10677,6 +10680,73 @@ arrayFromListChecks =
 
                                                 _ ->
                                                     Nothing
+
+                                        _ ->
+                                            Nothing
+                        )
+                    |> onNothing
+                        (\() ->
+                            case AstHelpers.getSpecificUnreducedFnCall Fn.List.map checkInfo.lookupTable checkInfo.firstArg of
+                                Nothing ->
+                                    Nothing
+
+                                Just listMapCall ->
+                                    case listMapCall.argsAfterFirst of
+                                        [ unmappedListArg ] ->
+                                            case AstHelpers.getSpecificUnreducedFnCall Fn.List.range checkInfo.lookupTable unmappedListArg of
+                                                Nothing ->
+                                                    Nothing
+
+                                                Just listRangeCall ->
+                                                    case listRangeCall.argsAfterFirst of
+                                                        [ Node listRangeEndArgRange _ ] ->
+                                                            case Normalize.getInt checkInfo listRangeCall.firstArg of
+                                                                Just 0 ->
+                                                                    Just
+                                                                        (Rule.errorWithFix
+                                                                            { message =
+                                                                                qualifiedToString checkInfo.fn
+                                                                                    ++ " on "
+                                                                                    ++ qualifiedToString Fn.List.map
+                                                                                    ++ " on "
+                                                                                    ++ qualifiedToString Fn.List.range
+                                                                                    ++ " starting at 0 is the same as "
+                                                                                    ++ qualifiedToString Fn.Array.initialize
+                                                                            , details =
+                                                                                [ "You can replace this call by "
+                                                                                    ++ qualifiedToString Fn.Array.initialize
+                                                                                    ++ " with the range end argument + 1 and the function argument given to the "
+                                                                                    ++ qualifiedToString Fn.List.map
+                                                                                    ++ " call."
+                                                                                ]
+                                                                            }
+                                                                            checkInfo.fnRange
+                                                                            (Fix.insertAt listRangeEndArgRange.start "(("
+                                                                                :: Fix.insertAt listRangeEndArgRange.end ") + 1)"
+                                                                                :: Fix.replaceRangeBy listRangeCall.fnRange
+                                                                                    (qualifiedToString (qualify Fn.Array.initialize checkInfo))
+                                                                                :: Fix.insertAt checkInfo.parentRange.end
+                                                                                    (" "
+                                                                                        ++ parenthesizeIf (needsParens (Node.value listMapCall.firstArg))
+                                                                                            (checkInfo.extractSourceCode
+                                                                                                (Node.range listMapCall.firstArg)
+                                                                                            )
+                                                                                    )
+                                                                                :: replaceBySubExpressionFix checkInfo.parentRange
+                                                                                    unmappedListArg
+                                                                                ++ keepOnlyFix
+                                                                                    { parentRange =
+                                                                                        Range.combine [ listRangeCall.fnRange, Node.range listRangeCall.firstArg ]
+                                                                                    , keep = listRangeCall.fnRange
+                                                                                    }
+                                                                            )
+                                                                        )
+
+                                                                _ ->
+                                                                    Nothing
+
+                                                        _ ->
+                                                            Nothing
 
                                         _ ->
                                             Nothing
