@@ -1518,6 +1518,7 @@ Destructuring using case expressions
     Set.filter (\_ -> False) set
     --> Set.empty
 
+    -- when `expectNaN` is not enabled
     Set.filter (\k -> k /= specificKey) set
     --> Set.remove specificKey set
 
@@ -1639,6 +1640,7 @@ Destructuring using case expressions
     Dict.filter (\k _ -> f k) (Dict.map g dict)
     --> Dict.map g (Dict.filter (\k _ -> f k) dict)
 
+    -- when `expectNaN` is not enabled
     Dict.filter (\k _ -> k /= specificKey) dict
     --> Dict.remove specificKey dict
 
