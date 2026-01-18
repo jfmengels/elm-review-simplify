@@ -552,6 +552,14 @@ all =
                     |> Expect.equalLists
                         (Array.repeat n toRepeat |> Array.toList)
             )
+        , Test.fuzz (Fuzz.intRange -50 50)
+            "Array.fromList (List.range 0 n) is the same as Array.initialize (n + 1) identity"
+            (\n ->
+                Array.fromList (List.range 0 n)
+                    |> Array.toList
+                    |> Expect.equalLists
+                        (Array.initialize (n + 1) identity |> Array.toList)
+            )
         ]
 
 
