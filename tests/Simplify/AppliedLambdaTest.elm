@@ -70,6 +70,38 @@ a = (\\x -> x) y
 a = y
 """
                         ]
+        , test "should replace (\\x -> x) <| f <| y by f <| y" <|
+            \() ->
+                """module A exposing (..)
+a = (\\x -> x) <| f <| y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary identity function"
+                            , details = [ "This function returns the argument it is given without any changes. Calling it with an argument is the same thing as writing the argument on its own." ]
+                            , under = "\\x -> x"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f <| y
+"""
+                        ]
+        , test "should replace y |> f |> (\\x -> x) by y |> f" <|
+            \() ->
+                """module A exposing (..)
+a = y |> f |> (\\x -> x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary identity function"
+                            , details = [ "This function returns the argument it is given without any changes. Calling it with an argument is the same thing as writing the argument on its own." ]
+                            , under = "\\x -> x"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = y |> f
+"""
+                        ]
         , test "should replace f >> (\\x -> x) by f" <|
             \() ->
                 """module A exposing (..)
@@ -219,6 +251,44 @@ a = (\\_ y -> x) a b
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (\\y -> x) b
+"""
+                        ]
+        , test "should replace a |> f |> (\\_ y -> x) by (\\y -> x)" <|
+            \() ->
+                """module A exposing (..)
+a = b |> f |> (\\_ y -> x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary wildcard argument argument"
+                            , details =
+                                [ "This function is being passed an argument that is directly ignored."
+                                , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
+                                ]
+                            , under = "_"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (\\y -> x)
+"""
+                        ]
+        , test "should replace (\\_ y -> x) <| f <| a by (\\y -> x)" <|
+            \() ->
+                """module A exposing (..)
+a = (\\_ y -> x) <| f <| b
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary wildcard argument argument"
+                            , details =
+                                [ "This function is being passed an argument that is directly ignored."
+                                , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
+                                ]
+                            , under = "_"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (\\y -> x)
 """
                         ]
         , test "should not report non-simplifiable lambdas that are directly called with an argument" <|
