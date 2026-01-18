@@ -10983,7 +10983,7 @@ setFilterChecks =
                                     , details =
                                         [ "You can replace this call by "
                                             ++ qualifiedToString Fn.Set.remove
-                                            ++ " with the specific value you compared against to remove which meant for this exact purpose and will also be faster."
+                                            ++ " with the specific value you compared against which meant for this exact purpose and will also be faster."
                                         ]
                                     }
                                     checkInfo.fnRange
