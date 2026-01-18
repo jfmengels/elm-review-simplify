@@ -303,6 +303,9 @@ Destructuring using case expressions
     (\_ -> x) data
     --> x
 
+    (\x -> x) data
+    --> data
+
     (\() y -> x) ()
     --> (\y -> x)
 
@@ -3311,11 +3314,15 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             Nothing ->
                                 Nothing
 
-                    Node lambdaWithParens (Expression.ParenthesizedExpression (Node _ (Expression.LambdaExpression lambda))) ->
+                    Node lambdaWithParens (Expression.ParenthesizedExpression ((Node _ (Expression.LambdaExpression lambda)) as lambdaNode)) ->
                         appliedLambdaError
                             { lambda = lambda
+                            , lambdaNode = lambdaNode
                             , lambdaWithParens = lambdaWithParens
                             , firstArgument = firstArg
+                            , lookupTable = context.lookupTable
+                            , importCustomTypes = context.importCustomTypes
+                            , moduleCustomTypes = context.moduleCustomTypes
                             }
 
                     Node operatorRange (Expression.PrefixOperator operator) ->
@@ -17339,7 +17346,16 @@ pipelineChecks :
 pipelineChecks checkInfo =
     pipingIntoCompositionChecks { commentRanges = checkInfo.commentRanges, extractSourceCode = checkInfo.extractSourceCode } checkInfo.direction checkInfo.pipedInto
         |> onNothing
-            (\() -> fullyAppliedLambdaInPipelineChecks { nodeRange = checkInfo.nodeRange, function = checkInfo.pipedInto, firstArgument = checkInfo.arg })
+            (\() ->
+                fullyAppliedLambdaInPipelineChecks
+                    { nodeRange = checkInfo.nodeRange
+                    , function = checkInfo.pipedInto
+                    , firstArgument = checkInfo.arg
+                    , lookupTable = checkInfo.lookupTable
+                    , importCustomTypes = checkInfo.importCustomTypes
+                    , moduleCustomTypes = checkInfo.moduleCustomTypes
+                    }
+            )
         |> onNothing
             (\() ->
                 case AstHelpers.getRecordAccessFunction checkInfo.pipedInto of
@@ -17362,10 +17378,10 @@ pipelineChecks checkInfo =
             )
 
 
-fullyAppliedLambdaInPipelineChecks : { nodeRange : Range, firstArgument : Node Expression, function : Node Expression } -> Maybe (Error {})
+fullyAppliedLambdaInPipelineChecks : AstHelpers.ReduceLambdaResources { nodeRange : Range, firstArgument : Node Expression, function : Node Expression } -> Maybe (Error {})
 fullyAppliedLambdaInPipelineChecks checkInfo =
     case Node.value checkInfo.function of
-        Expression.ParenthesizedExpression (Node _ (Expression.LambdaExpression lambda)) ->
+        Expression.ParenthesizedExpression ((Node _ (Expression.LambdaExpression lambda)) as lambdaNode) ->
             case Node.value (AstHelpers.removeParens checkInfo.firstArgument) of
                 Expression.OperatorApplication "|>" _ _ _ ->
                     Nothing
@@ -17376,8 +17392,12 @@ fullyAppliedLambdaInPipelineChecks checkInfo =
                 _ ->
                     appliedLambdaError
                         { lambda = lambda
+                        , lambdaNode = lambdaNode
                         , lambdaWithParens = Node.range checkInfo.function
                         , firstArgument = checkInfo.firstArgument
+                        , lookupTable = checkInfo.lookupTable
+                        , importCustomTypes = checkInfo.importCustomTypes
+                        , moduleCustomTypes = checkInfo.moduleCustomTypes
                         }
 
         _ ->
@@ -21466,7 +21486,9 @@ fullyAppliedPrefixOperatorError checkInfo =
 -- APPLIED LAMBDA
 
 
-appliedLambdaError : { lambdaWithParens : Range, lambda : Expression.Lambda, firstArgument : Node Expression } -> Maybe (Error {})
+appliedLambdaError :
+    AstHelpers.ReduceLambdaResources { lambdaWithParens : Range, lambda : Expression.Lambda, lambdaNode : Node Expression, firstArgument : Node Expression }
+    -> Maybe (Error {})
 appliedLambdaError checkInfo =
     case checkInfo.lambda.args of
         (Node patternRange Pattern.UnitPattern) :: otherPatterns ->
@@ -21496,13 +21518,28 @@ appliedLambdaError checkInfo =
                 )
 
         _ ->
-            Nothing
+            if AstHelpers.isIdentity checkInfo checkInfo.lambdaNode then
+                Just
+                    (Rule.errorWithFix
+                        { message = "`identity` should be removed"
+                        , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
+                        }
+                        (Node.range checkInfo.lambdaNode)
+                        (replaceCallBySubExpressionFix
+                            (Range.combine [ checkInfo.lambdaWithParens, Node.range checkInfo.firstArgument ])
+                            CallStyle.Application
+                            checkInfo.firstArgument
+                        )
+                    )
+
+            else
+                Nothing
 
 
 appliedLambdaErrorFix :
     Range
     -> List (Node Pattern)
-    -> { lambdaWithParens : Range, lambda : Expression.Lambda, firstArgument : Node Expression }
+    -> { checkInfo | lambdaWithParens : Range, lambda : Expression.Lambda, firstArgument : Node Expression }
     -> List Fix
 appliedLambdaErrorFix patternRange otherPatterns checkInfo =
     case otherPatterns of

@@ -54,6 +54,38 @@ a = (\\_ -> x) a
 a = x
 """
                         ]
+        , test "should replace (\\x -> x) y by y" <|
+            \() ->
+                """module A exposing (..)
+a = (\\x -> x) y
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "`identity` should be removed"
+                            , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
+                            , under = "\\x -> x"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = y
+"""
+                        ]
+        , test "should replace f >> (\\x -> x) by f" <|
+            \() ->
+                """module A exposing (..)
+a = f >> (\\x -> x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "`identity` should be removed"
+                            , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
+                            , under = "(\\x -> x)"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = f
+"""
+                        ]
         , test "should replace (\\() y -> x) () by (\\y -> x)" <|
             \() ->
                 """module A exposing (..)
