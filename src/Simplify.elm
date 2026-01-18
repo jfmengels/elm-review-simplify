@@ -15611,18 +15611,18 @@ getSpecificOperationWithConstantFunction specificOperator resources expressionNo
             case lambda.args of
                 [ Node _ (Pattern.VarPattern var) ] ->
                     case Node.value (AstHelpers.removeParens lambda.expression) of
-                        Expression.OperatorApplication operator _ left right ->
+                        Expression.OperatorApplication operator _ ((Node _ left) as leftNode) ((Node _ right) as rightNode) ->
                             if operator == specificOperator then
                                 let
                                     nodeToFind : Expression
                                     nodeToFind =
                                         Expression.FunctionOrValue [] var
                                 in
-                                if (Node.value left == nodeToFind) && not (expressionContainsVariable var right) then
-                                    Just { constant = right }
+                                if (left == nodeToFind) && not (expressionContainsVariable var rightNode) then
+                                    Just { constant = rightNode }
 
-                                else if (Node.value right == nodeToFind) && not (expressionContainsVariable var left) then
-                                    Just { constant = left }
+                                else if (right == nodeToFind) && not (expressionContainsVariable var leftNode) then
+                                    Just { constant = leftNode }
 
                                 else
                                     Nothing
