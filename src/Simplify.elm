@@ -1243,6 +1243,9 @@ Destructuring using case expressions
     Array.fromList (List.repeat n a)
     --> Array.repeat n a
 
+    Array.fromList (List.range 0 n)
+    --> Array.initialize (n + 1) identity
+
     Array.toList (Array.fromList list)
     --> list
 
@@ -10627,7 +10630,58 @@ arrayToIndexedListChecks =
 arrayFromListChecks : IntoFnCheck
 arrayFromListChecks =
     intoFnChecksFirstThatConstructsError
-        [ intoFnCheckOnlyCall (emptiableFromListChecks arrayCollection)
+        [ intoFnCheckOnlyCall
+            (\checkInfo ->
+                emptiableFromListChecks arrayCollection checkInfo
+                    |> onNothing
+                        (\() ->
+                            case AstHelpers.getSpecificUnreducedFnCall Fn.List.range checkInfo.lookupTable checkInfo.firstArg of
+                                Nothing ->
+                                    Nothing
+
+                                Just listRangeCall ->
+                                    case listRangeCall.argsAfterFirst of
+                                        [ Node listRangeEndArgRange _ ] ->
+                                            case Normalize.getInt checkInfo listRangeCall.firstArg of
+                                                Just 0 ->
+                                                    Just
+                                                        (Rule.errorWithFix
+                                                            { message =
+                                                                qualifiedToString checkInfo.fn
+                                                                    ++ " on "
+                                                                    ++ qualifiedToString Fn.List.range
+                                                                    ++ " starting at 0 is the same as "
+                                                                    ++ qualifiedToString Fn.Array.initialize
+                                                            , details =
+                                                                [ "You can replace this call by "
+                                                                    ++ qualifiedToString Fn.Array.initialize
+                                                                    ++ " with the range end argument + 1 and identity."
+                                                                ]
+                                                            }
+                                                            checkInfo.fnRange
+                                                            (Fix.insertAt listRangeEndArgRange.start "(("
+                                                                :: Fix.insertAt listRangeEndArgRange.end ") + 1)"
+                                                                :: Fix.replaceRangeBy listRangeCall.fnRange
+                                                                    (qualifiedToString (qualify Fn.Array.initialize checkInfo))
+                                                                :: Fix.insertAt checkInfo.parentRange.end
+                                                                    (" " ++ qualifiedToString (qualify Fn.Basics.identity checkInfo))
+                                                                :: replaceBySubExpressionFix checkInfo.parentRange
+                                                                    checkInfo.firstArg
+                                                                ++ keepOnlyFix
+                                                                    { parentRange =
+                                                                        Range.combine [ listRangeCall.fnRange, Node.range listRangeCall.firstArg ]
+                                                                    , keep = listRangeCall.fnRange
+                                                                    }
+                                                            )
+                                                        )
+
+                                                _ ->
+                                                    Nothing
+
+                                        _ ->
+                                            Nothing
+                        )
+            )
         , onSpecificFnCallReturnsItsLastArgCheck Fn.Array.toList
         , onSpecificFnCallCanBeCombinedCheck
             { args = [], earlierFn = Fn.List.repeat, combinedFn = Fn.Array.repeat }

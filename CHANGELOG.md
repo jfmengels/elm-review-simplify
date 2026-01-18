@@ -85,6 +85,7 @@ The rule now simplifies:
 - `Array.initialize n (always a)` to `Array.repeat n a`
 - more string sizes can be determined, to simplify for example `String.isEmpty (String.fromInt str)` to `False`
 - `Array.map f (Array.initialize n identity)` to `Array.initialize n f`
+- `Array.fromList (List.range 0 n)` to `Array.initialize (n + 1) identity`
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 
 Bug fixes:

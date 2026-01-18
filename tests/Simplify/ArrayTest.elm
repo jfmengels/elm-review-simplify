@@ -777,6 +777,24 @@ import Array
 a = (f <| x) |> Array.initialize n
 """
                         ]
+        , test "should replace Array.fromList (List.range 0 <| f <| x) by (Array.initialize <| ((f <| x) + 1)) identity" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.fromList (List.range 0 <| f <| x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.fromList on List.range starting at 0 is the same as Array.initialize"
+                            , details = [ "You can replace this call by Array.initialize with the range end argument + 1 and identity." ]
+                            , under = "Array.fromList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (Array.initialize <| ((f <| x) + 1)) identity
+"""
+                        ]
         ]
 
 
