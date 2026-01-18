@@ -1752,6 +1752,40 @@ import Dict
 a = (Dict.filter (\\k _ -> f k) >> Dict.map g)
 """
                         ]
+        , test "should replace Dict.filter (\\k _ -> k /= (f <| x)) dict by always Dict.remove (f <| x) dict" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter (\\k _ -> k /= (f <| x)) dict
+"""
+                    |> whenNotExpectingNaN Review.Test.run
+                        [ Review.Test.error
+                            { message = "Dict.filter checking each key for inequality with a specific value is the same as Dict.remove"
+                            , details = [ "You can replace this call by Dict.remove with the specific value you compared against which meant for this exact purpose and will also be faster." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.remove (f <| x) dict
+"""
+                        ]
+        , test "should replace Dict.filter (\\k -> always (k /= (f <| x))) dict by always Dict.remove (f <| x)" <|
+            \() ->
+                """module A exposing (..)
+import Dict
+a = Dict.filter (\\k -> always (k /= (f <| x)))
+"""
+                    |> whenNotExpectingNaN Review.Test.run
+                        [ Review.Test.error
+                            { message = "Dict.filter checking each key for inequality with a specific value is the same as Dict.remove"
+                            , details = [ "You can replace this call by Dict.remove with the specific value you compared against which meant for this exact purpose and will also be faster." ]
+                            , under = "Dict.filter"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Dict
+a = Dict.remove (f <| x)
+"""
+                        ]
         ]
 
 
