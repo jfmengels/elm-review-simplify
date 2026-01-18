@@ -588,7 +588,7 @@ a = Set.filter ((/=) <| f <| x) set
                     |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "Set.filter checking for inequality with a specific value is the same as Set.remove"
-                            , details = [ "You can replace this call by Set.remove with the specific value you compared against which meant for this exact purpose and will also be faster." ]
+                            , details = [ "You can replace this call by Set.remove with the specific value you compared against which is meant for this exact purpose and will also be faster." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -605,7 +605,7 @@ a = Set.filter (\\k -> k /= (f <| x)) set
                     |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "Set.filter checking for inequality with a specific value is the same as Set.remove"
-                            , details = [ "You can replace this call by Set.remove with the specific value you compared against which meant for this exact purpose and will also be faster." ]
+                            , details = [ "You can replace this call by Set.remove with the specific value you compared against which is meant for this exact purpose and will also be faster." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -622,7 +622,7 @@ a = Set.filter (\\k -> (f <| x) /= k)
                     |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "Set.filter checking for inequality with a specific value is the same as Set.remove"
-                            , details = [ "You can replace this call by Set.remove with the specific value you compared against which meant for this exact purpose and will also be faster." ]
+                            , details = [ "You can replace this call by Set.remove with the specific value you compared against which is meant for this exact purpose and will also be faster." ]
                             , under = "Set.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
