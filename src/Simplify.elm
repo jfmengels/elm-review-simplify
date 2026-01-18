@@ -6166,33 +6166,43 @@ basicsIdentityChecks =
         )
 
 
-basicsIdentityCompositionErrorMessage : { message : String, details : List String }
-basicsIdentityCompositionErrorMessage =
-    { message = "`identity` should be removed"
-    , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
-    }
+basicsIdentityCompositionErrorMessage : AstHelpers.IdentityKind -> { message : String, details : List String }
+basicsIdentityCompositionErrorMessage identityKind =
+    case identityKind of
+        AstHelpers.IdentityFunction ->
+            { message = "`identity` should be removed"
+            , details = [ "Composing a function with `identity` is the same as simplify referencing the function." ]
+            }
+
+        AstHelpers.IdentityLambda ->
+            { message = "The identity function should be removed"
+            , details = [ "Composing a function with the identity function is the same as simplify referencing the function." ]
+            }
 
 
 basicsIdentityCompositionChecks : CompositionCheckInfo -> Maybe (Error {})
 basicsIdentityCompositionChecks checkInfo =
-    if AstHelpers.isIdentity checkInfo checkInfo.later.node then
-        Just
-            (Rule.errorWithFix
-                basicsIdentityCompositionErrorMessage
-                (Node.range checkInfo.later.node)
-                [ Fix.removeRange checkInfo.later.removeRange ]
-            )
+    case AstHelpers.isIdentityWithKind checkInfo checkInfo.later.node of
+        Just identityKind ->
+            Just
+                (Rule.errorWithFix
+                    (basicsIdentityCompositionErrorMessage identityKind)
+                    (Node.range checkInfo.later.node)
+                    [ Fix.removeRange checkInfo.later.removeRange ]
+                )
 
-    else if AstHelpers.isIdentity checkInfo checkInfo.earlier.node then
-        Just
-            (Rule.errorWithFix
-                basicsIdentityCompositionErrorMessage
-                (Node.range checkInfo.earlier.node)
-                [ Fix.removeRange checkInfo.earlier.removeRange ]
-            )
+        Nothing ->
+            case AstHelpers.isIdentityWithKind checkInfo checkInfo.earlier.node of
+                Just identityKind ->
+                    Just
+                        (Rule.errorWithFix
+                            (basicsIdentityCompositionErrorMessage identityKind)
+                            (Node.range checkInfo.earlier.node)
+                            [ Fix.removeRange checkInfo.earlier.removeRange ]
+                        )
 
-    else
-        Nothing
+                Nothing ->
+                    Nothing
 
 
 basicsAlwaysChecks : IntoFnCheck
@@ -21518,22 +21528,35 @@ appliedLambdaError checkInfo =
                 )
 
         _ ->
-            if AstHelpers.isIdentity checkInfo checkInfo.lambdaNode then
-                Just
-                    (Rule.errorWithFix
-                        { message = "`identity` should be removed"
-                        , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
-                        }
-                        (Node.range checkInfo.lambdaNode)
-                        (replaceCallBySubExpressionFix
-                            (Range.combine [ checkInfo.lambdaWithParens, Node.range checkInfo.firstArgument ])
-                            CallStyle.Application
-                            checkInfo.firstArgument
-                        )
-                    )
+            case AstHelpers.isIdentityWithKind checkInfo checkInfo.lambdaNode of
+                Just identityKind ->
+                    let
+                        errorInfo : { message : String, details : List String }
+                        errorInfo =
+                            case identityKind of
+                                AstHelpers.IdentityFunction ->
+                                    { message = "`identity` should be removed"
+                                    , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
+                                    }
 
-            else
-                Nothing
+                                AstHelpers.IdentityLambda ->
+                                    { message = "Unnecessary identity function"
+                                    , details = [ "This function returns the argument it is given without any changes. Calling it with an argument is the same thing as writing the argument on its own." ]
+                                    }
+                    in
+                    Just
+                        (Rule.errorWithFix
+                            errorInfo
+                            (Node.range checkInfo.lambdaNode)
+                            (replaceCallBySubExpressionFix
+                                (Range.combine [ checkInfo.lambdaWithParens, Node.range checkInfo.firstArgument ])
+                                CallStyle.Application
+                                checkInfo.firstArgument
+                            )
+                        )
+
+                Nothing ->
+                    Nothing
 
 
 appliedLambdaErrorFix :
