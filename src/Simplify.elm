@@ -5107,7 +5107,7 @@ appendEmptyStringCheck checkInfo leftContents =
             if String.isEmpty leftContents then
                 Just
                     (Rule.errorWithFix
-                        (appendEmptyErrorDetails "right" stringCollection)
+                        (appendEmptyErrorInfo "right" stringCollection)
                         checkInfo.operatorRange
                         [ Fix.removeRange
                             { start = (Node.range checkInfo.left).start
@@ -5119,7 +5119,7 @@ appendEmptyStringCheck checkInfo leftContents =
             else if String.isEmpty (Node.value right) then
                 Just
                     (Rule.errorWithFix
-                        (appendEmptyErrorDetails "left" stringCollection)
+                        (appendEmptyErrorInfo "left" stringCollection)
                         checkInfo.operatorRange
                         [ Fix.removeRange
                             { start = left.end
@@ -5144,7 +5144,7 @@ appendEmptyCheck side collection checkInfo =
     if isInTypeSubset collection.empty checkInfo side.node then
         Just
             (Rule.errorWithFix
-                (appendEmptyErrorDetails side.otherDescription
+                (appendEmptyErrorInfo side.otherDescription
                     collection
                 )
                 checkInfo.operatorRange
@@ -5159,11 +5159,11 @@ appendEmptyCheck side collection checkInfo =
         Nothing
 
 
-appendEmptyErrorDetails :
+appendEmptyErrorInfo :
     String
     -> TypeProperties (EmptiableProperties empty otherProperties)
     -> { message : String, details : List String }
-appendEmptyErrorDetails description collection =
+appendEmptyErrorInfo description collection =
     { message = "Unnecessary appending " ++ typeSubsetDescriptionIndefinite collection.empty
     , details = [ "You can replace this operation by the " ++ description ++ " " ++ collection.represents ++ "." ]
     }
@@ -6158,8 +6158,8 @@ basicsIdentityChecks =
         )
 
 
-basicsIdentityCompositionErrorMessage : AstHelpers.IdentityKind -> { message : String, details : List String }
-basicsIdentityCompositionErrorMessage identityKind =
+basicsIdentityCompositionErrorInfo : AstHelpers.IdentityKind -> { message : String, details : List String }
+basicsIdentityCompositionErrorInfo identityKind =
     case identityKind of
         AstHelpers.IdentityFunction ->
             { message = "`identity` should be removed"
@@ -6178,7 +6178,7 @@ basicsIdentityCompositionChecks checkInfo =
         Just identityKind ->
             Just
                 (Rule.errorWithFix
-                    (basicsIdentityCompositionErrorMessage identityKind)
+                    (basicsIdentityCompositionErrorInfo identityKind)
                     (Node.range checkInfo.later.node)
                     [ Fix.removeRange checkInfo.later.removeRange ]
                 )
@@ -6188,7 +6188,7 @@ basicsIdentityCompositionChecks checkInfo =
                 Just identityKind ->
                     Just
                         (Rule.errorWithFix
-                            (basicsIdentityCompositionErrorMessage identityKind)
+                            (basicsIdentityCompositionErrorInfo identityKind)
                             (Node.range checkInfo.earlier.node)
                             [ Fix.removeRange checkInfo.earlier.removeRange ]
                         )
@@ -10857,7 +10857,7 @@ setFromListChecks =
 
 
 allValuesDifferent : Bool -> { message : String, details : List String } -> Node Expression -> List (Node Expression) -> Maybe (Error {})
-allValuesDifferent expectingNaN errorDetails firstKeyToCheck otherKeysToCheck =
+allValuesDifferent expectingNaN errorInfo firstKeyToCheck otherKeysToCheck =
     findWithAccAndLookahead
         (\((Node keyRange _) as current) next dict ->
             if expectingNaN && AstHelpers.couldBeValueContainingNaN current then
@@ -10873,7 +10873,7 @@ allValuesDifferent expectingNaN errorDetails firstKeyToCheck otherKeysToCheck =
                     Just ( found, extended ) ->
                         Found
                             (Rule.errorWithFix
-                                errorDetails
+                                errorInfo
                                 found
                                 [ Fix.removeRange extended ]
                             )
@@ -12156,8 +12156,8 @@ getTupleWithSpecificSecondBoolExpressionNode specificBool lookupTable expression
             )
 
 
-htmlAttributesClassListFalseElementError : CallCheckInfo -> { message : String, details : List String }
-htmlAttributesClassListFalseElementError checkInfo =
+htmlAttributesClassListFalseElementErrorInfo : CallCheckInfo -> { message : String, details : List String }
+htmlAttributesClassListFalseElementErrorInfo checkInfo =
     { message = "In a " ++ qualifiedToString checkInfo.fn ++ ", a tuple paired with False can be removed"
     , details = [ "You can remove the tuple list element where the second part is False." ]
     }
@@ -12193,7 +12193,7 @@ htmlAttributesClassListChecks =
 
                                     else
                                         Just
-                                            (Rule.errorWithFix (htmlAttributesClassListFalseElementError checkInfo)
+                                            (Rule.errorWithFix (htmlAttributesClassListFalseElementErrorInfo checkInfo)
                                                 checkInfo.fnRange
                                                 [ Fix.replaceRangeBy (Node.range checkInfo.firstArg) "[]" ]
                                             )
@@ -12214,7 +12214,7 @@ htmlAttributesClassListChecks =
                                 case findMapNeighboring (\el -> getTupleWithSpecificSecondBoolExpressionNode False checkInfo.lookupTable el) (tuple0 :: tuple1 :: tuple2Up) of
                                     Just classPart ->
                                         Just
-                                            (Rule.errorWithFix (htmlAttributesClassListFalseElementError checkInfo)
+                                            (Rule.errorWithFix (htmlAttributesClassListFalseElementErrorInfo checkInfo)
                                                 checkInfo.fnRange
                                                 (listLiteralRemoveElementFix classPart)
                                             )
@@ -12232,7 +12232,7 @@ htmlAttributesClassListChecks =
                                 case findMapNeighboring (\el -> getTupleWithSpecificSecondBoolExpressionNode False checkInfo.lookupTable el) classParts.consed of
                                     Just classPart ->
                                         Just
-                                            (Rule.errorWithFix (htmlAttributesClassListFalseElementError checkInfo)
+                                            (Rule.errorWithFix (htmlAttributesClassListFalseElementErrorInfo checkInfo)
                                                 checkInfo.fnRange
                                                 (collapsedConsRemoveElementFix
                                                     { toRemove = classPart
