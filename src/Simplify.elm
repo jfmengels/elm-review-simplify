@@ -1261,6 +1261,9 @@ Destructuring using case expressions
     Array.map f (Array.repeat n a)
     --> Array.repeat n (f a)
 
+    Array.map f (Array.initialize n identity)
+    --> Array.initialize n f
+
     Array.indexedMap (\_ value -> f value) array
     --> Array.map (\value -> f value) array
 
@@ -10714,6 +10717,57 @@ arrayMapChecks =
     intoFnChecksFirstThatConstructsError
         [ emptiableMapChecks arrayCollection
         , mapOnRepeatAppliesTheFunctionToTheRepeatedElementCheck Fn.Array.repeat
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                case fullyAppliedLastArg checkInfo of
+                    Nothing ->
+                        Nothing
+
+                    Just arrayArg ->
+                        case AstHelpers.getSpecificUnreducedFnCall Fn.Array.initialize checkInfo.lookupTable arrayArg of
+                            Nothing ->
+                                Nothing
+
+                            Just specificFnCall ->
+                                case specificFnCall.argsAfterFirst of
+                                    [ indexToElementArg ] ->
+                                        if AstHelpers.isIdentity checkInfo indexToElementArg then
+                                            Just
+                                                (Rule.errorWithFix
+                                                    { message =
+                                                        qualifiedToString checkInfo.fn
+                                                            ++ " on "
+                                                            ++ qualifiedToString Fn.Array.initialize
+                                                            ++ " with an identity function can be combined"
+                                                    , details =
+                                                        [ "You can replace this call by "
+                                                            ++ qualifiedToString Fn.Array.initialize
+                                                            ++ " with the length given to the original "
+                                                            ++ qualifiedToString Fn.Array.initialize
+                                                            ++ " and the function given to "
+                                                            ++ qualifiedToString (qualify checkInfo.fn checkInfo)
+                                                            ++ "."
+                                                        ]
+                                                    }
+                                                    checkInfo.fnRange
+                                                    (Fix.replaceRangeBy (Node.range indexToElementArg)
+                                                        (parenthesizeIf (needsParens (Node.value checkInfo.firstArg))
+                                                            (checkInfo.extractSourceCode
+                                                                (Node.range checkInfo.firstArg)
+                                                            )
+                                                        )
+                                                        :: replaceCallBySubExpressionFix checkInfo.parentRange
+                                                            checkInfo.callStyle
+                                                            arrayArg
+                                                    )
+                                                )
+
+                                        else
+                                            Nothing
+
+                                    _ ->
+                                        Nothing
+            )
         ]
 
 

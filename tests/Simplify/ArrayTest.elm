@@ -741,6 +741,42 @@ import Array
 a = (Array.repeat n << f)
 """
                         ]
+        , test "should replace Array.map f (Array.initialize n identity) by Array.initialize n f" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.map f (Array.initialize n identity)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.map on Array.initialize with an identity function can be combined"
+                            , details = [ "You can replace this call by Array.initialize with the length given to the original Array.initialize and the function given to Array.map." ]
+                            , under = "Array.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.initialize n f
+"""
+                        ]
+        , test "should replace identity |> Array.initialize n |> Array.map (f <| x) by (f <| x) |> Array.initialize n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = identity |> Array.initialize n |> Array.map (f <| x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.map on Array.initialize with an identity function can be combined"
+                            , details = [ "You can replace this call by Array.initialize with the length given to the original Array.initialize and the function given to Array.map." ]
+                            , under = "Array.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = (f <| x) |> Array.initialize n
+"""
+                        ]
         ]
 
 
