@@ -17306,23 +17306,15 @@ fullyAppliedLambdaInPipelineChecks : AstHelpers.ReduceLambdaResources { nodeRang
 fullyAppliedLambdaInPipelineChecks checkInfo =
     case Node.value checkInfo.function of
         Expression.ParenthesizedExpression ((Node _ (Expression.LambdaExpression lambda)) as lambdaNode) ->
-            case Node.value (AstHelpers.removeParens checkInfo.firstArgument) of
-                Expression.OperatorApplication "|>" _ _ _ ->
-                    Nothing
-
-                Expression.OperatorApplication "<|" _ _ _ ->
-                    Nothing
-
-                _ ->
-                    appliedLambdaError
-                        { lambda = lambda
-                        , lambdaNode = lambdaNode
-                        , lambdaWithParens = Node.range checkInfo.function
-                        , firstArgument = checkInfo.firstArgument
-                        , lookupTable = checkInfo.lookupTable
-                        , importCustomTypes = checkInfo.importCustomTypes
-                        , moduleCustomTypes = checkInfo.moduleCustomTypes
-                        }
+            appliedLambdaError
+                { lambda = lambda
+                , lambdaNode = lambdaNode
+                , lambdaWithParens = Node.range checkInfo.function
+                , firstArgument = checkInfo.firstArgument
+                , lookupTable = checkInfo.lookupTable
+                , importCustomTypes = checkInfo.importCustomTypes
+                , moduleCustomTypes = checkInfo.moduleCustomTypes
+                }
 
         _ ->
             Nothing
@@ -21462,11 +21454,13 @@ appliedLambdaError checkInfo =
                         (Rule.errorWithFix
                             errorInfo
                             (Node.range checkInfo.lambdaNode)
-                            (replaceCallBySubExpressionFix
-                                (Range.combine [ checkInfo.lambdaWithParens, Node.range checkInfo.firstArgument ])
-                                CallStyle.Application
-                                checkInfo.firstArgument
-                            )
+                            [ Fix.removeRange
+                                (rangeFromInclusiveToExclusive
+                                    { fromInclusive = checkInfo.lambdaWithParens
+                                    , toExclusive = Node.range checkInfo.firstArgument
+                                    }
+                                )
+                            ]
                         )
 
                 Nothing ->
