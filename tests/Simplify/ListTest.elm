@@ -8502,7 +8502,7 @@ a = List.any ((==) x)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.any with a check for equality with a specific value can be replaced by List.member with that value"
-                            , details = [ "You can replace this call by List.member with the specific value to find which meant for this exact purpose." ]
+                            , details = [ "You can replace this call by List.member with the specific value to find which is meant for this exact purpose." ]
                             , under = "List.any"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8518,7 +8518,7 @@ a = List.any (\\y -> y == x)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.any with a check for equality with a specific value can be replaced by List.member with that value"
-                            , details = [ "You can replace this call by List.member with the specific value to find which meant for this exact purpose." ]
+                            , details = [ "You can replace this call by List.member with the specific value to find which is meant for this exact purpose." ]
                             , under = "List.any"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -8534,7 +8534,7 @@ a = List.any (\\y -> x == y)
                     |> Review.Test.expectErrors
                         [ Review.Test.error
                             { message = "List.any with a check for equality with a specific value can be replaced by List.member with that value"
-                            , details = [ "You can replace this call by List.member with the specific value to find which meant for this exact purpose." ]
+                            , details = [ "You can replace this call by List.member with the specific value to find which is meant for this exact purpose." ]
                             , under = "List.any"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

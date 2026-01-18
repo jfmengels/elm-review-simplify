@@ -1761,7 +1761,7 @@ a = Dict.filter (\\k _ -> k /= (f <| x)) dict
                     |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "Dict.filter checking each key for inequality with a specific value is the same as Dict.remove"
-                            , details = [ "You can replace this call by Dict.remove with the specific value you compared against which meant for this exact purpose and will also be faster." ]
+                            , details = [ "You can replace this call by Dict.remove with the specific value you compared against which is meant for this exact purpose and will also be faster." ]
                             , under = "Dict.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
@@ -1778,7 +1778,7 @@ a = Dict.filter (\\k -> always (k /= (f <| x)))
                     |> whenNotExpectingNaN Review.Test.run
                         [ Review.Test.error
                             { message = "Dict.filter checking each key for inequality with a specific value is the same as Dict.remove"
-                            , details = [ "You can replace this call by Dict.remove with the specific value you compared against which meant for this exact purpose and will also be faster." ]
+                            , details = [ "You can replace this call by Dict.remove with the specific value you compared against which is meant for this exact purpose and will also be faster." ]
                             , under = "Dict.filter"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

@@ -10983,7 +10983,7 @@ setFilterChecks =
                                     , details =
                                         [ "You can replace this call by "
                                             ++ qualifiedToString Fn.Set.remove
-                                            ++ " with the specific value you compared against which meant for this exact purpose and will also be faster."
+                                            ++ " with the specific value you compared against which is meant for this exact purpose and will also be faster."
                                         ]
                                     }
                                     checkInfo.fnRange
@@ -11664,7 +11664,7 @@ dictFilterChecks =
                                             , details =
                                                 [ "You can replace this call by "
                                                     ++ qualifiedToString Fn.Dict.remove
-                                                    ++ " with the specific value you compared against which meant for this exact purpose and will also be faster."
+                                                    ++ " with the specific value you compared against which is meant for this exact purpose and will also be faster."
                                                 ]
                                             }
                                             checkInfo.fnRange
@@ -15587,7 +15587,7 @@ operationWithEqualsConstantIsEquivalentToFnWithThatConstantCheck replacementFn c
             Just
                 (Rule.errorWithFix
                     { message = qualifiedToString checkInfo.fn ++ " with a check for equality with a specific value can be replaced by " ++ qualifiedToString replacementFn ++ " with that value"
-                    , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ " with the specific value to find which meant for this exact purpose." ]
+                    , details = [ "You can replace this call by " ++ qualifiedToString replacementFn ++ " with the specific value to find which is meant for this exact purpose." ]
                     }
                     checkInfo.fnRange
                     (Fix.replaceRangeBy checkInfo.fnRange (qualifiedToString (qualify replacementFn checkInfo))
