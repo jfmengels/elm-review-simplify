@@ -221,14 +221,14 @@ a = (\\_ y -> x) a b
 a = (\\y -> x) b
 """
                         ]
-        , test "should report but not fix non-simplifiable lambdas that are directly called with an argument" <|
+        , test "should not report non-simplifiable lambdas that are directly called with an argument" <|
             \() ->
                 """module A exposing (..)
 a = (\\x y -> x + y) n
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should report but not fix non-simplifiable lambdas that are directly called in a |> pipeline" <|
+        , test "should not report non-simplifiable lambdas that are directly called in a |> pipeline" <|
             \() ->
                 """module A exposing (..)
 a = n |> (\\x y -> x + y)
@@ -242,14 +242,14 @@ a = n |> f |> (\\x y -> x + y)
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should report but not fix non-simplifiable lambdas that are directly called in a <| pipeline" <|
+        , test "should not report non-simplifiable lambdas that are directly called in a  <| pipeline" <|
             \() ->
                 """module A exposing (..)
 a = (\\x y -> x + y) <| n
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
-        , test "should not report lambdas that are directly called in a <| pipeline if the argument is a pipeline itself" <|
+        , test "should not report lambdas non-simplifiable lambdas that are directly called in a <| pipeline if the argument is a pipeline itself" <|
             \() ->
                 """module A exposing (..)
 a = (\\x y -> x + y) <| f <| n
