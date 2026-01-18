@@ -1277,6 +1277,9 @@ Destructuring using case expressions
     Array.initialize 0 f
     --> Array.empty
 
+    Array.initialize n (always a)
+    --> Array.repeat n a
+
     Array.length Array.empty
     --> 0
 
@@ -10635,7 +10638,75 @@ arrayRepeatChecks =
 
 arrayInitializeChecks : IntoFnCheck
 arrayInitializeChecks =
-    intoFnCheckOnlyCall (emptiableRepeatChecks arrayCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall
+            (\checkInfo -> emptiableRepeatChecks arrayCollection checkInfo)
+        , arrayInitializeIsTheSameAsRepeatCheck
+        ]
+
+
+arrayInitializeIsTheSameAsRepeatCheck : IntoFnCheck
+arrayInitializeIsTheSameAsRepeatCheck =
+    { call =
+        \checkInfo ->
+            case checkInfo.argsAfterFirst of
+                [ indexToElementArg ] ->
+                    case AstHelpers.getAlwaysResult checkInfo indexToElementArg of
+                        Nothing ->
+                            Nothing
+
+                        Just repeatedElement ->
+                            Just
+                                (Rule.errorWithFix
+                                    { message =
+                                        qualifiedToString checkInfo.fn
+                                            ++ " with a function that always results in the same element is the same as "
+                                            ++ qualifiedToString Fn.Array.repeat
+                                    , details =
+                                        [ "You can replace this call by "
+                                            ++ qualifiedToString Fn.Array.repeat
+                                            ++ " with the length and index to element function result given to the original "
+                                            ++ qualifiedToString checkInfo.fn
+                                            ++ " call."
+                                        ]
+                                    }
+                                    checkInfo.fnRange
+                                    (Fix.replaceRangeBy checkInfo.fnRange
+                                        (qualifiedToString (qualify Fn.Array.repeat checkInfo))
+                                        :: replaceBySubExpressionFix (Node.range indexToElementArg)
+                                            repeatedElement
+                                    )
+                                )
+
+                _ ->
+                    Nothing
+    , composition =
+        \checkInfo ->
+            if checkInfo.earlier.fn == Fn.Basics.always then
+                Just
+                    { info =
+                        { message =
+                            qualifiedToString checkInfo.later.fn
+                                ++ " with a function that always results in the same element is the same as "
+                                ++ qualifiedToString Fn.Array.repeat
+                        , details =
+                            [ "You can replace this composition by "
+                                ++ qualifiedToString Fn.Array.repeat
+                                ++ " with the length given to the original "
+                                ++ qualifiedToString checkInfo.later.fn
+                                ++ " operation."
+                            ]
+                        }
+                    , fix =
+                        [ Fix.replaceRangeBy checkInfo.later.fnRange
+                            (qualifiedToString (qualify Fn.Array.repeat checkInfo))
+                        , Fix.removeRange checkInfo.earlier.removeRange
+                        ]
+                    }
+
+            else
+                Nothing
+    }
 
 
 arrayMapChecks : IntoFnCheck

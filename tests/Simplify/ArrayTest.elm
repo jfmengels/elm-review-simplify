@@ -1742,6 +1742,60 @@ import Array
 a = Array.empty
 """
                         ]
+        , test "should replace Array.initialize n (always <| f <| x) by Array.initialize n (f <| a)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.initialize n (always <| f <| x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.initialize with a function that always results in the same element is the same as Array.repeat"
+                            , details = [ "You can replace this call by Array.repeat with the length and index to element function result given to the original Array.initialize call." ]
+                            , under = "Array.initialize"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.repeat n (f <| x)
+"""
+                        ]
+        , test "should replace Array.initialize n (\\_ -> f x) by Array.initialize n (f a)" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.initialize n (\\_ -> f x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.initialize with a function that always results in the same element is the same as Array.repeat"
+                            , details = [ "You can replace this call by Array.repeat with the length and index to element function result given to the original Array.initialize call." ]
+                            , under = "Array.initialize"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.repeat n (f x)
+"""
+                        ]
+        , test "should replace Array.initialize n << always by Array.initialize n" <|
+            \() ->
+                """module A exposing (..)
+import Array
+a = Array.initialize n << always
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Array.initialize with a function that always results in the same element is the same as Array.repeat"
+                            , details = [ "You can replace this composition by Array.repeat with the length given to the original Array.initialize operation." ]
+                            , under = "Array.initialize"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Array
+a = Array.repeat n
+"""
+                        ]
         ]
 
 

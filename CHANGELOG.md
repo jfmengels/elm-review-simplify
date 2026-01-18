@@ -82,6 +82,7 @@ The rule now simplifies:
 - `String.filter f (String.reverse str)` to `String.reverse (String.filter f str)`
 - `Set.filter (\k -> k /= specificKey) set` to `Set.remove specificKey set` when [`expectNaN`] is not enabled
 - `Dict.filter (\k _ -> k /= specificKey) dict` to `Dict.remove specificKey dict` when [`expectNaN`] is not enabled
+- `Array.initialize n (always a)` to `Array.repeat n a`
 - more string sizes can be determined, to simplify for example `String.isEmpty (String.fromInt str)` to `False`
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 

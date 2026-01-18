@@ -1,5 +1,6 @@
 module Simplify.SimplificationCorrectnessTest exposing (all)
 
+import Array
 import Dict
 import Expect
 import Fuzz
@@ -542,6 +543,14 @@ all =
                 String.filter charCodeIsEven (String.reverse string)
                     |> Expect.equal
                         (String.reverse (String.filter charCodeIsEven string))
+            )
+        , Test.fuzz (Fuzz.pair (Fuzz.intRange -50 50) Fuzz.string)
+            "Array.initialize n << Basics.always is the same as Array.repeat n"
+            (\( n, toRepeat ) ->
+                (Array.initialize n << Basics.always) toRepeat
+                    |> Array.toList
+                    |> Expect.equalLists
+                        (Array.repeat n toRepeat |> Array.toList)
             )
         ]
 
