@@ -838,6 +838,9 @@ Destructuring using case expressions
     List.map f (List.repeat n a)
     --> List.repeat n (f a)
 
+    List.map Tuple.first (Array.toIndexedList array)
+    --> List.range 0 (Array.length array - 1)
+
     List.filter f (List.filter f list)
     --> List.filter f list
 
@@ -8765,6 +8768,74 @@ listMapChecks =
             , combinedFn = Fn.Dict.values
             }
         , mapOnRepeatAppliesTheFunctionToTheRepeatedElementCheck Fn.List.repeat
+        , intoFnCheckOnlyCall
+            (\checkInfo ->
+                if AstHelpers.isTupleFirstAccess checkInfo checkInfo.firstArg then
+                    case checkInfo.argsAfterFirst of
+                        [ unmappedListArg ] ->
+                            case AstHelpers.getSpecificUnreducedFnCall Fn.Array.toIndexedList checkInfo.lookupTable unmappedListArg of
+                                Nothing ->
+                                    Nothing
+
+                                Just arrayToIndexedListCall ->
+                                    let
+                                        unmappedListArgNeedsParens : Bool
+                                        unmappedListArgNeedsParens =
+                                            needsParens (Node.value unmappedListArg)
+                                    in
+                                    Just
+                                        (Rule.errorWithFix
+                                            { message =
+                                                qualifiedToString Fn.List.map
+                                                    ++ " with a function accessing the first tuple part on "
+                                                    ++ qualifiedToString Fn.Array.toIndexedList
+                                                    ++ " is the same as "
+                                                    ++ qualifiedToString Fn.List.range
+                                                    ++ " from 0 to its length - 1"
+                                            , details =
+                                                [ "You can replace this call by "
+                                                    ++ qualifiedToString Fn.List.range
+                                                    ++ " starting with 0 and ending with "
+                                                    ++ qualifiedToString Fn.Array.length
+                                                    ++ " of the array given to the "
+                                                    ++ qualifiedToString Fn.Array.toIndexedList
+                                                    ++ " call - 1."
+                                                ]
+                                            }
+                                            checkInfo.fnRange
+                                            [ Fix.replaceRangeBy checkInfo.fnRange
+                                                (qualifiedToString (qualify Fn.List.range checkInfo))
+                                            , Fix.replaceRangeBy (Node.range checkInfo.firstArg)
+                                                "0"
+                                            , Fix.insertAt (Node.range unmappedListArg).start
+                                                ("("
+                                                    ++ (if unmappedListArgNeedsParens then
+                                                            "("
+
+                                                        else
+                                                            ""
+                                                       )
+                                                )
+                                            , Fix.insertAt (Node.range unmappedListArg).end
+                                                ((if unmappedListArgNeedsParens then
+                                                    ")"
+
+                                                  else
+                                                    ""
+                                                 )
+                                                    ++ " - 1)"
+                                                )
+                                            , Fix.replaceRangeBy arrayToIndexedListCall.fnRange
+                                                (qualifiedToString (qualify Fn.Array.length checkInfo))
+                                            ]
+                                        )
+
+                        _ ->
+                            Nothing
+
+                else
+                    Nothing
+            )
         ]
 
 

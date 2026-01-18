@@ -281,7 +281,7 @@ a = List.repeat n
 
 arrayToIndexedListTests : Test
 arrayToIndexedListTests =
-    describe "Array.toIndexedMap"
+    describe "Array.toIndexedList"
         [ test "should not report Array.toList that contains a variable" <|
             \() ->
                 """module A exposing (..)

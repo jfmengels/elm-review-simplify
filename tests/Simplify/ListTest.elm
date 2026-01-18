@@ -2181,12 +2181,12 @@ a6 = List.map f << Dict.fromList
 a7 = List.map (\\( a, b ) -> a + b) << Dict.fromList
 a8 = List.map (f >> Tuple.first) << Dict.fromList
 a9 = List.map f (Array.toIndexedList array)
-a10 = List.map (\\( a, b ) -> a) (Array.toIndexedList array)
-a11 = List.map Tuple.first (Array.toIndexedList array)
-a12 = List.map (f >> Tuple.second) (Array.toIndexedList array)
-a13 = List.map Tuple.first << Array.toIndexedList
-a14 = List.repeat n (List.map f)
-a15 = List.repeat n << List.map f
+a10 = List.map (f >> Tuple.second) (Array.toIndexedList array)
+a11 = List.repeat n (List.map f)
+a12 = List.repeat n << List.map f
+a13 = List.map Tuple.first list
+a14 = List.map Tuple.first << Array.toList
+a15 = List.map f << Array.toIndexedList
 """
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectNoErrors
@@ -2937,6 +2937,54 @@ a = List.repeat n >> List.map f
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (f >> List.repeat n)
+"""
+                        ]
+        , test "should replace List.map Tuple.first (Array.toIndexedList array) by List.range 0 (Array.length array - 1)" <|
+            \() ->
+                """module A exposing (..)
+a = List.map Tuple.first (Array.toIndexedList array)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map with a function accessing the first tuple part on Array.toIndexedList is the same as List.range from 0 to its length - 1"
+                            , details = [ "You can replace this call by List.range starting with 0 and ending with Array.length of the array given to the Array.toIndexedList call - 1." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.range 0 ((Array.length array) - 1)
+"""
+                        ]
+        , test "should replace List.map (\\( f, _ ) -> f) (Array.toIndexedList array) by List.range 0 (Array.length array - 1)" <|
+            \() ->
+                """module A exposing (..)
+a = List.map (\\( f, _ ) -> f) (Array.toIndexedList array)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map with a function accessing the first tuple part on Array.toIndexedList is the same as List.range from 0 to its length - 1"
+                            , details = [ "You can replace this call by List.range starting with 0 and ending with Array.length of the array given to the Array.toIndexedList call - 1." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.range 0 ((Array.length array) - 1)
+"""
+                        ]
+        , test "should replace (Array.toIndexedList <| f <| x) |> List.map Tuple.first by ((Array.length <| f <| x) - 1) |> List.range 0" <|
+            \() ->
+                """module A exposing (..)
+a = (Array.toIndexedList <| f <| x) |> List.map Tuple.first
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map with a function accessing the first tuple part on Array.toIndexedList is the same as List.range from 0 to its length - 1"
+                            , details = [ "You can replace this call by List.range starting with 0 and ending with Array.length of the array given to the Array.toIndexedList call - 1." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = ((Array.length <| f <| x) - 1) |> List.range 0
 """
                         ]
         ]

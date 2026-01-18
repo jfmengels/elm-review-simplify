@@ -87,6 +87,7 @@ The rule now simplifies:
 - `Array.map f (Array.initialize n identity)` to `Array.initialize n f`
 - `Array.fromList (List.range 0 n)` to `Array.initialize (n + 1) identity`
 - `Array.fromList (List.map f (List.range 0 n))` to `Array.initialize (n + 1) f`
+- `List.map Tuple.first (Array.toIndexedList array)` to `List.range 0 (Array.length array - 1)`
 - comparison operations like `List.length l >= min -1 n` to `True` where intervals can be determined to always pass or fail the comparison
 
 Bug fixes:
