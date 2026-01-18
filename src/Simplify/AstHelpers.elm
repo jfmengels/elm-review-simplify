@@ -6,7 +6,7 @@ module Simplify.AstHelpers exposing
     , getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
     , patternGetInt
     , getCollapsedLambda
-    , isIdentity, getAlwaysResult
+    , isIdentity, IdentityKind(..), isIdentityWithKind, getAlwaysResult
     , isTupleFirstAccess, isTupleSecondAccess
     , getAccessingRecord, getRecordAccessFunction
     , getOrder, getBool, getBoolPattern, getUncomputedInt, getUncomputedNumberValue
@@ -43,7 +43,7 @@ module Simplify.AstHelpers exposing
 
 @docs patternGetInt
 @docs getCollapsedLambda
-@docs isIdentity, getAlwaysResult
+@docs isIdentity, IdentityKind, isIdentityWithKind, getAlwaysResult
 @docs isTupleFirstAccess, isTupleSecondAccess
 @docs getAccessingRecord, getRecordAccessFunction
 @docs getOrder, getBool, getBoolPattern, getUncomputedInt, getUncomputedNumberValue
@@ -664,6 +664,37 @@ isIdentity context baseExpressionNode =
                 _ ->
                     False
            )
+
+
+type IdentityKind
+    = IdentityFunction
+    | IdentityLambda
+
+
+{-| Whether it's a function that returns any given input unchanged.
+Either a function reducible to `Basics.identity` or `\a -> a` (or any other lambda that reconstructs the just-destructured value).
+-}
+isIdentityWithKind : ReduceLambdaResources context -> Node Expression -> Maybe IdentityKind
+isIdentityWithKind context baseExpressionNode =
+    if isSpecificValueOrFn Fn.Basics.identity context baseExpressionNode then
+        Just IdentityFunction
+
+    else
+        case removeParens baseExpressionNode of
+            Node _ (Expression.LambdaExpression lambda) ->
+                case lambda.args of
+                    arg :: [] ->
+                        if expressionReconstructsDestructuringPattern context lambda.expression arg then
+                            Just IdentityLambda
+
+                        else
+                            Nothing
+
+                    _ ->
+                        Nothing
+
+            _ ->
+                Nothing
 
 
 {-| Parse a function that returns the same for any given input and return the result expression node.
