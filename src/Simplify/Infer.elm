@@ -67,7 +67,7 @@ When comparing that to `a` is True OR `b` is True, we can infer that `b` is True
 
 Every new fact that we uncover from this comparison will also repeat the process of going through the previous list of facts.
 
-Another thing that we do whenever we encounter a new fact os to try and "deduce" a value from it, which we add to a list
+Another thing that we do whenever we encounter a new fact is to try and "deduce" a value from it, which we add to a list
 of "deduced" values. A few examples:
 
   - `a` -> `a` is True
