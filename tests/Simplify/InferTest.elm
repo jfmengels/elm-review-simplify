@@ -5,7 +5,7 @@ import Elm.Syntax.Expression exposing (Expression(..))
 import Elm.Syntax.Infix as Infix exposing (InfixDirection(..))
 import Elm.Syntax.Node as Node exposing (Node)
 import Expect exposing (Expectation)
-import Simplify.Infer exposing (DeducedValue(..), Fact(..), Inferred(..), deduceNewFacts, empty, falseExpr, getAsExpression, infer, trueExpr)
+import Simplify.Infer exposing (DeducedValue(..), Fact(..), Inferred(..), deduceNewFacts, empty, falseExpr, getAsExpression, infer, inferredNormalize, inferredToDebugString, trueExpr)
 import Test exposing (Test, describe, test)
 
 
@@ -522,11 +522,28 @@ expectEqual :
     }
     -> Inferred
     -> Expectation
-expectEqual record (Inferred inferred) =
-    { facts = inferred.facts
-    , deduced = AssocList.toList inferred.deduced
-    }
-        |> Expect.equal record
+expectEqual record actual =
+    let
+        expectedNormal : Inferred
+        expectedNormal =
+            Inferred
+                { facts = record.facts
+                , deduced = record.deduced |> AssocList.fromList
+                }
+                |> inferredNormalize
+
+        actualNormal : Inferred
+        actualNormal =
+            inferredNormalize actual
+    in
+    actualNormal
+        |> Expect.equal expectedNormal
+        |> Expect.onFail
+            ("expected: "
+                ++ inferredToDebugString expectedNormal
+                ++ "\nactual: "
+                ++ inferredToDebugString actualNormal
+            )
 
 
 n : Expression -> Node Expression

@@ -10,6 +10,8 @@ module Simplify.Infer exposing
     , getAsExpression
     , infer
     , inferForIfCondition
+    , inferredNormalize
+    , inferredToDebugString
     , trueExpr
     )
 
@@ -104,6 +106,7 @@ import AssocList
 import Elm.Syntax.Expression as Expression exposing (Expression)
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Range exposing (Range)
+import Elm.Writer
 import Review.ModuleNameLookupTable exposing (ModuleNameLookupTable)
 
 
@@ -566,3 +569,96 @@ inferOnEquality (Node _ expr) (Node _ other) shouldBe dict =
 
         _ ->
             dict
+
+
+
+--
+
+
+{-| For use in tests and Debug.log only
+-}
+inferredNormalize : Inferred -> Inferred
+inferredNormalize (Inferred inferred) =
+    Inferred
+        { facts =
+            inferred.facts
+                |> List.sortBy factToDebugString
+        , deduced =
+            AssocList.toList inferred.deduced
+                |> List.sortBy
+                    (\( expression, _ ) -> expressionToDebugString expression)
+                |> AssocList.fromList
+        }
+
+
+{-| For use in tests and Debug.log only
+-}
+inferredToDebugString : Inferred -> String
+inferredToDebugString (Inferred inferred) =
+    "facts: "
+        ++ factsToDebugString inferred.facts
+        ++ "\ndeduced: "
+        ++ (List.map
+                (\( from, to ) ->
+                    expressionToDebugString from
+                        ++ " = "
+                        ++ (to |> deducedValueToDebugString)
+                )
+                (AssocList.toList inferred.deduced)
+                |> String.join ", "
+           )
+
+
+deducedValueToDebugString : DeducedValue -> String
+deducedValueToDebugString deducedValue =
+    case deducedValue of
+        DTrue ->
+            "✅"
+
+        DFalse ->
+            "❌"
+
+        DNumber number ->
+            String.fromFloat number
+
+        DString string ->
+            string
+
+
+expressionToDebugString : Expression -> String
+expressionToDebugString expression =
+    Elm.Writer.write (Elm.Writer.writeExpression (Node.empty expression))
+        |> String.replace "Basics.True" "✅"
+        |> String.replace "Basics.False" "❌"
+        |> String.replace "Basics." ""
+
+
+factsToDebugString : List Fact -> String
+factsToDebugString facts =
+    -- when debugging large fact lists,
+    -- you may want to insert a filter ignoring
+    -- NotEquals left right -> right == trueExpr || right == falseExpr
+    case facts of
+        [] ->
+            "_empty_"
+
+        [ single ] ->
+            factToDebugString single
+
+        (_ :: _ :: _) as filteredFacts ->
+            "("
+                ++ (filteredFacts |> List.map factToDebugString |> String.join " & ")
+                ++ ")"
+
+
+factToDebugString : Fact -> String
+factToDebugString fact =
+    case fact of
+        Equals l r ->
+            expressionToDebugString l ++ "=" ++ expressionToDebugString r
+
+        NotEquals l r ->
+            expressionToDebugString l ++ "≠" ++ expressionToDebugString r
+
+        Or l r ->
+            "(" ++ factsToDebugString l ++ " | " ++ factsToDebugString r ++ ")"
