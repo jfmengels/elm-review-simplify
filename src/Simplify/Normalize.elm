@@ -37,19 +37,19 @@ type alias Resources a =
 
 areTheSame : Resources a -> Node Expression -> Node Expression -> Bool
 areTheSame resources a b =
-    normalizeExpressionNode resources a == normalizeExpressionNode resources b
+    normalizeExpression resources a == normalizeExpression resources b
 
 
 areAllTheSameAs : Resources res -> Node Expression -> (a -> Node Expression) -> List a -> Bool
 areAllTheSameAs resources first restElementToExpressionNode rest =
     let
-        normalizedFirst : Node Expression
+        normalizedFirst : Expression
         normalizedFirst =
-            normalizeExpressionNode resources first
+            normalizeExpression resources first
     in
     List.all
         (\node ->
-            normalizeExpressionNode resources (restElementToExpressionNode node)
+            normalizeExpression resources (restElementToExpressionNode node)
                 == normalizedFirst
         )
         rest
