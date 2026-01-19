@@ -432,6 +432,107 @@ simpleNormalizationTests =
                 "0x100"
                     |> normalizeAndExpect
                         (Floatable 256)
+        , test "should normalize Basics.not (Basics.not bool) to bool" <|
+            \() ->
+                "Basics.not (Basics.not bool)"
+                    |> normalizeAndExpect
+                        (FunctionOrValue [] "bool")
+        , test "should normalize Basics.not (x == y) to x /= y" <|
+            \() ->
+                "Basics.not (x == y)"
+                    |> normalizeAndExpect
+                        (OperatorApplication "/="
+                            Infix.Non
+                            (n (FunctionOrValue [] "x"))
+                            (n (FunctionOrValue [] "y"))
+                        )
+        , test "should normalize Basics.not (x /= y) to x == y" <|
+            \() ->
+                "Basics.not (x /= y)"
+                    |> normalizeAndExpect
+                        (OperatorApplication "=="
+                            Infix.Non
+                            (n (FunctionOrValue [] "x"))
+                            (n (FunctionOrValue [] "y"))
+                        )
+        , test "should normalize Basics.not (x < y) to y <= x" <|
+            \() ->
+                "Basics.not (x < y)"
+                    |> normalizeAndExpect
+                        (OperatorApplication "<="
+                            Infix.Non
+                            (n (FunctionOrValue [] "y"))
+                            (n (FunctionOrValue [] "x"))
+                        )
+        , test "should normalize Basics.not (x <= y) to y < x" <|
+            \() ->
+                "Basics.not (x <= y)"
+                    |> normalizeAndExpect
+                        (OperatorApplication "<"
+                            Infix.Non
+                            (n (FunctionOrValue [] "y"))
+                            (n (FunctionOrValue [] "x"))
+                        )
+        , test "should normalize Basics.not (x >= y) to x < y" <|
+            \() ->
+                "Basics.not (x >= y)"
+                    |> normalizeAndExpect
+                        (OperatorApplication "<"
+                            Infix.Non
+                            (n (FunctionOrValue [] "x"))
+                            (n (FunctionOrValue [] "y"))
+                        )
+        , test "should normalize Basics.not (x > y) to x <= y" <|
+            \() ->
+                "Basics.not (x > y)"
+                    |> normalizeAndExpect
+                        (OperatorApplication "<="
+                            Infix.Non
+                            (n (FunctionOrValue [] "x"))
+                            (n (FunctionOrValue [] "y"))
+                        )
+        , test "should normalize Basics.not (x && y) to Basics.not x || Basics.not y" <|
+            \() ->
+                "Basics.not (x && y)"
+                    |> normalizeAndExpect
+                        (OperatorApplication "||"
+                            Infix.Non
+                            (n
+                                (Application
+                                    [ n (FunctionOrValue [ "Basics" ] "not")
+                                    , n (FunctionOrValue [] "x")
+                                    ]
+                                )
+                            )
+                            (n
+                                (Application
+                                    [ n (FunctionOrValue [ "Basics" ] "not")
+                                    , n (FunctionOrValue [] "y")
+                                    ]
+                                )
+                            )
+                        )
+        , test "should normalize Basics.not (x || y) to Basics.not x && Basics.not y" <|
+            \() ->
+                "Basics.not (x || y)"
+                    |> normalizeAndExpect
+                        (OperatorApplication "&&"
+                            Infix.Non
+                            (n
+                                (Application
+                                    [ n (FunctionOrValue [ "Basics" ] "not")
+                                    , n (FunctionOrValue [] "x")
+                                    ]
+                                )
+                            )
+                            (n
+                                (Application
+                                    [ n (FunctionOrValue [ "Basics" ] "not")
+                                    , n (FunctionOrValue [] "y")
+                                    ]
+                                )
+                            )
+                        )
         , test "should normalize let expressions" <|
             \() ->
                 """
