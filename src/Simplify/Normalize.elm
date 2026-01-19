@@ -293,16 +293,16 @@ createOperation resources operator left right =
             infer resources (createFallbackOperation operator left right)
 
         ">" ->
-            Expression.OperatorApplication "<" normalizedInfixDirection right left
+            infer resources (Expression.OperatorApplication "<" normalizedInfixDirection right left)
 
         ">=" ->
-            Expression.OperatorApplication "<=" normalizedInfixDirection right left
+            infer resources (Expression.OperatorApplication "<=" normalizedInfixDirection right left)
 
         "<" ->
-            Expression.OperatorApplication "<" normalizedInfixDirection left right
+            infer resources (Expression.OperatorApplication "<" normalizedInfixDirection left right)
 
         "<=" ->
-            Expression.OperatorApplication "<=" normalizedInfixDirection left right
+            infer resources (Expression.OperatorApplication "<=" normalizedInfixDirection left right)
 
         "+" ->
             createNumberOperation (+) operator left right
