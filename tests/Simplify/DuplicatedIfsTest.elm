@@ -724,6 +724,110 @@ a =
   else 3
 """
                         ]
+        , test "should remove branches where the condition never matches (<)" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if x < 0 then
+    1
+  else if x < 0 then
+    2
+  else
+    3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The condition will always evaluate to False"
+                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.atExactly { start = { row = 5, column = 8 }, end = { row = 5, column = 10 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if x < 0 then
+    1
+  else 3
+"""
+                        ]
+        , test "should remove branches where the condition never matches (<=)" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if x <= 0 then
+    1
+  else if x <= 0 then
+    2
+  else
+    3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The condition will always evaluate to False"
+                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.atExactly { start = { row = 5, column = 8 }, end = { row = 5, column = 10 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if x <= 0 then
+    1
+  else 3
+"""
+                        ]
+        , test "should remove branches where the condition never matches (>=)" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if x >= 0 then
+    1
+  else if x >= 0 then
+    2
+  else
+    3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The condition will always evaluate to False"
+                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.atExactly { start = { row = 5, column = 8 }, end = { row = 5, column = 10 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if x >= 0 then
+    1
+  else 3
+"""
+                        ]
+        , test "should remove branches where the condition never matches (>)" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if x > 0 then
+    1
+  else if x > 0 then
+    2
+  else
+    3
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The condition will always evaluate to False"
+                            , details = [ "The expression can be replaced by what is inside the 'else' branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.atExactly { start = { row = 5, column = 8 }, end = { row = 5, column = 10 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if x > 0 then
+    1
+  else 3
+"""
+                        ]
         , test "should remove branches where the condition always matches (literal on the left using /=)" <|
             \() ->
                 """module A exposing (..)
