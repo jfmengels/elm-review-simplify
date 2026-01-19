@@ -69,17 +69,19 @@ normalizeExpression resources (Node expressionRange expression) =
         Expression.Application nodes ->
             case nodes of
                 functionNode :: firstArg :: afterFirstArg ->
-                    List.foldl
-                        (\arg functionNormalSoFar ->
-                            addToFunctionCall resources
-                                (Node.empty functionNormalSoFar)
-                                (normalizeExpressionNode resources arg)
+                    infer resources
+                        (List.foldl
+                            (\arg functionNormalSoFar ->
+                                addToFunctionCall resources
+                                    (Node.empty functionNormalSoFar)
+                                    (normalizeExpressionNode resources arg)
+                            )
+                            (addToFunctionCall resources
+                                (normalizeExpressionNode resources functionNode)
+                                (normalizeExpressionNode resources firstArg)
+                            )
+                            afterFirstArg
                         )
-                        (addToFunctionCall resources
-                            (normalizeExpressionNode resources functionNode)
-                            (normalizeExpressionNode resources firstArg)
-                        )
-                        afterFirstArg
 
                 _ ->
                     expression
@@ -264,10 +266,10 @@ createOperation : Infer.Resources a -> String -> Node Expression -> Node Express
 createOperation resources operator left right =
     case operator of
         "<|" ->
-            addToFunctionCall resources left right
+            infer resources (addToFunctionCall resources left right)
 
         "|>" ->
-            addToFunctionCall resources right left
+            infer resources (addToFunctionCall resources right left)
 
         "<<" ->
             Expression.OperatorApplication ">>" normalizedInfixDirection right left
