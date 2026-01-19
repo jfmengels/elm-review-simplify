@@ -428,15 +428,7 @@ addToFunctionCall resources functionCall extraArgument =
                 (Expression.RecordAccess extraArgument (Node.empty (String.dropLeft 1 fieldAccess)))
 
         Expression.FunctionOrValue [ "Basics" ] "not" ->
-            case Node.value extraArgument of
-                Expression.FunctionOrValue [ "Basics" ] "True" ->
-                    expressionFalse
-
-                Expression.FunctionOrValue [ "Basics" ] "False" ->
-                    expressionTrue
-
-                _ ->
-                    Expression.Application [ functionCall, extraArgument ]
+            createNot resources extraArgument
 
         Expression.FunctionOrValue [ "Basics" ] "negate" ->
             createNegation (Node.value extraArgument)
@@ -446,6 +438,64 @@ addToFunctionCall resources functionCall extraArgument =
 
         _ ->
             Expression.Application [ functionCall, extraArgument ]
+
+
+{-| Expects normal expression
+-}
+createNot : Infer.Resources a -> Node Expression -> Expression
+createNot resources expressionNormalNodeInNot =
+    case Node.value expressionNormalNodeInNot of
+        Expression.FunctionOrValue [ "Basics" ] "True" ->
+            expressionFalse
+
+        Expression.FunctionOrValue [ "Basics" ] "False" ->
+            expressionTrue
+
+        Expression.OperatorApplication operator _ left right ->
+            case operator of
+                "==" ->
+                    createOperation resources "/=" left right
+
+                "/=" ->
+                    createOperation resources "==" left right
+
+                ">" ->
+                    createOperation resources "<=" left right
+
+                ">=" ->
+                    createOperation resources "<" left right
+
+                "<=" ->
+                    createOperation resources ">" left right
+
+                "<" ->
+                    createOperation resources ">=" left right
+
+                "&&" ->
+                    createOperation resources
+                        "||"
+                        (Node.empty (createNot resources left))
+                        (Node.empty (createNot resources right))
+
+                "||" ->
+                    createOperation resources
+                        "&&"
+                        (Node.empty (createNot resources left))
+                        (Node.empty (createNot resources right))
+
+                _ ->
+                    Expression.Application [ expressionNodeBasicsNotFn, expressionNormalNodeInNot ]
+
+        Expression.Application [ Node _ (Expression.FunctionOrValue [ "Basics" ] "not"), Node _ expressionNormalNodeInNotNot ] ->
+            expressionNormalNodeInNotNot
+
+        _ ->
+            Expression.Application [ expressionNodeBasicsNotFn, expressionNormalNodeInNot ]
+
+
+expressionNodeBasicsNotFn : Node Expression
+expressionNodeBasicsNotFn =
+    Node.empty (Expression.FunctionOrValue [ "Basics" ] "not")
 
 
 expressionTrue : Expression
