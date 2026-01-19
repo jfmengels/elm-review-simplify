@@ -2987,6 +2987,22 @@ a = (Array.toIndexedList <| f <| x) |> List.map Tuple.first
 a = ((Array.length <| f <| x) - 1) |> List.range 0
 """
                         ]
+        , test "should replace List.map Tuple.first << Array.toIndexedList by List.range 0 << (+) -1 << Array.length" <|
+            \() ->
+                """module A exposing (..)
+a = List.map Tuple.first << Array.toIndexedList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "List.map with a function accessing the first tuple part on Array.toIndexedList is the same as List.range from 0 to its length - 1"
+                            , details = [ "You can replace this composition by Array.length, then a function subtracting 1, then List.range 0." ]
+                            , under = "List.map"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = List.range 0 << ((+) -1 << Array.length)
+"""
+                        ]
         ]
 
 

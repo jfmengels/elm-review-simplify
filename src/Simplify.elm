@@ -8776,8 +8776,8 @@ listMapChecks =
 
 listMapTupleFirstOnArrayToIndexedListCheck : IntoFnCheck
 listMapTupleFirstOnArrayToIndexedListCheck =
-    intoFnCheckOnlyCall
-        (\checkInfo ->
+    { call =
+        \checkInfo ->
             if AstHelpers.isTupleFirstAccess checkInfo checkInfo.firstArg then
                 case checkInfo.argsAfterFirst of
                     [ unmappedListArg ] ->
@@ -8843,7 +8843,55 @@ listMapTupleFirstOnArrayToIndexedListCheck =
 
             else
                 Nothing
-        )
+    , composition =
+        \checkInfo ->
+            case checkInfo.later.args of
+                [ mapFunctionArg ] ->
+                    if AstHelpers.isTupleFirstAccess checkInfo mapFunctionArg then
+                        if checkInfo.earlier.fn == Fn.Array.toIndexedList then
+                            Just
+                                { info =
+                                    { message =
+                                        qualifiedToString Fn.List.map
+                                            ++ " with a function accessing the first tuple part on "
+                                            ++ qualifiedToString Fn.Array.toIndexedList
+                                            ++ " is the same as "
+                                            ++ qualifiedToString Fn.List.range
+                                            ++ " from 0 to its length - 1"
+                                    , details =
+                                        [ "You can replace this composition by "
+                                            ++ qualifiedToString Fn.Array.length
+                                            ++ ", then a function subtracting 1, then "
+                                            ++ qualifiedToString Fn.List.range
+                                            ++ " 0."
+                                        ]
+                                    }
+                                , fix =
+                                    [ Fix.replaceRangeBy checkInfo.later.fnRange
+                                        (qualifiedToString (qualify Fn.List.range checkInfo))
+                                    , Fix.replaceRangeBy (Node.range mapFunctionArg)
+                                        "0"
+                                    , Fix.replaceRangeBy checkInfo.earlier.range
+                                        ("("
+                                            ++ compositionString
+                                                { earlier = qualifiedToString (qualify Fn.Array.length checkInfo)
+                                                , later = "(+) -1"
+                                                , direction = compositionCheckInfoDirection checkInfo
+                                                }
+                                            ++ ")"
+                                        )
+                                    ]
+                                }
+
+                        else
+                            Nothing
+
+                    else
+                        Nothing
+
+                _ ->
+                    Nothing
+    }
 
 
 listMapNChecks : IntoFnCheck
