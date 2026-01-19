@@ -121,6 +121,26 @@ simpleNormalizationTests =
                             , n (FunctionOrValue [] "c")
                             ]
                         )
+        , test "should directly apply (|>)" <|
+            \() ->
+                "(|>) c (a b)"
+                    |> normalizeAndExpect
+                        (Application
+                            [ n (FunctionOrValue [] "a")
+                            , n (FunctionOrValue [] "b")
+                            , n (FunctionOrValue [] "c")
+                            ]
+                        )
+        , test "should directly apply (<|)" <|
+            \() ->
+                "(<|) (a b) c"
+                    |> normalizeAndExpect
+                        (Application
+                            [ n (FunctionOrValue [] "a")
+                            , n (FunctionOrValue [] "b")
+                            , n (FunctionOrValue [] "c")
+                            ]
+                        )
         , test "should remove <| when the left is not already an application " <|
             \() ->
                 "(a) <| (b)"
@@ -290,6 +310,15 @@ simpleNormalizationTests =
                             Infix.Non
                             (n (FunctionOrValue [] "b"))
                             (n (FunctionOrValue [] "a"))
+                        )
+        , test "should normalize prefix operator uncons with a list literal into a list literal" <|
+            \() ->
+                "(::) (a) [(b)]"
+                    |> normalizeAndExpect
+                        (ListExpr
+                            [ n (FunctionOrValue [] "a")
+                            , n (FunctionOrValue [] "b")
+                            ]
                         )
         , test "should normalize uncons with a list literal into a list literal" <|
             \() ->

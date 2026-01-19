@@ -84,42 +84,6 @@ normalizeExpression resources (Node expressionRange expression) =
                 _ ->
                     expression
 
-        Expression.OperatorApplication "<|" _ function extraArgument ->
-            addToFunctionCall resources
-                (normalizeExpressionNode resources function)
-                (normalizeExpressionNode resources extraArgument)
-
-        Expression.OperatorApplication "|>" _ extraArgument function ->
-            addToFunctionCall resources
-                (normalizeExpressionNode resources function)
-                (normalizeExpressionNode resources extraArgument)
-
-        Expression.OperatorApplication "<<" _ left right ->
-            Expression.OperatorApplication ">>" normalizedInfixDirection (normalizeExpressionNode resources right) (normalizeExpressionNode resources left)
-
-        Expression.OperatorApplication "::" _ head tail ->
-            let
-                normalizedHead : Node Expression
-                normalizedHead =
-                    normalizeExpressionNode resources head
-
-                normalizedTail : Node Expression
-                normalizedTail =
-                    normalizeExpressionNode resources tail
-            in
-            case Node.value normalizedTail of
-                Expression.ListExpr tailElements ->
-                    Expression.ListExpr (normalizedHead :: tailElements)
-
-                _ ->
-                    Expression.OperatorApplication "::" normalizedInfixDirection normalizedHead normalizedTail
-
-        Expression.OperatorApplication ">" _ left right ->
-            Expression.OperatorApplication "<" normalizedInfixDirection (normalizeExpressionNode resources right) (normalizeExpressionNode resources left)
-
-        Expression.OperatorApplication ">=" _ left right ->
-            Expression.OperatorApplication "<=" normalizedInfixDirection (normalizeExpressionNode resources right) (normalizeExpressionNode resources left)
-
         Expression.OperatorApplication operator _ left right ->
             createOperation resources operator (normalizeExpressionNode resources left) (normalizeExpressionNode resources right)
 
@@ -299,6 +263,23 @@ createNegation normalized =
 createOperation : Infer.Resources a -> String -> Node Expression -> Node Expression -> Expression
 createOperation resources operator left right =
     case operator of
+        "<|" ->
+            addToFunctionCall resources left right
+
+        "|>" ->
+            addToFunctionCall resources right left
+
+        "<<" ->
+            Expression.OperatorApplication ">>" normalizedInfixDirection right left
+
+        "::" ->
+            case Node.value right of
+                Expression.ListExpr tailElements ->
+                    Expression.ListExpr (left :: tailElements)
+
+                _ ->
+                    Expression.OperatorApplication "::" normalizedInfixDirection left right
+
         "==" ->
             infer resources (createFallbackOperation operator left right)
 
@@ -310,6 +291,18 @@ createOperation resources operator left right =
 
         "||" ->
             infer resources (createFallbackOperation operator left right)
+
+        ">" ->
+            Expression.OperatorApplication "<" normalizedInfixDirection right left
+
+        ">=" ->
+            Expression.OperatorApplication "<=" normalizedInfixDirection right left
+
+        "<" ->
+            Expression.OperatorApplication "<" normalizedInfixDirection left right
+
+        "<=" ->
+            Expression.OperatorApplication "<=" normalizedInfixDirection left right
 
         "+" ->
             createNumberOperation (+) operator left right
