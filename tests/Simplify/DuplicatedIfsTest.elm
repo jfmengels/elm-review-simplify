@@ -1135,6 +1135,46 @@ a =
     4
 """
                         ]
+        , test "should remove branches where the condition may not match ((a && b) || a --> not c --> b)" <|
+            \() ->
+                """module A exposing (..)
+a =
+  if (a && b) || c then
+    if a then
+      if not c then
+        if b then
+          0
+        else
+          1
+      else
+        2
+    else
+      3
+  else
+    4
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "The condition will always evaluate to True"
+                            , details = [ "The expression can be replaced by what is inside the 'then' branch." ]
+                            , under = "if"
+                            }
+                            |> Review.Test.atExactly { start = { row = 6, column = 9 }, end = { row = 6, column = 11 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a =
+  if (a && b) || c then
+    if a then
+      if not c then
+        0
+      else
+        2
+    else
+      3
+  else
+    4
+"""
+                        ]
 
         --        ,   test "should not lose information as more conditions add up" <|
         --                \() ->
