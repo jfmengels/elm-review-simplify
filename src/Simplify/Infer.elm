@@ -175,8 +175,8 @@ getAsExpression expr (Inferred inferred) =
 
 inferForIfCondition : Expression -> { trueBranchRange : Range, falseBranchRange : Range } -> Inferred -> List ( Range, Inferred )
 inferForIfCondition condition { trueBranchRange, falseBranchRange } inferred =
-    [ ( trueBranchRange, injectFacts (inferHelp True condition []) inferred )
-    , ( falseBranchRange, injectFacts (inferHelp False condition []) inferred )
+    [ ( trueBranchRange, infer condition True inferred )
+    , ( falseBranchRange, infer condition False inferred )
     ]
 
 
@@ -190,10 +190,10 @@ falseExpr =
     Expression.FunctionOrValue [ "Basics" ] "False"
 
 
-infer : List Expression -> Bool -> Inferred -> Inferred
-infer nodes shouldBe acc =
+infer : Expression -> Bool -> Inferred -> Inferred
+infer node shouldBe acc =
     injectFacts
-        (List.foldl (\node soFar -> inferHelp shouldBe node soFar) [] nodes)
+        (inferHelp shouldBe node [])
         acc
 
 
