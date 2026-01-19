@@ -7456,21 +7456,23 @@ fnCompositionString :
     -> QualifyResources a
     -> String
 fnCompositionString config resources =
-    let
-        earlierFnString : String
-        earlierFnString =
-            qualifiedToString (qualify config.earlier resources)
+    compositionString
+        { earlier = qualifiedToString (qualify config.earlier resources)
+        , later = qualifiedToString (qualify config.later resources)
+        , direction = config.direction
+        }
 
-        laterFnString : String
-        laterFnString =
-            qualifiedToString (qualify config.later resources)
-    in
+
+compositionString :
+    { direction : CallStyle.LeftOrRightDirection, earlier : String, later : String }
+    -> String
+compositionString config =
     case config.direction of
         CallStyle.LeftToRight ->
-            earlierFnString ++ " >> " ++ laterFnString
+            config.earlier ++ " >> " ++ config.later
 
         CallStyle.RightToLeft ->
-            laterFnString ++ " << " ++ earlierFnString
+            config.later ++ " << " ++ config.earlier
 
 
 tuplePartMapOnMapBothCheck : { argIndex : Int } -> IntoFnCheck
