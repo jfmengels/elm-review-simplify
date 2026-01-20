@@ -118,6 +118,22 @@ a = f >> (\\x -> x)
 a = f
 """
                         ]
+        , test "should replace f >> (\\_ -> x) by (\\_ -> x)" <|
+            \() ->
+                """module A exposing (..)
+a = f >> (\\_ -> x)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Function composed with lambda will be ignored"
+                            , details = [ "The lambda function ignores the first argument, meaning it will swallow the function composed into it." ]
+                            , under = "_"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (\\_ -> x)
+"""
+                        ]
         , test "should replace (\\() y -> x) () by (\\y -> x)" <|
             \() ->
                 """module A exposing (..)

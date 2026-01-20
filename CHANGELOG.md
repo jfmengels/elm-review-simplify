@@ -18,6 +18,7 @@ The rule now simplifies:
 - `(\x -> x) data` to `data`
 - `(\_ -> x) <| f <| y` to `x` (previously not always applied in pipelines)
 - `(\()) -> x) <| f <| y` to `x` (previously not always applied in pipelines)
+- `f >> (\_ -> x)` to `(\_ -> x)`
 - `List.map f (List.repeat n a)` to `List.repeat n (f a)`
 - `Array.map f (Array.repeat n a)` to `Array.repeat n (f a)`
 - `String.map f (String.repeat n (String.fromChar c))` to `String.repeat n (String.fromChar (f c))`

@@ -6,7 +6,7 @@ module Simplify.AstHelpers exposing
     , getSpecificUnreducedFnCall, isSpecificUnreducedFnCall, isSpecificValueOrFn, isSpecificValueReference
     , patternGetInt
     , getCollapsedLambda
-    , isIdentity, IdentityKind(..), isIdentityWithKind, getAlwaysResult
+    , isIdentity, IdentityKind(..), isIdentityWithKind, getAlwaysResult, ignoresFirstLambdaResult
     , isTupleFirstAccess, isTupleSecondAccess
     , getAccessingRecord, getRecordAccessFunction
     , getOrder, getBool, getBoolPattern, getUncomputedInt, getUncomputedNumberValue
@@ -43,7 +43,7 @@ module Simplify.AstHelpers exposing
 
 @docs patternGetInt
 @docs getCollapsedLambda
-@docs isIdentity, IdentityKind, isIdentityWithKind, getAlwaysResult
+@docs isIdentity, IdentityKind, isIdentityWithKind, getAlwaysResult, ignoresFirstLambdaResult
 @docs isTupleFirstAccess, isTupleSecondAccess
 @docs getAccessingRecord, getRecordAccessFunction
 @docs getOrder, getBool, getBoolPattern, getUncomputedInt, getUncomputedNumberValue
@@ -730,6 +730,21 @@ getIgnoreFirstLambdaResult expressionNode =
                                 }
                             )
                         )
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
+ignoresFirstLambdaResult : Node Expression -> Maybe Range
+ignoresFirstLambdaResult expressionNode =
+    case removeParens expressionNode of
+        Node _ (Expression.LambdaExpression lambda) ->
+            case lambda.args of
+                (Node range Pattern.AllPattern) :: _ ->
+                    Just range
 
                 _ ->
                     Nothing

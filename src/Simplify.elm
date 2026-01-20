@@ -4382,7 +4382,8 @@ type alias CompositionCheckInfo =
 
 compositionChecks : CompositionCheckInfo -> Maybe (Error {})
 compositionChecks checkInfo =
-    accessingRecordCompositionChecks checkInfo
+    pipingCompositionIntoLambdaChecks checkInfo
+        |> onNothing (\() -> accessingRecordCompositionChecks checkInfo)
         |> onNothing (\() -> basicsIdentityCompositionChecks checkInfo)
         |> onNothing
             (\() ->
@@ -22065,6 +22066,23 @@ accessingRecordChecks checkInfo =
 
                 Nothing ->
                     Nothing
+
+
+pipingCompositionIntoLambdaChecks : CompositionCheckInfo -> Maybe (Error {})
+pipingCompositionIntoLambdaChecks checkInfo =
+    case AstHelpers.ignoresFirstLambdaResult checkInfo.later.node of
+        Just wildcardRange ->
+            Just
+                (Rule.errorWithFix
+                    { message = "Function composed with lambda will be ignored"
+                    , details = [ "The lambda function ignores the first argument, meaning it will swallow the function composed into it." ]
+                    }
+                    wildcardRange
+                    [ Fix.removeRange checkInfo.earlier.removeRange ]
+                )
+
+        Nothing ->
+            Nothing
 
 
 accessingRecordCompositionChecks : CompositionCheckInfo -> Maybe (Error {})
