@@ -17783,6 +17783,18 @@ fullyAppliedLambdaInPipelineChecks checkInfo =
                 , moduleCustomTypes = checkInfo.moduleCustomTypes
                 }
 
+        Expression.Application ((Node _ (Expression.ParenthesizedExpression ((Node _ (Expression.LambdaExpression lambda)) as lambdaNode))) :: firstArgument :: restOfApplicationArgs) ->
+            appliedLambdaError
+                { lambda = lambda
+                , lambdaNode = lambdaNode
+                , lambdaWithParens = Node.range checkInfo.function
+                , firstArgument = firstArgument
+                , argsAfterFirst = restOfApplicationArgs ++ [ checkInfo.firstArgument ]
+                , lookupTable = checkInfo.lookupTable
+                , importCustomTypes = checkInfo.importCustomTypes
+                , moduleCustomTypes = checkInfo.moduleCustomTypes
+                }
+
         _ ->
             Nothing
 
@@ -21903,18 +21915,13 @@ appliedLambdaError checkInfo =
                 )
 
         Nothing ->
-            appliedLambdaIgnoredPatternsCheck
-                checkInfo
-                checkInfo.lambda.args
-                (checkInfo.firstArgument :: checkInfo.argsAfterFirst)
+            appliedLambdaIgnoredPatternsCheck checkInfo
 
 
 appliedLambdaIgnoredPatternsCheck :
     AstHelpers.ReduceLambdaResources { lambdaWithParens : Range, lambda : Expression.Lambda, lambdaNode : Node Expression, firstArgument : Node Expression, argsAfterFirst : List (Node Expression) }
-    -> List (Node Pattern)
-    -> List (Node Expression)
     -> Maybe (Error {})
-appliedLambdaIgnoredPatternsCheck checkInfo patterns arguments =
+appliedLambdaIgnoredPatternsCheck checkInfo =
     appliedLambdaIgnoredPatternsCheckHelp
         Nothing
         Nothing
@@ -21997,13 +22004,13 @@ appliedLambdaIgnoredPatternsCheckHelp previousPattern previousArgument patterns 
 
 
 appliedLambdaErrorFix :
-    { pattern : Node Pattern
-    , argument : Node Expression
-    , previousPattern : Maybe (Node Pattern)
-    , previousArgument : Maybe (Node Expression)
-    , nextPattern : Maybe (Node Pattern)
-    , nextArgument : Maybe (Node Expression)
-    , info : { message : String, details : List String }
+    { params
+        | pattern : Node Pattern
+        , argument : Node Expression
+        , previousPattern : Maybe (Node Pattern)
+        , previousArgument : Maybe (Node Expression)
+        , nextPattern : Maybe (Node Pattern)
+        , nextArgument : Maybe (Node Expression)
     }
     -> { checkInfo | lambdaWithParens : Range, lambda : Expression.Lambda, firstArgument : Node Expression }
     -> List Fix
@@ -22018,9 +22025,22 @@ appliedLambdaErrorFix params checkInfo =
                 Nothing ->
                     case params.previousArgument of
                         Just (Node previous _) ->
-                            [ Fix.removeRange { start = previous.end, end = (Node.range params.argument).end } ]
+                            let
+                                argRange : Range
+                                argRange =
+                                    Node.range params.argument
+                            in
+                            case Range.compareLocations argRange.end previous.end of
+                                GT ->
+                                    [ Fix.removeRange { start = previous.end, end = argRange.end } ]
+
+                                _ ->
+                                    -- We're in a `c |> (\a _ -> ...) b` situation
+                                    -- `c` is the "next" argument but appears before `b` in the source code.
+                                    [ Fix.removeRange { start = argRange.start, end = checkInfo.lambdaWithParens.start } ]
 
                         Nothing ->
+                            -- No other args
                             keepOnlyFix
                                 { parentRange = Range.combine [ checkInfo.lambdaWithParens, Node.range params.argument ]
                                 , keep = checkInfo.lambdaWithParens
@@ -22038,10 +22058,7 @@ appliedLambdaErrorFix params checkInfo =
                         :: removeArgument ()
 
                 Nothing ->
-                    -- No other args
-                    -- TODO test with more args than patterns
-                    -- TODO and the other way around
-                    -- TODO Support removing `a |> (\x _ -> y) b` --> `(\x -> y)`
+                    -- No other patterns
                     replaceBySubExpressionFix (Range.combine [ checkInfo.lambdaWithParens, Node.range checkInfo.firstArgument ]) checkInfo.lambda.expression
 
 
