@@ -312,6 +312,9 @@ Destructuring using case expressions
     (\_ y -> x) data
     --> (\y -> x)
 
+    (\y _ -> x) data otherData
+    --> (\y -> x)
+
 
 ### Operators
 
@@ -3335,6 +3338,7 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             , lambdaNode = lambdaNode
                             , lambdaWithParens = lambdaWithParens
                             , firstArgument = firstArg
+                            , argsAfterFirst = argsAfterFirst
                             , lookupTable = context.lookupTable
                             , importCustomTypes = context.importCustomTypes
                             , moduleCustomTypes = context.moduleCustomTypes
@@ -17773,6 +17777,7 @@ fullyAppliedLambdaInPipelineChecks checkInfo =
                 , lambdaNode = lambdaNode
                 , lambdaWithParens = Node.range checkInfo.function
                 , firstArgument = checkInfo.firstArgument
+                , argsAfterFirst = []
                 , lookupTable = checkInfo.lookupTable
                 , importCustomTypes = checkInfo.importCustomTypes
                 , moduleCustomTypes = checkInfo.moduleCustomTypes
@@ -21865,83 +21870,179 @@ fullyAppliedPrefixOperatorError checkInfo =
 
 
 appliedLambdaError :
-    AstHelpers.ReduceLambdaResources { lambdaWithParens : Range, lambda : Expression.Lambda, lambdaNode : Node Expression, firstArgument : Node Expression }
+    AstHelpers.ReduceLambdaResources { lambdaWithParens : Range, lambda : Expression.Lambda, lambdaNode : Node Expression, firstArgument : Node Expression, argsAfterFirst : List (Node Expression) }
     -> Maybe (Error {})
 appliedLambdaError checkInfo =
-    case checkInfo.lambda.args of
-        (Node patternRange Pattern.UnitPattern) :: otherPatterns ->
+    case AstHelpers.isIdentityWithKind checkInfo checkInfo.lambdaNode of
+        Just identityKind ->
+            let
+                errorInfo : { message : String, details : List String }
+                errorInfo =
+                    case identityKind of
+                        AstHelpers.IdentityFunction ->
+                            { message = "`identity` should be removed"
+                            , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
+                            }
+
+                        AstHelpers.IdentityLambda ->
+                            { message = "Unnecessary identity function"
+                            , details = [ "This function returns the argument it is given without any changes. Calling it with an argument is the same thing as writing the argument on its own." ]
+                            }
+            in
             Just
                 (Rule.errorWithFix
-                    { message = "Unnecessary unit argument"
-                    , details =
-                        [ "This function is expecting a unit, but also passing it directly."
-                        , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
-                        ]
-                    }
-                    patternRange
-                    (appliedLambdaErrorFix patternRange otherPatterns checkInfo)
-                )
-
-        (Node patternRange Pattern.AllPattern) :: otherPatterns ->
-            Just
-                (Rule.errorWithFix
-                    { message = "Unnecessary wildcard argument argument"
-                    , details =
-                        [ "This function is being passed an argument that is directly ignored."
-                        , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
-                        ]
-                    }
-                    patternRange
-                    (appliedLambdaErrorFix patternRange otherPatterns checkInfo)
-                )
-
-        _ ->
-            case AstHelpers.isIdentityWithKind checkInfo checkInfo.lambdaNode of
-                Just identityKind ->
-                    let
-                        errorInfo : { message : String, details : List String }
-                        errorInfo =
-                            case identityKind of
-                                AstHelpers.IdentityFunction ->
-                                    { message = "`identity` should be removed"
-                                    , details = [ "`identity` can be a useful function to be passed as arguments to other functions, but calling it manually with an argument is the same thing as writing the argument on its own." ]
-                                    }
-
-                                AstHelpers.IdentityLambda ->
-                                    { message = "Unnecessary identity function"
-                                    , details = [ "This function returns the argument it is given without any changes. Calling it with an argument is the same thing as writing the argument on its own." ]
-                                    }
-                    in
-                    Just
-                        (Rule.errorWithFix
-                            errorInfo
-                            (Node.range checkInfo.lambdaNode)
-                            [ Fix.removeRange
-                                (rangeFromInclusiveToExclusive
-                                    { fromInclusive = checkInfo.lambdaWithParens
-                                    , toExclusive = Node.range checkInfo.firstArgument
-                                    }
-                                )
-                            ]
+                    errorInfo
+                    (Node.range checkInfo.lambdaNode)
+                    [ Fix.removeRange
+                        (rangeFromInclusiveToExclusive
+                            { fromInclusive = checkInfo.lambdaWithParens
+                            , toExclusive = Node.range checkInfo.firstArgument
+                            }
                         )
+                    ]
+                )
 
-                Nothing ->
-                    Nothing
+        Nothing ->
+            appliedLambdaIgnoredPatternsCheck
+                checkInfo
+                checkInfo.lambda.args
+                (checkInfo.firstArgument :: checkInfo.argsAfterFirst)
+
+
+appliedLambdaIgnoredPatternsCheck :
+    AstHelpers.ReduceLambdaResources { lambdaWithParens : Range, lambda : Expression.Lambda, lambdaNode : Node Expression, firstArgument : Node Expression, argsAfterFirst : List (Node Expression) }
+    -> List (Node Pattern)
+    -> List (Node Expression)
+    -> Maybe (Error {})
+appliedLambdaIgnoredPatternsCheck checkInfo patterns arguments =
+    appliedLambdaIgnoredPatternsCheckHelp
+        Nothing
+        Nothing
+        checkInfo.lambda.args
+        (checkInfo.firstArgument :: checkInfo.argsAfterFirst)
+        |> Maybe.map
+            (\result ->
+                Rule.errorWithFix
+                    result.info
+                    (Node.range result.pattern)
+                    (appliedLambdaErrorFix result checkInfo)
+            )
+
+
+appliedLambdaIgnoredPatternsCheckHelp :
+    Maybe (Node Pattern)
+    -> Maybe (Node Expression)
+    -> List (Node Pattern)
+    -> List (Node Expression)
+    ->
+        Maybe
+            { pattern : Node Pattern
+            , argument : Node Expression
+            , previousPattern : Maybe (Node Pattern)
+            , previousArgument : Maybe (Node Expression)
+            , nextPattern : Maybe (Node Pattern)
+            , nextArgument : Maybe (Node Expression)
+            , info : { message : String, details : List String }
+            }
+appliedLambdaIgnoredPatternsCheckHelp previousPattern previousArgument patterns arguments =
+    case ( patterns, arguments ) of
+        ( [], _ ) ->
+            Nothing
+
+        ( _, [] ) ->
+            Nothing
+
+        ( ((Node _ patternValue) as pattern) :: restOfPatterns, argument :: restOfArguments ) ->
+            case patternValue of
+                Pattern.UnitPattern ->
+                    Just
+                        { pattern = pattern
+                        , argument = argument
+                        , previousPattern = previousPattern
+                        , previousArgument = previousArgument
+                        , nextPattern = List.head restOfPatterns
+                        , nextArgument = List.head restOfArguments
+                        , info =
+                            { message = "Unnecessary unit argument"
+                            , details =
+                                [ "This function is expecting a unit, but also passing it directly."
+                                , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
+                                ]
+                            }
+                        }
+
+                Pattern.AllPattern ->
+                    Just
+                        { pattern = pattern
+                        , argument = argument
+                        , previousPattern = previousPattern
+                        , previousArgument = previousArgument
+                        , nextPattern = List.head restOfPatterns
+                        , nextArgument = List.head restOfArguments
+                        , info =
+                            { message = "Unnecessary ignored argument"
+                            , details =
+                                [ "This function is being passed an argument that is directly ignored."
+                                , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
+                                ]
+                            }
+                        }
+
+                _ ->
+                    appliedLambdaIgnoredPatternsCheckHelp
+                        (Just pattern)
+                        (Just argument)
+                        restOfPatterns
+                        restOfArguments
 
 
 appliedLambdaErrorFix :
-    Range
-    -> List (Node Pattern)
+    { pattern : Node Pattern
+    , argument : Node Expression
+    , previousPattern : Maybe (Node Pattern)
+    , previousArgument : Maybe (Node Expression)
+    , nextPattern : Maybe (Node Pattern)
+    , nextArgument : Maybe (Node Expression)
+    , info : { message : String, details : List String }
+    }
     -> { checkInfo | lambdaWithParens : Range, lambda : Expression.Lambda, firstArgument : Node Expression }
     -> List Fix
-appliedLambdaErrorFix patternRange otherPatterns checkInfo =
-    case otherPatterns of
-        [] ->
-            replaceBySubExpressionFix (Range.combine [ checkInfo.lambdaWithParens, Node.range checkInfo.firstArgument ]) checkInfo.lambda.expression
+appliedLambdaErrorFix params checkInfo =
+    let
+        removeArgument : () -> List Fix
+        removeArgument () =
+            case params.nextArgument of
+                Just (Node next _) ->
+                    [ Fix.removeRange { start = (Node.range params.argument).start, end = next.start } ]
 
-        secondPattern :: _ ->
-            Fix.removeRange { start = patternRange.start, end = (Node.range secondPattern).start }
-                :: keepOnlyFix { parentRange = Range.combine [ checkInfo.lambdaWithParens, Node.range checkInfo.firstArgument ], keep = checkInfo.lambdaWithParens }
+                Nothing ->
+                    case params.previousArgument of
+                        Just (Node previous _) ->
+                            [ Fix.removeRange { start = previous.end, end = (Node.range params.argument).end } ]
+
+                        Nothing ->
+                            keepOnlyFix
+                                { parentRange = Range.combine [ checkInfo.lambdaWithParens, Node.range params.argument ]
+                                , keep = checkInfo.lambdaWithParens
+                                }
+    in
+    case params.nextPattern of
+        Just (Node next _) ->
+            Fix.removeRange { start = (Node.range params.pattern).start, end = next.start }
+                :: removeArgument ()
+
+        Nothing ->
+            case params.previousPattern of
+                Just (Node previous _) ->
+                    Fix.removeRange { start = previous.end, end = (Node.range params.pattern).end }
+                        :: removeArgument ()
+
+                Nothing ->
+                    -- No other args
+                    -- TODO test with more args than patterns
+                    -- TODO and the other way around
+                    -- TODO Support removing `a |> (\x _ -> y) b` --> `(\x -> y)`
+                    replaceBySubExpressionFix (Range.combine [ checkInfo.lambdaWithParens, Node.range checkInfo.firstArgument ]) checkInfo.lambda.expression
 
 
 

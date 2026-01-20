@@ -43,7 +43,7 @@ a = (\\_ -> x) a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary wildcard argument argument"
+                            { message = "Unnecessary ignored argument"
                             , details =
                                 [ "This function is being passed an argument that is directly ignored."
                                 , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
@@ -182,7 +182,7 @@ a = (\\_ y -> x) a
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary wildcard argument argument"
+                            { message = "Unnecessary ignored argument"
                             , details =
                                 [ "This function is being passed an argument that is directly ignored."
                                 , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
@@ -201,7 +201,7 @@ a = (\\_ -> x) b c
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary wildcard argument argument"
+                            { message = "Unnecessary ignored argument"
                             , details =
                                 [ "This function is being passed an argument that is directly ignored."
                                 , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
@@ -220,7 +220,7 @@ a = (\\_ -> x |> f) b c
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary wildcard argument argument"
+                            { message = "Unnecessary ignored argument"
                             , details =
                                 [ "This function is being passed an argument that is directly ignored."
                                 , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
@@ -239,7 +239,7 @@ a = b |> (\\_ y -> x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary wildcard argument argument"
+                            { message = "Unnecessary ignored argument"
                             , details =
                                 [ "This function is being passed an argument that is directly ignored."
                                 , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
@@ -258,7 +258,7 @@ a = (\\_ y -> x) a b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary wildcard argument argument"
+                            { message = "Unnecessary ignored argument"
                             , details =
                                 [ "This function is being passed an argument that is directly ignored."
                                 , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
@@ -277,7 +277,7 @@ a = b |> f |> (\\_ y -> x)
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary wildcard argument argument"
+                            { message = "Unnecessary ignored argument"
                             , details =
                                 [ "This function is being passed an argument that is directly ignored."
                                 , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
@@ -296,7 +296,7 @@ a = (\\_ y -> x) <| f <| b
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Unnecessary wildcard argument argument"
+                            { message = "Unnecessary ignored argument"
                             , details =
                                 [ "This function is being passed an argument that is directly ignored."
                                 , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
@@ -305,6 +305,63 @@ a = (\\_ y -> x) <| f <| b
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (\\y -> x)
+"""
+                        ]
+        , test "should replace (\\y _ -> x) b c by (\\y -> x) b" <|
+            \() ->
+                """module A exposing (..)
+a = (\\y _ -> x) b c
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary ignored argument"
+                            , details =
+                                [ "This function is being passed an argument that is directly ignored."
+                                , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
+                                ]
+                            , under = "_"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (\\y -> x) b
+"""
+                        ]
+        , test "should replace (\\y _ z -> x) b c by (\\y z -> x) b" <|
+            \() ->
+                """module A exposing (..)
+a = (\\y _ z -> x) b c
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary ignored argument"
+                            , details =
+                                [ "This function is being passed an argument that is directly ignored."
+                                , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
+                                ]
+                            , under = "_"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (\\y z -> x) b
+"""
+                        ]
+        , test "should replace (\\y _ -> x) b c d by (\\y -> x) b d" <|
+            \() ->
+                """module A exposing (..)
+a = (\\y _ -> x) b c d
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary ignored argument"
+                            , details =
+                                [ "This function is being passed an argument that is directly ignored."
+                                , "Maybe this was made in attempt to make the computation lazy, but in practice the function will be evaluated eagerly."
+                                ]
+                            , under = "_"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (\\y -> x) b d
 """
                         ]
         , test "should not report non-simplifiable lambdas that are directly called with an argument" <|
