@@ -17831,95 +17831,26 @@ pipingIntoCompositionChecks :
     -> Maybe (Error {})
 pipingIntoCompositionChecks context compositionDirection expressionNode =
     let
-        ( opToFind, replacement ) =
+        targetAndReplacement : { opToFind : String, replacement : String }
+        targetAndReplacement =
             case compositionDirection of
                 CallStyle.RightToLeft ->
-                    ( "<<", "<|" )
+                    { opToFind = "<<", replacement = "<|" }
 
                 CallStyle.LeftToRight ->
-                    ( ">>", "|>" )
-
-        pipingIntoCompositionChecksHelp : Node Expression -> Maybe { opToReplaceRange : Range, fixes : List Fix, firstStepIsComposition : Bool }
-        pipingIntoCompositionChecksHelp subExpression =
-            case Node.value subExpression of
-                Expression.ParenthesizedExpression inParens ->
-                    case pipingIntoCompositionChecksHelp inParens of
-                        Nothing ->
-                            Nothing
-
-                        Just error ->
-                            if error.firstStepIsComposition then
-                                -- parens can safely be removed
-                                Just
-                                    { opToReplaceRange = error.opToReplaceRange
-                                    , firstStepIsComposition = error.firstStepIsComposition
-                                    , fixes =
-                                        removeBoundariesFix subExpression ++ error.fixes
-                                    }
-
-                            else
-                                -- inside parenthesis is checked separately because
-                                -- the parens here can't safely be removed
-                                Nothing
-
-                Expression.OperatorApplication symbol _ left right ->
-                    let
-                        continuedSearch : Maybe { opToReplaceRange : Range, fixes : List Fix, firstStepIsComposition : Bool }
-                        continuedSearch =
-                            case compositionDirection of
-                                CallStyle.RightToLeft ->
-                                    pipingIntoCompositionChecksHelp left
-
-                                CallStyle.LeftToRight ->
-                                    pipingIntoCompositionChecksHelp right
-                    in
-                    if symbol == replacement then
-                        Maybe.map (\errors -> { errors | firstStepIsComposition = False })
-                            continuedSearch
-
-                    else if symbol == opToFind then
-                        let
-                            opToFindRange : Range
-                            opToFindRange =
-                                findOperatorRange
-                                    { operator = opToFind
-                                    , commentRanges = context.commentRanges
-                                    , extractSourceCode = context.extractSourceCode
-                                    , leftRange = Node.range left
-                                    , rightRange = Node.range right
-                                    }
-                        in
-                        Just
-                            { opToReplaceRange = opToFindRange
-                            , fixes =
-                                Fix.replaceRangeBy opToFindRange replacement
-                                    :: (case continuedSearch of
-                                            Nothing ->
-                                                []
-
-                                            Just additionalErrorsFound ->
-                                                additionalErrorsFound.fixes
-                                       )
-                            , firstStepIsComposition = True
-                            }
-
-                    else
-                        Nothing
-
-                _ ->
-                    Nothing
+                    { opToFind = ">>", replacement = "|>" }
     in
-    case pipingIntoCompositionChecksHelp expressionNode of
+    case pipingIntoCompositionChecksHelp context targetAndReplacement compositionDirection expressionNode of
         Nothing ->
             Nothing
 
         Just error ->
             Just
                 (Rule.errorWithFix
-                    { message = "Use " ++ replacement ++ " instead of " ++ opToFind
+                    { message = "Use " ++ targetAndReplacement.replacement ++ " instead of " ++ targetAndReplacement.opToFind
                     , details =
-                        [ "Because of the precedence of operators, using " ++ opToFind ++ " at this location is the same as using " ++ replacement ++ "."
-                        , "To make it more idiomatic in Elm and generally easier to read, please use " ++ replacement ++ " instead. You may need to remove some parentheses to do this."
+                        [ "Because of the precedence of operators, using " ++ targetAndReplacement.opToFind ++ " at this location is the same as using " ++ targetAndReplacement.replacement ++ "."
+                        , "To make it more idiomatic in Elm and generally easier to read, please use " ++ targetAndReplacement.replacement ++ " instead. You may need to remove some parentheses to do this."
                         , "Here is an example:"
                             ++ (case compositionDirection of
                                     CallStyle.RightToLeft ->
@@ -17933,6 +17864,82 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                     error.opToReplaceRange
                     error.fixes
                 )
+
+
+pipingIntoCompositionChecksHelp :
+    { commentRanges : List Range, extractSourceCode : Range -> String }
+    -> { opToFind : String, replacement : String }
+    -> CallStyle.LeftOrRightDirection
+    -> Node Expression
+    -> Maybe { opToReplaceRange : Range, fixes : List Fix, firstStepIsComposition : Bool }
+pipingIntoCompositionChecksHelp context targetAndReplacement compositionDirection subExpression =
+    case Node.value subExpression of
+        Expression.ParenthesizedExpression inParens ->
+            case pipingIntoCompositionChecksHelp context targetAndReplacement compositionDirection inParens of
+                Nothing ->
+                    Nothing
+
+                Just error ->
+                    if error.firstStepIsComposition then
+                        -- parens can safely be removed
+                        Just
+                            { opToReplaceRange = error.opToReplaceRange
+                            , firstStepIsComposition = error.firstStepIsComposition
+                            , fixes =
+                                removeBoundariesFix subExpression ++ error.fixes
+                            }
+
+                    else
+                        -- inside parenthesis is checked separately because
+                        -- the parens here can't safely be removed
+                        Nothing
+
+        Expression.OperatorApplication symbol _ left right ->
+            let
+                continuedSearch : Maybe { opToReplaceRange : Range, fixes : List Fix, firstStepIsComposition : Bool }
+                continuedSearch =
+                    case compositionDirection of
+                        CallStyle.RightToLeft ->
+                            pipingIntoCompositionChecksHelp context targetAndReplacement compositionDirection left
+
+                        CallStyle.LeftToRight ->
+                            pipingIntoCompositionChecksHelp context targetAndReplacement compositionDirection right
+            in
+            if symbol == targetAndReplacement.replacement then
+                Maybe.map (\errors -> { errors | firstStepIsComposition = False })
+                    continuedSearch
+
+            else if symbol == targetAndReplacement.opToFind then
+                let
+                    opToFindRange : Range
+                    opToFindRange =
+                        findOperatorRange
+                            { operator = targetAndReplacement.opToFind
+                            , commentRanges = context.commentRanges
+                            , extractSourceCode = context.extractSourceCode
+                            , leftRange = Node.range left
+                            , rightRange = Node.range right
+                            }
+                in
+                Just
+                    { opToReplaceRange = opToFindRange
+                    , fixes =
+                        Fix.replaceRangeBy opToFindRange targetAndReplacement.replacement
+                            :: (case continuedSearch of
+                                    Nothing ->
+                                        []
+
+                                    Just additionalErrorsFound ->
+                                        additionalErrorsFound.fixes
+                               )
+                    , firstStepIsComposition = True
+                    }
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
 
 
 reversedCompositionChecks :
