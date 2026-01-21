@@ -1,5 +1,5 @@
 module Simplify.AstHelpers exposing
-    ( removeParens, removeParensFromPattern
+    ( removeParens, removeParensWithRanges, removeParensFromPattern
     , ReduceLambdaResources, reduceLambda
     , getSingleArgCall
     , getValueOrFnOrFnCall, getUnreducedValueOrFnOrFnCall
@@ -24,7 +24,7 @@ module Simplify.AstHelpers exposing
 
 ### remove parens
 
-@docs removeParens, removeParensFromPattern
+@docs removeParens, removeParensWithRanges, removeParensFromPattern
 
 
 ## reduce lambda
@@ -109,6 +109,19 @@ removeParensFromPattern patternNode =
 
         _ ->
             patternNode
+
+
+{-| Keep removing parens from the outside until we have something different from a `ParenthesizedExpression`.
+Also returns the range of every encountered `ParenthesizedExpression`.
+-}
+removeParensWithRanges : Node Expression -> List Range -> ( Node Expression, List Range )
+removeParensWithRanges ((Node range expr) as node) rangesSoFar =
+    case expr of
+        Expression.ParenthesizedExpression expressionInsideOnePairOfParensNode ->
+            removeParensWithRanges expressionInsideOnePairOfParensNode (range :: rangesSoFar)
+
+        _ ->
+            ( node, rangesSoFar )
 
 
 type alias ReduceLambdaResources context =

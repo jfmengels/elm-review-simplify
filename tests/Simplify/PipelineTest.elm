@@ -224,4 +224,230 @@ a =
         b
 """
                         ]
+        , test "should reverse >> when used in a <| pipeline (with parentheses)" <|
+            \() ->
+                """module A exposing (..)
+a = (f >> g) <| b
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use <| instead of >>"
+                            , details =
+                                [ "Mixing chains of functions with >> in a direct function call with arguments positioned at the other end is confusing."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use <| instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: data |> (fn1 >> fn2)
+After:  data |> fn1 |> fn2"""
+                                ]
+                            , under = ">>"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = g <| f <| b
+"""
+                        ]
+        , test "should reverse >> when used in a <| pipeline (without parentheses)" <|
+            \() ->
+                """module A exposing (..)
+a = f >> g <| b
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use <| instead of >>"
+                            , details =
+                                [ "Mixing chains of functions with >> in a direct function call with arguments positioned at the other end is confusing."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use <| instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: data |> (fn1 >> fn2)
+After:  data |> fn1 |> fn2"""
+                                ]
+                            , under = ">>"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = g <| f <| b
+"""
+                        ]
+        , test "should reverse >> when used in a <| pipeline (many elements)" <|
+            \() ->
+                """module A exposing (..)
+a = f >> g >> h >> i <| b
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use <| instead of >>"
+                            , details =
+                                [ "Mixing chains of functions with >> in a direct function call with arguments positioned at the other end is confusing."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use <| instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: data |> (fn1 >> fn2)
+After:  data |> fn1 |> fn2"""
+                                ]
+                            , under = ">>"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 17 }, end = { row = 2, column = 19 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = i <| h <| g <| f <| b
+"""
+                        ]
+        , test "should reverse >> when used in a <| pipeline (many elements, including parens)" <|
+            \() ->
+                """module A exposing (..)
+a = f >> g >> (h >> i) <| b
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use <| instead of >>"
+                            , details =
+                                [ "Mixing chains of functions with >> in a direct function call with arguments positioned at the other end is confusing."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use <| instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: data |> (fn1 >> fn2)
+After:  data |> fn1 |> fn2"""
+                                ]
+                            , under = ">>"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 18 }, end = { row = 2, column = 20 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = i <| h <| g <| f <| b
+"""
+                        ]
+        , test "should not reverse << sub-compositions in a <| pipeline" <|
+            \() ->
+                """module A exposing (..)
+a = f >> g >> (i << h) <| b
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use <| instead of >>"
+                            , details =
+                                [ "Mixing chains of functions with >> in a direct function call with arguments positioned at the other end is confusing."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use <| instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: data |> (fn1 >> fn2)
+After:  data |> fn1 |> fn2"""
+                                ]
+                            , under = ">>"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 12 }, end = { row = 2, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = i << h <| g <| f <| b
+"""
+                        ]
+        , test "should reverse << when used in a |> pipeline (with parentheses)" <|
+            \() ->
+                """module A exposing (..)
+a = b |> (g << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use |> instead of <<"
+                            , details =
+                                [ "Mixing chains of functions with << in a direct function call with arguments positioned at the other end is confusing."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use |> instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: (fn2 << fn1) data
+After:   fn2 <| fn1  data"""
+                                ]
+                            , under = "<<"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = b |> f |> g
+"""
+                        ]
+        , test "should reverse << when used in a |> pipeline (without parentheses)" <|
+            \() ->
+                """module A exposing (..)
+a = b |> g << f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use |> instead of <<"
+                            , details =
+                                [ "Mixing chains of functions with << in a direct function call with arguments positioned at the other end is confusing."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use |> instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: (fn2 << fn1) data
+After:   fn2 <| fn1  data"""
+                                ]
+                            , under = "<<"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = b |> f |> g
+"""
+                        ]
+        , test "should reverse << when used in a |> pipeline (many elements)" <|
+            \() ->
+                """module A exposing (..)
+a = b |> i << h << g << f
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use |> instead of <<"
+                            , details =
+                                [ "Mixing chains of functions with << in a direct function call with arguments positioned at the other end is confusing."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use |> instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: (fn2 << fn1) data
+After:   fn2 <| fn1  data"""
+                                ]
+                            , under = "<<"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 12 }, end = { row = 2, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = b |> f |> g |> h |> i
+"""
+                        ]
+        , test "should reverse << when used in a |> pipeline (many elements, including parens)" <|
+            \() ->
+                """module A exposing (..)
+a = b |> i << h << (g << f)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use |> instead of <<"
+                            , details =
+                                [ "Mixing chains of functions with << in a direct function call with arguments positioned at the other end is confusing."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use |> instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: (fn2 << fn1) data
+After:   fn2 <| fn1  data"""
+                                ]
+                            , under = "<<"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 12 }, end = { row = 2, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = b |> f |> g |> h |> i
+"""
+                        ]
+        , test "should not reverse >> sub-compositions in a |> pipeline" <|
+            \() ->
+                """module A exposing (..)
+a = b |> i << h << (f >> g)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use |> instead of <<"
+                            , details =
+                                [ "Mixing chains of functions with << in a direct function call with arguments positioned at the other end is confusing."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use |> instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: (fn2 << fn1) data
+After:   fn2 <| fn1  data"""
+                                ]
+                            , under = "<<"
+                            }
+                            |> Review.Test.atExactly { start = { row = 2, column = 12 }, end = { row = 2, column = 14 } }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = b |> f >> g |> h |> i
+"""
+                        ]
         ]

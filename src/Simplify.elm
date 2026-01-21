@@ -1996,6 +1996,7 @@ All of these also apply for `Sub`.
 
 -}
 
+import Array exposing (Array)
 import Dict exposing (Dict)
 import Elm.Docs
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
@@ -17737,6 +17738,10 @@ pipelineChecks checkInfo =
     pipingIntoCompositionChecks { commentRanges = checkInfo.commentRanges, extractSourceCode = checkInfo.extractSourceCode } checkInfo.direction checkInfo.pipedInto
         |> onNothing
             (\() ->
+                reversedCompositionChecks checkInfo checkInfo.pipedInto
+            )
+        |> onNothing
+            (\() ->
                 fullyAppliedLambdaInPipelineChecks
                     { nodeRange = checkInfo.nodeRange
                     , function = checkInfo.pipedInto
@@ -17908,6 +17913,149 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                     error.opToReplaceRange
                     error.fixes
                 )
+
+
+reversedCompositionChecks :
+    { checkInfo
+        | commentRanges : List Range
+        , extractSourceCode : Range -> String
+        , direction : CallStyle.LeftOrRightDirection
+    }
+    -> Node Expression
+    -> Maybe (Error {})
+reversedCompositionChecks checkInfo node =
+    let
+        { targetOp, replacement } =
+            case checkInfo.direction of
+                CallStyle.RightToLeft ->
+                    { targetOp = ">>", replacement = "<|" }
+
+                CallStyle.LeftToRight ->
+                    { targetOp = "<<", replacement = "|>" }
+
+        ( operators, expressions, parensRanges ) =
+            findCompositionElements
+                { commentRanges = checkInfo.commentRanges
+                , extractSourceCode = checkInfo.extractSourceCode
+                , direction = checkInfo.direction
+                , targetOp = targetOp
+                , replacement = replacement
+                }
+                []
+                Array.empty
+                []
+                node
+    in
+    case List.head operators of
+        Nothing ->
+            Nothing
+
+        Just firstOperator ->
+            Just
+                (Rule.errorWithFix
+                    { message = "Use " ++ replacement ++ " instead of " ++ targetOp
+                    , details =
+                        [ "Mixing chains of functions with " ++ targetOp ++ " in a direct function call with arguments positioned at the other end is confusing."
+                        , "To make it more idiomatic in Elm and generally easier to read, please use " ++ replacement ++ " instead. You may need to remove some parentheses to do this."
+                        , "Here is an example:\n"
+                            ++ (case checkInfo.direction of
+                                    CallStyle.RightToLeft ->
+                                        "Before: data |> (fn1 >> fn2)\nAfter:  data |> fn1 |> fn2"
+
+                                    CallStyle.LeftToRight ->
+                                        "Before: (fn2 << fn1) data\nAfter:   fn2 <| fn1  data"
+                               )
+                        ]
+                    }
+                    firstOperator
+                    (expressions
+                        |> Array.toIndexedList
+                        |> List.foldl
+                            (\( index, range ) edits ->
+                                case Array.get (Array.length expressions - index - 1) expressions of
+                                    Just oppositeExpressionRange ->
+                                        Fix.replaceRangeBy range (checkInfo.extractSourceCode oppositeExpressionRange) :: edits
+
+                                    Nothing ->
+                                        edits
+                            )
+                            (List.concatMap (\range -> removeBoundariesFix (Node range ())) parensRanges)
+                        |> (\edits -> List.foldl (\range acc -> Fix.replaceRangeBy range replacement :: acc) edits operators)
+                    )
+                )
+
+
+findCompositionElements :
+    { commentRanges : List Range
+    , extractSourceCode : Range -> String
+    , direction : CallStyle.LeftOrRightDirection
+    , targetOp : String
+    , replacement : String
+    }
+    -> List Range
+    -> Array Range
+    -> List Range
+    -> Node Expression
+    -> ( List Range, Array Range, List Range )
+findCompositionElements context operators expressions parens baseNode =
+    let
+        ( Node nodeRange expr, parensRanges ) =
+            AstHelpers.removeParensWithRanges baseNode parens
+    in
+    case expr of
+        Expression.OperatorApplication symbol _ ((Node leftRange _) as left) ((Node rightRange _) as right) ->
+            if symbol == context.targetOp then
+                let
+                    operatorRange : Range
+                    operatorRange =
+                        findOperatorRange
+                            { operator = context.targetOp
+                            , commentRanges = context.commentRanges
+                            , extractSourceCode = context.extractSourceCode
+                            , leftRange = leftRange
+                            , rightRange = rightRange
+                            }
+                in
+                case context.direction of
+                    CallStyle.RightToLeft ->
+                        let
+                            ( ops, exprs, subParens ) =
+                                findCompositionElements
+                                    context
+                                    operators
+                                    expressions
+                                    parensRanges
+                                    left
+                        in
+                        findCompositionElements
+                            context
+                            (operatorRange :: ops)
+                            exprs
+                            subParens
+                            right
+
+                    CallStyle.LeftToRight ->
+                        let
+                            ( ops, exprs, subParens ) =
+                                findCompositionElements
+                                    context
+                                    operators
+                                    expressions
+                                    parensRanges
+                                    right
+                        in
+                        findCompositionElements
+                            context
+                            (operatorRange :: ops)
+                            exprs
+                            subParens
+                            left
+
+            else
+                ( operators, Array.push nodeRange expressions, parensRanges )
+
+        _ ->
+            ( operators, Array.push nodeRange expressions, parensRanges )
 
 
 rightPipeExample : String
