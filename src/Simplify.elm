@@ -324,6 +324,15 @@ Destructuring using case expressions
     a |> f >> g
     --> a |> f |> g
 
+    (f >> g) a
+    --> g <| f a
+
+    (f >> g) <| a
+    --> g <| f <| a
+
+    a |> (g << f)
+    --> a |> g |> f
+
 
 ### Numbers
 
@@ -3344,6 +3353,26 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             , importCustomTypes = context.importCustomTypes
                             , moduleCustomTypes = context.moduleCustomTypes
                             }
+
+                    Node parens (Expression.ParenthesizedExpression ((Node _ (Expression.OperatorApplication "<<" _ _ _)) as operationNode)) ->
+                        pipingIntoCompositionChecks
+                            { commentRanges = context.commentRanges
+                            , extractSourceCode = context.extractSourceCode
+                            , direction = CallStyle.RightToLeft
+                            }
+                            (\() ->
+                                if List.isEmpty argsAfterFirst then
+                                    removeBoundariesFix applied
+
+                                else
+                                    [ Fix.removeRange
+                                        { start = { row = parens.end.row, column = parens.end.column - 1 }
+                                        , end = parens.end
+                                        }
+                                    , Fix.insertAt (Node.range firstArg).end ")"
+                                    ]
+                            )
+                            operationNode
 
                     Node parens (Expression.ParenthesizedExpression ((Node _ (Expression.OperatorApplication ">>" _ _ _)) as operationNode)) ->
                         reversedCompositionChecks
@@ -17755,7 +17784,7 @@ pipelineChecks :
     }
     -> Maybe (Error {})
 pipelineChecks checkInfo =
-    pipingIntoCompositionChecks { commentRanges = checkInfo.commentRanges, extractSourceCode = checkInfo.extractSourceCode } checkInfo.direction checkInfo.pipedInto
+    pipingIntoCompositionChecks checkInfo (always []) checkInfo.pipedInto
         |> onNothing
             (\() ->
                 reversedCompositionChecks checkInfo (\() -> []) checkInfo.pipedInto
@@ -17825,22 +17854,26 @@ fullyAppliedLambdaInPipelineChecks checkInfo =
 
 
 pipingIntoCompositionChecks :
-    { commentRanges : List Range, extractSourceCode : Range -> String }
-    -> CallStyle.LeftOrRightDirection
+    { context
+        | commentRanges : List Range
+        , extractSourceCode : Range -> String
+        , direction : CallStyle.LeftOrRightDirection
+    }
+    -> (() -> List Fix)
     -> Node Expression
     -> Maybe (Error {})
-pipingIntoCompositionChecks context compositionDirection expressionNode =
+pipingIntoCompositionChecks context fixesFromParent expressionNode =
     let
         targetAndReplacement : { opToFind : String, replacement : String }
         targetAndReplacement =
-            case compositionDirection of
+            case context.direction of
                 CallStyle.RightToLeft ->
                     { opToFind = "<<", replacement = "<|" }
 
                 CallStyle.LeftToRight ->
                     { opToFind = ">>", replacement = "|>" }
     in
-    case pipingIntoCompositionChecksHelp context targetAndReplacement compositionDirection expressionNode of
+    case pipingIntoCompositionChecksHelp context targetAndReplacement expressionNode of
         Nothing ->
             Nothing
 
@@ -17852,7 +17885,7 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                         [ "Because of the precedence of operators, using " ++ targetAndReplacement.opToFind ++ " at this location is the same as using " ++ targetAndReplacement.replacement ++ "."
                         , "To make it more idiomatic in Elm and generally easier to read, please use " ++ targetAndReplacement.replacement ++ " instead. You may need to remove some parentheses to do this."
                         , "Here is an example:"
-                            ++ (case compositionDirection of
+                            ++ (case context.direction of
                                     CallStyle.RightToLeft ->
                                         leftPipeExample
 
@@ -17862,20 +17895,23 @@ pipingIntoCompositionChecks context compositionDirection expressionNode =
                         ]
                     }
                     error.opToReplaceRange
-                    error.fixes
+                    (fixesFromParent () ++ error.fixes)
                 )
 
 
 pipingIntoCompositionChecksHelp :
-    { commentRanges : List Range, extractSourceCode : Range -> String }
+    { context
+        | commentRanges : List Range
+        , extractSourceCode : Range -> String
+        , direction : CallStyle.LeftOrRightDirection
+    }
     -> { opToFind : String, replacement : String }
-    -> CallStyle.LeftOrRightDirection
     -> Node Expression
     -> Maybe { opToReplaceRange : Range, fixes : List Fix, firstStepIsComposition : Bool }
-pipingIntoCompositionChecksHelp context targetAndReplacement compositionDirection subExpression =
+pipingIntoCompositionChecksHelp context targetAndReplacement subExpression =
     case Node.value subExpression of
         Expression.ParenthesizedExpression inParens ->
-            case pipingIntoCompositionChecksHelp context targetAndReplacement compositionDirection inParens of
+            case pipingIntoCompositionChecksHelp context targetAndReplacement inParens of
                 Nothing ->
                     Nothing
 
@@ -17898,12 +17934,12 @@ pipingIntoCompositionChecksHelp context targetAndReplacement compositionDirectio
             let
                 continuedSearch : Maybe { opToReplaceRange : Range, fixes : List Fix, firstStepIsComposition : Bool }
                 continuedSearch =
-                    case compositionDirection of
+                    case context.direction of
                         CallStyle.RightToLeft ->
-                            pipingIntoCompositionChecksHelp context targetAndReplacement compositionDirection left
+                            pipingIntoCompositionChecksHelp context targetAndReplacement left
 
                         CallStyle.LeftToRight ->
-                            pipingIntoCompositionChecksHelp context targetAndReplacement compositionDirection right
+                            pipingIntoCompositionChecksHelp context targetAndReplacement right
             in
             if symbol == targetAndReplacement.replacement then
                 Maybe.map (\errors -> { errors | firstStepIsComposition = False })

@@ -472,7 +472,7 @@ After:  data |> fn1 |> fn2"""
 a = g <| f b
 """
                         ]
-        , test "should reverse >> when used in a plain application call and add parens if there are more arguments" <|
+        , test "should reverse >> when used in a plain application call, and add parens if there are more arguments" <|
             \() ->
                 """module A exposing (..)
 a = (f >> g) b c
@@ -489,6 +489,50 @@ Before: data |> (fn1 >> fn2)
 After:  data |> fn1 |> fn2"""
                                 ]
                             , under = ">>"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = (g <| f b) c
+"""
+                        ]
+        , test "should convert from << to <| when used in a plain application call" <|
+            \() ->
+                """module A exposing (..)
+a = (g << f) b
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use <| instead of <<"
+                            , details =
+                                [ "Because of the precedence of operators, using << at this location is the same as using <|."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use <| instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: (fn3 << fn2) <| fn1 <| data
+After:   fn3 <| fn2  <| fn1 <| data"""
+                                ]
+                            , under = "<<"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = g <| f b
+"""
+                        ]
+        , test "should convert from << to <| when used in a plain application call, and add parens if there are more arguments" <|
+            \() ->
+                """module A exposing (..)
+a = (g << f) b c
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Use <| instead of <<"
+                            , details =
+                                [ "Because of the precedence of operators, using << at this location is the same as using <|."
+                                , "To make it more idiomatic in Elm and generally easier to read, please use <| instead. You may need to remove some parentheses to do this."
+                                , """Here is an example:
+Before: (fn3 << fn2) <| fn1 <| data
+After:   fn3 <| fn2  <| fn1 <| data"""
+                                ]
+                            , under = "<<"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
 a = (g <| f b) c

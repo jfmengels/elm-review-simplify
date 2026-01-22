@@ -20,6 +20,9 @@ The rule now simplifies:
 - `(\()) -> x) <| f <| y` to `x` (previously not always applied in pipelines)
 - `(\a _ -> x) y z` to `(\a -> x) y` (previously only the first argument would get removed)
 - `f >> (\_ -> x)` to `(\_ -> x)`
+- `(f >> g) data` to `g <| f data`
+- `(f >> g) <| data` to `g <| f <| data`
+- `data |> (g << f)` to `data |> f |> g`
 - `List.map f (List.repeat n a)` to `List.repeat n (f a)`
 - `Array.map f (Array.repeat n a)` to `Array.repeat n (f a)`
 - `String.map f (String.repeat n (String.fromChar c))` to `String.repeat n (String.fromChar (f c))`
