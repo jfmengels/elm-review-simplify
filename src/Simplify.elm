@@ -3345,6 +3345,26 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             , moduleCustomTypes = context.moduleCustomTypes
                             }
 
+                    Node parens (Expression.ParenthesizedExpression ((Node _ (Expression.OperatorApplication ">>" _ _ _)) as operationNode)) ->
+                        reversedCompositionChecks
+                            { commentRanges = context.commentRanges
+                            , extractSourceCode = context.extractSourceCode
+                            , direction = CallStyle.RightToLeft
+                            }
+                            (\() ->
+                                if List.isEmpty argsAfterFirst then
+                                    removeBoundariesFix applied
+
+                                else
+                                    [ Fix.removeRange
+                                        { start = { row = parens.end.row, column = parens.end.column - 1 }
+                                        , end = parens.end
+                                        }
+                                    , Fix.insertAt (Node.range firstArg).end ")"
+                                    ]
+                            )
+                            operationNode
+
                     Node operatorRange (Expression.PrefixOperator operator) ->
                         (if operator == "==" then
                             comparisonWithEmptyCheckInPrefixOperator
@@ -17738,7 +17758,7 @@ pipelineChecks checkInfo =
     pipingIntoCompositionChecks { commentRanges = checkInfo.commentRanges, extractSourceCode = checkInfo.extractSourceCode } checkInfo.direction checkInfo.pipedInto
         |> onNothing
             (\() ->
-                reversedCompositionChecks checkInfo checkInfo.pipedInto
+                reversedCompositionChecks checkInfo (\() -> []) checkInfo.pipedInto
             )
         |> onNothing
             (\() ->
@@ -17921,9 +17941,10 @@ reversedCompositionChecks :
         , extractSourceCode : Range -> String
         , direction : CallStyle.LeftOrRightDirection
     }
+    -> (() -> List Fix)
     -> Node Expression
     -> Maybe (Error {})
-reversedCompositionChecks checkInfo node =
+reversedCompositionChecks checkInfo fixesFromParent node =
     let
         { targetOp, replacement } =
             case checkInfo.direction of
@@ -17981,6 +18002,7 @@ reversedCompositionChecks checkInfo node =
                             )
                             (List.concatMap (\range -> removeBoundariesFix (Node range ())) parensRanges)
                         |> (\edits -> List.foldl (\range acc -> Fix.replaceRangeBy range replacement :: acc) edits operators)
+                        |> (++) (fixesFromParent ())
                     )
                 )
 
