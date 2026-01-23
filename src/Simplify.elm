@@ -18033,20 +18033,23 @@ reversedCompositionChecks checkInfo fixesFromParent node =
                         ]
                     }
                     firstOperator
-                    (expressions
-                        |> Array.toIndexedList
-                        |> List.foldl
-                            (\( index, range ) edits ->
-                                case Array.get (Array.length expressions - index - 1) expressions of
-                                    Just oppositeExpressionRange ->
-                                        Fix.replaceRangeBy range (checkInfo.extractSourceCode oppositeExpressionRange) :: edits
+                    (List.concat
+                        [ List.concatMap (\range -> removeRangeBoundariesFix range) parens
+                        , expressions
+                            |> Array.toIndexedList
+                            |> List.filterMap
+                                (\( index, range ) ->
+                                    case Array.get (Array.length expressions - index - 1) expressions of
+                                        Just oppositeExpressionRange ->
+                                            Fix.replaceRangeBy range (checkInfo.extractSourceCode oppositeExpressionRange)
+                                                |> Just
 
-                                    Nothing ->
-                                        edits
-                            )
-                            (List.concatMap (\range -> removeRangeBoundariesFix range) parens)
-                        |> (\edits -> List.foldl (\range acc -> Fix.replaceRangeBy range replacement :: acc) edits operators)
-                        |> (++) (fixesFromParent ())
+                                        Nothing ->
+                                            Nothing
+                                )
+                        , List.map (\range -> Fix.replaceRangeBy range replacement) operators
+                        , fixesFromParent ()
+                        ]
                     )
                 )
 
