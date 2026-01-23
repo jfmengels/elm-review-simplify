@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 - Disabled `List.sum` and `List.product` simplifications on list reordering operations: `List.reverse`, `List.sort`, `List.sortBy`, `List.sortWith`.
-  Applying floating point operations across elements using lots of intermediate temporary numbers can loose some amount of precision, and importantly the order in which the numbers are traversed will influence how much precision is lost. An illustrative example by [Sébastien Besnier](https://github.com/sebsheep):
+  Applying floating point operations across elements using lots of intermediate temporary numbers can lose some amount of precision, and importantly the order in which the numbers are traversed will influence how much precision is lost. An illustrative example by [Sébastien Besnier](https://github.com/sebsheep):
   ```elm
   List.sum (1 :: List.repeat 100000 (2^(-53)))
   ```
