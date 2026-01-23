@@ -2005,7 +2005,6 @@ All of these also apply for `Sub`.
 
 -}
 
-import Array exposing (Array)
 import Dict exposing (Dict)
 import Elm.Docs
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
@@ -18007,7 +18006,7 @@ reversedCompositionChecks checkInfo fixesFromParent node =
                 }
                 node
                 { operators = []
-                , expressions = Array.empty
+                , expressions = []
                 , parens = []
                 }
     in
@@ -18035,18 +18034,9 @@ reversedCompositionChecks checkInfo fixesFromParent node =
                     firstOperator
                     (List.concat
                         [ List.concatMap (\range -> removeRangeBoundariesFix range) parens
-                        , expressions
-                            |> Array.toIndexedList
-                            |> List.filterMap
-                                (\( index, range ) ->
-                                    case Array.get (Array.length expressions - index - 1) expressions of
-                                        Just oppositeExpressionRange ->
-                                            Fix.replaceRangeBy range (checkInfo.extractSourceCode oppositeExpressionRange)
-                                                |> Just
-
-                                        Nothing ->
-                                            Nothing
-                                )
+                        , List.map2 (\selfRange oppositeRange -> Fix.replaceRangeBy selfRange (checkInfo.extractSourceCode oppositeRange))
+                            (List.reverse expressions)
+                            expressions
                         , List.map (\range -> Fix.replaceRangeBy range replacement) operators
                         , fixesFromParent ()
                         ]
@@ -18062,8 +18052,8 @@ findCompositionElements :
     , replacement : String
     }
     -> Node Expression
-    -> { operators : List Range, expressions : Array Range, parens : List Range }
-    -> { operators : List Range, expressions : Array Range, parens : List Range }
+    -> { operators : List Range, expressions : List Range, parens : List Range }
+    -> { operators : List Range, expressions : List Range, parens : List Range }
 findCompositionElements context baseNode acc =
     let
         ( Node nodeRange expr, parens ) =
@@ -18092,7 +18082,7 @@ findCompositionElements context baseNode acc =
                             CallStyle.LeftToRight ->
                                 { first = right, last = left }
 
-                    composition : { operators : List Range, expressions : Array Range, parens : List Range }
+                    composition : { operators : List Range, expressions : List Range, parens : List Range }
                     composition =
                         findCompositionElements
                             context
@@ -18112,13 +18102,13 @@ findCompositionElements context baseNode acc =
 
             else
                 { operators = acc.operators
-                , expressions = Array.push nodeRange acc.expressions
+                , expressions = nodeRange :: acc.expressions
                 , parens = parens
                 }
 
         _ ->
             { operators = acc.operators
-            , expressions = Array.push nodeRange acc.expressions
+            , expressions = nodeRange :: acc.expressions
             , parens = parens
             }
 
