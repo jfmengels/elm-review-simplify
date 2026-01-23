@@ -18043,7 +18043,7 @@ reversedCompositionChecks checkInfo fixesFromParent node =
                                     Nothing ->
                                         edits
                             )
-                            (List.concatMap (\range -> removeBoundariesFix (Node range ())) parensRanges)
+                            (List.concatMap (\range -> removeRangeBoundariesFix range) parensRanges)
                         |> (\edits -> List.foldl (\range acc -> Fix.replaceRangeBy range replacement :: acc) edits operators)
                         |> (++) (fixesFromParent ())
                     )
@@ -23396,8 +23396,13 @@ endWithoutBoundary range =
 
 
 removeBoundariesFix : Node a -> List Fix
-removeBoundariesFix (Node nodeRange _) =
-    keepOnlyFix { parentRange = nodeRange, keep = rangeWithoutBoundaries nodeRange }
+removeBoundariesFix (Node range _) =
+    removeRangeBoundariesFix range
+
+
+removeRangeBoundariesFix : Range -> List Fix
+removeRangeBoundariesFix range =
+    keepOnlyFix { parentRange = range, keep = rangeWithoutBoundaries range }
 
 
 leftBoundaryRange : Range -> Range
