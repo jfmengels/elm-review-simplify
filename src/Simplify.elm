@@ -17997,7 +17997,7 @@ reversedCompositionChecks checkInfo fixesFromParent node =
                 CallStyle.LeftToRight ->
                     { targetOp = "<<", replacement = "|>" }
 
-        ( operators, expressions, parensRanges ) =
+        { operators, expressions, parens } =
             findCompositionElements
                 { commentRanges = checkInfo.commentRanges
                 , extractSourceCode = checkInfo.extractSourceCode
@@ -18005,10 +18005,11 @@ reversedCompositionChecks checkInfo fixesFromParent node =
                 , targetOp = targetOp
                 , replacement = replacement
                 }
-                []
-                Array.empty
-                []
                 node
+                { operators = []
+                , expressions = Array.empty
+                , parens = []
+                }
     in
     case List.head operators of
         Nothing ->
@@ -18043,7 +18044,7 @@ reversedCompositionChecks checkInfo fixesFromParent node =
                                     Nothing ->
                                         edits
                             )
-                            (List.concatMap (\range -> removeRangeBoundariesFix range) parensRanges)
+                            (List.concatMap (\range -> removeRangeBoundariesFix range) parens)
                         |> (\edits -> List.foldl (\range acc -> Fix.replaceRangeBy range replacement :: acc) edits operators)
                         |> (++) (fixesFromParent ())
                     )
@@ -18057,15 +18058,13 @@ findCompositionElements :
     , targetOp : String
     , replacement : String
     }
-    -> List Range
-    -> Array Range
-    -> List Range
     -> Node Expression
-    -> ( List Range, Array Range, List Range )
-findCompositionElements context operators expressions parens baseNode =
+    -> { operators : List Range, expressions : Array Range, parens : List Range }
+    -> { operators : List Range, expressions : Array Range, parens : List Range }
+findCompositionElements context baseNode acc =
     let
-        ( Node nodeRange expr, parensRanges ) =
-            AstHelpers.removeParensWithRanges baseNode parens
+        ( Node nodeRange expr, parens ) =
+            AstHelpers.removeParensWithRanges baseNode acc.parens
     in
     case expr of
         Expression.OperatorApplication symbol _ ((Node leftRange _) as left) ((Node rightRange _) as right) ->
@@ -18084,43 +18083,55 @@ findCompositionElements context operators expressions parens baseNode =
                 case context.direction of
                     CallStyle.RightToLeft ->
                         let
-                            ( ops, exprs, subParens ) =
+                            composition : { operators : List Range, expressions : Array Range, parens : List Range }
+                            composition =
                                 findCompositionElements
                                     context
-                                    operators
-                                    expressions
-                                    parensRanges
                                     left
+                                    { operators = acc.operators
+                                    , expressions = acc.expressions
+                                    , parens = parens
+                                    }
                         in
                         findCompositionElements
                             context
-                            (operatorRange :: ops)
-                            exprs
-                            subParens
                             right
+                            { operators = operatorRange :: composition.operators
+                            , expressions = composition.expressions
+                            , parens = composition.parens
+                            }
 
                     CallStyle.LeftToRight ->
                         let
-                            ( ops, exprs, subParens ) =
+                            composition : { operators : List Range, expressions : Array Range, parens : List Range }
+                            composition =
                                 findCompositionElements
                                     context
-                                    operators
-                                    expressions
-                                    parensRanges
                                     right
+                                    { operators = acc.operators
+                                    , expressions = acc.expressions
+                                    , parens = parens
+                                    }
                         in
                         findCompositionElements
                             context
-                            (operatorRange :: ops)
-                            exprs
-                            subParens
                             left
+                            { operators = operatorRange :: composition.operators
+                            , expressions = composition.expressions
+                            , parens = composition.parens
+                            }
 
             else
-                ( operators, Array.push nodeRange expressions, parensRanges )
+                { operators = acc.operators
+                , expressions = Array.push nodeRange acc.expressions
+                , parens = parens
+                }
 
         _ ->
-            ( operators, Array.push nodeRange expressions, parensRanges )
+            { operators = acc.operators
+            , expressions = Array.push nodeRange acc.expressions
+            , parens = parens
+            }
 
 
 rightPipeExample : String
