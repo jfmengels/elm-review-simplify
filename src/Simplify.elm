@@ -18079,47 +18079,33 @@ findCompositionElements context baseNode acc =
                             , leftRange = leftRange
                             , rightRange = rightRange
                             }
-                in
-                case context.direction of
-                    CallStyle.RightToLeft ->
-                        let
-                            composition : { operators : List Range, expressions : Array Range, parens : List Range }
-                            composition =
-                                findCompositionElements
-                                    context
-                                    left
-                                    { operators = acc.operators
-                                    , expressions = acc.expressions
-                                    , parens = parens
-                                    }
-                        in
-                        findCompositionElements
-                            context
-                            right
-                            { operators = operatorRange :: composition.operators
-                            , expressions = composition.expressions
-                            , parens = composition.parens
-                            }
 
-                    CallStyle.LeftToRight ->
-                        let
-                            composition : { operators : List Range, expressions : Array Range, parens : List Range }
-                            composition =
-                                findCompositionElements
-                                    context
-                                    right
-                                    { operators = acc.operators
-                                    , expressions = acc.expressions
-                                    , parens = parens
-                                    }
-                        in
+                    visit : { first : Node Expression, last : Node Expression }
+                    visit =
+                        case context.direction of
+                            CallStyle.RightToLeft ->
+                                { first = left, last = right }
+
+                            CallStyle.LeftToRight ->
+                                { first = right, last = left }
+
+                    composition : { operators : List Range, expressions : Array Range, parens : List Range }
+                    composition =
                         findCompositionElements
                             context
-                            left
-                            { operators = operatorRange :: composition.operators
-                            , expressions = composition.expressions
-                            , parens = composition.parens
+                            visit.first
+                            { operators = acc.operators
+                            , expressions = acc.expressions
+                            , parens = parens
                             }
+                in
+                findCompositionElements
+                    context
+                    visit.last
+                    { operators = operatorRange :: composition.operators
+                    , expressions = composition.expressions
+                    , parens = composition.parens
+                    }
 
             else
                 { operators = acc.operators
