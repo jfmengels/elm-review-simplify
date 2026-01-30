@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+
+## [2.1.14] - 2026-01-30
+
 - Disabled `List.sum` and `List.product` simplifications on list reordering operations: `List.reverse`, `List.sort`, `List.sortBy`, `List.sortWith`.
   Applying floating point operations across elements using lots of intermediate temporary numbers can lose some amount of precision, and importantly the order in which the numbers are traversed will influence how much precision is lost. An illustrative example by [Sébastien Besnier](https://github.com/sebsheep):
   ```elm
@@ -941,7 +944,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/2.1.13...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/2.1.14...HEAD
+[2.1.14]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.14
 [2.1.13]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.13
 [2.1.12]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.12
 [2.1.11]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.11
