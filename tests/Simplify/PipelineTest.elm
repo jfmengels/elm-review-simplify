@@ -494,7 +494,7 @@ After:  data |> fn1 |> fn2"""
 a = (g <| f b) c
 """
                         ]
-        , test "should convert application from >> to parenthesized <| to preserve precedence issues" <|
+        , test "should convert application from >> to parenthesized <| to avoid precedence issues" <|
             \() ->
                 """module A exposing (..)
 a = (f >> g) b == 0
@@ -538,7 +538,7 @@ After:   fn3 <| fn2  <| fn1 <| data"""
 a = (g <| f b)
 """
                         ]
-        , test "should convert application from << to parenthesized <| to preserve precedence issues" <|
+        , test "should convert application from << to parenthesized <| to avoid precedence issues" <|
             \() ->
                 """module A exposing (..)
 a = (g << f) b == 0
