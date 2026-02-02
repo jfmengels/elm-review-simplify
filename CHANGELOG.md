@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+Bug fixes:
+- `(f << g) a` (any applied composition with a single argument) was previously fixed to `f <| g a` without parens which could lead to compile errors with precedence, for example in the fixed code `f <| g a == y`
+
 ## [2.1.14] - 2026-01-30
 
 - Disabled `List.sum` and `List.product` simplifications on list reordering operations: `List.reverse`, `List.sort`, `List.sortBy`, `List.sortWith`.

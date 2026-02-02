@@ -3354,14 +3354,16 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             }
 
                     Node parens (Expression.ParenthesizedExpression ((Node _ (Expression.OperatorApplication "<<" _ _ _)) as operationNode)) ->
-                        pipingIntoCompositionChecks
+                        callingCompositionChecks
                             { commentRanges = context.commentRanges
                             , extractSourceCode = context.extractSourceCode
                             , direction = CallStyle.RightToLeft
                             }
                             (\() ->
                                 if List.isEmpty argsAfterFirst then
-                                    removeBoundariesFix applied
+                                    Fix.insertAt expressionRange.start "("
+                                        :: Fix.insertAt expressionRange.end ")"
+                                        :: removeBoundariesFix applied
 
                                 else
                                     [ Fix.removeRange
@@ -3381,7 +3383,9 @@ expressionVisitorHelp (Node expressionRange expression) config context =
                             }
                             (\() ->
                                 if List.isEmpty argsAfterFirst then
-                                    removeBoundariesFix applied
+                                    Fix.insertAt expressionRange.start "("
+                                        :: Fix.insertAt expressionRange.end ")"
+                                        :: removeBoundariesFix applied
 
                                 else
                                     [ Fix.removeRange
@@ -17783,7 +17787,7 @@ pipelineChecks :
     }
     -> Maybe (Error {})
 pipelineChecks checkInfo =
-    pipingIntoCompositionChecks checkInfo (always []) checkInfo.pipedInto
+    callingCompositionChecks checkInfo (always []) checkInfo.pipedInto
         |> onNothing
             (\() ->
                 reversedCompositionChecks checkInfo (\() -> []) checkInfo.pipedInto
@@ -17852,7 +17856,7 @@ fullyAppliedLambdaInPipelineChecks checkInfo =
             Nothing
 
 
-pipingIntoCompositionChecks :
+callingCompositionChecks :
     { context
         | commentRanges : List Range
         , extractSourceCode : Range -> String
@@ -17861,7 +17865,7 @@ pipingIntoCompositionChecks :
     -> (() -> List Fix)
     -> Node Expression
     -> Maybe (Error {})
-pipingIntoCompositionChecks context fixesFromParent expressionNode =
+callingCompositionChecks context fixesFromParent expressionNode =
     let
         targetAndReplacement : { opToFind : String, replacement : String }
         targetAndReplacement =
