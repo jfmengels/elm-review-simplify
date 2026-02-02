@@ -3,7 +3,7 @@
     "name": "jfmengels/elm-review-simplify",
     "summary": "Provides elm-review rules to simplify Elm code",
     "license": "BSD-3-Clause",
-    "version": "2.1.14",
+    "version": "2.1.15",
     "exposed-modules": [
         "Simplify"
     ],

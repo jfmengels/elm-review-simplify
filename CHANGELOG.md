@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.1.15] - 2026-02-02
+
 Bug fixes:
 - `(f << g) a` (any applied composition with a single argument) was previously fixed to `f <| g a` without parens which could lead to compile errors with precedence, for example in the fixed code `f <| g a == y`
 
@@ -947,7 +949,8 @@ The rule now simplifies:
 
 Help would be appreciated to fill the blanks!
 
-[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/2.1.14...HEAD
+[Unreleased]: https://github.com/jfmengels/elm-review-simplify/compare/2.1.15...HEAD
+[2.1.15]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.15
 [2.1.14]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.14
 [2.1.13]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.13
 [2.1.12]: https://github.com/jfmengels/elm-review-simplify/releases/tag/2.1.12
