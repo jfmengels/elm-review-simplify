@@ -3148,13 +3148,8 @@ qualify ( moduleName, name ) qualifyResources =
                     moduleName
 
                 Just import_ ->
-                    let
-                        moduleImportedName : ModuleName
-                        moduleImportedName =
-                            import_.alias |> Maybe.withDefault moduleName
-                    in
                     if not (isExposedFrom import_.exposed name) then
-                        moduleImportedName
+                        import_.alias |> Maybe.withDefault moduleName
 
                     else
                         let
@@ -3163,7 +3158,7 @@ qualify ( moduleName, name ) qualifyResources =
                                 isBindingInScope qualifyResources name
                         in
                         if isShadowed then
-                            moduleImportedName
+                            import_.alias |> Maybe.withDefault moduleName
 
                         else
                             []
