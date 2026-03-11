@@ -8105,10 +8105,8 @@ maybeWithDefaultChecks =
             , args = [ maybeNothingProperties ]
             , combinedFn = Fn.Maybe.andThen
             }
-        , onSpecificFnCallCanBeCombinedCheck { args = [], earlierFn = Fn.Result.toMaybe, combinedFn = Fn.Result.withDefault }
+        , onConversionFnCallCanBeCombinedCheck { combinedOperationRepresents = "extract a Result's success value with a fallback for errors", actionRepresents = "convert to a Maybe", convertFn = Fn.Result.toMaybe, combinedFn = Fn.Result.withDefault }
         ]
-
-
 
 -- RESULT FUNCTIONS
 

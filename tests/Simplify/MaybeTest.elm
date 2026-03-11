@@ -996,12 +996,28 @@ a = result |> Result.toMaybe |> Maybe.withDefault default
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Result.toMaybe, then Maybe.withDefault can be combined into Result.withDefault"
-                            , details = [ "You can replace this call by Result.withDefault with the same argument given to Result.toMaybe which is meant for this exact purpose." ]
+                            { message = "To extract a Result's success value with a fallback for errors, you don't need to convert to a Maybe"
+                            , details = [ "Using Result.withDefault directly is meant for this exact purpose and will also be faster." ]
                             , under = "Maybe.withDefault"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)
-a = result |> Result.withDefault
+a = result |> Result.withDefault default
+"""
+                        ]
+        , test "should replace Result.toMaybe >> Maybe.withDefault default with Result.withDefault default" <|
+            \() ->
+                """module A exposing (..)
+a = Result.toMaybe >> Maybe.withDefault default
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "To extract a Result's success value with a fallback for errors, you don't need to convert to a Maybe"
+                            , details = [ "Using Result.withDefault directly is meant for this exact purpose and will also be faster." ]
+                            , under = "Maybe.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Result.withDefault default
 """
                         ]
         ]
