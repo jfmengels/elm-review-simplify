@@ -988,7 +988,7 @@ a = Maybe.map f >> Maybe.withDefault Nothing
 a = Maybe.andThen f
 """
                         ]
-        , test "should replace result |> Result.toMaybe |> Maybe.withDefault default with result |> Result.withDeafult default" <|
+        , test "should replace result |> Result.toMaybe |> Maybe.withDefault default with result |> Result.withDefault default" <|
             \() ->
                 """module A exposing (..)
 a = result |> Result.toMaybe |> Maybe.withDefault default

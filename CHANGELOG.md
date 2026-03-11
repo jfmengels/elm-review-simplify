@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+The rule now simplifies:
+- `result |> Result.toMaybe |> Maybe.withDefault default` to `result |> Result.withDefault default`
+
 ## [2.1.15] - 2026-02-02
 
 Bug fixes:
