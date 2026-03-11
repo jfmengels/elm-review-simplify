@@ -988,4 +988,20 @@ a = Maybe.map f >> Maybe.withDefault Nothing
 a = Maybe.andThen f
 """
                         ]
+        , test "should replace result |> Result.toMaybe |> Maybe.withDefault default with result |> Result.withDeafult default" <|
+            \() ->
+                """module A exposing (..)
+a = result |> Result.toMaybe |> Maybe.withDefault default
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Result.toMaybe, then Maybe.withDefault can be combined into Result.withDefault"
+                            , details = [ "You can replace this call by Result.withDefault with the same argument given to Result.toMaybe which is meant for this exact purpose." ]
+                            , under = "Maybe.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = result |> Result.withDefault
+"""
+                        ]
         ]

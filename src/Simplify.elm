@@ -772,6 +772,9 @@ Destructuring using case expressions
     Result.toMaybe (Result.mapError f result)
     --> Result.toMaybe result
 
+    res |> Result.toMaybe |> Maybe.withDefault d
+    --> res |> Result.withDefault d
+
 
 ### Lists
 
@@ -8102,6 +8105,7 @@ maybeWithDefaultChecks =
             , args = [ maybeNothingProperties ]
             , combinedFn = Fn.Maybe.andThen
             }
+        , onSpecificFnCallCanBeCombinedCheck { args = [], earlierFn = Fn.Result.toMaybe, combinedFn = Fn.Result.withDefault }
         ]
 
 
