@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+The rule now simplifies:
+- `Maybe.withDefault x (Result.toMaybe result)` to `Result.withDefault x result`
+
+
 ## [2.1.15] - 2026-02-02
 
 Bug fixes:
