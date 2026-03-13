@@ -1161,6 +1161,38 @@ a = Result.withDefault b << Ok
 a = identity
 """
                         ]
+        , test "should replace Result.withDefault default (Result.mapError f result) by Result.withDefault default result" <|
+            \() ->
+                """module A exposing (..)
+a = Result.withDefault default (Result.mapError f result)
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Result.mapError before Result.withDefault"
+                            , details = [ "Result.withDefault ignores any error value, so changing that value is unnecessary. You can replace the Result.mapError call by the unchanged result." ]
+                            , under = "Result.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Result.withDefault default result
+"""
+                        ]
+        , test "should replace Result.mapError f >> Result.withDefault default by Result.withDefault default" <|
+            \() ->
+                """module A exposing (..)
+a = Result.mapError f >> Result.withDefault default
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Unnecessary Result.mapError before Result.withDefault"
+                            , details = [ "Result.withDefault ignores any error value, so changing that value is unnecessary. You can remove the Result.mapError call." ]
+                            , under = "Result.withDefault"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+a = Result.withDefault default
+"""
+                        ]
         ]
 
 

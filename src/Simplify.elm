@@ -757,6 +757,9 @@ Destructuring using case expressions
     Result.withDefault x (Ok y)
     --> y
 
+    Result.withDefault x (Result.mapError f result)
+    --> Result.withDefault x result
+
     Result.fromMaybe x (Just a)
     --> Ok a
 
@@ -8164,7 +8167,15 @@ resultAndThenChecks =
 
 resultWithDefaultChecks : IntoFnCheck
 resultWithDefaultChecks =
-    withDefaultChecks resultWithOkAsWrap
+    intoFnChecksFirstThatConstructsError
+        [ withDefaultChecks resultWithOkAsWrap
+        , unnecessarySpecificFnBeforeCheck
+            { fn = Fn.Result.mapError
+            , fnArgCount = 2
+            , fnLastArgRepresents = "result"
+            , whyUnnecessary = qualifiedToString Fn.Result.withDefault ++ " ignores any error value, so changing that value is unnecessary"
+            }
+        ]
 
 
 resultToMaybeChecks : IntoFnCheck
