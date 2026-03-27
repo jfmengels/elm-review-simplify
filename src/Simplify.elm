@@ -1496,6 +1496,9 @@ Destructuring using case expressions
     Set.toList Set.empty
     --> []
 
+    Set.toList (Set.singleton v)
+    --> [ v ]
+
     Set.size Set.empty
     --> 0
 
@@ -11564,7 +11567,21 @@ setMapChecks =
 
 setToListChecks : IntoFnCheck
 setToListChecks =
-    intoFnCheckOnlyCall (emptiableToListChecks setCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (emptiableToListChecks setCollection)
+        , intoFnCheckOnlyCall <|
+            \checkInfo ->
+                AstHelpers.getSpecificUnreducedFnCall Fn.Set.singleton checkInfo.lookupTable checkInfo.firstArg
+                    |> Maybe.map
+                        (\setSingletonCall ->
+                            Rule.errorWithFix
+                                { message = qualifiedToString Fn.Set.toList ++ " on " ++ qualifiedToString Fn.Set.singleton ++ " will result in singleton list with that element"
+                                , details = [ "You can replace this call by a singleton list with that element." ]
+                                }
+                                checkInfo.fnRange
+                                [ Fix.replaceRangeBy checkInfo.parentRange ("[ " ++ checkInfo.extractSourceCode (Node.range setSingletonCall.firstArg) ++ " ]") ]
+                        )
+        ]
 
 
 setFoldlChecks : IntoFnCheck

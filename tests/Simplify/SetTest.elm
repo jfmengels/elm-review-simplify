@@ -1635,6 +1635,24 @@ import Set
 a = []
 """
                         ]
+        , test "should replace Set.singleton v |> Set.toList by [ v ]" <|
+            \() ->
+                """module A exposing (..)
+import Set
+a = Set.singleton v |> Set.toList
+"""
+                    |> Review.Test.run ruleWithDefaults
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = "Set.toList on Set.singleton will result in singleton list with that element"
+                            , details = [ "You can replace this call by a singleton list with that element." ]
+                            , under = "Set.toList"
+                            }
+                            |> Review.Test.whenFixed """module A exposing (..)
+import Set
+a = [ v ]
+"""
+                        ]
         , test "should not report Set.fromList with duplicate keys when expecting NaN" <|
             \() ->
                 """module A exposing (..)
