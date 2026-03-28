@@ -17558,17 +17558,22 @@ tupleSecondAccessFunctionProperties =
 
 mapToOperationWithIdentityCanBeCombinedToOperationChecks : MappableProperties otherProperties -> IntoFnCheck
 mapToOperationWithIdentityCanBeCombinedToOperationChecks mappable =
-    let
-        checkIntoFn : ( ModuleName, String ) -> IntoFnCheck
-        checkIntoFn combinedFn =
-            withSpecificArgOnSpecificFnCallCanBeCombinedCheck
+    { call =
+        \checkInfo ->
+            withSpecificArgOnSpecificFnCallCanBeCombinedCallCheck
                 { specificArg = identityFunctionProperties
                 , earlierFn = mappable.mapFn
-                , combinedFn = combinedFn
+                , combinedFn = checkInfo.fn
                 }
-    in
-    { call = \checkInfo -> (checkIntoFn checkInfo.fn).call checkInfo
-    , composition = \checkInfo -> (checkIntoFn checkInfo.later.fn).composition checkInfo
+                checkInfo
+    , composition =
+        \checkInfo ->
+            withSpecificArgOnSpecificFnCallCanBeCombinedCompositionCheck
+                { specificArg = identityFunctionProperties
+                , earlierFn = mappable.mapFn
+                , combinedFn = checkInfo.later.fn
+                }
+                checkInfo
     }
 
 
@@ -17599,101 +17604,129 @@ withSpecificArgOnSpecificFnCallCanBeCombinedCheck :
     -> IntoFnCheck
 withSpecificArgOnSpecificFnCallCanBeCombinedCheck config =
     { call =
-        \checkInfo ->
-            case
-                Maybe.andThen (\lastArg -> AstHelpers.getSpecificUnreducedFnCall config.earlierFn checkInfo.lookupTable lastArg)
-                    (fullyAppliedLastArg checkInfo)
-            of
-                Just fromFnCall ->
-                    if config.specificArg.is (extractReduceLambdaResources checkInfo) checkInfo.firstArg then
-                        Just
-                            (Rule.errorWithFix
-                                { message =
-                                    qualifiedToString config.earlierFn
-                                        ++ ", then "
-                                        ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources)
-                                        ++ " with "
-                                        ++ config.specificArg.description
-                                        ++ " can be combined into "
-                                        ++ qualifiedToString config.combinedFn
-                                , details =
-                                    [ "You can replace this call by "
-                                        ++ qualifiedToString config.combinedFn
-                                        ++ " with the same "
-                                        ++ (case fromFnCall.argsAfterFirst of
-                                                [] ->
-                                                    "argument"
-
-                                                _ :: _ ->
-                                                    "arguments"
-                                           )
-                                        ++ " given to "
-                                        ++ qualifiedToString config.earlierFn
-                                        ++ " which is meant for this exact purpose."
-                                    ]
-                                }
-                                checkInfo.fnRange
-                                (Fix.replaceRangeBy
-                                    fromFnCall.fnRange
-                                    (qualifiedToString (qualify config.combinedFn checkInfo))
-                                    :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = fromFnCall.nodeRange }
-                                )
-                            )
-
-                    else
-                        Nothing
-
-                Nothing ->
-                    Nothing
+        \checkInfo -> withSpecificArgOnSpecificFnCallCanBeCombinedCallCheck config checkInfo
     , composition =
-        \checkInfo ->
-            if
-                (checkInfo.earlier.fn == config.earlierFn)
-                    && (case checkInfo.later.args of
-                            [ laterFirstArg ] ->
-                                config.specificArg.is (extractReduceLambdaResources checkInfo) laterFirstArg
+        \checkInfo -> withSpecificArgOnSpecificFnCallCanBeCombinedCompositionCheck config checkInfo
+    }
 
-                            _ ->
-                                False
-                       )
-            then
+
+withSpecificArgOnSpecificFnCallCanBeCombinedCallCheck :
+    { specificArg :
+        { argProperties
+            | description : String
+            , is : AstHelpers.ReduceLambdaResources {} -> Node Expression -> Bool
+        }
+    , earlierFn : ( ModuleName, String )
+    , combinedFn : ( ModuleName, String )
+    }
+    -> CallCheckInfo
+    -> Maybe (Error {})
+withSpecificArgOnSpecificFnCallCanBeCombinedCallCheck config checkInfo =
+    case
+        Maybe.andThen (\lastArg -> AstHelpers.getSpecificUnreducedFnCall config.earlierFn checkInfo.lookupTable lastArg)
+            (fullyAppliedLastArg checkInfo)
+    of
+        Just fromFnCall ->
+            if config.specificArg.is (extractReduceLambdaResources checkInfo) checkInfo.firstArg then
                 Just
-                    { info =
+                    (Rule.errorWithFix
                         { message =
                             qualifiedToString config.earlierFn
                                 ++ ", then "
-                                ++ qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources)
+                                ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources)
                                 ++ " with "
                                 ++ config.specificArg.description
                                 ++ " can be combined into "
                                 ++ qualifiedToString config.combinedFn
                         , details =
-                            [ "You can replace this composition by "
+                            [ "You can replace this call by "
                                 ++ qualifiedToString config.combinedFn
-                                ++ (case checkInfo.earlier.args of
+                                ++ " with the same "
+                                ++ (case fromFnCall.argsAfterFirst of
                                         [] ->
-                                            ""
+                                            "argument"
 
-                                        [ _ ] ->
-                                            " with the same argument given to " ++ qualifiedToString config.earlierFn
-
-                                        _ :: _ :: _ ->
-                                            " with the same arguments given to " ++ qualifiedToString config.earlierFn
+                                        _ :: _ ->
+                                            "arguments"
                                    )
+                                ++ " given to "
+                                ++ qualifiedToString config.earlierFn
                                 ++ " which is meant for this exact purpose."
                             ]
                         }
-                    , fix =
-                        [ Fix.replaceRangeBy
-                            checkInfo.earlier.fnRange
+                        checkInfo.fnRange
+                        (Fix.replaceRangeBy
+                            fromFnCall.fnRange
                             (qualifiedToString (qualify config.combinedFn checkInfo))
-                        , Fix.removeRange checkInfo.later.removeRange
-                        ]
-                    }
+                            :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = fromFnCall.nodeRange }
+                        )
+                    )
 
             else
                 Nothing
+
+        Nothing ->
+            Nothing
+
+
+withSpecificArgOnSpecificFnCallCanBeCombinedCompositionCheck :
+    { specificArg :
+        { argProperties
+            | description : String
+            , is : AstHelpers.ReduceLambdaResources {} -> Node Expression -> Bool
+        }
+    , earlierFn : ( ModuleName, String )
+    , combinedFn : ( ModuleName, String )
     }
+    -> CompositionIntoCheckInfo
+    -> Maybe ErrorInfoAndFix
+withSpecificArgOnSpecificFnCallCanBeCombinedCompositionCheck config checkInfo =
+    if
+        (checkInfo.earlier.fn == config.earlierFn)
+            && (case checkInfo.later.args of
+                    [ laterFirstArg ] ->
+                        config.specificArg.is (extractReduceLambdaResources checkInfo) laterFirstArg
+
+                    _ ->
+                        False
+               )
+    then
+        Just
+            { info =
+                { message =
+                    qualifiedToString config.earlierFn
+                        ++ ", then "
+                        ++ qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources)
+                        ++ " with "
+                        ++ config.specificArg.description
+                        ++ " can be combined into "
+                        ++ qualifiedToString config.combinedFn
+                , details =
+                    [ "You can replace this composition by "
+                        ++ qualifiedToString config.combinedFn
+                        ++ (case checkInfo.earlier.args of
+                                [] ->
+                                    ""
+
+                                [ _ ] ->
+                                    " with the same argument given to " ++ qualifiedToString config.earlierFn
+
+                                _ :: _ :: _ ->
+                                    " with the same arguments given to " ++ qualifiedToString config.earlierFn
+                           )
+                        ++ " which is meant for this exact purpose."
+                    ]
+                }
+            , fix =
+                [ Fix.replaceRangeBy
+                    checkInfo.earlier.fnRange
+                    (qualifiedToString (qualify config.combinedFn checkInfo))
+                , Fix.removeRange checkInfo.later.removeRange
+                ]
+            }
+
+    else
+        Nothing
 
 
 {-| Simplify this unary operation after a call to a given `earlierFn` into a given `combinedFn`.
