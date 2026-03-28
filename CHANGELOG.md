@@ -5,6 +5,8 @@
 The rule now simplifies:
 - `Maybe.withDefault x (Result.toMaybe result)` to `Result.withDefault x result`
 - `Result.withDefault x (Result.mapError f result)` to `Result.withDefault x result`
+- `Set.toList (Set.singleton v)` to `[ v ]`
+- `Set.singleton >> Set.toList` to `List.singleton`
 
 
 ## [2.1.15] - 2026-02-02

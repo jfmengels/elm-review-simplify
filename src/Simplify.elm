@@ -1496,6 +1496,12 @@ Destructuring using case expressions
     Set.toList Set.empty
     --> []
 
+    Set.toList (Set.singleton v)
+    --> [ v ]
+
+    Set.singleton >> Set.toList
+    --> List.singleton
+
     Set.size Set.empty
     --> 0
 
@@ -11564,7 +11570,35 @@ setMapChecks =
 
 setToListChecks : IntoFnCheck
 setToListChecks =
-    intoFnCheckOnlyCall (emptiableToListChecks setCollection)
+    intoFnChecksFirstThatConstructsError
+        [ intoFnCheckOnlyCall (emptiableToListChecks setCollection)
+        , { call =
+                \checkInfo ->
+                    AstHelpers.getSpecificUnreducedFnCall Fn.Set.singleton checkInfo.lookupTable checkInfo.firstArg
+                        |> Maybe.map
+                            (\setSingletonCall ->
+                                Rule.errorWithFix
+                                    { message = qualifiedToString Fn.Set.toList ++ " on " ++ qualifiedToString Fn.Set.singleton ++ " will result in a singleton list"
+                                    , details = [ "You can replace this call by a singleton list containing the element given to the " ++ qualifiedToString Fn.Set.singleton ++ " call." ]
+                                    }
+                                    checkInfo.fnRange
+                                    (keepOnlyAndSurroundWithFix
+                                        { parentRange = checkInfo.parentRange
+                                        , keep = Node.range setSingletonCall.firstArg
+                                        , left = "[ "
+                                        , right = " ]"
+                                        }
+                                    )
+                            )
+          , composition =
+                (onSpecificFnCallCanBeCombinedCheck
+                    { args = []
+                    , earlierFn = Fn.Set.singleton
+                    , combinedFn = Fn.List.singleton
+                    }
+                ).composition
+          }
+        ]
 
 
 setFoldlChecks : IntoFnCheck
