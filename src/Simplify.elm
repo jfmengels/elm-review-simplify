@@ -1499,6 +1499,9 @@ Destructuring using case expressions
     Set.toList (Set.singleton v)
     --> [ v ]
 
+    Set.singleton >> Set.toList
+    --> List.singleton
+
     Set.size Set.empty
     --> 0
 
@@ -11569,18 +11572,26 @@ setToListChecks : IntoFnCheck
 setToListChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (emptiableToListChecks setCollection)
-        , intoFnCheckOnlyCall <|
-            \checkInfo ->
-                AstHelpers.getSpecificUnreducedFnCall Fn.Set.singleton checkInfo.lookupTable checkInfo.firstArg
-                    |> Maybe.map
-                        (\setSingletonCall ->
-                            Rule.errorWithFix
-                                { message = qualifiedToString Fn.Set.toList ++ " on " ++ qualifiedToString Fn.Set.singleton ++ " will result in singleton list with that element"
-                                , details = [ "You can replace this call by a singleton list with that element." ]
-                                }
-                                checkInfo.fnRange
-                                [ Fix.replaceRangeBy checkInfo.parentRange ("[ " ++ checkInfo.extractSourceCode (Node.range setSingletonCall.firstArg) ++ " ]") ]
-                        )
+        , { call =
+                \checkInfo ->
+                    AstHelpers.getSpecificUnreducedFnCall Fn.Set.singleton checkInfo.lookupTable checkInfo.firstArg
+                        |> Maybe.map
+                            (\setSingletonCall ->
+                                Rule.errorWithFix
+                                    { message = qualifiedToString Fn.Set.toList ++ " on " ++ qualifiedToString Fn.Set.singleton ++ " will result in singleton list with that element"
+                                    , details = [ "You can replace this call by a singleton list with that element." ]
+                                    }
+                                    checkInfo.fnRange
+                                    [ Fix.replaceRangeBy checkInfo.parentRange ("[ " ++ checkInfo.extractSourceCode (Node.range setSingletonCall.firstArg) ++ " ]") ]
+                            )
+          , composition =
+                (onSpecificFnCallCanBeCombinedCheck
+                    { args = []
+                    , earlierFn = Fn.Set.singleton
+                    , combinedFn = Fn.List.singleton
+                    }
+                ).composition
+          }
         ]
 
 
