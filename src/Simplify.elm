@@ -8106,9 +8106,9 @@ maybeWithDefaultChecks : IntoFnCheck
 maybeWithDefaultChecks =
     intoFnChecksFirstThatConstructsError
         [ withDefaultChecks maybeWithJustAsWrap
-        , withSpecificArgsOnSpecificFnCallCanBeCombinedCheck
-            { earlierFn = Fn.Maybe.map
-            , args = [ maybeNothingProperties ]
+        , withSpecificArgOnSpecificFnCallCanBeCombinedCheck
+            { specificArg = maybeNothingProperties
+            , earlierFn = Fn.Maybe.map
             , combinedFn = Fn.Maybe.andThen
             }
         , onConversionFnCallCanBeCombinedCheck { combinedOperationRepresents = "extract a Result's success value with a fallback for errors", actionRepresents = "convert to a Maybe", convertFn = Fn.Result.toMaybe, combinedFn = Fn.Result.withDefault }
@@ -8829,18 +8829,18 @@ listMapChecks =
     intoFnChecksFirstThatConstructsError
         [ emptiableMapChecks listCollection
         , listMapOnSingletonCheck
-        , withSpecificArgsOnSpecificFnCallCanBeCombinedCheck
-            { args = [ tupleSecondAccessFunctionProperties ]
+        , withSpecificArgOnSpecificFnCallCanBeCombinedCheck
+            { specificArg = tupleSecondAccessFunctionProperties
             , earlierFn = Fn.Array.toIndexedList
             , combinedFn = Fn.Array.toList
             }
-        , withSpecificArgsOnSpecificFnCallCanBeCombinedCheck
-            { args = [ tupleFirstAccessFunctionProperties ]
+        , withSpecificArgOnSpecificFnCallCanBeCombinedCheck
+            { specificArg = tupleFirstAccessFunctionProperties
             , earlierFn = Fn.Dict.toList
             , combinedFn = Fn.Dict.keys
             }
-        , withSpecificArgsOnSpecificFnCallCanBeCombinedCheck
-            { args = [ tupleSecondAccessFunctionProperties ]
+        , withSpecificArgOnSpecificFnCallCanBeCombinedCheck
+            { specificArg = tupleSecondAccessFunctionProperties
             , earlierFn = Fn.Dict.toList
             , combinedFn = Fn.Dict.values
             }
@@ -17561,8 +17561,8 @@ mapToOperationWithIdentityCanBeCombinedToOperationChecks mappable =
     let
         checkIntoFn : ( ModuleName, String ) -> IntoFnCheck
         checkIntoFn combinedFn =
-            withSpecificArgsOnSpecificFnCallCanBeCombinedCheck
-                { args = [ identityFunctionProperties ]
+            withSpecificArgOnSpecificFnCallCanBeCombinedCheck
+                { specificArg = identityFunctionProperties
                 , earlierFn = mappable.mapFn
                 , combinedFn = combinedFn
                 }
@@ -17572,7 +17572,7 @@ mapToOperationWithIdentityCanBeCombinedToOperationChecks mappable =
     }
 
 
-{-| Simplify this operation with arguments matching the conditions in `args` `is`,
+{-| Simplify this operation with its first argument matching the condition in `specificArg.is`,
 after a call to a given `earlierFn` into a given `combinedFn` with the arguments of the `earlierFn` call.
 
 Examples:
@@ -17582,47 +17582,22 @@ Examples:
   - `List.filterMap identity << List.map f --> List.filterMap f`
   - `traverse identity (map f a) --> traverse f a`
 
-for checks like `List.concat << List.map f --> List.concatMap f`,
-prefer the faster `onConvertFnCanBeCombinedCheck`
+For checks into unary operations without a specific first argument,
+like `List.concat << List.map f --> List.concatMap f`,
+use the faster `onConvertFnCanBeCombinedCheck`
 
 -}
-withSpecificArgsOnSpecificFnCallCanBeCombinedCheck :
-    { args :
-        List
-            { argProperties
-                | description : String
-                , is : AstHelpers.ReduceLambdaResources {} -> Node Expression -> Bool
-            }
+withSpecificArgOnSpecificFnCallCanBeCombinedCheck :
+    { specificArg :
+        { argProperties
+            | description : String
+            , is : AstHelpers.ReduceLambdaResources {} -> Node Expression -> Bool
+        }
     , earlierFn : ( ModuleName, String )
     , combinedFn : ( ModuleName, String )
     }
     -> IntoFnCheck
-withSpecificArgsOnSpecificFnCallCanBeCombinedCheck config =
-    let
-        laterOperationDescription : ( ModuleName, String ) -> String
-        laterOperationDescription laterFn =
-            case config.args of
-                [] ->
-                    qualifiedToString (qualify laterFn defaultQualifyResources)
-
-                firstArg :: argsAfterFirst ->
-                    qualifiedToString (qualify laterFn defaultQualifyResources)
-                        ++ " with "
-                        ++ firstArg.description
-                        ++ String.concat (List.map (\arg -> " and " ++ arg.description) argsAfterFirst)
-
-        laterInitArgsAreValidForOperation : List (Node Expression) -> AstHelpers.ReduceLambdaResources res -> Bool
-        laterInitArgsAreValidForOperation laterInitArgs resources =
-            let
-                extractedResources : AstHelpers.ReduceLambdaResources {}
-                extractedResources =
-                    extractReduceLambdaResources resources
-            in
-            listAll2
-                (\arg argConfig -> argConfig.is extractedResources arg)
-                laterInitArgs
-                config.args
-    in
+withSpecificArgOnSpecificFnCallCanBeCombinedCheck config =
     { call =
         \checkInfo ->
             case
@@ -17630,10 +17605,17 @@ withSpecificArgsOnSpecificFnCallCanBeCombinedCheck config =
                     (fullyAppliedLastArg checkInfo)
             of
                 Just fromFnCall ->
-                    if laterInitArgsAreValidForOperation (listFilledInit ( checkInfo.firstArg, checkInfo.argsAfterFirst )) checkInfo then
+                    if config.specificArg.is (extractReduceLambdaResources checkInfo) checkInfo.firstArg then
                         Just
                             (Rule.errorWithFix
-                                { message = qualifiedToString config.earlierFn ++ ", then " ++ laterOperationDescription checkInfo.fn ++ " can be combined into " ++ qualifiedToString config.combinedFn
+                                { message =
+                                    qualifiedToString config.earlierFn
+                                        ++ ", then "
+                                        ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources)
+                                        ++ " with "
+                                        ++ config.specificArg.description
+                                        ++ " can be combined into "
+                                        ++ qualifiedToString config.combinedFn
                                 , details =
                                     [ "You can replace this call by "
                                         ++ qualifiedToString config.combinedFn
@@ -17666,13 +17648,25 @@ withSpecificArgsOnSpecificFnCallCanBeCombinedCheck config =
     , composition =
         \checkInfo ->
             if
-                onlyLastArgIsCurried checkInfo.later
-                    && (checkInfo.earlier.fn == config.earlierFn)
-                    && laterInitArgsAreValidForOperation checkInfo.later.args checkInfo
+                (checkInfo.earlier.fn == config.earlierFn)
+                    && (case checkInfo.later.args of
+                            [ laterFirstArg ] ->
+                                config.specificArg.is (extractReduceLambdaResources checkInfo) laterFirstArg
+
+                            _ ->
+                                False
+                       )
             then
                 Just
                     { info =
-                        { message = qualifiedToString config.earlierFn ++ ", then " ++ laterOperationDescription checkInfo.later.fn ++ " can be combined into " ++ qualifiedToString config.combinedFn
+                        { message =
+                            qualifiedToString config.earlierFn
+                                ++ ", then "
+                                ++ qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources)
+                                ++ " with "
+                                ++ config.specificArg.description
+                                ++ " can be combined into "
+                                ++ qualifiedToString config.combinedFn
                         , details =
                             [ "You can replace this composition by "
                                 ++ qualifiedToString config.combinedFn
@@ -17713,10 +17707,9 @@ Examples:
   - `Animation.loop (List.repeat n x) --> Animation.repeat n x` using [`mdgriffith/elm-style-animation`](https://package.elm-lang.org/packages/mdgriffith/elm-style-animation/4.0.0/)
   - `FormattedText.concat (List.intersperse s list) --> FormattedText.join s list` using [`NoRedInk/elm-formatted-text-19`](https://package.elm-lang.org/packages/NoRedInk/elm-formatted-text-19/1.0.0/)
 
-For checks where the convert function has multiplle arguments
-or requires specific arguments,
+For checks where the later function requires specific arguments,
 like `List.filterMap identity << List.map f --> List.filterMap f`,
-use `withSpecificArgsOnSpecificFnCallCanBeCombinedCheck`.
+use `withSpecificArgOnSpecificFnCallCanBeCombinedCheck`.
 
 -}
 convertOnSpecificFnCallCanBeCombinedCheck :
