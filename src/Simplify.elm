@@ -7299,12 +7299,12 @@ tupleFirstChecks =
                     _ ->
                         Nothing
             )
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = [], earlierFn = Fn.List.partition, combinedFn = Fn.List.filter }
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = [], earlierFn = Fn.Set.partition, combinedFn = Fn.Set.filter }
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = [], earlierFn = Fn.Dict.partition, combinedFn = Fn.Dict.filter }
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.List.partition, combinedFn = Fn.List.filter }
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Set.partition, combinedFn = Fn.Set.filter }
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Dict.partition, combinedFn = Fn.Dict.filter }
         ]
 
 
@@ -7725,9 +7725,8 @@ stringIsEmptyChecks : IntoFnCheck
 stringIsEmptyChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (collectionIsEmptyChecks stringCollection)
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.String.fromList
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.String.fromList
             , combinedFn = Fn.List.isEmpty
             }
         , unnecessarySpecificFnBeforeCheck
@@ -7776,9 +7775,8 @@ stringTrimLeftChecks =
     intoFnChecksFirstThatConstructsError
         [ unnecessaryOnEmptyCheck stringCollection
         , operationDoesNotChangeResultOfOperationCheck
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.String.trimRight
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.String.trimRight
             , combinedFn = Fn.String.trim
             }
         , unnecessaryOnSpecificFnCallCheck Fn.String.trim
@@ -7790,9 +7788,8 @@ stringTrimRightChecks =
     intoFnChecksFirstThatConstructsError
         [ unnecessaryOnEmptyCheck stringCollection
         , operationDoesNotChangeResultOfOperationCheck
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.String.trimLeft
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.String.trimLeft
             , combinedFn = Fn.String.trim
             }
         , unnecessaryOnSpecificFnCallCheck Fn.String.trim
@@ -8003,8 +8000,8 @@ stringConcatChecks : IntoFnCheck
 stringConcatChecks =
     intoFnChecksFirstThatConstructsError
         [ emptiableFlatFromListChecks stringCollection
-        , onSpecificFnCallCanBeCombinedCheck { args = [], earlierFn = Fn.List.repeat, combinedFn = Fn.String.repeat }
-        , onSpecificFnCallCanBeCombinedCheck { args = [], earlierFn = Fn.List.intersperse, combinedFn = Fn.String.join }
+        , convertOnSpecificFnCallCanBeCombinedCheck { earlierFn = Fn.List.repeat, combinedFn = Fn.String.repeat }
+        , convertOnSpecificFnCallCanBeCombinedCheck { earlierFn = Fn.List.intersperse, combinedFn = Fn.String.join }
         ]
 
 
@@ -8236,8 +8233,8 @@ listAppendChecks =
 listConcatChecks : IntoFnCheck
 listConcatChecks =
     intoFnChecksFirstThatConstructsError
-        [ onSpecificFnCallCanBeCombinedCheck
-            { args = [], earlierFn = Fn.List.map, combinedFn = Fn.List.concatMap }
+        [ convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.List.map, combinedFn = Fn.List.concatMap }
         , emptiableFlatFromListChecks listCollection
         , intoFnCheckOnlyCall
             (\checkInfo ->
@@ -8342,9 +8339,8 @@ listHeadChecks =
                                     )
                         )
             )
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.List.sort
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.List.sort
             , combinedFn = Fn.List.minimum
             }
         , earlierOperationCanBeMovedAfterAsForPerformanceChecks
@@ -10069,39 +10065,32 @@ listIsEmptyChecks : IntoFnCheck
 listIsEmptyChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (collectionIsEmptyChecks listCollection)
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Set.toList
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Set.toList
             , combinedFn = Fn.Set.isEmpty
             }
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Array.toList
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Array.toList
             , combinedFn = Fn.Array.isEmpty
             }
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Array.toIndexedList
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Array.toIndexedList
             , combinedFn = Fn.Array.isEmpty
             }
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Dict.toList
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Dict.toList
             , combinedFn = Fn.Dict.isEmpty
             }
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Dict.values
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Dict.values
             , combinedFn = Fn.Dict.isEmpty
             }
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Dict.keys
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Dict.keys
             , combinedFn = Fn.Dict.isEmpty
             }
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.String.toList
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.String.toList
             , combinedFn = Fn.String.isEmpty
             }
         , listOperationsKeepingLengthBeforeAreUnnecessaryChecks
@@ -10338,34 +10327,28 @@ listLengthChecks : IntoFnCheck
 listLengthChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (collectionSizeChecks listCollection)
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Dict.toList
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Dict.toList
             , combinedFn = Fn.Dict.size
             }
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Dict.values
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Dict.values
             , combinedFn = Fn.Dict.size
             }
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Dict.keys
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Dict.keys
             , combinedFn = Fn.Dict.size
             }
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Set.toList
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Set.toList
             , combinedFn = Fn.Set.size
             }
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Array.toList
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Array.toList
             , combinedFn = Fn.Array.length
             }
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Array.toIndexedList
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Array.toIndexedList
             , combinedFn = Fn.Array.length
             }
         , listOperationsKeepingLengthBeforeAreUnnecessaryChecks
@@ -10824,8 +10807,8 @@ arrayToListChecks =
         [ intoFnCheckOnlyCall
             (callOnEmptyReturnsCheck { resultAsString = listCollection.empty.specific.asString } arrayCollection)
         , onSpecificFnCallReturnsItsLastArgCheck Fn.Array.fromList
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = [], earlierFn = Fn.Array.repeat, combinedFn = Fn.List.repeat }
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Array.repeat, combinedFn = Fn.List.repeat }
         ]
 
 
@@ -10958,8 +10941,8 @@ arrayFromListChecks =
                         )
             )
         , onSpecificFnCallReturnsItsLastArgCheck Fn.Array.toList
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = [], earlierFn = Fn.List.repeat, combinedFn = Fn.Array.repeat }
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.List.repeat, combinedFn = Fn.Array.repeat }
         ]
 
 
@@ -11112,9 +11095,8 @@ arrayIsEmptyChecks : IntoFnCheck
 arrayIsEmptyChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (collectionIsEmptyChecks arrayCollection)
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Array.fromList
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Array.fromList
             , combinedFn = Fn.List.isEmpty
             }
         , arrayOperationsKeepingLengthBeforeAreUnnecessaryChecks
@@ -11129,9 +11111,8 @@ arrayLengthChecks =
                 collectionSizeChecks arrayCollection checkInfo
                     |> onNothing (\() -> arrayLengthOnArrayRepeatOrInitializeChecks checkInfo)
             )
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Array.fromList
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Array.fromList
             , combinedFn = Fn.List.length
             }
         , arrayOperationsKeepingLengthBeforeAreUnnecessaryChecks
@@ -11385,9 +11366,8 @@ setIsEmptyChecks : IntoFnCheck
 setIsEmptyChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (collectionIsEmptyChecks setCollection)
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Set.fromList
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Set.fromList
             , combinedFn = Fn.List.isEmpty
             }
         , unnecessarySpecificFnBeforeCheck
@@ -11591,12 +11571,12 @@ setToListChecks =
                                     )
                             )
           , composition =
-                (onSpecificFnCallCanBeCombinedCheck
-                    { args = []
-                    , earlierFn = Fn.Set.singleton
-                    , combinedFn = Fn.List.singleton
-                    }
-                ).composition
+                \checkInfo ->
+                    convertOnSpecificFnCallCanBeCombinedCompositionCheck
+                        { earlierFn = Fn.Set.singleton
+                        , combinedFn = Fn.List.singleton
+                        }
+                        checkInfo
           }
         ]
 
@@ -11842,9 +11822,8 @@ dictIsEmptyChecks : IntoFnCheck
 dictIsEmptyChecks =
     intoFnChecksFirstThatConstructsError
         [ intoFnCheckOnlyCall (collectionIsEmptyChecks dictCollection)
-        , onSpecificFnCallCanBeCombinedCheck
-            { args = []
-            , earlierFn = Fn.Dict.fromList
+        , convertOnSpecificFnCallCanBeCombinedCheck
+            { earlierFn = Fn.Dict.fromList
             , combinedFn = Fn.List.isEmpty
             }
         , unnecessarySpecificFnBeforeCheck
@@ -17603,6 +17582,9 @@ Examples:
   - `List.filterMap identity << List.map f --> List.filterMap f`
   - `traverse identity (map f a) --> traverse f a`
 
+for checks like `List.concat << List.map f --> List.concatMap f`,
+prefer the faster `onConvertFnCanBeCombinedCheck`
+
 -}
 onSpecificFnCallCanBeCombinedCheck :
     { args :
@@ -17718,6 +17700,115 @@ onSpecificFnCallCanBeCombinedCheck config =
             else
                 Nothing
     }
+
+
+{-| Simplify this unary operation after a call to a given `earlierFn` into a given `combinedFn`.
+
+Examples:
+
+  - `List.concat (List.map f list) --> List.concatMap f list` (same for sequence+map to traverse etc)
+  - `List.concat << List.map f --> List.concatMap f`
+  - `Parser/Decoder/Random/...sequence (List.repeat n x) --> Parser/Decoder/Random/...repeat n x`
+  - `String.concat (List.repeat n x) --> String.repeat n x`
+  - `Animation.loop (List.repeat n x) --> Animation.repeat n x` using [`mdgriffith/elm-style-animation`](https://package.elm-lang.org/packages/mdgriffith/elm-style-animation/4.0.0/)
+  - `FormattedText.concat (List.intersperse s list) --> FormattedText.join s list` using [`NoRedInk/elm-formatted-text-19`](https://package.elm-lang.org/packages/NoRedInk/elm-formatted-text-19/1.0.0/)
+
+For checks where the convert function has multiplle arguments
+or requires specific arguments,
+like `List.filterMap identity << List.map f --> List.filterMap f`,
+use `onSpecificFnCallCanBeCombinedCheck`.
+
+-}
+convertOnSpecificFnCallCanBeCombinedCheck :
+    { earlierFn : ( ModuleName, String )
+    , combinedFn : ( ModuleName, String )
+    }
+    -> IntoFnCheck
+convertOnSpecificFnCallCanBeCombinedCheck config =
+    { call =
+        \checkInfo -> convertOnSpecificFnCallCanBeCombinedCallCheck config checkInfo
+    , composition =
+        \checkInfo -> convertOnSpecificFnCallCanBeCombinedCompositionCheck config checkInfo
+    }
+
+
+convertOnSpecificFnCallCanBeCombinedCallCheck :
+    { earlierFn : ( ModuleName, String )
+    , combinedFn : ( ModuleName, String )
+    }
+    -> CallCheckInfo
+    -> Maybe (Error {})
+convertOnSpecificFnCallCanBeCombinedCallCheck config checkInfo =
+    case AstHelpers.getSpecificUnreducedFnCall config.earlierFn checkInfo.lookupTable checkInfo.firstArg of
+        Just convertFnCall ->
+            Just
+                (Rule.errorWithFix
+                    { message = qualifiedToString config.earlierFn ++ ", then " ++ qualifiedToString (qualify checkInfo.fn defaultQualifyResources) ++ " can be combined into " ++ qualifiedToString config.combinedFn
+                    , details =
+                        [ "You can replace this call by "
+                            ++ qualifiedToString config.combinedFn
+                            ++ " with the same "
+                            ++ (case convertFnCall.argsAfterFirst of
+                                    [] ->
+                                        "argument"
+
+                                    _ :: _ ->
+                                        "arguments"
+                               )
+                            ++ " given to "
+                            ++ qualifiedToString config.earlierFn
+                            ++ " which is meant for this exact purpose."
+                        ]
+                    }
+                    checkInfo.fnRange
+                    (Fix.replaceRangeBy
+                        convertFnCall.fnRange
+                        (qualifiedToString (qualify config.combinedFn checkInfo))
+                        :: keepOnlyFix { parentRange = checkInfo.parentRange, keep = convertFnCall.nodeRange }
+                    )
+                )
+
+        Nothing ->
+            Nothing
+
+
+convertOnSpecificFnCallCanBeCombinedCompositionCheck :
+    { earlierFn : ( ModuleName, String )
+    , combinedFn : ( ModuleName, String )
+    }
+    -> CompositionIntoCheckInfo
+    -> Maybe ErrorInfoAndFix
+convertOnSpecificFnCallCanBeCombinedCompositionCheck config checkInfo =
+    if (checkInfo.earlier.fn == config.earlierFn) && onlyLastArgIsCurried checkInfo.later then
+        Just
+            { info =
+                { message = qualifiedToString config.earlierFn ++ ", then " ++ qualifiedToString (qualify checkInfo.later.fn defaultQualifyResources) ++ " can be combined into " ++ qualifiedToString config.combinedFn
+                , details =
+                    [ "You can replace this composition by "
+                        ++ qualifiedToString config.combinedFn
+                        ++ (case checkInfo.earlier.args of
+                                [] ->
+                                    ""
+
+                                [ _ ] ->
+                                    " with the same argument given to " ++ qualifiedToString config.earlierFn
+
+                                _ :: _ :: _ ->
+                                    " with the same arguments given to " ++ qualifiedToString config.earlierFn
+                           )
+                        ++ " which is meant for this exact purpose."
+                    ]
+                }
+            , fix =
+                [ Fix.replaceRangeBy
+                    checkInfo.earlier.fnRange
+                    (qualifiedToString (qualify config.combinedFn checkInfo))
+                , Fix.removeRange checkInfo.later.removeRange
+                ]
+            }
+
+    else
+        Nothing
 
 
 {-| The check
