@@ -1644,8 +1644,8 @@ a = Set.singleton v |> Set.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.toList on Set.singleton will result in singleton list with that element"
-                            , details = [ "You can replace this call by a singleton list with that element." ]
+                            { message = "Set.toList on Set.singleton will result in singleton list"
+                            , details = [ "You can replace this call by a singleton list containing the element given to the Set.singleton call." ]
                             , under = "Set.toList"
                             }
                             |> Review.Test.whenFixed """module A exposing (..)

@@ -11578,11 +11578,17 @@ setToListChecks =
                         |> Maybe.map
                             (\setSingletonCall ->
                                 Rule.errorWithFix
-                                    { message = qualifiedToString Fn.Set.toList ++ " on " ++ qualifiedToString Fn.Set.singleton ++ " will result in singleton list with that element"
-                                    , details = [ "You can replace this call by a singleton list with that element." ]
+                                    { message = qualifiedToString Fn.Set.toList ++ " on " ++ qualifiedToString Fn.Set.singleton ++ " will result in singleton list"
+                                    , details = [ "You can replace this call by a singleton list containing the element given to the " ++ qualifiedToString Fn.Set.singleton ++ " call." ]
                                     }
                                     checkInfo.fnRange
-                                    [ Fix.replaceRangeBy checkInfo.parentRange ("[ " ++ checkInfo.extractSourceCode (Node.range setSingletonCall.firstArg) ++ " ]") ]
+                                    (keepOnlyAndSurroundWithFix
+                                        { parentRange = checkInfo.parentRange
+                                        , keep = Node.range setSingletonCall.firstArg
+                                        , left = "[ "
+                                        , right = " ]"
+                                        }
+                                    )
                             )
           , composition =
                 (onSpecificFnCallCanBeCombinedCheck
