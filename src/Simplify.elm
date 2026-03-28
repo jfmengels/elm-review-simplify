@@ -11578,7 +11578,7 @@ setToListChecks =
                         |> Maybe.map
                             (\setSingletonCall ->
                                 Rule.errorWithFix
-                                    { message = qualifiedToString Fn.Set.toList ++ " on " ++ qualifiedToString Fn.Set.singleton ++ " will result in singleton list"
+                                    { message = qualifiedToString Fn.Set.toList ++ " on " ++ qualifiedToString Fn.Set.singleton ++ " will result in a singleton list"
                                     , details = [ "You can replace this call by a singleton list containing the element given to the " ++ qualifiedToString Fn.Set.singleton ++ " call." ]
                                     }
                                     checkInfo.fnRange

@@ -1644,7 +1644,7 @@ a = Set.singleton v |> Set.toList
                     |> Review.Test.run ruleWithDefaults
                     |> Review.Test.expectErrors
                         [ Review.Test.error
-                            { message = "Set.toList on Set.singleton will result in singleton list"
+                            { message = "Set.toList on Set.singleton will result in a singleton list"
                             , details = [ "You can replace this call by a singleton list containing the element given to the Set.singleton call." ]
                             , under = "Set.toList"
                             }
