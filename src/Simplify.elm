@@ -8106,7 +8106,7 @@ maybeWithDefaultChecks : IntoFnCheck
 maybeWithDefaultChecks =
     intoFnChecksFirstThatConstructsError
         [ withDefaultChecks maybeWithJustAsWrap
-        , onSpecificFnCallCanBeCombinedCheck
+        , withSpecificArgsOnSpecificFnCallCanBeCombinedCheck
             { earlierFn = Fn.Maybe.map
             , args = [ maybeNothingProperties ]
             , combinedFn = Fn.Maybe.andThen
@@ -8829,17 +8829,17 @@ listMapChecks =
     intoFnChecksFirstThatConstructsError
         [ emptiableMapChecks listCollection
         , listMapOnSingletonCheck
-        , onSpecificFnCallCanBeCombinedCheck
+        , withSpecificArgsOnSpecificFnCallCanBeCombinedCheck
             { args = [ tupleSecondAccessFunctionProperties ]
             , earlierFn = Fn.Array.toIndexedList
             , combinedFn = Fn.Array.toList
             }
-        , onSpecificFnCallCanBeCombinedCheck
+        , withSpecificArgsOnSpecificFnCallCanBeCombinedCheck
             { args = [ tupleFirstAccessFunctionProperties ]
             , earlierFn = Fn.Dict.toList
             , combinedFn = Fn.Dict.keys
             }
-        , onSpecificFnCallCanBeCombinedCheck
+        , withSpecificArgsOnSpecificFnCallCanBeCombinedCheck
             { args = [ tupleSecondAccessFunctionProperties ]
             , earlierFn = Fn.Dict.toList
             , combinedFn = Fn.Dict.values
@@ -17561,7 +17561,7 @@ mapToOperationWithIdentityCanBeCombinedToOperationChecks mappable =
     let
         checkIntoFn : ( ModuleName, String ) -> IntoFnCheck
         checkIntoFn combinedFn =
-            onSpecificFnCallCanBeCombinedCheck
+            withSpecificArgsOnSpecificFnCallCanBeCombinedCheck
                 { args = [ identityFunctionProperties ]
                 , earlierFn = mappable.mapFn
                 , combinedFn = combinedFn
@@ -17586,7 +17586,7 @@ for checks like `List.concat << List.map f --> List.concatMap f`,
 prefer the faster `onConvertFnCanBeCombinedCheck`
 
 -}
-onSpecificFnCallCanBeCombinedCheck :
+withSpecificArgsOnSpecificFnCallCanBeCombinedCheck :
     { args :
         List
             { argProperties
@@ -17597,7 +17597,7 @@ onSpecificFnCallCanBeCombinedCheck :
     , combinedFn : ( ModuleName, String )
     }
     -> IntoFnCheck
-onSpecificFnCallCanBeCombinedCheck config =
+withSpecificArgsOnSpecificFnCallCanBeCombinedCheck config =
     let
         laterOperationDescription : ( ModuleName, String ) -> String
         laterOperationDescription laterFn =
@@ -17716,7 +17716,7 @@ Examples:
 For checks where the convert function has multiplle arguments
 or requires specific arguments,
 like `List.filterMap identity << List.map f --> List.filterMap f`,
-use `onSpecificFnCallCanBeCombinedCheck`.
+use `withSpecificArgsOnSpecificFnCallCanBeCombinedCheck`.
 
 -}
 convertOnSpecificFnCallCanBeCombinedCheck :
