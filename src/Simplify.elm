@@ -17593,16 +17593,12 @@ mapToOperationWithIdentityCanBeCombinedToOperationChecks mappable =
     }
 
 
-{-| Simplify this operation after a given call to `earlierFn` into a given `combinedFn`.
+{-| Simplify this operation with arguments matching the conditions in `args` `is`,
+after a call to a given `earlierFn` into a given `combinedFn` with the arguments of the `earlierFn` call.
 
 Examples:
 
-  - `List.concat (List.map f list) --> List.concatMap f list` (same for sequence+map to traverse etc)
-  - `List.concat << List.map f --> List.concatMap f`
-  - `Parser/Decoder/Random/...sequence (List.repeat n x) --> Parser/Decoder/Random/...repeat n x`
-  - `String.concat (List.repeat n x) --> String.repeat n x`
-  - `Animation.loop (List.repeat n x) --> Animation.repeat n x` using [`mdgriffith/elm-style-animation`](https://package.elm-lang.org/packages/mdgriffith/elm-style-animation/4.0.0/)
-  - `FormattedText.concat (List.intersperse s list) --> FormattedText.join s list` using [`NoRedInk/elm-formatted-text-19`](https://package.elm-lang.org/packages/NoRedInk/elm-formatted-text-19/1.0.0/)
+  - `List.map Tuple.first << Dict.toList --> Dict.keys`
   - `List.filterMap identity (List.map f list) --> List.filterMap f list`
   - `List.filterMap identity << List.map f --> List.filterMap f`
   - `traverse identity (map f a) --> traverse f a`
