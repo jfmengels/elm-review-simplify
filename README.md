@@ -1,4 +1,4 @@
-# elm-review-simplify
+# TEST elm-review-simplify
 
 Provides [`elm-review`](https://package.elm-lang.org/packages/jfmengels/elm-review/latest/) rules to simplify Elm code.
 
