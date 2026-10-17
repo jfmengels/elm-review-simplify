@@ -82,6 +82,31 @@ a = case value of
 a = x
 """
                         ]
+        , test "should replace case of with multiple cases that have the same body (even if the module has imports)" <|
+            \() ->
+                [ """module A exposing (..)
+a = 1"""
+                , """module B exposing (..)
+import A
+a = case value of
+      Just _ -> x
+      Nothing -> x
+"""
+                ]
+                    |> Review.Test.runOnModules ruleWithDefaults
+                    |> Review.Test.expect
+                        [ Review.Test.moduleErrors "B"
+                            [ Review.Test.error
+                                { message = "Unnecessary case expression"
+                                , details = [ "All the branches of this case expression resolve to the same value. You can remove the case expression and replace it with the body of one of the branches." ]
+                                , under = "case"
+                                }
+                                |> Review.Test.whenFixed """module B exposing (..)
+import A
+a = x
+"""
+                            ]
+                        ]
         , test "should not replace case of with a single case when the constructor from a dependency is ignored" <|
             \() ->
                 """module A exposing (..)

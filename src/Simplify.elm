@@ -2536,7 +2536,7 @@ exposingSomeContextEmpty =
 
 foldProjectContexts : ProjectContext -> ProjectContext -> ProjectContext
 foldProjectContexts newContext previousContext =
-    { customTypesToReportInCases = Set.empty
+    { customTypesToReportInCases = previousContext.customTypesToReportInCases
     , exposedVariants = Dict.union newContext.exposedVariants previousContext.exposedVariants
     , exposedRecordTypeAliases = Dict.union newContext.exposedRecordTypeAliases previousContext.exposedRecordTypeAliases
     , exposedCustomTypes = Dict.union newContext.exposedCustomTypes previousContext.exposedCustomTypes
