@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+Bug fixes:
+- Fixed bug where case expressions with the same body in every branch were not being simplified if the file had imports.
+
 The rule now simplifies:
 - `Maybe.withDefault x (Result.toMaybe result)` to `Result.withDefault x result`
 - `Result.withDefault x (Result.mapError f result)` to `Result.withDefault x result`
