@@ -2842,8 +2842,8 @@ declarationListVisitor declarationList context =
 
 
 declarationVisitor : Node Declaration -> ModuleContext -> ModuleContext
-declarationVisitor declarationNode context =
-    case Node.value declarationNode of
+declarationVisitor (Node _ declaration) context =
+    case declaration of
         Declaration.CustomTypeDeclaration variantType ->
             let
                 variantsAreExposed : Bool
@@ -21168,8 +21168,8 @@ introducesVariableOrUsesTypeConstructor resources nodesToLookAt =
         [] ->
             False
 
-        node :: remaining ->
-            case Node.value node of
+        (Node nodeRange node) :: remaining ->
+            case node of
                 Pattern.VarPattern _ ->
                     True
 
@@ -21192,7 +21192,7 @@ introducesVariableOrUsesTypeConstructor resources nodesToLookAt =
                     introducesVariableOrUsesTypeConstructor resources (nodes ++ remaining)
 
                 Pattern.NamedPattern variantQualified nodes ->
-                    case ModuleNameLookupTable.fullModuleNameFor resources.lookupTable node of
+                    case ModuleNameLookupTable.fullModuleNameAt resources.lookupTable nodeRange of
                         Just moduleName ->
                             if Set.member ( moduleName, variantQualified.name ) resources.customTypesToReportInCases then
                                 introducesVariableOrUsesTypeConstructor resources (nodes ++ remaining)
